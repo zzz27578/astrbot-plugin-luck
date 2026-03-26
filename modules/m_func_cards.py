@@ -1,0 +1,1002 @@
+import os
+import json
+import random
+import re
+import asyncio
+from datetime import datetime
+import time 
+from astrbot.api.event import AstrMessageEvent
+from astrbot.api.message_components import Plain, Image, At
+from ..core.card_engine import CardEngine
+from ..core.dice_engine import DiceEngine
+from ..core.title_engine import TitleEngine
+from ..core.logic_gate import (
+    find_gate_block,
+    format_gate_block_message,
+    GATE_DRAW_FUNC_CARD,
+    GATE_USE_CARD,
+    GATE_TOGGLE_CARD,
+)
+
+# ================= 🎲 骰局会话状态（全局单局） =================
+PENDING_DUEL = {
+    "active": False,
+    "session_id": "",
+    "challenger_uid": "",
+    "challenger_name": "",
+    "target_uid": "",
+    "target_name": "",
+    "card_name": "",
+    "stake": 0,
+    "confirmed": False,
+    "confirm_event": None,
+    "created_at": 0,
+    "expire_at": 0,
+}
+PENDING_DUEL_LOCK = asyncio.Lock()
+DUEL_CONFIRM_WINDOW_SEC = 60
+
+
+def _is_dice_card_by_tags(tags: list) -> bool:
+    return any(str(t).startswith("dice_") or str(t).startswith("dice_rule:") for t in (tags or []))
+
+
+def _consume_target_shield_for_duel(target_data: dict) -> bool:
+    for i, st in enumerate(target_data.get("statuses", [])):
+        if st.get("name") == "无懈可击":
+            target_data["statuses"].pop(i)
+            for card in target_data.get("inventory", []):
+                if card.get("card_name") == "无懈可击" and card.get("is_active"):
+                    card["is_active"] = False
+                    card["is_broken"] = True
+                    break
+            return True
+    return False
+
+
+def _consume_lowest_reroll_status(user_data: dict, final_total: int) -> bool:
+    # 默认最低点按 1 判定（即便有修正，仍以最终总点数判最低触发）
+    if final_total != 1:
+        return False
+
+    now_ts = int(time.time())
+    statuses = user_data.get("statuses", [])
+    for i, st in enumerate(statuses):
+        if st.get("name") != "天命重投":
+            continue
+        if st.get("expire_time") and int(st.get("expire_time", 0)) <= now_ts:
+            continue
+        statuses.pop(i)
+        return True
+    return False
+
+
+def _apply_reroll_status(user_data: dict, hours: int = 24):
+    expire_time = int(time.time()) + hours * 3600
+    statuses = user_data.setdefault("statuses", [])
+    for st in statuses:
+        if st.get("name") == "天命重投":
+            st["expire_time"] = expire_time
+            st["desc"] = "下次掷到最低点时自动重投1次"
+            return
+    statuses.append({
+        "name": "天命重投",
+        "expire_time": expire_time,
+        "desc": "下次掷到最低点时自动重投1次",
+    })
+
+
+def load_func_cards_config(config: dict = None):
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "func_cards.json")
+    if not os.path.exists(config_path):
+        return []
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            raw_cards = json.load(f)
+    except Exception:
+        return []
+
+    # 仅保留可用卡牌配置：card_name 必填；其余字段兜底
+    valid_cards = []
+    for card in raw_cards if isinstance(raw_cards, list) else []:
+        if not isinstance(card, dict):
+            continue
+
+        card_name = str(card.get("card_name", "")).strip()
+        if not card_name:
+            continue
+
+        rarity_raw = card.get("rarity", 1)
+        rarity = int(rarity_raw) if str(rarity_raw).lstrip("-").isdigit() else 1
+
+        entry = {
+            "card_name": card_name,
+            "type": card.get("type", "unknown"),
+            "description": card.get("description", "一张神秘的战术卡"),
+            "filename": card.get("filename", ""),
+            "tags": card.get("tags", []),
+            "rarity": rarity,
+        }
+
+        dice_enabled = True if config is None else config.get("func_cards_settings", {}).get("enable_dice_cards", True)
+        if not dice_enabled and _is_dice_card_by_tags(entry.get("tags", [])):
+            continue
+
+        valid_cards.append(entry)
+
+    return valid_cards
+
+
+async def calculate_rank(bank, user_id):
+    all_users = await bank.get_all_users()
+    sorted_users = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0), reverse=True)
+    for rank, (uid, _) in enumerate(sorted_users):
+        if uid == user_id:
+            return rank + 1
+    return 999
+
+
+async def _resolve_duel(bank, session: dict, is_active_accept: bool) -> str:
+    """执行一场骰子对赌并返回播报文本。"""
+    challenger_uid = session["challenger_uid"]
+    target_uid = session["target_uid"]
+    challenger_name = session["challenger_name"]
+    target_name = session["target_name"]
+    stake = int(session.get("stake", 20))
+    card_name = session.get("card_name", "对赌契约")
+
+    challenger_data = await bank.get_user_data(challenger_uid, challenger_name)
+    target_data = await bank.get_user_data(target_uid, target_name)
+
+    if not is_active_accept:
+        # 超时自动迎战：可被护盾拦截
+        if _consume_target_shield_for_duel(target_data):
+            await bank.save_user_data()
+            await bank.log_battle(challenger_uid, f"使用了 [{card_name}]。结果：对方护盾触发，自动迎战阶段被拦截。")
+            await bank.log_battle(target_uid, f"遭到 {challenger_name} 使用了 [{card_name}]。结果：你触发了无懈可击，成功拒绝自动迎战。")
+            return (
+                f"🎰【赌场播报】{target_name} 超时未确认，系统代为迎战！\n"
+                f"🛡️ 然而【无懈可击】当场炸裂，自动迎战被直接拦截。\n"
+                f"💥 本局流产，庄家收桌。"
+            )
+
+    dice_engine = DiceEngine()
+    c_roll = dice_engine.roll(count=1, sides=6)
+    t_roll = dice_engine.roll(count=1, sides=6)
+
+    c_final = int(c_roll.get("final_total", 0))
+    t_final = int(t_roll.get("final_total", 0))
+
+    reroll_msgs = []
+    if _consume_lowest_reroll_status(challenger_data, c_final):
+        c_roll = dice_engine.roll(count=1, sides=6)
+        c_final = int(c_roll.get("final_total", 0))
+        reroll_msgs.append(f"🍀 {challenger_name} 触发【天命重投】！重投后点数：{c_final}")
+
+    if _consume_lowest_reroll_status(target_data, t_final):
+        t_roll = dice_engine.roll(count=1, sides=6)
+        t_final = int(t_roll.get("final_total", 0))
+        reroll_msgs.append(f"🍀 {target_name} 触发【天命重投】！重投后点数：{t_final}")
+
+    # 结算：平局不转移；纯水局（stake<=0）只播报胜负
+    result_line = ""
+    if c_final > t_final:
+        if stake <= 0:
+            result_line = f"🏆 {challenger_name} 胜出！"
+        else:
+            transfer = min(stake, max(0, target_data.get("total_gold", 0)))
+            target_data["total_gold"] -= transfer
+            challenger_data["total_gold"] += transfer
+            result_line = f"🏆 {challenger_name} 胜出，卷走 {transfer} 金币！"
+    elif t_final > c_final:
+        if stake <= 0:
+            result_line = f"🏆 {target_name} 反杀成功！"
+        else:
+            transfer = min(stake, max(0, challenger_data.get("total_gold", 0)))
+            challenger_data["total_gold"] -= transfer
+            target_data["total_gold"] += transfer
+            result_line = f"🏆 {target_name} 反杀成功，反卷 {transfer} 金币！"
+    else:
+        result_line = "🤝 双方点数相同，本局和局。"
+
+    await bank.save_user_data()
+
+    mode_text = "主动应战（防御失效）" if is_active_accept else "超时自动迎战（可被防御）"
+    lines = [
+        f"🎰【赌场播报】{challenger_name} vs {target_name}",
+        f"🧾 对局模式：{mode_text}",
+        f"🎲 {challenger_name} 掷出：{c_final} | {target_name} 掷出：{t_final}",
+    ]
+    lines.extend(reroll_msgs)
+    lines.append(result_line)
+
+    report = "\n".join(lines)
+    await bank.log_battle(challenger_uid, f"使用了 [{card_name}]。结果：{report}")
+    await bank.log_battle(target_uid, f"遭到 {challenger_name} 使用了 [{card_name}]。结果：{report}")
+    return report
+
+
+async def handle_confirm_duel(event: AstrMessageEvent):
+    user_id = event.get_sender_id()
+
+    async with PENDING_DUEL_LOCK:
+        if not PENDING_DUEL.get("active"):
+            yield event.plain_result("🎲 当前没有待确认的对赌局。")
+            return
+
+        if user_id != PENDING_DUEL.get("target_uid"):
+            yield event.plain_result("⚠️ 只有被挑战者可以确认应战。")
+            return
+
+        if PENDING_DUEL.get("confirmed"):
+            yield event.plain_result("✅ 该对局已确认，请等待结算。")
+            return
+
+        PENDING_DUEL["confirmed"] = True
+        confirm_event = PENDING_DUEL.get("confirm_event")
+        if confirm_event:
+            confirm_event.set()
+
+        target_name = PENDING_DUEL.get("target_name")
+
+    yield event.plain_result(f"🔥【赌场播报】{target_name} 已确认应战！\n战鼓已响，筹码入池，正在掷骰...")
+
+
+async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    func_cfg = (config or {}).get("func_cards_settings", {})
+    if not func_cfg.get("enable_pure_dice_mode", False):
+        yield event.plain_result("🎲 纯水对赌模式未开启。")
+        return
+
+    user_data = await bank.get_user_data(user_id, user_name)
+    daily_limit = int(func_cfg.get("pure_dice_daily_limit", 3) or 3)
+    if user_data.get("pure_dice_date") != today:
+        user_data["pure_dice_date"] = today
+        user_data["pure_dice_count"] = 0
+
+    if int(user_data.get("pure_dice_count", 0)) >= daily_limit:
+        yield event.plain_result(f"⛔ 你今天的纯水对赌次数已用尽（{daily_limit}/{daily_limit}）。")
+        return
+
+    target_id = None
+    for comp in event.get_messages():
+        if isinstance(comp, At):
+            target_id = str(comp.qq)
+            break
+
+    if not target_id:
+        yield event.plain_result("⚠️ 纯水对赌必须 @ 一名目标。示例：/luck 对赌 @某人")
+        return
+
+    if target_id == user_id:
+        yield event.plain_result("⚠️ 不能和自己对赌。")
+        return
+
+    raw_text = event.message_str.replace("/luck", "").strip()
+    if not raw_text.startswith("对赌"):
+        yield event.plain_result("⚠️ 纯水对赌格式：/luck 对赌@某人（或 /luck 对赌 @某人）")
+        return
+
+    all_users = await bank.get_all_users()
+    target_name = all_users.get(target_id, {}).get("name", f"群友({target_id})")
+
+    async with PENDING_DUEL_LOCK:
+        if PENDING_DUEL.get("active"):
+            yield event.plain_result("🎰 当前已有对局进行中，请稍候再开盘。")
+            return
+
+        confirm_event = asyncio.Event()
+        PENDING_DUEL.update({
+            "active": True,
+            "session_id": f"duel:{user_id}:{target_id}:{int(time.time())}",
+            "challenger_uid": user_id,
+            "challenger_name": user_name,
+            "target_uid": target_id,
+            "target_name": target_name,
+            "card_name": "纯水对赌",
+            "stake": 0,
+            "confirmed": False,
+            "confirm_event": confirm_event,
+            "created_at": int(time.time()),
+            "expire_at": int(time.time()) + DUEL_CONFIRM_WINDOW_SEC,
+        })
+
+    yield event.plain_result(
+        f"🎰【赌场播报】{user_name} 发起了纯水对赌！\n"
+        f"🎲 目标：{target_name}\n"
+        f"📣 请 {target_name} 在 60 秒内回复「/luck 确认」应战！\n"
+        f"⏳ 超时未确认，将视为自动迎战（可被防御拦截）。"
+    )
+
+    accepted = False
+    try:
+        await asyncio.wait_for(confirm_event.wait(), timeout=DUEL_CONFIRM_WINDOW_SEC)
+        accepted = True
+    except asyncio.TimeoutError:
+        accepted = False
+
+    async with PENDING_DUEL_LOCK:
+        session = dict(PENDING_DUEL)
+        PENDING_DUEL.update({
+            "active": False,
+            "session_id": "",
+            "challenger_uid": "",
+            "challenger_name": "",
+            "target_uid": "",
+            "target_name": "",
+            "card_name": "",
+            "stake": 0,
+            "confirmed": False,
+            "confirm_event": None,
+            "created_at": 0,
+            "expire_at": 0,
+        })
+
+    report_str = await _resolve_duel(bank, session, is_active_accept=accepted)
+
+    user_data["pure_dice_count"] = int(user_data.get("pure_dice_count", 0)) + 1
+    await bank.save_user_data()
+    remain = max(0, daily_limit - int(user_data.get("pure_dice_count", 0)))
+
+    yield event.plain_result(
+        f"⚡ {user_name} 完成了一场【纯水对赌】！\n━━━━━━━━\n{report_str}\n🎟️ 今日纯水对赌剩余次数：{remain}"
+    )
+
+
+# ================= 🏆 善恶排行榜逻辑 =================
+async def handle_karma_leaderboard(event: AstrMessageEvent, bank, board_length: int = 10):
+    all_users = await bank.get_all_users()
+    valid_users = {uid: data for uid, data in all_users.items() if data.get("karma_value", 0) != 0}
+
+    if not valid_users:
+        yield event.plain_result("⚖️ 【天道善恶榜】\n当前异世界一片祥和，暂无行善或积恶之人上榜。")
+        return
+
+    sorted_users = sorted(valid_users.items(), key=lambda x: x[1].get("karma_value", 0), reverse=True)
+    lines = ["⚖️ 【天道善恶榜】", "━━━━━━━━━━━━━━"]
+
+    for i, (uid, data) in enumerate(sorted_users[:board_length]):
+        # 💡 修复：真名显示
+        name = data.get("name", f"群友({uid})")
+        karma = data.get("karma_value", 0)
+        tag = "👼 善" if karma > 0 else "💀 恶"
+        lines.append(f"{i+1}. {name} | 业报: {karma} {tag}")
+
+    lines.append("━━━━━━━━━━━━━━")
+    lines.append("💡 施放治疗法术积攒善意，发起攻击累积罪恶。")
+    yield event.plain_result("\n".join(lines))
+
+
+# ================= 🎴 核心功能卡牌逻辑 =================
+async def handle_panel(event: AstrMessageEvent, bank, config: dict):
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+
+    user_data = await bank.get_user_data(user_id, user_name)
+    rank = await calculate_rank(bank, user_id)
+    panel_title = config.get("ui_settings", {}).get("panel_title", "【个人状态观测仪】")
+
+    gold = user_data.get("total_gold", 0)
+    karma = user_data.get("karma_value", 0)
+    karma_str = f"+{karma} (善)" if karma > 0 else f"{karma} (恶)" if karma < 0 else "0 (中立)"
+
+    lines = [
+        f"📊 {panel_title}",
+        f"👤 观测对象：{user_name}",
+        f"💰 金币总量：{gold} (位阶：第 {rank} 位)",
+        f"⚖️ 善恶业报：{karma_str}"
+    ]
+    
+    titles = user_data.get("titles", [])
+    if not titles:
+        lines.append("🏅 当前称号：无名之辈")
+    else:
+        lines.append("🏅 【拥有称号】")
+        for t in titles:
+            t_info = TitleEngine.get_title_info(t)
+            lines.append(f"  ▪️ {t_info['name']} - {t_info['desc']}")
+            
+    lines.append("━━━━━━━━━━━━━━")
+    lines.append("🎭 【异界干涉状态】")
+    statuses = user_data.get("statuses", [])
+    now = int(time.time())
+    valid_statuses = []
+    for st in statuses:
+        if "expire_time" in st:
+            if now < st["expire_time"]:
+                rem_sec = st["expire_time"] - now
+                h, r = divmod(rem_sec, 3600)
+                m, _ = divmod(r, 60)
+                desc = f"剩余 {h}小时{m}分自动解封"
+                lines.append(f"  ▪️ [{st.get('name')}] - {desc}")
+                valid_statuses.append(st)
+        else:
+            lines.append(f"  ▪️ [{st.get('name', '未知')}] - {st.get('desc', '')}")
+            valid_statuses.append(st)
+            
+    if len(valid_statuses) != len(statuses):
+        user_data["statuses"] = valid_statuses
+        await bank.save_user_data()
+
+    if not valid_statuses:
+        lines.append("  🎐 当前周身清明，无任何异样状态。")
+    lines.append("━━━━━━━━━━━━━━")
+    lines.append("🎲 【骰局状态】")
+    now_ts = int(time.time())
+    dice_status_lines = []
+    for st in valid_statuses:
+        name = str(st.get("name", ""))
+        is_dice_state = (
+            name in {"天命重投", "职业骰"}
+            or any(k in st for k in ["dice_count_mod", "dice_sides_mod", "dice_total_mod", "dice_min_floor_mod", "dice_max_cap_mod"])
+        )
+        if not is_dice_state:
+            continue
+
+        desc_parts = []
+        if name == "天命重投":
+            desc_parts.append("下次掷到最低点时自动重投1次")
+        if st.get("dice_count_mod"):
+            desc_parts.append(f"骰子数量{int(st.get('dice_count_mod')):+d}")
+        if st.get("dice_sides_mod"):
+            desc_parts.append(f"骰子面数{int(st.get('dice_sides_mod')):+d}")
+        if st.get("dice_total_mod"):
+            desc_parts.append(f"总点修正{int(st.get('dice_total_mod')):+d}")
+        if st.get("dice_min_floor_mod"):
+            desc_parts.append(f"最小值+{int(st.get('dice_min_floor_mod'))}")
+        if st.get("dice_max_cap_mod"):
+            desc_parts.append(f"最大值+{int(st.get('dice_max_cap_mod'))}")
+
+        if st.get("expire_time") and int(st.get("expire_time", 0)) > now_ts:
+            rem_sec = int(st.get("expire_time", 0)) - now_ts
+            h, r = divmod(rem_sec, 3600)
+            m, _ = divmod(r, 60)
+            desc_parts.append(f"剩余 {h}小时{m}分")
+
+        desc = "，".join(desc_parts) if desc_parts else st.get("desc", "骰子规则生效中")
+        dice_status_lines.append(f"  ▪️ [{name}] - {desc}")
+
+    if not dice_status_lines:
+        lines.append("  🎲 当前无骰局加成状态。")
+    else:
+        lines.extend(dice_status_lines)
+
+    lines.append("━━━━━━━━━━━━━━")
+    inventory = user_data.get("inventory", [])
+    slot_count = len(inventory)
+    lines.append(f"🎴 【战术卡槽】 ({slot_count}/3)")
+    for i in range(3):
+        if i < slot_count:
+            card = inventory[i]
+            card_name = card.get("card_name", "未知卡牌")
+            
+            # 💡 战损系统面板渲染
+            if card.get("is_broken", False):
+                status_tag = " (💔已销毁)"
+            else:
+                status_tag = " (🛡️已启用)" if card.get("is_active", False) else ""
+                
+            lines.append(f"  {i+1}. [{card_name}]{status_tag}")
+        else:
+            lines.append(f"  {i+1}. [空]")
+
+    lines.append("━━━━━━━━━━━━━━")
+    lines.append("📜 【近期恩怨纪事（最近3天）】")
+    battle_logs = user_data.get("battle_logs", [])
+    if not battle_logs:
+        lines.append("  🎐 近期风和日丽，无事发生。")
+    else:
+        for log in battle_logs:
+            lines.append(f"  {log}")
+
+    yield event.plain_result("\n".join(lines))
+
+async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
+    # (此函数内部未涉及真名抓取，与之前相同，直接粘贴即可)
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    user_data = await bank.get_user_data(user_id, user_name)
+    blocked_by = find_gate_block(user_data, GATE_DRAW_FUNC_CARD)
+    if blocked_by:
+        msg = format_gate_block_message(
+            blocked_by,
+            "⚠️ 你的当前状态禁止抽取功能牌，请稍后再试。"
+        )
+        yield event.plain_result(msg)
+        return
+
+    cards_config = load_func_cards_config(config)
+    if not cards_config:
+        yield event.plain_result("⚠️ 功能牌卡池为空或配置无效，请检查 config/func_cards.json。")
+        return
+    eco_cfg = config.get("func_cards_settings", {}).get("economy_settings", {})
+    draw_cost = eco_cfg.get("draw_cost", 20)
+    free_daily = eco_cfg.get("free_daily_draw", 1)
+    base_prob = eco_cfg.get("draw_probability", 5)
+    pity_threshold = eco_cfg.get("pity_threshold", 10)
+
+    if user_data.get("last_func_draw_date") != today:
+        user_data["last_func_draw_date"] = today
+        user_data["today_free_draws"] = free_daily
+        user_data["today_paid_draws"] = 0 
+    
+    inventory = user_data.get("inventory", [])
+    if len(inventory) >= 3:
+        yield event.plain_result("⚠️ 你的战术卡槽已满 (3/3)！请先使用或发送「/luck 丢弃 [卡名]」腾出空间。")
+        return
+
+    is_free = False
+    if user_data.get("today_free_draws", 0) > 0:
+        user_data["today_free_draws"] -= 1
+        is_free = True
+    else:
+        if user_data.get("today_paid_draws", 0) >= 1:
+            yield event.plain_result("⚠️ 天道法则限制：每天最多只能进行 1 次额外付费抽取。")
+            return
+        success = await bank.change_gold(user_id, -draw_cost)
+        if not success:
+            yield event.plain_result(f"📉 金币不足或已坠入深渊！每次额外抽取需要 {draw_cost} 金币。")
+            return
+        user_data["today_paid_draws"] = user_data.get("today_paid_draws", 0) + 1
+        
+    luck_val = user_data.get("today_luck_value", 50) 
+    luck_mod = 0
+    if 51 <= luck_val <= 70: luck_mod = 2
+    elif 71 <= luck_val <= 90: luck_mod = 5
+    elif 91 <= luck_val <= 100: luck_mod = 10
+    
+    title_mod = TitleEngine.calculate_total_bonus_prob(user_data.get("titles", []))
+
+    now_ts = int(time.time())
+    status_prob_mod = 0
+    for st in user_data.get("statuses", []):
+        if st.get("expire_time") and st.get("expire_time", 0) <= now_ts:
+            continue
+        status_prob_mod += int(st.get("func_draw_prob_mod", 0) or 0)
+
+    final_prob = base_prob + luck_mod + title_mod + status_prob_mod
+    final_prob = max(0, min(100, final_prob))
+    
+    current_pity = user_data.get("func_card_pity_count", 0)
+    roll = random.randint(1, 100)
+    
+    is_hit = False
+    if current_pity + 1 >= pity_threshold:
+        is_hit = True
+        hit_reason = "【深渊同情·保底触发】"
+    elif roll <= final_prob:
+        is_hit = True
+        hit_reason = f"【星象共鸣·出金率 {final_prob}% 触发！】"
+    
+    if not is_hit:
+        user_data["func_card_pity_count"] += 1
+        await bank.save_user_data()
+        cost_str = f"消耗：免费抽取次数（下次 {draw_cost} 金币）" if is_free else f"消耗：{draw_cost} 金币"
+        yield event.plain_result(f"💨 法阵闪烁了一瞬，随后化为乌有...\n━━━━━━━━\n{cost_str}\n📈 祈愿保底进度：{user_data['func_card_pity_count']}/{pity_threshold}\n💡 当前你的出金率为：{final_prob}% (基础{base_prob}% +运势{luck_mod}% +称号{title_mod}% +状态{status_prob_mod}%)")
+        return
+
+    user_data["func_card_pity_count"] = 0 
+    rarity_map = {1: "⚪ 普通", 2: "🔵 稀有", 3: "🟣 史诗", 4: "🟡 传说", 5: "🔴 神话"}
+    
+    r_roll = random.randint(1, 100)
+    if r_roll <= 2: target_rarity = 5
+    elif r_roll <= 8: target_rarity = 4
+    elif r_roll <= 20: target_rarity = 3
+    elif r_roll <= 50: target_rarity = 2
+    else: target_rarity = 1
+
+    pool = [c for c in cards_config if c.get("rarity", 1) == target_rarity]
+    
+    while not pool and target_rarity > 1:
+        target_rarity -= 1
+        pool = [c for c in cards_config if c.get("rarity", 1) == target_rarity]
+    
+    if not pool: pool = cards_config 
+
+    card = random.choice(pool)
+    actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
+    
+    user_data["inventory"].append({
+        "card_name": card["card_name"],
+        "is_active": False,
+        "is_broken": False # 💡 默认完好无损
+    })
+    await bank.save_user_data()
+
+    cost_str = f"消耗：免费抽取次数（下次 {draw_cost} 金币）" if is_free else f"消耗：{draw_cost} 金币"
+    text = card.get("description", "一张神秘的战术卡")
+    res_text = f"✨ {hit_reason}\n你从虚空中凝结出了：\n【{actual_rarity_str}】{card['card_name']}\n━━━━━━━━\n📝 {text}\n{cost_str}\n🎴 当前卡槽：{len(user_data['inventory'])}/3"
+
+    img_filename = str(card.get("filename", "")).strip()
+    img_path = os.path.join(os.path.dirname(__file__), "..", "assets", "func_cards", img_filename)
+
+    if img_filename and os.path.isfile(img_path):
+        yield event.chain_result([Image.fromFileSystem(img_path), Plain("\n" + res_text)])
+    else:
+        # 图片为可选项：未配置或文件缺失时，自动降级为纯文本结果
+        if img_filename:
+            res_text += f"\n⚠️ 卡图未找到：{img_filename}（已使用纯文本展示）"
+        yield event.plain_result(res_text)
+
+async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: str):
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+
+    if not target_card_name:
+        yield event.plain_result("⚠️ 请指定要丢弃的卡牌名。例如：/luck 丢弃 掠夺之手")
+        return
+
+    user_data = await bank.get_user_data(user_id, user_name)
+    inventory = user_data.get("inventory", [])
+
+    if not inventory:
+        yield event.plain_result(f"📭 {user_name}，你的战术卡槽空空如也，无牌可丢。")
+        return
+
+    found_index = -1
+    for i, card in enumerate(inventory):
+        if card.get("card_name") == target_card_name:
+            found_index = i
+            break
+
+    if found_index != -1:
+        discarded_card = inventory.pop(found_index)
+        await bank.save_user_data()
+        
+        status_note = ""
+        if discarded_card.get("is_broken"):
+            status_note = " (清理了废铁)"
+        elif discarded_card.get("is_active"):
+            status_note = " (撤销了护盾阵眼)"
+            
+        yield event.plain_result(f"🗑️ 你将 [{target_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{len(inventory)}/3")
+    else:
+        yield event.plain_result(f"❓ 你的卡槽中并未发现名为 [{target_card_name}] 的战术牌。")
+
+async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: dict = None):
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    raw_text = event.message_str.replace("/luck", "").strip()
+    match = re.search(r"使用\s*([^\s@]+)", raw_text)
+    if not match:
+        yield event.plain_result("⚠️ 咒语格式错误。\n👉 举例：/luck 使用绝对零度@某人\n👉 也支持：/luck 使用 绝对零度 @某人\n👉 群攻：/luck 使用南蛮入侵")
+        return
+    target_card_name = match.group(1).strip()
+
+    user_data = await bank.get_user_data(user_id, user_name)
+    blocked_by = find_gate_block(user_data, GATE_USE_CARD)
+    if blocked_by:
+        msg = format_gate_block_message(
+            blocked_by,
+            "⚠️ 你的当前状态禁止使用功能牌，请稍后再试。"
+        )
+        yield event.plain_result(msg)
+        return
+
+    inventory = user_data.get("inventory", [])
+    found_index = -1
+    for i, card in enumerate(inventory):
+        if card.get("card_name") == target_card_name:
+            found_index = i
+            break
+            
+    if found_index == -1:
+        yield event.plain_result(f"❓ 你的卡槽中并未发现 [{target_card_name}]。")
+        return
+        
+    # 💡 战损拦截：破烂的牌无法被使用
+    if inventory[found_index].get("is_broken", False):
+        yield event.plain_result(f"⚠️ 你的 [{target_card_name}] 已经彻底销毁，只剩一堆废铁，无法催动魔力！请发送「/luck 丢弃 {target_card_name}」清理卡槽。")
+        return
+
+    cards_config = load_func_cards_config(config)
+    card_cfg = next((c for c in cards_config if c.get("card_name") == target_card_name), None)
+    if not card_cfg:
+        all_cards = load_func_cards_config(None)
+        raw_cfg = next((c for c in all_cards if c.get("card_name") == target_card_name), None)
+        if raw_cfg and _is_dice_card_by_tags(raw_cfg.get("tags", [])) and not (config or {}).get("func_cards_settings", {}).get("enable_dice_cards", True):
+            yield event.plain_result("🎲 当前已关闭骰子玩法，无法使用该骰子功能牌。")
+            return
+        yield event.plain_result("⚠️ 异界法则缺失，无法解析该卡牌属性。")
+        return
+
+    card_type = card_cfg.get("type", "unknown")
+    tags = card_cfg.get("tags", [])
+    is_aoe = any(t.startswith("aoe_") for t in tags)
+    is_dice_duel = any(str(t).startswith("dice_duel:") for t in tags)
+    is_reroll_bless = any(str(t) == "dice_reroll_lowest_once" for t in tags)
+
+    if card_type == "defense":
+        yield event.plain_result(f"🛡️ [{target_card_name}] 是防御牌，无法直接使用。\n👉 请发送：/luck 启用 {target_card_name}")
+        return
+
+    target_id = None
+    target_name = None
+    is_random = False
+    all_users = await bank.get_all_users()
+    target_data = None
+
+    if not is_aoe:
+        for comp in event.get_messages():
+            if isinstance(comp, At):
+                target_id = str(comp.qq)
+                break
+        
+        if not target_id and "随机" in raw_text:
+            is_random = True
+
+        if is_dice_duel:
+            is_random = False
+
+        if card_type == "attack":
+            if not target_id and not is_random:
+                yield event.plain_result(f"⚠️ 施法中断！使用【{target_card_name}】必须指定目标。\n👉 请 @ 一名群友，或者在指令最后加上“随机”。")
+                return
+            
+            if is_random:
+                valid_targets = [uid for uid in all_users.keys() if uid != user_id]
+                if not valid_targets:
+                    yield event.plain_result("⚠️ 虚空之中空无一人，找不到可以盲打的目标！")
+                    return
+                target_id = random.choice(valid_targets)
+                # 💡 修复：强制真名盲打播报
+                target_name = all_users[target_id].get("name", f"群友({target_id})")
+                yield event.plain_result(f"🎲 命运的轮盘开始转动... 法术锁定了盲打目标：{target_name}！")
+
+        elif card_type == "heal":
+            if not target_id:
+                target_id = user_id
+
+        if card_type == "attack" and target_id == user_id:
+            yield event.plain_result("⚠️ 异界法则禁止将恶意法术倾泻在自己身上！")
+            return
+
+        # 💡 修复：确保无论是不是盲打，获取的都是真名
+        if target_id in all_users:
+            real_target_name = all_users[target_id].get("name", target_name or f"群友({target_id})")
+        else:
+            real_target_name = target_name or f"群友({target_id})"
+
+        target_data = await bank.get_user_data(target_id, real_target_name)
+    else:
+        target_id = "AOE"
+
+    # 🎲 天命重投：主动上状态，不走攻击结算
+    if is_reroll_bless:
+        _apply_reroll_status(user_data, hours=24)
+        inventory.pop(found_index)
+        await bank.save_user_data()
+        yield event.plain_result(
+            f"🍀 {user_name} 启动了 [{target_card_name}]！\n"
+            f"接下来 24 小时内，你在掷骰出现最低点时将自动重投 1 次。\n"
+            f"🎴 当前卡槽：{len(inventory)}/3"
+        )
+        return
+
+    # 🎰 对赌卡：进入确认窗口（并发锁）
+    if is_dice_duel:
+        if not target_id or target_id == user_id:
+            yield event.plain_result("⚠️ 对赌必须 @ 一名其他玩家。")
+            return
+
+        duel_tag = next((str(t) for t in tags if str(t).startswith("dice_duel:")), "dice_duel:20")
+        try:
+            stake = max(1, int(duel_tag.split(":")[1]))
+        except Exception:
+            stake = 20
+
+        async with PENDING_DUEL_LOCK:
+            if PENDING_DUEL.get("active"):
+                yield event.plain_result("🎰 当前已有对局进行中，请稍候再开盘。")
+                return
+
+            target_name_duel = target_data.get("name", f"群友({target_id})")
+            confirm_event = asyncio.Event()
+            PENDING_DUEL.update({
+                "active": True,
+                "session_id": f"duel:{user_id}:{target_id}:{int(time.time())}",
+                "challenger_uid": user_id,
+                "challenger_name": user_name,
+                "target_uid": target_id,
+                "target_name": target_name_duel,
+                "card_name": target_card_name,
+                "stake": stake,
+                "confirmed": False,
+                "confirm_event": confirm_event,
+                "created_at": int(time.time()),
+                "expire_at": int(time.time()) + DUEL_CONFIRM_WINDOW_SEC,
+            })
+
+        yield event.plain_result(
+            f"🎰【赌场播报】{user_name} 向 {target_name_duel} 发起了高压对赌！\n"
+            f"💰 本局筹码：{stake} 金币\n"
+            f"📣 请 {target_name_duel} 在 60 秒内回复「/luck 确认」应战！\n"
+            f"⏳ 超时未确认，将视为自动迎战（可被防御拦截）。"
+        )
+
+        accepted = False
+        try:
+            await asyncio.wait_for(confirm_event.wait(), timeout=DUEL_CONFIRM_WINDOW_SEC)
+            accepted = True
+        except asyncio.TimeoutError:
+            accepted = False
+
+        async with PENDING_DUEL_LOCK:
+            session = dict(PENDING_DUEL)
+            PENDING_DUEL.update({
+                "active": False,
+                "session_id": "",
+                "challenger_uid": "",
+                "challenger_name": "",
+                "target_uid": "",
+                "target_name": "",
+                "card_name": "",
+                "stake": 0,
+                "confirmed": False,
+                "confirm_event": None,
+                "created_at": 0,
+                "expire_at": 0,
+            })
+
+        # 对赌牌消耗
+        inventory.pop(found_index)
+
+        report_str = await _resolve_duel(bank, session, is_active_accept=accepted)
+
+        if user_data.get("last_attack_date") != today:
+            user_data["last_attack_date"] = today
+            user_data["daily_attack_count"] = 1
+            karma_report = "\n🩸 【天道法则】今日首次发起攻击，世界线已留下你的气息。"
+        else:
+            user_data["daily_attack_count"] += 1
+            user_data["karma_value"] -= 1
+            karma_report = "\n💀 【业报积累】今日连续发动攻击，善恶值 -1！"
+
+        await bank.save_user_data()
+        yield event.plain_result(
+            f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{len(inventory)}/3"
+        )
+        return
+    if card_type == "attack":
+        if user_data.get("last_attack_date") != today:
+            user_data["last_attack_date"] = today
+            user_data["daily_attack_count"] = 1
+            karma_report = "\n🩸 【天道法则】今日首次发起攻击，世界线已留下你的气息。"
+        else:
+            user_data["daily_attack_count"] += 1
+            user_data["karma_value"] -= 1
+            karma_report = "\n💀 【业报积累】今日连续发动攻击，善恶值 -1！"
+            
+    elif card_type == "heal" and (target_id != user_id or is_aoe):
+        user_data["karma_value"] += 1
+        karma_report = "\n👼 【善意涌动】福泽四方，善恶值 +1！"
+
+    engine = CardEngine()
+    battle_reports = await engine.execute_tags(user_data, target_data, tags, all_users, user_id)
+
+    # AOE 施法者使用简报，避免日志过长；被波及者保留精准个人战报
+    if is_aoe:
+        aoe_events = [e for e in engine.last_aoe_events if e.get("target_uid") != user_id]
+        affected_count = len(aoe_events)
+        blocked_count = sum(1 for e in aoe_events if e.get("blocked"))
+        if any(t.startswith("aoe_heal:") for t in tags):
+            total_heal = sum(int(e.get("amount", 0)) for e in aoe_events)
+            report_str = f"🌿 群体援护生效，波及 {affected_count} 人（免疫 {blocked_count} 人），总恢复 {total_heal} 金币。"
+        else:
+            total_damage = sum(int(e.get("amount", 0)) for e in aoe_events)
+            report_str = f"🏹 群体攻势生效，波及 {affected_count} 人（免疫 {blocked_count} 人），总造成 {total_damage} 金币影响。"
+    else:
+        report_str = "\n".join(battle_reports) if battle_reports else "💨 法术消散在风中，似乎什么也没发生..."
+    
+    inventory.pop(found_index)
+    await bank.save_user_data()
+
+    final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{len(inventory)}/3"
+    
+    log_msg = f"使用了 [{target_card_name}]"
+    await bank.log_battle(user_id, f"{log_msg}。结果：{report_str}")
+
+    if is_aoe:
+        for aoe_event in engine.last_aoe_events:
+            target_uid_evt = str(aoe_event.get("target_uid", ""))
+            if not target_uid_evt or target_uid_evt == user_id:
+                continue
+
+            amount = int(aoe_event.get("amount", 0))
+            blocked = bool(aoe_event.get("blocked", False))
+            if aoe_event.get("type") == "aoe_heal":
+                target_report = f"受到 {user_name} 使用了 [{target_card_name}] 的援助。结果：✨ 获得 {amount} 金币恢复。"
+            else:
+                if blocked:
+                    target_report = f"遭到 {user_name} 使用了 [{target_card_name}]。结果：🛡️ 你触发了【无懈可击】，免疫了这次 AOE！"
+                else:
+                    target_report = f"遭到 {user_name} 使用了 [{target_card_name}]。结果：💥 被 AOE 波及，损失 {amount} 金币。"
+
+            await bank.log_battle(target_uid_evt, target_report)
+    elif target_id != user_id:
+        await bank.log_battle(target_id, f"遭到 {user_name} {log_msg}。结果：{report_str}")
+
+    yield event.plain_result(final_msg)
+
+async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_activate: bool):
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+    
+    action_str = "启用" if is_activate else "停用"
+    raw_text = event.message_str.replace("/luck", "").strip()
+    match = re.search(rf"{action_str}\s*([^\s]+)", raw_text)
+    
+    if not match:
+        yield event.plain_result(f"⚠️ 格式错误。正确格式：/luck {action_str}卡牌名（或 /luck {action_str} 卡牌名）")
+        return
+        
+    target_card_name = match.group(1).strip()
+    user_data = await bank.get_user_data(user_id, user_name)
+    
+    blocked_by = find_gate_block(user_data, GATE_TOGGLE_CARD)
+    if blocked_by:
+        msg = format_gate_block_message(
+            blocked_by,
+            "⚠️ 你的当前状态禁止启用或停用功能牌，请稍后再试。"
+        )
+        yield event.plain_result(msg)
+        return
+
+    inventory = user_data.get("inventory", [])
+
+    for card in inventory:
+        if card.get("card_name") == target_card_name:
+            
+            # 💡 战损拦截：破烂的牌不能挂载
+            if card.get("is_broken", False):
+                yield event.plain_result(f"⚠️ 你的 [{target_card_name}] 已经销毁，无法再作为法阵阵眼！请先丢弃它。")
+                return
+
+            if card.get("is_active") == is_activate:
+                yield event.plain_result(f"⚠️ [{target_card_name}] 已经处于该状态了。")
+                return
+                
+            cards_config = load_func_cards_config()
+            card_cfg = next((c for c in cards_config if c.get("card_name") == target_card_name), {})
+            
+            if card_cfg.get("type") != "defense":
+                yield event.plain_result("⚠️ 只有【防御牌】才能被挂载到状态栏。")
+                return
+            
+            engine = CardEngine()
+            if is_activate:
+                await engine.execute_tags(user_data, user_data, card_cfg.get("tags", []))
+                card["is_active"] = True
+                msg = f"🛡️ 阵法流转！[{target_card_name}] 已成功挂载至你的状态栏，时刻警戒四周。"
+            else:
+                # 根据防御牌词条，卸载对应状态
+                remove_names = []
+                for tag in card_cfg.get("tags", []):
+                    if tag == "add_shield":
+                        remove_names.append("无懈可击")
+                    elif tag.startswith("thorn_armor:"):
+                        remove_names.append("反甲")
+
+                if remove_names:
+                    user_data["statuses"] = [
+                        st for st in user_data.get("statuses", [])
+                        if st.get("name") not in set(remove_names)
+                    ]
+
+                card["is_active"] = False
+                msg = f"🎐 灵力收回，[{target_card_name}] 已从你的状态栏卸载，重回卡槽休眠。"
+                
+            await bank.save_user_data()
+            yield event.plain_result(msg)
+            return
+
+    yield event.plain_result(f"❓ 你的卡槽中并未发现 [{target_card_name}]。")

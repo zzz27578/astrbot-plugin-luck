@@ -1,0 +1,156 @@
+{
+  "global_settings": {
+    "type": "object",
+    "description": "⚙️ 全局核心设置",
+    "items": {
+      "prefix": {
+        "type": "string",
+        "description": "唤醒前缀",
+        "default": "/luck",
+        "hint": "所有金币系统指令的固定前缀，强烈建议保留斜杠以防与机器人的日常对话冲突。"
+      }
+    }
+  },
+  "admin_settings": {
+    "type": "object",
+    "description": "👑 天道权限 (管理员设定)",
+    "items": {
+      "use_native_admin": {
+        "type": "bool",
+        "description": "挂钩 AstrBot 原生管理员",
+        "default": true,
+        "hint": "开启后，系统会自动识别 AstrBot 原生配置中的 Bot 管理员，为其赋予特权命令。"
+      },
+      "extra_admin_qqs": {
+        "type": "string",
+        "description": "额外管理员 QQ",
+        "default": "",
+        "hint": "除原生管理员外，额外赋予特权的人员。多个QQ号请用英文逗号(,)分隔。"
+      }
+    }
+  },
+  "ui_settings": {
+    "type": "object",
+    "description": "🖥️ 界面与显示设置",
+    "items": {
+      "panel_title": {
+        "type": "string",
+        "description": "个人面板顶部标题",
+        "default": "【个人状态观测仪】",
+        "hint": "自定义用户发送 /luck 面板 时，回复文本最顶部的展示标题。"
+      },
+      "board_length": {
+        "type": "int",
+        "description": "榜单展示长度",
+        "default": 10,
+        "hint": "排行榜显示前 N 名与倒数前 N 名。"
+      }
+    }
+  },
+  "sign_in_settings": {
+    "type": "object",
+    "description": "📜 基础运势观测 (签到)",
+    "items": {
+      "enable": {
+        "type": "bool",
+        "description": "开启基础运势",
+        "default": true,
+        "hint": "关闭后，用户将无法使用签到功能获取每日的基础运势波动。"
+      }
+    }
+  },
+  "fate_cards_settings": {
+    "type": "object",
+    "description": "🎴 命运牌系统 (每日抽换)",
+    "items": {
+      "enable": {
+        "type": "bool",
+        "description": "开启命运牌",
+        "default": true,
+        "hint": "关闭后，将停用依赖 cards_config.json 的传统图片命运牌抽卡与换牌功能。"
+      },
+      "daily_draw_limit": {
+        "type": "int",
+        "description": "每日换牌上限",
+        "default": 3,
+        "condition": {
+          "enable": true
+        },
+        "hint": "玩家每天最多可以抽取或替换多少次命运牌（包含首次抽取）。"
+      }
+    }
+  },
+  "func_cards_settings": {
+    "type": "object",
+    "description": "⚔️ 战术功能牌 (干涉与博弈)",
+    "items": {
+      "enable": {
+        "type": "bool",
+        "description": "开启功能牌",
+        "default": true,
+        "hint": "关闭后，整个类似三国杀的战术博弈、卡槽系统将全部休眠。"
+      },
+      "enable_dice_cards": {
+        "type": "bool",
+        "description": "开启骰子玩法与骰子功能牌",
+        "default": true,
+        "condition": {
+          "enable": true
+        },
+        "hint": "关闭后将过滤所有骰子类功能牌（如对赌/重投），已持有的骰子牌也无法正常触发。"
+      },
+      "enable_pure_dice_mode": {
+        "type": "bool",
+        "description": "开启纯水对赌模式",
+        "default": false,
+        "condition": {
+          "enable": true
+        },
+        "hint": "开启后无需骰子牌，玩家可直接发起纯对赌（不吃气运），默认每天限次。"
+      },
+      "pure_dice_daily_limit": {
+        "type": "int",
+        "description": "纯水对赌每日上限（每人）",
+        "default": 3,
+        "condition": {
+          "enable": true,
+          "enable_pure_dice_mode": true
+        },
+        "hint": "纯水对赌模式下，每位玩家每天最多可主动发起的次数。"
+      },
+      "economy_settings": {
+        "type": "object",
+        "description": "💰 抽取与经济参数",
+        "condition": {
+          "enable": true
+        },
+        "items": {
+          "draw_probability": {
+            "type": "int",
+            "description": "功能牌基础掉率 (%)",
+            "default": 5,
+            "hint": "每次抽取获得功能牌的概率（百分比）。填写 5 即代表 5%。"
+          },
+          "free_daily_draw": {
+            "type": "int",
+            "description": "每日免费抽取次数",
+            "default": 1,
+            "hint": "每天赠送的抽取机会，深渊状态（负金币）也可白嫖此机会。"
+          },
+          "draw_cost": {
+            "type": "int",
+            "description": "单次抽取消耗 (金币)",
+            "default": 20,
+            "hint": "耗尽免费次数后，额外抽取功能牌所需扣除的金币值（不足不可抽）。"
+          },
+          "pity_threshold": {
+            "type": "int",
+            "description": "深渊保底阈值 (次数)",
+            "default": 10,
+            "hint": "连续未抽中功能牌的累计次数。达到此数值后，下次必定获得功能牌。"
+          }
+        }
+      }
+    }
+  }
+}

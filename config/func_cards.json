@@ -1,0 +1,146 @@
+[
+  {
+    "card_name": "掠夺之手",
+    "type": "attack",
+    "description": "【普通-攻击牌】探入虚空，盗取目标 15 金币化为己用（可@指定目标，也可在指令后加‘随机’盲打）。",
+    "filename": "1.jpg",
+    "tags": ["steal:15"],
+    "rarity": 1
+  },
+  {
+    "card_name": "神圣净化",
+    "type": "heal",
+    "description": "【稀有-辅助牌】解除自身或目标的一个负面状态。",
+    "filename": "2.jpg",
+    "tags": ["cleanse"],
+    "rarity": 2
+  },
+  {
+    "card_name": "无懈可击",
+    "type": "defense",
+    "description": "【普通-防御牌】发送“/luck 启用 无懈可击”挂载至状态栏，可抵挡一次他人的恶意法术。",
+    "filename": "3.jpg",
+    "tags": ["add_shield"],
+    "rarity": 1
+  },
+  {
+    "card_name": "绝对零度",
+    "type": "attack",
+    "description": "【传说-控制牌】瞬间抽干目标周围的热量，使其陷入【冻结】状态长达 24 小时。冻结期间目标无法抽卡与施法。",
+    "filename": "4.jpg",
+    "tags": ["freeze:24"],
+    "rarity": 4
+  },
+  {
+    "card_name": "南蛮入侵",
+    "type": "attack",
+    "description": "【稀有-群体攻击】召唤哥布林大军，随机对除自己外的最多 8 名群友造成 10-20 金币伤害！",
+    "filename": "5.jpg",
+    "tags": ["aoe_damage:10:20:8"],
+    "rarity": 2
+  },
+  {
+    "card_name": "桃园结义",
+    "type": "heal",
+    "description": "【稀有-群体辅助】设下盛宴，为包含自己在内的最多 8 名群友随机增加 10-30 金币！",
+    "filename": "6.jpg",
+    "tags": ["aoe_heal:10:30:8"],
+    "rarity": 2
+  },
+  {
+    "card_name": "命运扒手",
+    "type": "attack",
+    "description": "【史诗-掠夺牌】窃取目标当前命运牌加成（若目标今日命运牌为正收益，可直接转移到自己身上）。",
+    "filename": "",
+    "tags": ["steal_fate"],
+    "rarity": 3
+  },
+  {
+    "card_name": "失语诅咒",
+    "type": "attack",
+    "description": "【稀有-控制牌】令目标陷入沉默 24 小时，期间无法使用功能牌。",
+    "filename": "",
+    "tags": ["silence:24"],
+    "rarity": 2
+  },
+  {
+    "card_name": "锁命封签",
+    "type": "attack",
+    "description": "【史诗-控制牌】封锁目标 24 小时的抽牌权限，期间无法抽取命运牌与功能牌。",
+    "filename": "",
+    "tags": ["seal_draw_all:24"],
+    "rarity": 3
+  },
+  {
+    "card_name": "命星虹吸",
+    "type": "attack",
+    "description": "【传说-控制牌】抽走目标 8% 功能牌出金率并据为己有，持续 24 小时。",
+    "filename": "",
+    "tags": ["luck_drain:24:8"],
+    "rarity": 4
+  },
+  {
+    "card_name": "荆棘圣甲",
+    "type": "defense",
+    "description": "【史诗-防御牌】发送“/luck 启用 荆棘圣甲”后生效 24 小时，受到攻击时反弹 40% 金币伤害。",
+    "filename": "",
+    "tags": ["thorn_armor:24:40"],
+    "rarity": 3
+  },
+  {
+    "card_name": "孤注一掷",
+    "type": "attack",
+    "description": "【史诗-豪赌牌】发动后先掷骰，再按点数决定消耗与掠夺额度（可被后续幸运/增骰机制影响）。",
+    "filename": "",
+    "tags": ["dice_rule:all_in_raid_v1"],
+    "rarity": 3
+  },
+  {
+    "card_name": "天命重投",
+    "type": "heal",
+    "description": "【史诗-骰运牌】为自身附加 24 小时【天命重投】：下次掷到最低点时自动重投 1 次。",
+    "filename": "",
+    "tags": ["dice_reroll_lowest_once"],
+    "rarity": 3
+  },
+  {
+    "card_name": "生死对赌",
+    "type": "attack",
+    "description": "【史诗-对赌牌】向目标发起 60 秒应战对局。主动确认应战时防御失效；超时自动迎战可被防御拦截。",
+    "filename": "",
+    "tags": ["dice_duel:30"],
+    "rarity": 3
+  },
+  {
+    "card_name": "万法回响",
+    "type": "defense",
+    "description": "【史诗-守护牌】发送“/luck 启用 万法回响”后，先净化自身 1 个负面状态，再挂载一次【无懈可击】。",
+    "filename": "",
+    "tags": ["cleanse", "add_shield"],
+    "rarity": 3
+  },
+  {
+    "card_name": "禁术枷锁",
+    "type": "attack",
+    "description": "【传说-枷锁牌】束缚目标 24 小时：无法抽命运牌、抽功能牌，也无法使用功能牌。",
+    "filename": "",
+    "tags": ["seal_draw_all:24", "silence:24"],
+    "rarity": 4
+  },
+  {
+    "card_name": "星纹反转",
+    "type": "attack",
+    "description": "【传说-命格牌】窃取目标当前命运牌加成，并抽走其 6% 功能牌爆率（持续 24 小时）。",
+    "filename": "",
+    "tags": ["steal_fate", "luck_drain:24:6"],
+    "rarity": 4
+  },
+  {
+    "card_name": "寒狱王令",
+    "type": "attack",
+    "description": "【神话-终焉控制】冻结目标 24 小时，并额外抽走其 10% 功能牌爆率（持续 24 小时）。",
+    "filename": "",
+    "tags": ["freeze:24", "luck_drain:24:10"],
+    "rarity": 5
+  }
+]

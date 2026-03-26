@@ -1,0 +1,381 @@
+# ==============================================================================
+# 🔮 异世界·纯净版功能词库引擎 (Pure Keyword Engine) 🔮
+# ==============================================================================
+# 💡 【词库总览与配置说明】
+# 🗡️ 攻击/掠夺类：
+# - steal:X                 -> 盗取目标 X 金币化为己用。(例: steal:15)
+# - steal_fate              -> 窃取目标当前命运牌加成（last_drawn_gold），并清空目标该加成。
+# - freeze:X                -> 冻结目标 X 小时，附加逻辑门阻断（抽牌/施法/启停功能牌）。(例: freeze:24)
+# - silence:X               -> 沉默目标 X 小时，期间无法使用功能牌。(例: silence:24)
+# - seal_draw_all:X         -> 封印目标 X 小时，期间无法抽命运牌和功能牌。(例: seal_draw_all:24)
+# - luck_drain:X:Y          -> 抽取目标爆率 Y%，持续 X 小时；目标降低 Y%，施法者提升 Y%。(例: luck_drain:24:8)
+# - sac_steal:X:Y           -> 自损 X 金币后，强夺目标 Y 金币（防自爆：施法后至少保留 1 金币）。(例: sac_steal:20:35)
+# - dice_rule:KEY           -> 触发骰子规则 KEY（规则在 core/dice_engine.py 中配置，可扩展到拼点/决斗等）。
+# 
+# 👼 辅助/治疗类：
+# - cleanse                 -> 净化目标 1 个负面状态。(忽略增益状态如无懈可击)
+# 
+# 🛡️ 状态/防御类：
+# - add_shield              -> 挂载【无懈可击】，抵挡 1 次带有伤害/偷取/控制性质的法术。
+# - thorn_armor:X:Y         -> 挂载反甲 X 小时，受到金币伤害时反弹 Y% 给施法者。(例: thorn_armor:8:40)
+# =======================================================
+# 💥 新增 AOE (群体) 功能词库说明 💥
+# =======================================================
+#🏷️ aoe_damage:最小伤害:最大伤害:最大波及人数
+#  - 作用：群体随机攻击。在全群(排除施法者自己)中随机抽取目标，造成浮动金币伤害。
+#  - 机制：会被【无懈可击】护盾完美格挡（破盾但免伤）。
+#  - 举例：["aoe_damage:10:20:8"] 
+# - 解释：随机抽取最多 8 名群友，每个人单独随机扣除 10 到 20 点金币。
+#
+#🏷️ aoe_heal:最小治疗:最大治疗:最大波及人数
+#   - 作用：群体随机增益。为包含【施法者自己】在内的群体随机增加金币。
+#   - 机制：必定包含自己，剩下的名额在全群中随机抽取。
+#   - 举例：["aoe_heal:10:30:8"]
+#   - 解释：对自己以及随机抽取的最多 7 名群友（合计最多 8 人），每个人单独随机增加 10 到 30 点
+#
+# ==============================================================================
+# ==============================================================================
+# 🔮 异世界·纯净版功能词库引擎 (Pure Keyword Engine) 🔮
+# ==============================================================================
+import time
+import random
+from .dice_engine import DiceEngine
+from .dice_card_effects import apply_dice_payload
+from .logic_gate import (
+    GATE_DRAW_FATE_CARD,
+    GATE_DRAW_FUNC_CARD,
+    GATE_USE_CARD,
+    GATE_TOGGLE_CARD,
+)
+
+class CardEngine:
+    def __init__(self):
+        self.last_aoe_events = []
+
+    def _upsert_timed_status(self, target_data: dict, status_name: str, expire_time: int, **extra_fields):
+        statuses = target_data.setdefault("statuses", [])
+        for st in statuses:
+            if st.get("name") == status_name:
+                st["expire_time"] = expire_time
+                st.update(extra_fields)
+                return
+        new_status = {"name": status_name, "expire_time": expire_time}
+        new_status.update(extra_fields)
+        statuses.append(new_status)
+
+    def _apply_thorn_reflect(self, source_data: dict, target_data: dict, damage_amount: int) -> int:
+        """若目标存在有效反甲，按比例反弹金币。返回反弹值。"""
+        if damage_amount <= 0 or not source_data or not target_data:
+            return 0
+
+        now_ts = int(time.time())
+        for st in target_data.get("statuses", []):
+            if st.get("name") != "反甲":
+                continue
+            if st.get("expire_time", 0) <= now_ts:
+                continue
+
+            ratio = int(st.get("thorn_ratio", 0))
+            if ratio <= 0:
+                return 0
+
+            reflect = max(0, damage_amount * ratio // 100)
+            reflect = min(reflect, max(0, source_data.get("total_gold", 0)))
+            if reflect > 0:
+                source_data["total_gold"] -= reflect
+                target_data["total_gold"] += reflect
+            return reflect
+
+        return 0
+
+    async def execute_tags(self, source_data: dict, target_data: dict, tags: list, all_users: dict = None, source_uid: str = None) -> list:
+        reports = []
+        self.last_aoe_events = []
+        is_attack_blocked = False
+        is_aoe = any(t.startswith("aoe_") for t in tags)
+
+        # ==========================================
+        # 🛡️ 单体战术法则：护盾拦截与战损判定
+        # ==========================================
+        if target_data and not is_aoe:
+            for tag in tags:
+                if tag.startswith("steal") or tag.startswith("damage") or tag.startswith("freeze") or tag.startswith("sac_steal") or tag.startswith("dice_rule:"):
+                    for i, st in enumerate(target_data.get("statuses", [])):
+                        if st.get("name") == "无懈可击":
+                            target_data["statuses"].pop(i)
+                            reports.append("🛡️ 铛！【无懈可击】触发，法术被完美抵挡，护盾碎裂！")
+                            is_attack_blocked = True
+                            
+                            # 💡 战损联动：去卡槽里把这张盾牌打碎
+                            for card in target_data.get("inventory", []):
+                                if card.get("card_name") == "无懈可击" and card.get("is_active"):
+                                    card["is_active"] = False
+                                    card["is_broken"] = True  # 打上破碎标记
+                                    break
+                            break
+                    break
+
+        if is_attack_blocked:
+            return reports
+
+        # ==========================================
+        # ⚙️ 核心解析区：挨个执行标签
+        # ==========================================
+        target_name = target_data.get("name", "目标") if target_data else "目标"
+
+        for tag in tags:
+            
+            if tag.startswith("steal:"):
+                amount = int(tag.split(":")[1])
+                actual_steal = min(amount, max(0, target_data.get("total_gold", 0)))
+                target_data["total_gold"] -= actual_steal
+                source_data["total_gold"] += actual_steal
+                reports.append(f"🗡️ 探入虚空，掠夺了 {target_name} {actual_steal} 金币！")
+
+                reflected = self._apply_thorn_reflect(source_data, target_data, actual_steal)
+                if reflected > 0:
+                    reports.append(f"🪞 目标反甲触发！你被反震 {reflected} 金币。")
+
+            elif tag == "steal_fate":
+                stolen_val = int(target_data.get("last_drawn_gold", 0))
+                if stolen_val > 0:
+                    steal_amount = min(stolen_val, max(0, target_data.get("total_gold", 0)))
+                    target_data["total_gold"] -= steal_amount
+                    source_data["total_gold"] += steal_amount
+                    target_data["last_drawn_gold"] = 0
+                    reports.append(f"🌌 命运逆流！你窃取了 {target_name} 的命运加成 {steal_amount} 金币！")
+                else:
+                    reports.append(f"🌫️ 你试图窃取 {target_name} 的命运牌，但对方当前没有可窃取加成。")
+
+            elif tag.startswith("sac_steal:"):
+                _, cost_s, steal_s = tag.split(":")
+                cost = int(cost_s)
+                steal_val = int(steal_s)
+
+                # 防自爆：至少留 1 金币
+                if source_data.get("total_gold", 0) <= cost:
+                    reports.append(f"🩸 你想发动【杀敌一千自损八百】掠夺，但金币不足（需要至少 {cost + 1} 金币）！")
+                    continue
+
+                source_data["total_gold"] -= cost
+                actual_steal = min(steal_val, max(0, target_data.get("total_gold", 0)))
+                target_data["total_gold"] -= actual_steal
+                source_data["total_gold"] += actual_steal
+                net = actual_steal - cost
+                reports.append(f"🔥 你燃烧 {cost} 金币发动豪赌，强夺 {target_name} {actual_steal} 金币！（净收益 {net:+d}）")
+
+                reflected = self._apply_thorn_reflect(source_data, target_data, actual_steal)
+                if reflected > 0:
+                    reports.append(f"🪞 目标反甲触发！你被反震 {reflected} 金币。")
+
+            elif tag.startswith("dice_rule:"):
+                rule_key = tag.split(":", 1)[1].strip()
+                dice_engine = DiceEngine()
+                dice_ret = dice_engine.roll_rule(rule_key, statuses=source_data.get("statuses", []))
+                reports.extend(dice_ret.get("reports", []))
+
+                payload = dice_ret.get("payload") or {}
+                reports.extend(
+                    apply_dice_payload(
+                        payload=payload,
+                        source_data=source_data,
+                        target_data=target_data,
+                        target_name=target_name,
+                        on_damage_reflect=self._apply_thorn_reflect,
+                    )
+                )
+
+            elif tag.startswith("freeze:"):
+                hours = int(tag.split(":")[1])
+                expire_time = int(time.time()) + hours * 3600
+                freeze_block_actions = [
+                    GATE_DRAW_FATE_CARD,
+                    GATE_DRAW_FUNC_CARD,
+                    GATE_USE_CARD,
+                    GATE_TOGGLE_CARD,
+                ]
+                freeze_block_msg = "❄️ 极寒刺骨！你处于【冻结】状态，体内魔力停滞，当前无法进行此操作！"
+
+                self._upsert_timed_status(
+                    target_data,
+                    "冻结",
+                    expire_time,
+                    block_actions=freeze_block_actions,
+                    block_msg=freeze_block_msg,
+                )
+                reports.append(f"❄️ 极寒领域展开，{target_name} 被【冻结】了 {hours} 小时！")
+
+            elif tag.startswith("silence:"):
+                hours = int(tag.split(":")[1])
+                expire_time = int(time.time()) + hours * 3600
+                self._upsert_timed_status(
+                    target_data,
+                    "沉默",
+                    expire_time,
+                    block_actions=[GATE_USE_CARD],
+                    block_msg="🔇 你被【沉默】影响，当前无法使用功能牌！",
+                )
+                reports.append(f"🔇 音律崩塌，{target_name} 被【沉默】{hours} 小时！")
+
+            elif tag.startswith("seal_draw_all:"):
+                hours = int(tag.split(":")[1])
+                expire_time = int(time.time()) + hours * 3600
+                self._upsert_timed_status(
+                    target_data,
+                    "抽牌封印",
+                    expire_time,
+                    block_actions=[GATE_DRAW_FATE_CARD, GATE_DRAW_FUNC_CARD],
+                    block_msg="🕳️ 你被【抽牌封印】影响，当前无法抽取任何卡牌！",
+                )
+                reports.append(f"🕳️ 命运书页被锁死，{target_name} 在 {hours} 小时内无法抽牌！")
+
+            elif tag.startswith("luck_drain:"):
+                _, hours, percent = tag.split(":")
+                hours = int(hours)
+                percent = int(percent)
+                expire_time = int(time.time()) + hours * 3600
+
+                self._upsert_timed_status(
+                    target_data,
+                    "幸运流失",
+                    expire_time,
+                    func_draw_prob_mod=-abs(percent),
+                    desc=f"功能牌爆率 {abs(percent)}%",
+                )
+                self._upsert_timed_status(
+                    source_data,
+                    "幸运窃取",
+                    expire_time,
+                    func_draw_prob_mod=abs(percent),
+                    desc=f"功能牌爆率 +{abs(percent)}%",
+                )
+                reports.append(f"🎭 命星偏移！你抽走了 {target_name} 的 {abs(percent)}% 功能牌爆率，持续 {hours} 小时。")
+
+            elif tag == "cleanse":
+                statuses = target_data.get("statuses", [])
+                cleansed = False
+                for i, st in enumerate(statuses):
+                    if st.get("name") != "无懈可击":
+                        removed_st = statuses.pop(i)
+                        cleansed = True
+                        reports.append(f"✨ 施展神圣净化，解除了 {target_name} 的【{removed_st.get('name')}】状态！")
+                        break
+                if not cleansed:
+                    reports.append("✨ 施展了净化，但目标并未被负面状态缠身，法术消散。")
+
+            elif tag == "add_shield":
+                has_shield = any(st.get("name") == "无懈可击" for st in target_data.get("statuses", []))
+                if has_shield:
+                    reports.append("🛡️ 目标周身已有同类护盾，法术产生共鸣消散了。")
+                else:
+                    target_data["statuses"].append({"name": "无懈可击", "desc": "抵挡1次恶意法术"})
+                    reports.append("🛡️ 催动法诀，【无懈可击】已成功挂载！")
+
+            elif tag.startswith("thorn_armor:"):
+                _, hours, ratio = tag.split(":")
+                hours = int(hours)
+                ratio = int(ratio)
+                expire_time = int(time.time()) + hours * 3600
+                self._upsert_timed_status(
+                    target_data,
+                    "反甲",
+                    expire_time,
+                    thorn_ratio=ratio,
+                    desc=f"受到攻击时反弹 {ratio}% 伤害",
+                )
+                reports.append(f"🦔 荆棘装甲覆盖全身！反甲生效 {hours} 小时，反弹比例 {ratio}%。")
+
+            # ----------------------------------------
+            # 🏷️ 词库：aoe_damage (群体随机伤害)
+            # ----------------------------------------
+            elif tag.startswith("aoe_damage:"):
+                if not all_users or not source_uid: continue
+                _, min_val, max_val, count = tag.split(":")
+                min_val, max_val, count = int(min_val), int(max_val), int(count)
+                
+                valid_targets = [uid for uid in all_users.keys() if uid != source_uid]
+                selected = random.sample(valid_targets, min(count, len(valid_targets)))
+                
+                if not selected:
+                    reports.append("💨 虚空之中空无一人，大军迷路了...")
+                    continue
+                    
+                hit_logs = []
+                for uid in selected:
+                    t_data = all_users[uid]
+                    # 💡 修复：强制读取真名 "name"
+                    t_name = t_data.get("name", f"群友({uid})")
+                    
+                    has_shield = False
+                    for i, st in enumerate(t_data.get("statuses", [])):
+                        if st.get("name") == "无懈可击":
+                            t_data["statuses"].pop(i)
+                            has_shield = True
+                            # 💡 战损联动：打破 AOE 目标的盾牌
+                            for card in t_data.get("inventory", []):
+                                if card.get("card_name") == "无懈可击" and card.get("is_active"):
+                                    card["is_active"] = False
+                                    card["is_broken"] = True
+                                    break
+                            break
+                            
+                    if has_shield:
+                        hit_logs.append(f"{t_name}(🛡️免疫)")
+                        self.last_aoe_events.append({
+                            "type": "aoe_damage",
+                            "target_uid": uid,
+                            "target_name": t_name,
+                            "amount": 0,
+                            "blocked": True,
+                            "reflected": 0,
+                        })
+                    else:
+                        dmg = random.randint(min_val, max_val)
+                        t_data["total_gold"] -= dmg
+
+                        reflected = self._apply_thorn_reflect(source_data, t_data, dmg)
+                        shown_dmg = max(0, dmg - reflected)
+                        hit_logs.append(f"{t_name}(-{shown_dmg})")
+
+                        self.last_aoe_events.append({
+                            "type": "aoe_damage",
+                            "target_uid": uid,
+                            "target_name": t_name,
+                            "amount": shown_dmg,
+                            "blocked": False,
+                            "reflected": reflected,
+                        })
+                        
+                reports.append(f"🏹 大军横扫全场！波及目标：{', '.join(hit_logs)}")
+
+            # ----------------------------------------
+            # 🏷️ 词库：aoe_heal (群体随机治疗)
+            # ----------------------------------------
+            elif tag.startswith("aoe_heal:"):
+                if not all_users or not source_uid: continue
+                _, min_val, max_val, count = tag.split(":")
+                min_val, max_val, count = int(min_val), int(max_val), int(count)
+                
+                valid_targets = [uid for uid in all_users.keys() if uid != source_uid]
+                selected_others = random.sample(valid_targets, min(count - 1, len(valid_targets)))
+                selected = [source_uid] + selected_others
+                
+                hit_logs = []
+                for uid in selected:
+                    t_data = all_users[uid]
+                    # 💡 修复：强制读取真名 "name"
+                    t_name = t_data.get("name", f"群友({uid})")
+                    heal = random.randint(min_val, max_val)
+                    t_data["total_gold"] += heal
+                    hit_logs.append(f"{t_name}(+{heal})")
+                    self.last_aoe_events.append({
+                        "type": "aoe_heal",
+                        "target_uid": uid,
+                        "target_name": t_name,
+                        "amount": heal,
+                        "blocked": False,
+                    })
+                    
+                reports.append(f"🍑 桃园结义，天降甘霖！受益目标：{', '.join(hit_logs)}")
+
+        return reports

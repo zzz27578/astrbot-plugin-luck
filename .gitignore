@@ -1,0 +1,20 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Runtime data (private)
+data/*
+!data/.gitkeep
+
+# Private card assets (do not upload)
+assets/cards/*
+!assets/cards/.gitkeep
+assets/func_cards/*
+!assets/func_cards/.gitkeep
+
+# Optional private card pool config
+config/cards_config.json
+
+# Local IDE files
+.vscode/
+.idea/

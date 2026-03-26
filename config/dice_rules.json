@@ -1,0 +1,60 @@
+{
+  "all_in_raid_v1": {
+    "name": "孤注一掷",
+    "dice": {
+      "count": 1,
+      "sides": 6,
+      "keep": "sum"
+    },
+    "outcomes": [
+      {
+        "min": 1,
+        "max": 2,
+        "outcome_id": "bad",
+        "title": "【下下签】手抖了，强袭失准！",
+        "payload": {
+          "op": "sac_steal",
+          "cost": 12,
+          "steal": 16,
+          "reserve": 1
+        }
+      },
+      {
+        "min": 3,
+        "max": 4,
+        "outcome_id": "mid",
+        "title": "【中签】赌对一半，强夺得手。",
+        "payload": {
+          "op": "sac_steal",
+          "cost": 20,
+          "steal": 32,
+          "reserve": 1
+        }
+      },
+      {
+        "min": 5,
+        "max": 5,
+        "outcome_id": "good",
+        "title": "【上签】时机完美，爆发劫掠！",
+        "payload": {
+          "op": "sac_steal",
+          "cost": 28,
+          "steal": 50,
+          "reserve": 1
+        }
+      },
+      {
+        "min": 6,
+        "max": 6,
+        "outcome_id": "crit",
+        "title": "【天命暴击】命运眷顾，梭哈成功！",
+        "payload": {
+          "op": "sac_steal",
+          "cost": 36,
+          "steal": 72,
+          "reserve": 1
+        }
+      }
+    ]
+  }
+}

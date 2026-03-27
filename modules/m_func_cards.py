@@ -28,13 +28,20 @@ PENDING_DUEL = {
     "target_name": "",
     "card_name": "",
     "stake": 0,
+    "min_stake": 0,
+    "max_stake": 0,
+    "source_kind": "",
+    "phase": "",
     "confirmed": False,
+    "response_action": "",
+    "response_stake": 0,
     "confirm_event": None,
     "created_at": 0,
     "expire_at": 0,
 }
 PENDING_DUEL_LOCK = asyncio.Lock()
 DUEL_CONFIRM_WINDOW_SEC = 60
+DUEL_STAGE_DELAY_SEC = 1.6
 
 
 def _is_dice_card_by_tags(tags: list) -> bool:
@@ -128,6 +135,159 @@ def load_func_cards_config(config: dict = None):
     return valid_cards
 
 
+def _get_public_duel_settings(config: dict | None) -> dict:
+    func_cfg = (config or {}).get("func_cards_settings", {})
+    enabled = bool(func_cfg.get("enable_public_duel_mode", func_cfg.get("enable_pure_dice_mode", False)))
+    daily_limit = int(func_cfg.get("public_duel_daily_limit", func_cfg.get("pure_dice_daily_limit", 3)) or 3)
+    min_stake = max(1, int(func_cfg.get("public_duel_min_stake", 10) or 10))
+    max_stake = max(min_stake, int(func_cfg.get("public_duel_max_stake", 200) or 200))
+    return {
+        "enabled": enabled,
+        "daily_limit": daily_limit,
+        "min_stake": min_stake,
+        "max_stake": max_stake,
+    }
+
+
+def _reset_pending_duel():
+    PENDING_DUEL.update({
+        "active": False,
+        "session_id": "",
+        "challenger_uid": "",
+        "challenger_name": "",
+        "target_uid": "",
+        "target_name": "",
+        "card_name": "",
+        "stake": 0,
+        "min_stake": 0,
+        "max_stake": 0,
+        "source_kind": "",
+        "phase": "",
+        "confirmed": False,
+        "response_action": "",
+        "response_stake": 0,
+        "confirm_event": None,
+        "created_at": 0,
+        "expire_at": 0,
+    })
+
+
+def _extract_duel_stake(raw_text: str) -> int | None:
+    text_wo_at = re.sub(r"@\S+", "", raw_text).strip()
+    match = re.search(r"(-?\d+)\s*$", text_wo_at)
+    return int(match.group(1)) if match else None
+
+
+async def _has_enough_gold(bank, user_id: str, user_name: str, stake: int) -> bool:
+    user_data = await bank.get_user_data(user_id, user_name)
+    return int(user_data.get("total_gold", 0)) >= int(stake)
+
+
+def _format_aoe_chain(user_name: str, card_name: str, aoe_events: list, is_heal: bool, karma_report: str, slot_len: int):
+    action_line = "🌿 范围援护落下，受益名单：" if is_heal else "🏹 范围轰炸命中，受创名单："
+    components = [Plain(f"⚡ {user_name} 打出了 [{card_name}]！\n━━━━━━━━\n{action_line}")]
+
+    if not aoe_events:
+        components.append(Plain("无人被波及。"))
+    else:
+        for idx, aoe_event in enumerate(aoe_events):
+            if idx > 0:
+                components.append(Plain("、"))
+
+            target_uid_evt = str(aoe_event.get("target_uid", ""))
+            target_name_evt = aoe_event.get("target_name", f"群友({target_uid_evt})")
+            if target_uid_evt.isdigit():
+                components.append(At(qq=int(target_uid_evt)))
+                components.append(Plain(target_name_evt))
+            else:
+                components.append(Plain(target_name_evt))
+
+            amount = int(aoe_event.get("amount", 0))
+            blocked = bool(aoe_event.get("blocked", False))
+            if is_heal:
+                components.append(Plain(f"（+{amount}）"))
+            elif blocked:
+                components.append(Plain("（🛡️护盾挡下）"))
+            else:
+                components.append(Plain(f"（-{amount}）"))
+
+    tail = f"\n{karma_report}" if karma_report else ""
+    tail += f"\n🎴 当前卡槽：{slot_len}/3"
+    components.append(Plain(tail))
+    return components
+
+
+def _roll_duel_side(dice_engine: DiceEngine, user_data: dict, player_name: str) -> dict:
+    roll_ret = dice_engine.roll(count=1, sides=6)
+    first_total = int(roll_ret.get("final_total", 0))
+    final_total = first_total
+    reroll_triggered = False
+    reroll_text = ""
+
+    if _consume_lowest_reroll_status(user_data, first_total):
+        reroll_triggered = True
+        reroll_ret = dice_engine.roll(count=1, sides=6)
+        final_total = int(reroll_ret.get("final_total", 0))
+        reroll_text = f"🍀 {player_name} 触发【天命重投】！最低点作废，重投后翻出 {final_total} 点！"
+
+    return {
+        "first_total": first_total,
+        "final_total": final_total,
+        "reroll_triggered": reroll_triggered,
+        "reroll_text": reroll_text,
+    }
+
+
+async def _resolve_public_duel_result(bank, session: dict) -> dict:
+    challenger_uid = session["challenger_uid"]
+    target_uid = session["target_uid"]
+    challenger_name = session["challenger_name"]
+    target_name = session["target_name"]
+    stake = int(session.get("stake", 0))
+
+    challenger_data = await bank.get_user_data(challenger_uid, challenger_name)
+    target_data = await bank.get_user_data(target_uid, target_name)
+
+    dice_engine = DiceEngine()
+    challenger_roll = _roll_duel_side(dice_engine, challenger_data, challenger_name)
+    target_roll = _roll_duel_side(dice_engine, target_data, target_name)
+
+    c_final = int(challenger_roll["final_total"])
+    t_final = int(target_roll["final_total"])
+
+    if c_final > t_final:
+        transfer = min(stake, max(0, target_data.get("total_gold", 0)))
+        target_data["total_gold"] -= transfer
+        challenger_data["total_gold"] += transfer
+        result_line = f"🏆 {challenger_name} 一把掀翻赌桌，卷走 {transfer} 金币！"
+        winner_uid = challenger_uid
+        loser_uid = target_uid
+    elif t_final > c_final:
+        transfer = min(stake, max(0, challenger_data.get("total_gold", 0)))
+        challenger_data["total_gold"] -= transfer
+        target_data["total_gold"] += transfer
+        result_line = f"🏆 {target_name} 当场反杀，反卷 {transfer} 金币！"
+        winner_uid = target_uid
+        loser_uid = challenger_uid
+    else:
+        transfer = 0
+        result_line = "🤝 双方点数相同，赌桌僵住，这一局和了。"
+        winner_uid = ""
+        loser_uid = ""
+
+    await bank.save_user_data()
+
+    return {
+        "challenger_roll": challenger_roll,
+        "target_roll": target_roll,
+        "stake": stake,
+        "result_line": result_line,
+        "transfer": transfer,
+        "winner_uid": winner_uid,
+        "loser_uid": loser_uid,
+    }
+
+
 async def calculate_rank(bank, user_id):
     all_users = await bank.get_all_users()
     sorted_users = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0), reverse=True)
@@ -156,9 +316,9 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool) -> str:
             await bank.log_battle(challenger_uid, f"使用了 [{card_name}]。结果：对方护盾触发，自动迎战阶段被拦截。")
             await bank.log_battle(target_uid, f"遭到 {challenger_name} 使用了 [{card_name}]。结果：你触发了无懈可击，成功拒绝自动迎战。")
             return (
-                f"🎰【赌场播报】{target_name} 超时未确认，系统代为迎战！\n"
-                f"🛡️ 然而【无懈可击】当场炸裂，自动迎战被直接拦截。\n"
-                f"💥 本局流产，庄家收桌。"
+                f"🎰【盘口播报】{target_name} 半天没接话，系统刚想替他上桌！\n"
+                f"🛡️ 结果【无懈可击】当场炸开，把这口被迫应战直接拍飞。\n"
+                f"💥 围观的人一阵起哄：这桌没打起来，先散场！"
             )
 
     dice_engine = DiceEngine()
@@ -217,7 +377,7 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool) -> str:
     return report
 
 
-async def handle_confirm_duel(event: AstrMessageEvent):
+async def handle_confirm_duel(event: AstrMessageEvent, bank):
     user_id = event.get_sender_id()
 
     async with PENDING_DUEL_LOCK:
@@ -225,22 +385,131 @@ async def handle_confirm_duel(event: AstrMessageEvent):
             yield event.plain_result("🎲 当前没有待确认的对赌局。")
             return
 
-        if user_id != PENDING_DUEL.get("target_uid"):
-            yield event.plain_result("⚠️ 只有被挑战者可以确认应战。")
+        phase = PENDING_DUEL.get("phase")
+        source_kind = PENDING_DUEL.get("source_kind")
+        challenger_uid = PENDING_DUEL.get("challenger_uid")
+        challenger_name = PENDING_DUEL.get("challenger_name")
+        target_uid = PENDING_DUEL.get("target_uid")
+        target_name = PENDING_DUEL.get("target_name")
+        stake = int(PENDING_DUEL.get("stake", 0))
+
+        if phase == "await_target":
+            if user_id != target_uid:
+                yield event.plain_result("⚠️ 现在轮到被挑战者表态，旁人别替人上头。")
+                return
+
+            if not await _has_enough_gold(bank, challenger_uid, challenger_name, stake):
+                yield event.plain_result(f"⚠️ 发起者 {challenger_name} 当前金币不足 {stake}，这桌赌注开不起来。")
+                return
+            if not await _has_enough_gold(bank, target_uid, target_name, stake):
+                yield event.plain_result(f"⚠️ {target_name} 当前金币不足 {stake}，接不起这口锅。")
+                return
+
+            PENDING_DUEL["confirmed"] = True
+            PENDING_DUEL["response_action"] = "accept"
+            PENDING_DUEL["response_stake"] = stake
+            confirm_event = PENDING_DUEL.get("confirm_event")
+            if confirm_event:
+                confirm_event.set()
+
+            if source_kind == "free":
+                msg = (
+                    f"🔥【盘口播报】{target_name} 直接拍板接战！\n"
+                    f"💰 当前赌注锁定：{stake} 金币\n"
+                    f"📢 周围已经有人开始起哄，这局马上开摇！"
+                )
+            else:
+                msg = f"🔥【盘口播报】{target_name} 点头应战！\n人都围上来了，骰子马上落桌。"
+        elif phase == "await_challenger_raise_confirm":
+            if user_id != challenger_uid:
+                yield event.plain_result("⚠️ 现在轮到发起者决定接不接这口加注。")
+                return
+
+            if not await _has_enough_gold(bank, challenger_uid, challenger_name, stake):
+                yield event.plain_result(f"⚠️ 你的金币不足 {stake}，接不起对方抬到天上的赌注。")
+                return
+            if not await _has_enough_gold(bank, target_uid, target_name, stake):
+                yield event.plain_result(f"⚠️ {target_name} 当前金币不足 {stake}，加注后的赌桌已失效。")
+                return
+
+            PENDING_DUEL["confirmed"] = True
+            PENDING_DUEL["response_action"] = "accept_raised"
+            PENDING_DUEL["response_stake"] = stake
+            confirm_event = PENDING_DUEL.get("confirm_event")
+            if confirm_event:
+                confirm_event.set()
+            msg = (
+                f"🔥【盘口播报】{challenger_name} 一把把筹码推回场中央！\n"
+                f"💰 双方确认加注后赌注：{stake} 金币\n"
+                f"📢 场子已经彻底热起来了，谁手抖谁就等着被全场笑。"
+            )
+        else:
+            yield event.plain_result("🎲 这桌赌局当前不在确认阶段。")
             return
 
-        if PENDING_DUEL.get("confirmed"):
-            yield event.plain_result("✅ 该对局已确认，请等待结算。")
+    yield event.plain_result(msg)
+
+
+async def handle_raise_duel(event: AstrMessageEvent, bank):
+    user_id = event.get_sender_id()
+    raw_text = event.message_str.replace("/luck", "").strip()
+    match = re.search(r"加注\s*(-?\d+)", raw_text)
+    if not match:
+        yield event.plain_result("⚠️ 加注格式：/luck 加注 金额")
+        return
+
+    raise_stake = int(match.group(1))
+
+    async with PENDING_DUEL_LOCK:
+        if not PENDING_DUEL.get("active"):
+            yield event.plain_result("🎲 当前没有可加注的对赌局。")
             return
 
+        if PENDING_DUEL.get("source_kind") != "free":
+            yield event.plain_result("⚠️ 只有日常公开对赌支持手动加注。")
+            return
+
+        if PENDING_DUEL.get("phase") != "await_target":
+            yield event.plain_result("⚠️ 这桌赌局当前不能加注。")
+            return
+
+        target_uid = PENDING_DUEL.get("target_uid")
+        target_name = PENDING_DUEL.get("target_name")
+        challenger_uid = PENDING_DUEL.get("challenger_uid")
+        challenger_name = PENDING_DUEL.get("challenger_name")
+        current_stake = int(PENDING_DUEL.get("stake", 0))
+        max_stake = int(PENDING_DUEL.get("max_stake", 0))
+        min_stake = int(PENDING_DUEL.get("min_stake", 1))
+
+        if user_id != target_uid:
+            yield event.plain_result("⚠️ 只有被挑战者可以在应战阶段抬注。")
+            return
+        if raise_stake <= current_stake:
+            yield event.plain_result(f"⚠️ 加注金额必须大于当前赌注 {current_stake}。")
+            return
+        if raise_stake < min_stake or raise_stake > max_stake:
+            yield event.plain_result(f"⚠️ 赌注必须位于 {min_stake} ~ {max_stake} 金币之间。")
+            return
+        if not await _has_enough_gold(bank, target_uid, target_name, raise_stake):
+            yield event.plain_result(f"⚠️ 你的金币不足 {raise_stake}，别空手抬价。")
+            return
+        if not await _has_enough_gold(bank, challenger_uid, challenger_name, raise_stake):
+            yield event.plain_result(f"⚠️ {challenger_name} 当前金币不足 {raise_stake}，你这口价已经把他抬出桌外了。")
+            return
+
+        PENDING_DUEL["stake"] = raise_stake
+        PENDING_DUEL["phase"] = "await_challenger_raise_confirm"
         PENDING_DUEL["confirmed"] = True
+        PENDING_DUEL["response_action"] = "raise"
+        PENDING_DUEL["response_stake"] = raise_stake
         confirm_event = PENDING_DUEL.get("confirm_event")
         if confirm_event:
             confirm_event.set()
 
-        target_name = PENDING_DUEL.get("target_name")
-
-    yield event.plain_result(f"🔥【赌场播报】{target_name} 已确认应战！\n战鼓已响，筹码入池，正在掷骰...")
+    yield event.plain_result(
+        f"💥【盘口播报】{target_name} 反手把赌注抬到 {raise_stake} 金币！\n"
+        f"📣 场边已经叫起来了——现在轮到 {challenger_name} 发送「/luck 确认」接下这口加注。"
+    )
 
 
 async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
@@ -248,19 +517,22 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
     user_name = event.get_sender_name()
     today = datetime.now().strftime("%Y-%m-%d")
 
-    func_cfg = (config or {}).get("func_cards_settings", {})
-    if not func_cfg.get("enable_pure_dice_mode", False):
-        yield event.plain_result("🎲 纯水对赌模式未开启。")
+    duel_cfg = _get_public_duel_settings(config)
+    if not duel_cfg["enabled"]:
+        yield event.plain_result("🎲 公开对赌模式未开启。")
         return
 
     user_data = await bank.get_user_data(user_id, user_name)
-    daily_limit = int(func_cfg.get("pure_dice_daily_limit", 3) or 3)
+    daily_limit = duel_cfg["daily_limit"]
+    min_stake = duel_cfg["min_stake"]
+    max_stake = duel_cfg["max_stake"]
+
     if user_data.get("pure_dice_date") != today:
         user_data["pure_dice_date"] = today
         user_data["pure_dice_count"] = 0
 
     if int(user_data.get("pure_dice_count", 0)) >= daily_limit:
-        yield event.plain_result(f"⛔ 你今天的纯水对赌次数已用尽（{daily_limit}/{daily_limit}）。")
+        yield event.plain_result(f"⛔ 你今天的公开对赌次数已用尽（{daily_limit}/{daily_limit}）。")
         return
 
     target_id = None
@@ -270,7 +542,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
             break
 
     if not target_id:
-        yield event.plain_result("⚠️ 纯水对赌必须 @ 一名目标。示例：/luck 对赌 @某人")
+        yield event.plain_result("⚠️ 公开对赌必须 @ 一名目标。示例：/luck 对赌 @某人 50")
         return
 
     if target_id == user_id:
@@ -279,7 +551,17 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
 
     raw_text = event.message_str.replace("/luck", "").strip()
     if not raw_text.startswith("对赌"):
-        yield event.plain_result("⚠️ 纯水对赌格式：/luck 对赌@某人（或 /luck 对赌 @某人）")
+        yield event.plain_result("⚠️ 对赌格式：/luck 对赌@某人 金额")
+        return
+
+    stake = _extract_duel_stake(raw_text)
+    if stake is None:
+        stake = min_stake
+    if stake < min_stake or stake > max_stake:
+        yield event.plain_result(f"⚠️ 赌注必须位于 {min_stake} ~ {max_stake} 金币之间。")
+        return
+    if not await _has_enough_gold(bank, user_id, user_name, stake):
+        yield event.plain_result(f"⚠️ 你的金币不足 {stake}，没资格拍这桌。")
         return
 
     all_users = await bank.get_all_users()
@@ -298,54 +580,117 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
             "challenger_name": user_name,
             "target_uid": target_id,
             "target_name": target_name,
-            "card_name": "纯水对赌",
-            "stake": 0,
+            "card_name": "公开对赌",
+            "stake": stake,
+            "min_stake": min_stake,
+            "max_stake": max_stake,
+            "source_kind": "free",
+            "phase": "await_target",
             "confirmed": False,
+            "response_action": "",
+            "response_stake": stake,
             "confirm_event": confirm_event,
             "created_at": int(time.time()),
             "expire_at": int(time.time()) + DUEL_CONFIRM_WINDOW_SEC,
         })
 
     yield event.plain_result(
-        f"🎰【赌场播报】{user_name} 发起了纯水对赌！\n"
-        f"🎲 目标：{target_name}\n"
-        f"📣 请 {target_name} 在 60 秒内回复「/luck 确认」应战！\n"
-        f"⏳ 超时未确认，将视为自动迎战（可被防御拦截）。"
+        f"🎰【盘口播报】{user_name} 把 {stake} 金币往场中央一甩，点名要和 {target_name} 见真章！\n"
+        f"📣 请 {target_name} 在 60 秒内发送「/luck 确认」接战，或发送「/luck 加注 金额」把场面继续抬高。\n"
+        f"💰 本桌限额：{min_stake} ~ {max_stake} 金币\n"
+        f"👀 这局不代打，得双方亲自点头，围观的人可都等着看呢。"
     )
 
-    accepted = False
     try:
         await asyncio.wait_for(confirm_event.wait(), timeout=DUEL_CONFIRM_WINDOW_SEC)
-        accepted = True
     except asyncio.TimeoutError:
-        accepted = False
+        async with PENDING_DUEL_LOCK:
+            if PENDING_DUEL.get("session_id"):
+                _reset_pending_duel()
+        yield event.plain_result("⌛ 60 秒过去，场边都快喊累了，还是没人接话。这局只能散了。")
+        return
 
     async with PENDING_DUEL_LOCK:
-        session = dict(PENDING_DUEL)
-        PENDING_DUEL.update({
-            "active": False,
-            "session_id": "",
-            "challenger_uid": "",
-            "challenger_name": "",
-            "target_uid": "",
-            "target_name": "",
-            "card_name": "",
-            "stake": 0,
-            "confirmed": False,
-            "confirm_event": None,
-            "created_at": 0,
-            "expire_at": 0,
-        })
+        response_action = PENDING_DUEL.get("response_action")
+        current_stake = int(PENDING_DUEL.get("stake", stake))
 
-    report_str = await _resolve_duel(bank, session, is_active_accept=accepted)
+        if response_action == "raise":
+            confirm_event = asyncio.Event()
+            PENDING_DUEL["phase"] = "await_challenger_raise_confirm"
+            PENDING_DUEL["confirmed"] = False
+            PENDING_DUEL["response_action"] = ""
+            PENDING_DUEL["confirm_event"] = confirm_event
+            PENDING_DUEL["expire_at"] = int(time.time()) + DUEL_CONFIRM_WINDOW_SEC
+        elif response_action == "accept":
+            session = dict(PENDING_DUEL)
+            _reset_pending_duel()
+            confirm_event = None
+        else:
+            session = None
+            confirm_event = None
+
+    if response_action == "raise":
+        yield event.plain_result(
+            f"😈【盘口播报】赌注已经被抬到 {current_stake} 金币！\n"
+            f"📣 现在全场都盯着 {user_name} —— 60 秒内发送「/luck 确认」，接不接就这一句。"
+        )
+        try:
+            await asyncio.wait_for(confirm_event.wait(), timeout=DUEL_CONFIRM_WINDOW_SEC)
+        except asyncio.TimeoutError:
+            async with PENDING_DUEL_LOCK:
+                if PENDING_DUEL.get("session_id"):
+                    _reset_pending_duel()
+            yield event.plain_result("⌛ 发起者迟迟没回话，围观的人先哄起来了。这口加注没人接，本局作废。")
+            return
+
+        async with PENDING_DUEL_LOCK:
+            session = dict(PENDING_DUEL)
+            _reset_pending_duel()
+
+    if not session:
+        yield event.plain_result("⚠️ 场子状态有点乱，这局没能顺利立起来。")
+        return
 
     user_data["pure_dice_count"] = int(user_data.get("pure_dice_count", 0)) + 1
     await bank.save_user_data()
     remain = max(0, daily_limit - int(user_data.get("pure_dice_count", 0)))
 
+    duel_result = await _resolve_public_duel_result(bank, session)
+    challenger_name = session["challenger_name"]
+    target_name = session["target_name"]
+    stake = duel_result["stake"]
+
     yield event.plain_result(
-        f"⚡ {user_name} 完成了一场【纯水对赌】！\n━━━━━━━━\n{report_str}\n🎟️ 今日纯水对赌剩余次数：{remain}"
+        f"🎲【盘口播报】赌局锁死！\n"
+        f"{challenger_name} 与 {target_name} 各自按住 {stake} 金币，场边已经开始猜谁会先翻车。"
     )
+    await asyncio.sleep(DUEL_STAGE_DELAY_SEC)
+
+    challenger_roll = duel_result["challenger_roll"]
+    first_line = f"🎯 第一掷先开——{challenger_name} 抢先出手，骰子转了几圈，最后定在 {challenger_roll['first_total']} 点！"
+    if challenger_roll["reroll_triggered"]:
+        first_line += f"\n{challenger_roll['reroll_text']}"
+    yield event.plain_result(first_line)
+    await asyncio.sleep(DUEL_STAGE_DELAY_SEC)
+
+    target_roll = duel_result["target_roll"]
+    second_line = f"🎯 第二掷跟上——轮到 {target_name} 接招，骰子一落，直接翻出 {target_roll['first_total']} 点！"
+    if target_roll["reroll_triggered"]:
+        second_line += f"\n{target_roll['reroll_text']}"
+    yield event.plain_result(second_line)
+    await asyncio.sleep(DUEL_STAGE_DELAY_SEC)
+
+    final_report = (
+        f"💥【盘口终局】\n"
+        f"🎲 最终点数：{challenger_name} {challenger_roll['final_total']} vs {target_name} {target_roll['final_total']}\n"
+        f"{duel_result['result_line']}\n"
+        f"📣 场边已经吵成一片。\n"
+        f"🎟️ {challenger_name} 今日公开对赌剩余次数：{remain}"
+    )
+
+    await bank.log_battle(session["challenger_uid"], f"发起了与 {target_name} 的公开对赌，赌注 {stake}。结果：{duel_result['result_line']}")
+    await bank.log_battle(session["target_uid"], f"应战了 {challenger_name} 的公开对赌，赌注 {stake}。结果：{duel_result['result_line']}")
+    yield event.plain_result(final_report)
 
 
 # ================= 🏆 善恶排行榜逻辑 =================
@@ -810,17 +1155,23 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
                 "target_name": target_name_duel,
                 "card_name": target_card_name,
                 "stake": stake,
+                "min_stake": stake,
+                "max_stake": stake,
+                "source_kind": "card",
+                "phase": "await_target",
                 "confirmed": False,
+                "response_action": "",
+                "response_stake": stake,
                 "confirm_event": confirm_event,
                 "created_at": int(time.time()),
                 "expire_at": int(time.time()) + DUEL_CONFIRM_WINDOW_SEC,
             })
 
         yield event.plain_result(
-            f"🎰【赌场播报】{user_name} 向 {target_name_duel} 发起了高压对赌！\n"
+            f"🎰【盘口播报】{user_name} 向 {target_name_duel} 发起了高压对赌！\n"
             f"💰 本局筹码：{stake} 金币\n"
             f"📣 请 {target_name_duel} 在 60 秒内回复「/luck 确认」应战！\n"
-            f"⏳ 超时未确认，将视为自动迎战（可被防御拦截）。"
+            f"👀 围观的人已经让开位置，就等你们开这一局。"
         )
 
         accepted = False
@@ -832,20 +1183,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
         async with PENDING_DUEL_LOCK:
             session = dict(PENDING_DUEL)
-            PENDING_DUEL.update({
-                "active": False,
-                "session_id": "",
-                "challenger_uid": "",
-                "challenger_name": "",
-                "target_uid": "",
-                "target_name": "",
-                "card_name": "",
-                "stake": 0,
-                "confirmed": False,
-                "confirm_event": None,
-                "created_at": 0,
-                "expire_at": 0,
-            })
+            _reset_pending_duel()
 
         # 对赌牌消耗
         inventory.pop(found_index)
@@ -884,23 +1222,29 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     battle_reports = await engine.execute_tags(user_data, target_data, tags, all_users, user_id)
 
     # AOE 施法者使用简报，避免日志过长；被波及者保留精准个人战报
+    aoe_chain = None
     if is_aoe:
         aoe_events = [e for e in engine.last_aoe_events if e.get("target_uid") != user_id]
         affected_count = len(aoe_events)
         blocked_count = sum(1 for e in aoe_events if e.get("blocked"))
-        if any(t.startswith("aoe_heal:") for t in tags):
+        is_heal_aoe = any(t.startswith("aoe_heal:") for t in tags)
+        if is_heal_aoe:
             total_heal = sum(int(e.get("amount", 0)) for e in aoe_events)
-            report_str = f"🌿 群体援护生效，波及 {affected_count} 人（免疫 {blocked_count} 人），总恢复 {total_heal} 金币。"
+            report_str = f"🌿 范围援助命中 {affected_count} 人，总恢复 {total_heal} 金币。"
         else:
             total_damage = sum(int(e.get("amount", 0)) for e in aoe_events)
-            report_str = f"🏹 群体攻势生效，波及 {affected_count} 人（免疫 {blocked_count} 人），总造成 {total_damage} 金币影响。"
+            report_str = f"🏹 范围攻击命中 {affected_count} 人（免疫 {blocked_count} 人），总造成 {total_damage} 金币伤害。"
+        aoe_chain = _format_aoe_chain(user_name, target_card_name, aoe_events, is_heal_aoe, karma_report, len(inventory) - 1)
     else:
         report_str = "\n".join(battle_reports) if battle_reports else "💨 法术消散在风中，似乎什么也没发生..."
     
     inventory.pop(found_index)
     await bank.save_user_data()
 
-    final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{len(inventory)}/3"
+    if is_aoe:
+        final_msg = None
+    else:
+        final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{len(inventory)}/3"
     
     log_msg = f"使用了 [{target_card_name}]"
     await bank.log_battle(user_id, f"{log_msg}。结果：{report_str}")
@@ -914,18 +1258,21 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             amount = int(aoe_event.get("amount", 0))
             blocked = bool(aoe_event.get("blocked", False))
             if aoe_event.get("type") == "aoe_heal":
-                target_report = f"受到 {user_name} 使用了 [{target_card_name}] 的援助。结果：✨ 获得 {amount} 金币恢复。"
+                target_report = f"受到 {user_name} 的范围援助 [{target_card_name}]。结果：✨ 恢复 {amount} 金币。"
             else:
                 if blocked:
-                    target_report = f"遭到 {user_name} 使用了 [{target_card_name}]。结果：🛡️ 你触发了【无懈可击】，免疫了这次 AOE！"
+                    target_report = f"遭到 {user_name} 的范围攻击 [{target_card_name}]。结果：🛡️ 你触发了【无懈可击】，成功挡下这次波及！"
                 else:
-                    target_report = f"遭到 {user_name} 使用了 [{target_card_name}]。结果：💥 被 AOE 波及，损失 {amount} 金币。"
+                    target_report = f"遭到 {user_name} 的范围攻击 [{target_card_name}]。结果：💥 你被范围波及，损失 {amount} 金币。"
 
             await bank.log_battle(target_uid_evt, target_report)
     elif target_id != user_id:
         await bank.log_battle(target_id, f"遭到 {user_name} {log_msg}。结果：{report_str}")
 
-    yield event.plain_result(final_msg)
+    if is_aoe and aoe_chain:
+        yield event.chain_result(aoe_chain)
+    else:
+        yield event.plain_result(final_msg)
 
 async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_activate: bool):
     user_id = event.get_sender_id()

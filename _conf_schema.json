@@ -99,24 +99,44 @@
         },
         "hint": "关闭后将过滤所有骰子类功能牌（如对赌/重投），已持有的骰子牌也无法正常触发。"
       },
-      "enable_pure_dice_mode": {
+      "enable_public_duel_mode": {
         "type": "bool",
-        "description": "开启纯水对赌模式",
+        "description": "开启公开对赌模式",
         "default": false,
         "condition": {
           "enable": true
         },
-        "hint": "开启后无需骰子牌，玩家可直接发起纯对赌（不吃气运），默认每天限次。"
+        "hint": "开启后无需功能牌，玩家可直接发起带赌注的公开骰局；必须双方明确确认才会开打。"
       },
-      "pure_dice_daily_limit": {
+      "public_duel_daily_limit": {
         "type": "int",
-        "description": "纯水对赌每日上限（每人）",
+        "description": "公开对赌每日上限（每人）",
         "default": 3,
         "condition": {
           "enable": true,
-          "enable_pure_dice_mode": true
+          "enable_public_duel_mode": true
         },
-        "hint": "纯水对赌模式下，每位玩家每天最多可主动发起的次数。"
+        "hint": "公开对赌模式下，每位玩家每天最多可主动发起的次数。"
+      },
+      "public_duel_min_stake": {
+        "type": "int",
+        "description": "公开对赌最低赌注",
+        "default": 10,
+        "condition": {
+          "enable": true,
+          "enable_public_duel_mode": true
+        },
+        "hint": "无需功能牌的公开对赌中，允许发起的最低金币赌注。"
+      },
+      "public_duel_max_stake": {
+        "type": "int",
+        "description": "公开对赌最高赌注",
+        "default": 200,
+        "condition": {
+          "enable": true,
+          "enable_public_duel_mode": true
+        },
+        "hint": "公开对赌与加注都不能超过该上限。"
       },
       "economy_settings": {
         "type": "object",

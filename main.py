@@ -143,7 +143,15 @@ class LuckPlugin(Star):
             if not self.config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_confirm_duel(event):
+            async for res in m_func_cards.handle_confirm_duel(event, self.bank):
+                yield res
+            return
+
+        if cmd_str.startswith("加注"):
+            if not self.config.get("func_cards_settings", {}).get("enable", True):
+                yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
+                return
+            async for res in m_func_cards.handle_raise_duel(event, self.bank):
                 yield res
             return
 
@@ -175,7 +183,7 @@ class LuckPlugin(Star):
         if cmd_str in exact_cmds:
             return True
 
-        if cmd_str.startswith(("丢弃", "使用", "启用", "停用", "对赌")):
+        if cmd_str.startswith(("丢弃", "使用", "启用", "停用", "对赌", "加注")):
             return True
 
         return False
@@ -261,7 +269,11 @@ class LuckPlugin(Star):
         fate_enabled = self.config.get("fate_cards_settings", {}).get("enable", True)
         func_enabled = self.config.get("func_cards_settings", {}).get("enable", True)
         dice_cards_enabled = self.config.get("func_cards_settings", {}).get("enable_dice_cards", True)
-        pure_dice_enabled = self.config.get("func_cards_settings", {}).get("enable_pure_dice_mode", False)
+        duel_cfg = self.config.get("func_cards_settings", {})
+        duel_enabled = duel_cfg.get("enable_public_duel_mode", duel_cfg.get("enable_pure_dice_mode", False))
+        duel_limit = int(duel_cfg.get("public_duel_daily_limit", duel_cfg.get("pure_dice_daily_limit", 3)) or 3)
+        duel_min = int(duel_cfg.get("public_duel_min_stake", 10) or 10)
+        duel_max = int(duel_cfg.get("public_duel_max_stake", 200) or 200)
 
         lines = [
             "📖 /luck 指令菜单（完整版）",
@@ -289,9 +301,11 @@ class LuckPlugin(Star):
             "",
             "【骰子 / 对赌】",
             f"骰子功能牌：{'✅开启' if dice_cards_enabled else '❌关闭'}",
-            f"纯水对赌：{'✅开启' if pure_dice_enabled else '❌关闭'}",
-            "/luck 对赌@某人",
-            "/luck 确认  (60秒内应战)",
+            f"公开对赌：{'✅开启' if duel_enabled else '❌关闭'}",
+            f"赌注范围：{duel_min} ~ {duel_max} 金币",
+            f"/luck 对赌@某人 金额  (每日{duel_limit}次)",
+            "/luck 确认",
+            "/luck 加注 金额",
             "━━━━━━━━━━━━",
             "💡 看详细规则：/luck 帮助",
         ]
@@ -303,8 +317,11 @@ class LuckPlugin(Star):
         fate_enabled = self.config.get("fate_cards_settings", {}).get("enable", True)
         func_enabled = self.config.get("func_cards_settings", {}).get("enable", True)
         dice_cards_enabled = self.config.get("func_cards_settings", {}).get("enable_dice_cards", True)
-        pure_dice_enabled = self.config.get("func_cards_settings", {}).get("enable_pure_dice_mode", False)
-        pure_dice_limit = int(self.config.get("func_cards_settings", {}).get("pure_dice_daily_limit", 3) or 3)
+        duel_cfg = self.config.get("func_cards_settings", {})
+        duel_enabled = duel_cfg.get("enable_public_duel_mode", duel_cfg.get("enable_pure_dice_mode", False))
+        duel_limit = int(duel_cfg.get("public_duel_daily_limit", duel_cfg.get("pure_dice_daily_limit", 3)) or 3)
+        duel_min = int(duel_cfg.get("public_duel_min_stake", 10) or 10)
+        duel_max = int(duel_cfg.get("public_duel_max_stake", 200) or 200)
 
         lines = [
             "📘 /luck 帮助（QQ版）",
@@ -312,7 +329,8 @@ class LuckPlugin(Star):
             "【1. 输入规则】",
             "• 多数指令支持无空格写法",
             "• 例：使用绝对零度@某人",
-            "• 对赌确认固定：/luck 确认",
+            "• 对赌接受：/luck 确认",
+            "• 对赌抬注：/luck 加注 金额",
             "",
             "【2. 基础玩法】",
             f"• 运势：{'开启' if sign_enabled else '关闭'}",
@@ -329,11 +347,13 @@ class LuckPlugin(Star):
             "",
             "【4. 骰子与对赌】",
             f"• 骰子牌：{'开启' if dice_cards_enabled else '关闭'}",
-            f"• 纯水对赌：{'开启' if pure_dice_enabled else '关闭'}",
-            f"• 纯水局每日上限：{pure_dice_limit}",
-            "• 对赌指令：/luck 对赌@某人",
-            "• 应战指令：/luck 确认",
-            "• 确认时限：60秒",
+            f"• 公开对赌：{'开启' if duel_enabled else '关闭'}",
+            f"• 每日发起上限：{duel_limit}",
+            f"• 赌注范围：{duel_min} ~ {duel_max} 金币",
+            "• 发起指令：/luck 对赌@某人 金额",
+            "• 接受指令：/luck 确认",
+            "• 加注指令：/luck 加注 金额",
+            "• 免费公开局必须双方明确确认，不会自动代打",
             "• 同时仅允许1场公开局",
             "",
             "【5. 善恶值】",
@@ -343,7 +363,7 @@ class LuckPlugin(Star):
             "━━━━━━━━━━━━",
             "❓ 常见问题",
             "• 指令失败：先看对应系统是否开启",
-            "• 对赌失败：可能已有人在对局",
+            "• 对赌失败：可能已有人在对局，或赌注超出上下限",
             "• 牌用不了：看 /luck 面板状态",
         ]
 

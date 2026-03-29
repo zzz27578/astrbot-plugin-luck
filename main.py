@@ -1,5 +1,6 @@
 import os
 import re
+import asyncio
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api.message_components import *
@@ -8,6 +9,7 @@ from .modules.m_sign_in import handle_sign_in, handle_leaderboard
 # ================= 🔌 核心底座与模块导入 =================
 from .core.luck_bank import LuckBank
 from .modules import m_sign_in, m_fate_cards, m_func_cards
+from .webui.server import start_webui
 
 PLUGIN_NAME = "luck_rank"
 AUTHOR = "YourName" # 可修改为你自己的名字
@@ -22,6 +24,15 @@ class LuckPlugin(Star):
         # 激活金币管家，锁定 data 目录下的账本
         data_path = os.path.join(os.path.dirname(__file__), "data", "luck_data.json")
         self.bank = LuckBank(data_path)
+
+        # 启动本地 WebUI（仅本机监听）
+        webui_cfg = self.config.get("webui_settings", {})
+        if webui_cfg.get("enable", False):
+            webui_port = int(webui_cfg.get("port", 4399) or 4399)
+            try:
+                asyncio.get_event_loop().create_task(start_webui(host="0.0.0.0", port=webui_port))
+            except Exception as e:
+                print(f"[WebUI] 启动失败: {e}")
 
     # 🟢 绝对前缀拦截器：只认 /luck，无视后面的空格
     @filter.regex(r"^/luck\s*(.*)$", priority=1000)

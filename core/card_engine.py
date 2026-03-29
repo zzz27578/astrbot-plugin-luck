@@ -11,9 +11,14 @@
 # - luck_drain:X:Y          -> 抽取目标爆率 Y%，持续 X 小时；目标降低 Y%，施法者提升 Y%。(例: luck_drain:24:8)
 # - sac_steal:X:Y           -> 自损 X 金币后，强夺目标 Y 金币（防自爆：施法后至少保留 1 金币）。(例: sac_steal:20:35)
 # - dice_rule:KEY           -> 触发骰子规则 KEY（规则在 core/dice_engine.py 中配置，可扩展到拼点/决斗等）。
+# - borrow_blade:X:Y        -> 借来第三方之名发动暗算，对目标造成 X~Y 金币伤害，并在播报中点出“借刀者”。(例: borrow_blade:10:20)
+# - bounty_mark:X:Y         -> 给目标挂上【悬赏印记】X 小时；期间其每次受到金币类攻击时会额外损失 Y 金币，攻击者额外获得 Y 金币。(例: bounty_mark:24:5)
+# - strip_buff_gain:X:Y     -> 移除目标 1 个正面状态，并为施法者附加 X% 功能牌爆率增益，持续 Y 小时。(例: strip_buff_gain:8:24)
 # 
 # 👼 辅助/治疗类：
 # - cleanse                 -> 净化目标 1 个负面状态。(忽略增益状态如无懈可击)
+# - luck_bless:X:Y          -> 为自身附加好运状态 X 小时，功能牌爆率提升 Y%。(例: luck_bless:24:10)
+# - fate_roulette           -> 触发命运转盘，从 5 种结果中随机结算；默认 4 个结果偏向施法者，1 个结果会反噬施法者。
 # 
 # 🛡️ 状态/防御类：
 # - add_shield              -> 挂载【无懈可击】，抵挡 1 次带有伤害/偷取/控制性质的法术。
@@ -51,6 +56,51 @@ from .logic_gate import (
 class CardEngine:
     def __init__(self):
         self.last_aoe_events = []
+
+    def _find_uid_by_data(self, all_users: dict, target_data: dict):
+        if not all_users or not target_data:
+            return None
+        for uid, data in all_users.items():
+            if data is target_data or data == target_data:
+                return uid
+        return None
+
+    def _is_positive_status(self, status: dict) -> bool:
+        if not status:
+            return False
+        name = str(status.get("name", ""))
+        if name in {"无懈可击", "反甲", "幸运窃取", "好运加护", "天命重投"}:
+            return True
+        if int(status.get("func_draw_prob_mod", 0) or 0) > 0:
+            return True
+        if int(status.get("thorn_ratio", 0) or 0) > 0:
+            return True
+        return False
+
+    def _apply_bounty_bonus(self, source_data: dict, target_data: dict) -> int:
+        if not source_data or not target_data:
+            return 0
+
+        now_ts = int(time.time())
+        for st in target_data.get("statuses", []):
+            if st.get("name") != "悬赏印记":
+                continue
+            if st.get("expire_time", 0) <= now_ts:
+                continue
+
+            bonus = max(0, int(st.get("bounty_bonus", 0) or 0))
+            if bonus <= 0:
+                return 0
+
+            actual = min(bonus, max(0, target_data.get("total_gold", 0)))
+            if actual <= 0:
+                return 0
+
+            target_data["total_gold"] -= actual
+            source_data["total_gold"] += actual
+            return actual
+
+        return 0
 
     def _upsert_timed_status(self, target_data: dict, status_name: str, expire_time: int, **extra_fields):
         statuses = target_data.setdefault("statuses", [])
@@ -99,7 +149,7 @@ class CardEngine:
         # ==========================================
         if target_data and not is_aoe:
             for tag in tags:
-                if tag.startswith("steal") or tag.startswith("damage") or tag.startswith("freeze") or tag.startswith("sac_steal") or tag.startswith("dice_rule:"):
+                if tag.startswith("steal") or tag.startswith("damage") or tag.startswith("freeze") or tag.startswith("sac_steal") or tag.startswith("dice_rule:") or tag.startswith("borrow_blade:") or tag.startswith("bounty_mark:"):
                     for i, st in enumerate(target_data.get("statuses", [])):
                         if st.get("name") == "无懈可击":
                             target_data["statuses"].pop(i)
@@ -132,6 +182,10 @@ class CardEngine:
                 source_data["total_gold"] += actual_steal
                 reports.append(f"🗡️ 探入虚空，掠夺了 {target_name} {actual_steal} 金币！")
 
+                bounty_bonus = self._apply_bounty_bonus(source_data, target_data)
+                if bounty_bonus > 0:
+                    reports.append(f"🎯 悬赏印记发作！{target_name} 额外损失 {bounty_bonus} 金币，并被你一并卷走。")
+
                 reflected = self._apply_thorn_reflect(source_data, target_data, actual_steal)
                 if reflected > 0:
                     reports.append(f"🪞 目标反甲触发！你被反震 {reflected} 金币。")
@@ -163,6 +217,10 @@ class CardEngine:
                 source_data["total_gold"] += actual_steal
                 net = actual_steal - cost
                 reports.append(f"🔥 你燃烧 {cost} 金币发动豪赌，强夺 {target_name} {actual_steal} 金币！（净收益 {net:+d}）")
+
+                bounty_bonus = self._apply_bounty_bonus(source_data, target_data)
+                if bounty_bonus > 0:
+                    reports.append(f"🎯 悬赏印记发作！{target_name} 又被追加剥走 {bounty_bonus} 金币。")
 
                 reflected = self._apply_thorn_reflect(source_data, target_data, actual_steal)
                 if reflected > 0:
@@ -263,6 +321,123 @@ class CardEngine:
                 if not cleansed:
                     reports.append("✨ 施展了净化，但目标并未被负面状态缠身，法术消散。")
 
+            elif tag.startswith("luck_bless:"):
+                _, hours, percent = tag.split(":")
+                hours = int(hours)
+                percent = int(percent)
+                expire_time = int(time.time()) + hours * 3600
+                self._upsert_timed_status(
+                    source_data,
+                    "好运加护",
+                    expire_time,
+                    func_draw_prob_mod=abs(percent),
+                    desc=f"功能牌爆率 +{abs(percent)}%",
+                )
+                reports.append(f"🍀 时运翻涌！你获得【好运加护】，功能牌爆率提升 {abs(percent)}%，持续 {hours} 小时。")
+
+            elif tag == "fate_roulette":
+                roll = random.randint(1, 5)
+                if roll == 1:
+                    gain = 28
+                    source_data["total_gold"] += gain
+                    reports.append(f"🎡 命运转盘停下，幸运偏向了你！你获得 {gain} 金币。")
+                elif roll == 2:
+                    _ = int(time.time()) + 24 * 3600
+                    has_shield = any(st.get("name") == "无懈可击" for st in source_data.get("statuses", []))
+                    if has_shield:
+                        reports.append("🎡 命运转盘停下，你本想再添一层庇护，但护盾已在身，力量只是轻轻荡开。")
+                    else:
+                        source_data.setdefault("statuses", []).append({"name": "无懈可击", "desc": "抵挡1次恶意法术"})
+                        reports.append("🎡 命运转盘停下，一层突如其来的庇护笼住了你：你获得了【无懈可击】。")
+                elif roll == 3:
+                    expire_time = int(time.time()) + 24 * 3600
+                    self._upsert_timed_status(
+                        source_data,
+                        "好运加护",
+                        expire_time,
+                        func_draw_prob_mod=8,
+                        desc="功能牌爆率 +8%",
+                    )
+                    reports.append("🎡 命运转盘停下，接下来的风向明显站到了你这边：功能牌爆率 +8%，持续 24 小时。")
+                elif roll == 4:
+                    heal = 20
+                    source_data["total_gold"] += heal
+                    statuses = source_data.get("statuses", [])
+                    for i, st in enumerate(list(statuses)):
+                        if not self._is_positive_status(st):
+                            removed = statuses.pop(i)
+                            reports.append(f"🎡 命运转盘停下，你获得 {heal} 金币，并顺手洗掉了自身的【{removed.get('name')}】。")
+                            break
+                    else:
+                        reports.append(f"🎡 命运转盘停下，你获得 {heal} 金币，局势暂时朝你这边倾斜。")
+                else:
+                    loss = min(18, max(0, source_data.get("total_gold", 0)))
+                    source_data["total_gold"] -= loss
+                    reports.append(f"🎡 命运转盘忽然翻脸！你反被命运咬了一口，损失 {loss} 金币。")
+
+            elif tag.startswith("borrow_blade:"):
+                if not all_users or not source_uid or not target_data:
+                    continue
+                _, min_val, max_val = tag.split(":")
+                min_val, max_val = int(min_val), int(max_val)
+                target_uid = self._find_uid_by_data(all_users, target_data)
+                valid_helpers = [uid for uid in all_users.keys() if uid != source_uid and uid != target_uid]
+                helper_name = "一名路过的群友"
+                if valid_helpers:
+                    helper_uid = random.choice(valid_helpers)
+                    helper_name = all_users.get(helper_uid, {}).get("name", helper_name)
+                dmg = random.randint(min_val, max_val)
+                actual = min(dmg, max(0, target_data.get("total_gold", 0)))
+                target_data["total_gold"] -= actual
+                reports.append(f"🗡️ 你借来【{helper_name}】的名头下黑手，成功暗算 {target_name}，造成 {actual} 金币伤害！")
+
+                bounty_bonus = self._apply_bounty_bonus(source_data, target_data)
+                if bounty_bonus > 0:
+                    reports.append(f"🎯 悬赏印记顺势炸开，{target_name} 额外又掉了 {bounty_bonus} 金币，并被你收走。")
+
+                reflected = self._apply_thorn_reflect(source_data, target_data, actual)
+                if reflected > 0:
+                    reports.append(f"🪞 目标反甲触发！你被反震 {reflected} 金币。")
+
+            elif tag.startswith("bounty_mark:"):
+                _, hours, bonus = tag.split(":")
+                hours = int(hours)
+                bonus = int(bonus)
+                expire_time = int(time.time()) + hours * 3600
+                self._upsert_timed_status(
+                    target_data,
+                    "悬赏印记",
+                    expire_time,
+                    bounty_bonus=abs(bonus),
+                    desc=f"受到金币类攻击时额外损失 {abs(bonus)} 金币，攻击者获得同额收益",
+                )
+                reports.append(f"📜 悬赏落下！{target_name} 被挂上【悬赏印记】{hours} 小时，之后每次挨打都会额外多掉 {abs(bonus)} 金币。")
+
+            elif tag.startswith("strip_buff_gain:"):
+                _, percent, hours = tag.split(":")
+                percent = int(percent)
+                hours = int(hours)
+                statuses = target_data.get("statuses", [])
+                removed_name = ""
+                for i, st in enumerate(list(statuses)):
+                    if self._is_positive_status(st):
+                        removed = statuses.pop(i)
+                        removed_name = removed.get("name", "未知增益")
+                        break
+
+                if removed_name:
+                    expire_time = int(time.time()) + hours * 3600
+                    self._upsert_timed_status(
+                        source_data,
+                        "好运加护",
+                        expire_time,
+                        func_draw_prob_mod=abs(percent),
+                        desc=f"功能牌爆率 +{abs(percent)}%",
+                    )
+                    reports.append(f"🪄 你偷梁换柱，剥走了 {target_name} 的【{removed_name}】，并为自己赢得 {abs(percent)}% 功能牌爆率加成，持续 {hours} 小时！")
+                else:
+                    reports.append(f"🪄 你试图拆走 {target_name} 的增益，但对方身上没有可被篡改的正面状态。")
+
             elif tag == "add_shield":
                 has_shield = any(st.get("name") == "无懈可击" for st in target_data.get("statuses", []))
                 if has_shield:
@@ -332,9 +507,10 @@ class CardEngine:
                     else:
                         dmg = random.randint(min_val, max_val)
                         t_data["total_gold"] -= dmg
+                        bounty_bonus = self._apply_bounty_bonus(source_data, t_data)
 
                         reflected = self._apply_thorn_reflect(source_data, t_data, dmg)
-                        shown_dmg = max(0, dmg - reflected)
+                        shown_dmg = max(0, dmg - reflected) + bounty_bonus
                         hit_logs.append(f"{t_name}(-{shown_dmg})")
 
                         self.last_aoe_events.append({

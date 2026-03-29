@@ -135,6 +135,71 @@ def load_func_cards_config(config: dict = None):
     return valid_cards
 
 
+# ---- 默认稀有度权重 (rarity 1~5) ----
+_DEFAULT_RARITY_WEIGHTS = {1: 30, 2: 30, 3: 28, 4: 11, 5: 1}
+# 同档去重窗口与降权系数（后台隐藏逻辑，不对外展示）
+_DEDUP_WINDOW = 5
+_DEDUP_PENALTY = 0.15
+
+
+def _pick_func_card(cards_config: list, config: dict, user_data: dict) -> dict | None:
+    """
+    按稀有度权重从卡池中挑选一张牌。
+    - 先按稀有度权重抽档位（支持 default / custom 两种模式）
+    - 同档内对近期出过的牌静默降权，降低重复概率
+    """
+    if not cards_config:
+        return None
+
+    func_cfg = (config or {}).get("func_cards_settings", {})
+    mode = str(func_cfg.get("rarity_mode", "default")).strip().lower()
+
+    if mode == "custom":
+        raw_weights = func_cfg.get("custom_rarity_weights", {})
+        weights = {}
+        for r in range(1, 6):
+            key = f"rarity_{r}"
+            val = raw_weights.get(key, _DEFAULT_RARITY_WEIGHTS.get(r, 0))
+            try:
+                weights[r] = max(0, int(val))
+            except (TypeError, ValueError):
+                weights[r] = _DEFAULT_RARITY_WEIGHTS.get(r, 0)
+    else:
+        weights = dict(_DEFAULT_RARITY_WEIGHTS)
+
+    # 只保留卡池里实际存在的稀有度档位
+    available_rarities = {c.get("rarity", 1) for c in cards_config}
+    weights = {r: w for r, w in weights.items() if r in available_rarities and w > 0}
+
+    if not weights:
+        return random.choice(cards_config)
+
+    # 按权重随机抽稀有度
+    rarity_list = list(weights.keys())
+    weight_list = [weights[r] for r in rarity_list]
+    target_rarity = random.choices(rarity_list, weights=weight_list, k=1)[0]
+
+    pool = [c for c in cards_config if c.get("rarity", 1) == target_rarity]
+    # 同档降级兜底
+    if not pool:
+        for fallback in sorted(weights.keys(), reverse=True):
+            pool = [c for c in cards_config if c.get("rarity", 1) == fallback]
+            if pool:
+                break
+    if not pool:
+        pool = cards_config
+
+    # 同档去重：若配置开启，对近期出过的牌静默降权
+    enable_dedup = bool(func_cfg.get("enable_rarity_dedup", True))
+    if enable_dedup:
+        recent = user_data.get("recent_drawn_cards", [])[-_DEDUP_WINDOW:]
+        recent_names = set(recent)
+        card_weights = [_DEDUP_PENALTY if c.get("card_name") in recent_names else 1.0 for c in pool]
+        return random.choices(pool, weights=card_weights, k=1)[0]
+    else:
+        return random.choice(pool)
+
+
 def _get_public_duel_settings(config: dict | None) -> dict:
     func_cfg = (config or {}).get("func_cards_settings", {})
     enabled = bool(func_cfg.get("enable_public_duel_mode", func_cfg.get("enable_pure_dice_mode", False)))
@@ -706,14 +771,21 @@ async def handle_karma_leaderboard(event: AstrMessageEvent, bank, board_length: 
     lines = ["⚖️ 【天道善恶榜】", "━━━━━━━━━━━━━━"]
 
     for i, (uid, data) in enumerate(sorted_users[:board_length]):
-        # 💡 修复：真名显示
         name = data.get("name", f"群友({uid})")
         karma = data.get("karma_value", 0)
         tag = "👼 善" if karma > 0 else "💀 恶"
-        lines.append(f"{i+1}. {name} | 业报: {karma} {tag}")
+        # 显示善恶称号标记
+        title_tag = ""
+        titles = data.get("titles", [])
+        if "行善之人" in titles:
+            title_tag = " [行善之人]"
+        elif "邪恶之人" in titles:
+            title_tag = " [邪恶之人]"
+        lines.append(f"{i+1}. {name}{title_tag} | 业报: {karma} {tag}")
 
     lines.append("━━━━━━━━━━━━━━")
     lines.append("💡 施放治疗法术积攒善意，发起攻击累积罪恶。")
+    lines.append("🏅 善值≥5 获得【行善之人】称号，恶值≤-5 获得【邪恶之人】称号。")
     yield event.plain_result("\n".join(lines))
 
 
@@ -929,30 +1001,25 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
 
     user_data["func_card_pity_count"] = 0 
     rarity_map = {1: "⚪ 普通", 2: "🔵 稀有", 3: "🟣 史诗", 4: "🟡 传说", 5: "🔴 神话"}
-    
-    r_roll = random.randint(1, 100)
-    if r_roll <= 2: target_rarity = 5
-    elif r_roll <= 8: target_rarity = 4
-    elif r_roll <= 20: target_rarity = 3
-    elif r_roll <= 50: target_rarity = 2
-    else: target_rarity = 1
 
-    pool = [c for c in cards_config if c.get("rarity", 1) == target_rarity]
-    
-    while not pool and target_rarity > 1:
-        target_rarity -= 1
-        pool = [c for c in cards_config if c.get("rarity", 1) == target_rarity]
-    
-    if not pool: pool = cards_config 
-
-    card = random.choice(pool)
+    card = _pick_func_card(cards_config, config, user_data)
+    if not card:
+        yield event.plain_result("⚠️ 功能牌卡池为空，无法完成抽取。")
+        return
     actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
     
     user_data["inventory"].append({
         "card_name": card["card_name"],
         "is_active": False,
-        "is_broken": False # 💡 默认完好无损
+        "is_broken": False
     })
+
+    # 记录近期出牌（同档去重后台逻辑，窗口为最近 _DEDUP_WINDOW 次）
+    recent = user_data.setdefault("recent_drawn_cards", [])
+    recent.append(card["card_name"])
+    if len(recent) > _DEDUP_WINDOW:
+        user_data["recent_drawn_cards"] = recent[-_DEDUP_WINDOW:]
+
     await bank.save_user_data()
 
     cost_str = f"消耗：免费抽取次数（下次 {draw_cost} 金币）" if is_free else f"消耗：{draw_cost} 金币"
@@ -1198,12 +1265,18 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             user_data["daily_attack_count"] += 1
             user_data["karma_value"] -= 1
             karma_report = "\n💀 【业报积累】今日连续发动攻击，善恶值 -1！"
+        # 对赌牌属于功能牌攻击，邪恶之人奖励同样触发
+        duel_evil_bonus = TitleEngine.calculate_total_attack_gold_bonus(user_data.get("titles", []))
+        if duel_evil_bonus > 0:
+            user_data["total_gold"] += duel_evil_bonus
+            karma_report += f"\n😈 【邪恶之人】攻击奖励触发，额外获得 {duel_evil_bonus} 金币！"
 
         await bank.save_user_data()
         yield event.plain_result(
             f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{len(inventory)}/3"
         )
         return
+    evil_bonus = 0
     if card_type == "attack":
         if user_data.get("last_attack_date") != today:
             user_data["last_attack_date"] = today
@@ -1213,6 +1286,11 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             user_data["daily_attack_count"] += 1
             user_data["karma_value"] -= 1
             karma_report = "\n💀 【业报积累】今日连续发动攻击，善恶值 -1！"
+        # 邪恶之人称号：使用功能牌攻击额外获得金币
+        evil_bonus = TitleEngine.calculate_total_attack_gold_bonus(user_data.get("titles", []))
+        if evil_bonus > 0:
+            user_data["total_gold"] += evil_bonus
+            karma_report += f"\n😈 【邪恶之人】攻击奖励触发，额外获得 {evil_bonus} 金币！"
             
     elif card_type == "heal" and (target_id != user_id or is_aoe):
         user_data["karma_value"] += 1

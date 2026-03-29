@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>luck_rank WebUI</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --bg-soft: #161a22;
+      --panel: rgba(24, 28, 39, 0.92);
+      --line: rgba(255,255,255,0.08);
+      --text: #eef2ff;
+      --text-dim: #aeb7d1;
+      --gold: #f4d58d;
+      --purple: #b388ff;
+      --blue: #6ec5ff;
+      --green: #72e2a1;
+      --red: #ff7b7b;
+      --shadow: 0 18px 48px rgba(0,0,0,.35);
+      --radius: 18px;
+      --rarity-1: #b8c0d6;
+      --rarity-2: #52a7ff;
+      --rarity-3: #ad6dff;
+      --rarity-4: #f5c25b;
+      --rarity-5: #ff6b8f;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background:
+        radial-gradient(circle at top left, rgba(173,109,255,0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(110,197,255,0.12), transparent 24%),
+        linear-gradient(180deg, #0a0d13, #10131a 35%, #0d1118 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      min-height: 100%;
+    }
+
+    body { min-height: 100vh; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(17,20,30,.96), rgba(12,14,22,.96));
+      padding: 22px 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      padding: 18px 18px 22px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      color: var(--gold);
+    }
+
+    .brand p {
+      margin: 10px 0 0;
+      color: var(--text-dim);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .nav-group { margin-top: 18px; }
+    .nav-title {
+      padding: 0 10px 10px;
+      color: #8f99b8;
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .nav-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      border-radius: 14px;
+      padding: 14px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: .2s ease;
+      font-size: 14px;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255,255,255,.05);
+      border-color: rgba(255,255,255,.08);
+      transform: translateX(2px);
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(90deg, rgba(244,213,141,.14), rgba(173,109,255,.12));
+      border-color: rgba(244,213,141,.22);
+      color: #fff9e9;
+    }
+
+    .content { padding: 28px; }
+
+    .topbar {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .topbar-left h2 {
+      margin: 0;
+      font-size: 28px;
+      color: #fff8e6;
+    }
+
+    .topbar-left p {
+      margin: 8px 0 0;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .topbar-right { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn, .btn-ghost, .btn-danger, .small-btn {
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: .2s ease;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #f4d58d, #d2a94e);
+      color: #2c2109;
+      font-weight: 700;
+    }
+
+    .btn-ghost, .small-btn {
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: rgba(255,107,123,.12);
+      color: #ffc4cb;
+      border-color: rgba(255,107,123,.22);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: rgba(255,255,255,.045);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      padding: 12px 14px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+      gap: 18px;
+    }
+
+    .card-item {
+      position: relative;
+      border-radius: 22px;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: var(--shadow);
+      transition: .22s ease;
+      cursor: pointer;
+    }
+
+    .card-item:hover {
+      transform: translateY(-4px);
+      border-color: rgba(244,213,141,.24);
+    }
+
+    .card-rarity-bar { height: 6px; width: 100%; }
+    .rarity-1 { background: linear-gradient(90deg, var(--rarity-1), #d8deee); }
+    .rarity-2 { background: linear-gradient(90deg, var(--rarity-2), #9ed8ff); }
+    .rarity-3 { background: linear-gradient(90deg, var(--rarity-3), #d0a8ff); }
+    .rarity-4 { background: linear-gradient(90deg, var(--rarity-4), #ffe49b); }
+    .rarity-5 { background: linear-gradient(90deg, var(--rarity-5), #ff9bb5); }
+
+    .card-image {
+      height: 310px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .image-missing {
+      padding: 18px;
+      text-align: center;
+      color: #cdd4ea;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .missing-badge {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      background: rgba(255,107,123,.18);
+      color: #ffd5dc;
+      border: 1px solid rgba(255,107,123,.26);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    .card-body { padding: 14px 16px 16px; }
+    .card-title { margin: 0; font-size: 17px; color: #fff5dc; line-height: 1.35; }
+    .card-desc { margin: 10px 0 14px; color: var(--text-dim); line-height: 1.7; font-size: 13px; min-height: 62px; }
+
+    .pill, .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.05);
+      color: var(--text-dim);
+    }
+
+    .pill.attack { color: #ffc1c1; background: rgba(255,123,123,.12); }
+    .pill.heal { color: #bcffd6; background: rgba(114,226,161,.12); }
+    .pill.defense { color: #cde7ff; background: rgba(110,197,255,.12); }
+    .tag-chip { background: rgba(173,109,255,.12); color: #e6d5ff; border-color: rgba(173,109,255,.2); }
+
+    .editor-layout, .split-two {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .split-two { grid-template-columns: 1fr 1fr; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    .field label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #d7def8;
+    }
+
+    .sub-title {
+      margin: 0 0 14px;
+      color: #fff7df;
+      font-size: 17px;
+    }
+
+    .preview-box, .empty-state {
+      min-height: 220px;
+      border-radius: 18px;
+      border: 1px dashed rgba(255,255,255,.12);
+      background: rgba(255,255,255,.025);
+      padding: 16px;
+      color: var(--text-dim);
+    }
+
+    .list-editor { display: grid; gap: 10px; }
+    .list-item {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 10px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: #8d98b6;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 1180px) {
+      .editor-layout, .split-two { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      .content { padding: 18px; }
+    }
+
+    @media (max-width: 680px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>🌐 luck_rank WebUI</h1>
+        <p>异世界卡牌图形化管理台。<br>可视化配置，不必手改 JSON，端口可自由调整。</p>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">管理页面</div>
+        <button class="nav-btn active" data-page="cards-page">🃏 卡牌管理</button>
+        <button class="nav-btn" data-page="texts-page">📜 命运牌文案</button>
+        <button class="nav-btn" data-page="config-page">⚙️ 系统配置</button>
+        <button class="nav-btn" data-page="stats-page">📊 概率分析</button>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">状态</div>
+        <div class="panel">
+                    <div>✅ WebUI 管理界面已启用</div>
+                    <div class="footer-note">
+                      默认端口已设为 <b>4399</b><br>
+                      本地可访问 <b>127.0.0.1:端口</b><br>
+                      服务器可访问 <b>服务器地址:端口</b>
+                    </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="topbar">
+        <div class="topbar-left">
+          <h2 id="page-title">卡牌管理</h2>
+          <p id="page-desc">管理功能牌卡池、图片、词条与稀有度。</p>
+        </div>
+        <div class="topbar-right">
+          <button class="btn-ghost" id="btn-refresh">刷新数据</button>
+          <button class="btn" id="btn-save-current">保存当前页面</button>
+        </div>
+      </div>
+
+      <section class="page active" id="cards-page">
+        <div class="panel">
+          <div class="toolbar">
+            <input type="text" id="card-search" placeholder="搜索卡名 / 描述 / tag..." />
+            <select id="card-filter-type">
+              <option value="">全部类型</option>
+              <option value="attack">攻击</option>
+              <option value="heal">治疗</option>
+              <option value="defense">防御</option>
+            </select>
+            <select id="card-filter-rarity">
+              <option value="">全部稀有度</option>
+              <option value="1">普通</option>
+              <option value="2">稀有</option>
+              <option value="3">史诗</option>
+              <option value="4">传说</option>
+              <option value="5">神话</option>
+            </select>
+            <button class="btn" id="btn-new-card">新增卡牌</button>
+            <button class="btn-ghost" id="btn-upload-images">批量导入图片</button>
+            <button class="btn-ghost" id="btn-check-missing">检查缺失图片</button>
+          </div>
+
+          <div id="cards-grid" class="cards-grid"></div>
+          <div id="cards-empty" class="empty-state" style="display:none;">当前卡池为空，点击“新增卡牌”开始创建第一张牌。</div>
+        </div>
+
+        <div class="editor-layout">
+          <div class="panel">
+            <h3 class="sub-title">🎴 卡牌编辑器</h3>
+            <div class="form-grid">
+              <div class="field">
+                <label>卡牌名称</label>
+                <input id="edit-card-name" placeholder="例如：命运转盘" />
+              </div>
+              <div class="field">
+                <label>卡牌类型</label>
+                <select id="edit-card-type">
+                  <option value="attack">攻击</option>
+                  <option value="heal">治疗</option>
+                  <option value="defense">防御</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>稀有度</label>
+                <select id="edit-card-rarity">
+                  <option value="1">1 - 普通</option>
+                  <option value="2">2 - 稀有</option>
+                  <option value="3">3 - 史诗</option>
+                  <option value="4">4 - 传说</option>
+                  <option value="5">5 - 神话</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>图片文件名</label>
+                <input id="edit-card-filename" placeholder="例如：my_card.jpg" />
+              </div>
+              <div class="field full">
+                <label>描述</label>
+                <textarea id="edit-card-desc" rows="4" placeholder="输入这张牌的效果描述..."></textarea>
+              </div>
+            </div>
+
+            <h3 class="sub-title" style="margin-top:16px;">🧩 Tag 可视化构建</h3>
+            <div class="form-grid">
+              <div class="field">
+                <label>功能分类</label>
+                <select id="tag-category">
+                  <option value="">选择分类</option>
+                  <option value="attack">攻击 / 掠夺 / 控制</option>
+                  <option value="heal">治疗 / 辅助</option>
+                  <option value="defense">防御 / 状态</option>
+                  <option value="aoe">群体效果</option>
+                  <option value="dice">骰子规则</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>具体词条</label>
+                <select id="tag-template">
+                  <option value="">先选择分类</option>
+                </select>
+              </div>
+            </div>
+            <div id="tag-params" class="form-grid"></div>
+            <div class="toolbar" style="margin-top:12px;">
+              <button class="btn" id="btn-add-tag">添加词条</button>
+            </div>
+            <div id="current-tags" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+
+            <div class="toolbar" style="margin-top:16px;">
+              <button class="btn" id="btn-save-card">保存这张卡</button>
+              <button class="btn-ghost" id="btn-copy-card">复制当前卡</button>
+              <button class="btn-danger" id="btn-delete-card">删除当前卡</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3 class="sub-title">🔮 预览面板</h3>
+            <div class="preview-box" id="card-preview-box">
+              选择或创建一张牌后，这里会显示卡面预览、tag 列表与图片状态。
+            </div>
+            <div class="footer-note">
+              • WebUI 预览会对图片进行裁切/缩放，仅影响管理界面显示，不影响 Bot 实际发图。<br>
+              • 没有图片时会显示“未设置图片 / 图片缺失”提示。<br>
+              • 允许同名牌，便于做同效果不同卡面版本。
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="texts-page">
+        <div class="split-two">
+          <div class="panel">
+            <h3 class="sub-title">✅ 宜做事项</h3>
+            <div id="good-list" class="list-editor"></div>
+            <div class="toolbar" style="margin-top:14px;">
+              <button class="btn" id="btn-add-good">新增宜做事项</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3 class="sub-title">❌ 忌做事项</h3>
+            <div id="bad-list" class="list-editor"></div>
+            <div class="toolbar" style="margin-top:14px;">
+              <button class="btn" id="btn-add-bad">新增忌做事项</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:18px;"></div>
+
+        <div class="panel">
+          <h3 class="sub-title">🗣️ 运势评语</h3>
+          <div class="split-two">
+            <div><h4>91~100</h4><div id="comment-91_100" class="list-editor"></div></div>
+            <div><h4>71~90</h4><div id="comment-71_90" class="list-editor"></div></div>
+            <div><h4>51~70</h4><div id="comment-51_70" class="list-editor"></div></div>
+            <div><h4>1~50</h4><div id="comment-1_50" class="list-editor"></div></div>
+          </div>
+
+          <div class="toolbar" style="margin-top:16px;">
+            <button class="btn" id="btn-save-texts">保存命运牌文案</button>
+            <button class="btn-ghost" id="btn-preview-texts">随机预览一条</button>
+          </div>
+
+          <div class="preview-box" id="texts-preview-box">点击“随机预览一条”后，这里会模拟展示签到文案的片段效果。</div>
+        </div>
+      </section>
+
+      <section class="page" id="config-page">
+        <div class="panel">
+          <h3 class="sub-title">⚙️ 系统配置</h3>
+          <div class="form-grid">
+            <div class="field"><label>功能牌系统</label><select id="cfg-func-enable"><option value="true">开启</option><option value="false">关闭</option></select></div>
+            <div class="field"><label>骰子功能牌</label><select id="cfg-dice-enable"><option value="true">开启</option><option value="false">关闭</option></select></div>
+            <div class="field"><label>公开对赌模式</label><select id="cfg-public-duel"><option value="true">开启</option><option value="false">关闭</option></select></div>
+            <div class="field"><label>同档去重</label><select id="cfg-rarity-dedup"><option value="true">开启</option><option value="false">关闭</option></select></div>
+            <div class="field"><label>稀有度模式</label><select id="cfg-rarity-mode"><option value="default">默认权重</option><option value="custom">自定义权重</option></select></div>
+            <div class="field"><label>WebUI 端口</label><input id="cfg-webui-port" type="number" value="4399" /></div>
+            <div class="field"><label>普通权重</label><input id="cfg-r1" type="number" /></div>
+            <div class="field"><label>稀有权重</label><input id="cfg-r2" type="number" /></div>
+            <div class="field"><label>史诗权重</label><input id="cfg-r3" type="number" /></div>
+            <div class="field"><label>传说权重</label><input id="cfg-r4" type="number" /></div>
+            <div class="field"><label>神话权重</label><input id="cfg-r5" type="number" /></div>
+            <div class="field"><label>基础掉率 (%)</label><input id="cfg-draw-prob" type="number" /></div>
+            <div class="field"><label>每日免费抽取</label><input id="cfg-free-draw" type="number" /></div>
+            <div class="field"><label>额外抽卡费用</label><input id="cfg-draw-cost" type="number" /></div>
+            <div class="field"><label>保底阈值</label><input id="cfg-pity" type="number" /></div>
+          </div>
+
+          <div class="footer-note">
+                        当前先完成前端外观骨架，后续继续接入完整配置读写接口。<br>
+            WebUI 默认端口已预设为 <b>4399</b>，你可以在这里直接修改后面的端口数字。<br>
+            前面的访问地址取决于运行环境：本地常见为 <b>127.0.0.1:端口</b>，服务器常见为 <b>服务器地址:端口</b>。
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="stats-page">
+        <div class="stats-grid">
+          <div class="stat-card"><h4>总用户数</h4><div class="stat-value" id="stat-total-users">0</div></div>
+          <div class="stat-card"><h4>功能牌总数</h4><div class="stat-value" id="stat-total-cards">0</div></div>
+          <div class="stat-card"><h4>缺失图片数</h4><div class="stat-value" id="stat-missing-images">0</div></div>
+          <div class="stat-card"><h4>被玩家持有的牌种数</h4><div class="stat-value" id="stat-held-types">0</div></div>
+        </div>
+
+        <div class="split-two">
+          <div class="panel">
+            <h3 class="sub-title">🎯 稀有度分布</h3>
+            <div id="rarity-stats-box" class="preview-box"></div>
+          </div>
+          <div class="panel">
+            <h3 class="sub-title">🧳 玩家持牌统计</h3>
+            <div id="holder-stats-box" class="preview-box"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      cards: [],
+      images: [],
+      signTexts: null,
+      selectedCardIndex: -1,
+      currentTags: [],
+      stats: { total_users: 0, card_holders: {} }
+    };
+
+    const pageMeta = {
+      "cards-page": { title: "卡牌管理", desc: "管理功能牌卡池、图片、词条与稀有度。" },
+      "texts-page": { title: "命运牌文案", desc: "可视化编辑宜/忌事项与运势评语，不再手改 Python。" },
+      "config-page": { title: "系统配置", desc: "图形化查看和调整抽卡、爆率、对赌与 WebUI 参数。" },
+      "stats-page": { title: "概率分析", desc: "查看卡池分布、缺图情况与玩家持牌统计。" }
+    };
+
+    const tagTemplates = {
+      attack: [
+        { value: "steal", label: "掠夺金币 steal:X", params: ["amount"] },
+        { value: "freeze", label: "冻结 freeze:X", params: ["hours"] },
+        { value: "silence", label: "沉默 silence:X", params: ["hours"] },
+        { value: "seal_draw_all", label: "封印抽牌 seal_draw_all:X", params: ["hours"] },
+        { value: "luck_drain", label: "抽取爆率 luck_drain:X:Y", params: ["hours", "percent"] },
+        { value: "borrow_blade", label: "借刀杀人 borrow_blade:X:Y", params: ["min", "max"] },
+        { value: "bounty_mark", label: "赏金悬令 bounty_mark:X:Y", params: ["hours", "bonus"] },
+        { value: "strip_buff_gain", label: "偷梁换柱 strip_buff_gain:X:Y", params: ["percent", "hours"] }
+      ],
+      heal: [
+        { value: "cleanse", label: "净化 cleanse", params: [] },
+        { value: "luck_bless", label: "好运加护 luck_bless:X:Y", params: ["hours", "percent"] },
+        { value: "fate_roulette", label: "命运转盘 fate_roulette", params: [] }
+      ],
+      defense: [
+        { value: "add_shield", label: "无懈可击 add_shield", params: [] },
+        { value: "thorn_armor", label: "反甲 thorn_armor:X:Y", params: ["hours", "ratio"] }
+      ],
+      aoe: [
+        { value: "aoe_damage", label: "群攻 aoe_damage:X:Y:Z", params: ["min", "max", "count"] },
+        { value: "aoe_heal", label: "群疗 aoe_heal:X:Y:Z", params: ["min", "max", "count"] }
+      ],
+      dice: [
+        { value: "dice_rule", label: "骰子规则 dice_rule:KEY", params: ["key"] },
+        { value: "dice_duel", label: "对赌 dice_duel:X", params: ["stake"] },
+        { value: "dice_reroll_lowest_once", label: "天命重投 dice_reroll_lowest_once", params: [] }
+      ]
+    };
+
+    const qs = s => document.querySelector(s);
+    const qsa = s => Array.from(document.querySelectorAll(s));
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function rarityClass(r) { return "rarity-" + (Number(r) || 1); }
+    function typeLabel(type) {
+      if (type === "attack") return "攻击";
+      if (type === "heal") return "治疗";
+      if (type === "defense") return "防御";
+      return type || "未知";
+    }
+
+    async function apiGet(url) {
+      const res = await fetch(url);
+      return await res.json();
+    }
+
+    async function apiPost(url, body) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      return await res.json();
+    }
+
+    function renderNav() {
+      qsa(".nav-btn").forEach(btn => {
+        btn.onclick = () => {
+          qsa(".nav-btn").forEach(x => x.classList.remove("active"));
+          qsa(".page").forEach(x => x.classList.remove("active"));
+          btn.classList.add("active");
+          const page = btn.dataset.page;
+          qs("#" + page).classList.add("active");
+          qs("#page-title").textContent = pageMeta[page].title;
+          qs("#page-desc").textContent = pageMeta[page].desc;
+        };
+      });
+    }
+
+    function renderCards() {
+      const grid = qs("#cards-grid");
+      const kw = qs("#card-search").value.trim().toLowerCase();
+      const type = qs("#card-filter-type").value;
+      const rarity = qs("#card-filter-rarity").value;
+
+      const cards = state.cards.filter(card => {
+        const hitKw = !kw || JSON.stringify(card).toLowerCase().includes(kw);
+        const hitType = !type || card.type === type;
+        const hitRarity = !rarity || String(card.rarity) === rarity;
+        return hitKw && hitType && hitRarity;
+      });
+
+      qs("#cards-empty").style.display = cards.length ? "none" : "block";
+      grid.innerHTML = cards.map(card => {
+        const filename = String(card.filename || "").trim();
+        const hasImage = filename && state.images.includes(filename);
+        const missing = filename && !hasImage;
+        const imageHtml = hasImage
+          ? `<img src="/assets/${encodeURIComponent(filename)}" alt="${escapeHtml(card.card_name)}">`
+          : `<div class="image-missing">${filename ? "图片缺失<br><small>" + escapeHtml(filename) + "</small>" : "未设置图片"}</div>`;
+
+        return `
+          <div class="card-item" data-card-name="${escapeHtml(card.card_name)}">
+            <div class="card-rarity-bar ${rarityClass(card.rarity)}"></div>
+            <div class="card-image">
+              ${imageHtml}
+              ${missing ? '<div class="missing-badge">图片缺失</div>' : ""}
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">${escapeHtml(card.card_name)}</h3>
+              <div style="margin:8px 0 10px;"><span class="pill ${escapeHtml(card.type)}">${typeLabel(card.type)}</span></div>
+              <div class="card-desc">${escapeHtml(card.description || "暂无描述")}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                ${(card.tags || []).slice(0, 4).map(tag => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      qsa(".card-item").forEach(el => {
+        el.onclick = () => selectCardByName(el.dataset.cardName);
+      });
+    }
+
+    function renderCurrentTags() {
+      const wrap = qs("#current-tags");
+      if (!state.currentTags.length) {
+        wrap.innerHTML = "当前还没有词条，先从上方选择一个功能并添加。";
+        return;
+      }
+      wrap.innerHTML = state.currentTags.map((tag, idx) =>
+        `<span class="tag-chip">${escapeHtml(tag)} <button class="small-btn" onclick="removeTag(${idx})">×</button></span>`
+      ).join("");
+    }
+
+    function renderPreview(card = null) {
+      const c = card || {
+        card_name: qs("#edit-card-name").value.trim(),
+        type: qs("#edit-card-type").value,
+        rarity: Number(qs("#edit-card-rarity").value || 1),
+        filename: qs("#edit-card-filename").value.trim(),
+        description: qs("#edit-card-desc").value.trim(),
+        tags: state.currentTags
+      };
+
+      const filename = String(c.filename || "").trim();
+      const hasImage = filename && state.images.includes(filename);
+      const missing = filename && !hasImage;
+      const imageHtml = hasImage
+        ? `<img src="/assets/${encodeURIComponent(filename)}" alt="${escapeHtml(c.card_name)}" style="width:100%;max-height:300px;object-fit:cover;border-radius:14px;">`
+        : `<div class="image-missing" style="height:220px;border-radius:14px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;">${filename ? "图片缺失：" + escapeHtml(filename) : "未设置图片"}</div>`;
+
+      qs("#card-preview-box").innerHTML = `
+        <div class="card-rarity-bar ${rarityClass(c.rarity)}" style="border-radius:999px;"></div>
+        <div style="height:12px;"></div>
+        ${imageHtml}
+        <div style="height:14px;"></div>
+        <h3 class="sub-title" style="margin-bottom:8px;">${escapeHtml(c.card_name || "未命名卡牌")}</h3>
+        <div class="pill ${escapeHtml(c.type)}">${typeLabel(c.type)}</div>
+        <p class="card-desc" style="min-height:auto;">${escapeHtml(c.description || "暂无描述")}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${(c.tags || []).map(tag => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join("") || "暂无词条"}
+        </div>
+        ${missing ? '<div class="footer-note" style="color:#ffc6cf;">⚠️ 当前配置引用了图片，但图片文件不存在。</div>' : ""}
+      `;
+    }
+
+    function fillEditor(card) {
+      qs("#edit-card-name").value = card.card_name || "";
+      qs("#edit-card-type").value = card.type || "attack";
+      qs("#edit-card-rarity").value = String(card.rarity || 1);
+      qs("#edit-card-filename").value = card.filename || "";
+      qs("#edit-card-desc").value = card.description || "";
+      state.currentTags = Array.isArray(card.tags) ? [...card.tags] : [];
+      renderCurrentTags();
+      renderPreview(card);
+    }
+
+    function resetEditor() {
+      state.selectedCardIndex = -1;
+      state.currentTags = [];
+      qs("#edit-card-name").value = "";
+      qs("#edit-card-type").value = "attack";
+      qs("#edit-card-rarity").value = "1";
+      qs("#edit-card-filename").value = "";
+      qs("#edit-card-desc").value = "";
+      renderCurrentTags();
+      renderPreview();
+    }
+
+    function selectCardByName(name) {
+      const idx = state.cards.findIndex(c => c.card_name === name);
+      if (idx < 0) return;
+      state.selectedCardIndex = idx;
+      fillEditor(state.cards[idx]);
+    }
+
+    function removeTag(idx) {
+      state.currentTags.splice(idx, 1);
+      renderCurrentTags();
+      renderPreview();
+    }
+    window.removeTag = removeTag;
+
+    function renderTagTemplateOptions() {
+      const category = qs("#tag-category").value;
+      const list = tagTemplates[category] || [];
+      qs("#tag-template").innerHTML = `<option value="">选择词条</option>` + list.map(item =>
+        `<option value="${item.value}">${item.label}</option>`
+      ).join("");
+      qs("#tag-params").innerHTML = "";
+    }
+
+    function renderTagParams() {
+      const category = qs("#tag-category").value;
+      const tag = qs("#tag-template").value;
+      const found = (tagTemplates[category] || []).find(x => x.value === tag);
+      if (!found) {
+        qs("#tag-params").innerHTML = "";
+        return;
+      }
+      qs("#tag-params").innerHTML = found.params.map(param => `
+        <div class="field">
+          <label>${param}</label>
+          <input data-param="${param}" placeholder="填写 ${param}" />
+        </div>
+      `).join("");
+    }
+
+    function buildTag() {
+      const category = qs("#tag-category").value;
+      const tag = qs("#tag-template").value;
+      if (!category || !tag) return null;
+      const found = (tagTemplates[category] || []).find(x => x.value === tag);
+      if (!found) return null;
+      if (!found.params.length) return tag;
+      const values = found.params.map(p => {
+        const el = document.querySelector(`[data-param="${p}"]`);
+        return (el?.value || "").trim();
+      });
+      if (values.some(v => !v)) {
+        alert("请先填写完整参数。");
+        return null;
+      }
+      if (tag === "dice_rule") return `${tag}:${values[0]}`;
+      return `${tag}:${values.join(":")}`;
+    }
+
+    function saveCurrentCard() {
+      const card = {
+        card_name: qs("#edit-card-name").value.trim(),
+        type: qs("#edit-card-type").value,
+        rarity: Number(qs("#edit-card-rarity").value || 1),
+        filename: qs("#edit-card-filename").value.trim(),
+        description: qs("#edit-card-desc").value.trim(),
+        tags: [...state.currentTags]
+      };
+
+      if (!card.card_name) {
+        alert("卡牌名称不能为空。");
+        return;
+      }
+
+      if (state.selectedCardIndex >= 0) {
+        state.cards[state.selectedCardIndex] = card;
+      } else {
+        state.cards.unshift(card);
+        state.selectedCardIndex = 0;
+      }
+
+      renderCards();
+      renderPreview(card);
+      loadStats();
+      alert("卡牌已写入前端缓存，记得点击“保存当前页面”同步到文件。");
+    }
+
+    function copyCurrentCard() {
+      if (state.selectedCardIndex < 0) {
+        alert("请先选择一张卡。");
+        return;
+      }
+      const base = state.cards[state.selectedCardIndex];
+      const copied = JSON.parse(JSON.stringify(base));
+      copied.card_name = `${base.card_name} 的副本`;
+      state.cards.unshift(copied);
+      state.selectedCardIndex = 0;
+      fillEditor(copied);
+      renderCards();
+    }
+
+    function deleteCurrentCard() {
+      if (state.selectedCardIndex < 0) {
+        alert("请先选择一张卡。");
+        return;
+      }
+      if (!confirm("确定删除当前卡牌吗？")) return;
+      state.cards.splice(state.selectedCardIndex, 1);
+      resetEditor();
+      renderCards();
+      loadStats();
+    }
+
+    async function saveCards() {
+      const ret = await apiPost("/api/func_cards", { cards: state.cards });
+      alert(ret.ok ? "功能牌卡池已保存。" : ("保存失败：" + (ret.error || "未知错误")));
+      if (ret.ok) await loadStats();
+    }
+
+    async function loadCards() {
+      const ret = await apiGet("/api/func_cards");
+      state.cards = ret.cards || [];
+      renderCards();
+      if (!state.cards.length) resetEditor();
+    }
+
+    async function loadImages() {
+      const ret = await apiGet("/api/images");
+      state.images = ret.files || [];
+      renderCards();
+      renderPreview();
+    }
+
+    async function uploadImages() {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.multiple = true;
+      input.accept = "image/*";
+      input.onchange = async () => {
+        if (!input.files?.length) return;
+        const fd = new FormData();
+        Array.from(input.files).forEach(file => fd.append("files", file));
+        const res = await fetch("/api/upload_image", { method: "POST", body: fd });
+        const ret = await res.json();
+        alert(ret.ok ? `已上传 ${ret.uploaded.length} 张图片。` : ("上传失败：" + (ret.error || "未知错误")));
+        if (ret.ok) await loadImages();
+      };
+      input.click();
+    }
+
+    async function checkMissingImages() {
+      const ret = await apiGet("/api/check_missing_images");
+      const list = ret.missing || [];
+      if (!list.length) {
+        alert("当前没有缺失图片。");
+        return;
+      }
+      alert("缺失图片：\n" + list.map(x => `- ${x.card_name} -> ${x.filename}`).join("\n"));
+    }
+
+    function renderListEditor(selector, arr) {
+      const root = qs(selector);
+      root.innerHTML = arr.map((item, idx) => `
+        <div class="list-item">
+          <input value="${escapeHtml(item)}" data-list-root="${selector}" data-index="${idx}">
+          <button class="small-btn" onclick="removeListItem('${selector}', ${idx})">删除</button>
+        </div>
+      `).join("") || '暂无内容，可点击下方按钮添加。';
+    }
+
+    function renderTextLists() {
+      renderListEditor("#good-list", state.signTexts.good_things || []);
+      renderListEditor("#bad-list", state.signTexts.bad_things || []);
+      renderListEditor("#comment-91_100", (state.signTexts.luck_comments || {})["91_100"] || []);
+      renderListEditor("#comment-71_90", (state.signTexts.luck_comments || {})["71_90"] || []);
+      renderListEditor("#comment-51_70", (state.signTexts.luck_comments || {})["51_70"] || []);
+      renderListEditor("#comment-1_50", (state.signTexts.luck_comments || {})["1_50"] || []);
+    }
+
+    async function loadTexts() {
+      const ret = await apiGet("/api/sign_in_texts");
+      state.signTexts = ret.texts || { good_things: [], bad_things: [], luck_comments: {} };
+      renderTextLists();
+    }
+
+    function syncTextsFromInputs() {
+      state.signTexts.good_things = Array.from(document.querySelectorAll('#good-list input')).map(i => i.value.trim()).filter(Boolean);
+      state.signTexts.bad_things = Array.from(document.querySelectorAll('#bad-list input')).map(i => i.value.trim()).filter(Boolean);
+      state.signTexts.luck_comments["91_100"] = Array.from(document.querySelectorAll('#comment-91_100 input')).map(i => i.value.trim()).filter(Boolean);
+      state.signTexts.luck_comments["71_90"] = Array.from(document.querySelectorAll('#comment-71_90 input')).map(i => i.value.trim()).filter(Boolean);
+      state.signTexts.luck_comments["51_70"] = Array.from(document.querySelectorAll('#comment-51_70 input')).map(i => i.value.trim()).filter(Boolean);
+      state.signTexts.luck_comments["1_50"] = Array.from(document.querySelectorAll('#comment-1_50 input')).map(i => i.value.trim()).filter(Boolean);
+    }
+
+    async function saveTexts() {
+      syncTextsFromInputs();
+      const ret = await apiPost("/api/sign_in_texts", { texts: state.signTexts });
+      alert(ret.ok ? "命运牌文案已保存。" : ("保存失败：" + (ret.error || "未知错误")));
+    }
+
+    function addListItem(which) {
+      if (which === "good") state.signTexts.good_things.push("");
+      if (which === "bad") state.signTexts.bad_things.push("");
+      renderTextLists();
+    }
+
+    function removeListItem(selector, idx) {
+      const map = {
+        "#good-list": state.signTexts.good_things,
+        "#bad-list": state.signTexts.bad_things,
+        "#comment-91_100": state.signTexts.luck_comments["91_100"],
+        "#comment-71_90": state.signTexts.luck_comments["71_90"],
+        "#comment-51_70": state.signTexts.luck_comments["51_70"],
+        "#comment-1_50": state.signTexts.luck_comments["1_50"]
+      };
+      map[selector].splice(idx, 1);
+      renderTextLists();
+    }
+    window.removeListItem = removeListItem;
+
+    function previewTexts() {
+      syncTextsFromInputs();
+      const good = (state.signTexts.good_things || [])[Math.floor(Math.random() * Math.max((state.signTexts.good_things || []).length, 1))] || "暂无";
+      const bad = (state.signTexts.bad_things || [])[Math.floor(Math.random() * Math.max((state.signTexts.bad_things || []).length, 1))] || "暂无";
+      const groups = ["91_100","71_90","51_70","1_50"];
+      const key = groups[Math.floor(Math.random() * groups.length)];
+      const pool = (state.signTexts.luck_comments || {})[key] || [];
+      const comment = pool[Math.floor(Math.random() * Math.max(pool.length, 1))] || "暂无评语";
+      qs("#texts-preview-box").innerHTML = `
+        <div>✅ 宜：${escapeHtml(good)}</div>
+        <div>❌ 忌：${escapeHtml(bad)}</div>
+        <div>🗣️ 评语：${escapeHtml(comment)}</div>
+      `;
+    }
+
+    async function loadStats() {
+      const statsRet = await apiGet("/api/user_stats");
+      state.stats = statsRet.stats || { total_users: 0, card_holders: {} };
+      const missRet = await apiGet("/api/check_missing_images");
+      const missing = missRet.missing || [];
+
+      qs("#stat-total-users").textContent = state.stats.total_users || 0;
+      qs("#stat-total-cards").textContent = state.cards.length || 0;
+      qs("#stat-missing-images").textContent = missing.length;
+      qs("#stat-held-types").textContent = Object.keys(state.stats.card_holders || {}).length;
+
+      const rarityMap = {1:"普通",2:"稀有",3:"史诗",4:"传说",5:"神话"};
+      const rarityCount = {1:0,2:0,3:0,4:0,5:0};
+      state.cards.forEach(c => rarityCount[Number(c.rarity)||1]++);
+      qs("#rarity-stats-box").innerHTML = Object.entries(rarityCount).map(([k,v]) =>
+        `<div class="list-item"><div style="width:80px">${rarityMap[k]}</div><div style="flex:1">${v}</div></div>`
+      ).join("");
+
+      const holders = Object.entries(state.stats.card_holders || {}).sort((a,b) => b[1]-a[1]).slice(0, 20);
+      qs("#holder-stats-box").innerHTML = holders.length
+        ? holders.map(([name,count]) => `<div class="list-item"><div style="flex:1;">${escapeHtml(name)}</div><div>${count} 人持有</div></div>`).join("")
+        : '暂时没有任何玩家持有功能牌。';
+    }
+
+    function bindEvents() {
+      renderNav();
+
+      qs("#card-search").oninput = renderCards;
+      qs("#card-filter-type").onchange = renderCards;
+      qs("#card-filter-rarity").onchange = renderCards;
+
+      qs("#edit-card-name").oninput = () => renderPreview();
+      qs("#edit-card-type").onchange = () => renderPreview();
+      qs("#edit-card-rarity").onchange = () => renderPreview();
+      qs("#edit-card-filename").oninput = () => renderPreview();
+      qs("#edit-card-desc").oninput = () => renderPreview();
+
+      qs("#tag-category").onchange = renderTagTemplateOptions;
+      qs("#tag-template").onchange = renderTagParams;
+      qs("#btn-add-tag").onclick = () => {
+        const tag = buildTag();
+        if (!tag) return;
+        state.currentTags.push(tag);
+        renderCurrentTags();
+        renderPreview();
+      };
+
+      qs("#btn-new-card").onclick = resetEditor;
+      qs("#btn-save-card").onclick = saveCurrentCard;
+      qs("#btn-copy-card").onclick = copyCurrentCard;
+      qs("#btn-delete-card").onclick = deleteCurrentCard;
+
+      qs("#btn-save-current").onclick = async () => {
+        const activePage = document.querySelector(".page.active")?.id;
+        if (activePage === "cards-page") await saveCards();
+        else if (activePage === "texts-page") await saveTexts();
+        else alert("当前页面暂无保存接口，后续继续接入。");
+      };
+
+      qs("#btn-refresh").onclick = async () => { await boot(); alert("数据已刷新。"); };
+      qs("#btn-upload-images").onclick = uploadImages;
+      qs("#btn-check-missing").onclick = checkMissingImages;
+
+      qs("#btn-add-good").onclick = () => addListItem("good");
+      qs("#btn-add-bad").onclick = () => addListItem("bad");
+      qs("#btn-save-texts").onclick = saveTexts;
+      qs("#btn-preview-texts").onclick = previewTexts;
+    }
+
+    async function boot() {
+      await Promise.all([loadCards(), loadImages(), loadTexts()]);
+      await loadStats();
+      renderPreview();
+    }
+
+    bindEvents();
+    boot();
+  </script>
+</body>
+</html>

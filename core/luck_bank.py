@@ -110,6 +110,9 @@ class LuckBank:
             if "battle_logs" not in info:
                 info["battle_logs"] = [] # 战报总库
                 migrated = True
+            if "recent_drawn_cards" not in info:
+                info["recent_drawn_cards"] = []  # 近期出牌记录（去重用）
+                migrated = True
             
             # 战报保鲜：只保留最近 3 天
             if self._prune_battle_logs(info, days=3):
@@ -144,7 +147,8 @@ class LuckBank:
                     "statuses": [],
                     "karma_value": 0,
                     "func_card_pity_count": 0,
-                    "battle_logs": []
+                    "battle_logs": [],
+                    "recent_drawn_cards": []
                 }
                 self._save_data_sync()
             else:

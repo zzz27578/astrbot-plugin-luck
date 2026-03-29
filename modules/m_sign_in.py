@@ -77,6 +77,18 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     elif lost_title:
         title_str = "\n🥀 连续签到中断... 天道收回了你的称号【勤勉之人】"
 
+    # 善恶称号自动同步
+    karma_title_events = TitleEngine.sync_karma_titles(user_data)
+    for action, t_name in karma_title_events:
+        if action == "gained":
+            title_str += f"\n🏅 达成伟业！获得称号：【{t_name}】"
+            if t_name == "行善之人" and func_cards_enabled:
+                title_str += "（特权：抽卡爆率永久+5%）"
+            elif t_name == "邪恶之人":
+                title_str += "（特权：攻击牌命中额外获得10金币）"
+        else:
+            title_str += f"\n🥀 善恶流转... 称号【{t_name}】已撤销。"
+
     user_data["total_gold"] += total_reward
     await bank.save_user_data()
 

@@ -142,5 +142,45 @@
     "filename": "",
     "tags": ["freeze:24", "luck_drain:24:10"],
     "rarity": 5
+  },
+  {
+    "card_name": "命运转盘",
+    "type": "heal",
+    "description": "【传说-诡运牌】拨动命运转盘，结果将从 5 种可能中诞生。其中 4 种结局偏向施法者，另有 1 种结局将反噬自身。命盘转动之后，没有人知道停下时会指向哪里。",
+    "filename": "",
+    "tags": ["fate_roulette"],
+    "rarity": 4
+  },
+  {
+    "card_name": "借刀杀人",
+    "type": "attack",
+    "description": "【史诗-离间牌】随机牵扯一名第三方群友入局，对指定目标发动一次暗算，造成 10-20 金币伤害。播报中会点明你借了谁的‘刀’，非常适合公开拱火。",
+    "filename": "",
+    "tags": ["borrow_blade:10:20"],
+    "rarity": 3
+  },
+  {
+    "card_name": "赏金悬令",
+    "type": "attack",
+    "description": "【史诗-悬赏牌】给目标挂上持续 24 小时的【悬赏印记】。印记存在期间，目标每次受到金币类攻击时都会额外损失 5 金币，且这部分收益会直接落入攻击者手中。",
+    "filename": "",
+    "tags": ["bounty_mark:24:5"],
+    "rarity": 3
+  },
+  {
+    "card_name": "偷梁换柱",
+    "type": "attack",
+    "description": "【传说-诡术牌】移除目标身上的 1 个正面状态（如护盾、反甲、好运类增益等），并为自己附加 8% 功能牌爆率加成，持续 24 小时。若目标没有正面状态，则法术落空。",
+    "filename": "",
+    "tags": ["strip_buff_gain:8:24"],
+    "rarity": 4
+  },
+  {
+    "card_name": "时来运转",
+    "type": "heal",
+    "description": "【稀有-运势牌】为自身附加持续 24 小时的【好运加护】，使功能牌爆率提高 10%。这张牌不直接造成伤害，但会显著提升你后续抽到功能牌的机会。",
+    "filename": "",
+    "tags": ["luck_bless:24:10"],
+    "rarity": 2
   }
 ]

@@ -47,6 +47,24 @@
       }
     }
   },
+  "webui_settings": {
+    "type": "object",
+    "description": "🌐 WebUI 管理界面",
+    "items": {
+      "enable": {
+        "type": "bool",
+        "description": "开启本地 WebUI",
+        "default": false,
+        "hint": "开启后会启动一个图形化管理页面。访问地址前半段取决于运行环境，后面的端口由下方配置项决定。"
+      },
+      "port": {
+        "type": "int",
+        "description": "WebUI 端口",
+        "default": 4399,
+        "hint": "默认端口为 4399，可按需修改为其他未占用端口。本地常见访问方式为 127.0.0.1:端口，服务器常见访问方式为 服务器地址:端口。"
+      }
+    }
+  },
   "sign_in_settings": {
     "type": "object",
     "description": "📜 基础运势观测 (签到)",
@@ -137,6 +155,57 @@
           "enable_public_duel_mode": true
         },
         "hint": "公开对赌与加注都不能超过该上限。"
+      },
+      "enable_rarity_dedup": {
+        "type": "bool",
+        "description": "开启同档去重",
+        "default": true,
+        "hint": "开启后，短期内重复抽到同一张牌的概率会被压低，优先把同稀有度内没出过的牌轮一遍。关闭后每张牌概率完全均等。"
+      },
+      "rarity_mode": {
+        "type": "string",
+        "description": "稀有度爆率模式",
+        "default": "default",
+        "hint": "default = 使用内置概率分布（普通30/稀有30/史诗28/传说11/神话1）；custom = 使用下方自定义权重值，各档权重之和无需为100，系统自动归一。"
+      },
+      "custom_rarity_weights": {
+        "type": "object",
+        "description": "⚙️ 自定义稀有度权重（rarity_mode 为 custom 时生效）",
+        "condition": {
+          "enable": true
+        },
+        "items": {
+          "rarity_1": {
+            "type": "int",
+            "description": "普通(1) 权重",
+            "default": 30,
+            "hint": "权重越高出现概率越大，与其他档位的权重成比例计算。"
+          },
+          "rarity_2": {
+            "type": "int",
+            "description": "稀有(2) 权重",
+            "default": 30,
+            "hint": "权重越高出现概率越大，与其他档位的权重成比例计算。"
+          },
+          "rarity_3": {
+            "type": "int",
+            "description": "史诗(3) 权重",
+            "default": 28,
+            "hint": "权重越高出现概率越大，与其他档位的权重成比例计算。"
+          },
+          "rarity_4": {
+            "type": "int",
+            "description": "传说(4) 权重",
+            "default": 11,
+            "hint": "权重越高出现概率越大，与其他档位的权重成比例计算。"
+          },
+          "rarity_5": {
+            "type": "int",
+            "description": "神话(5) 权重",
+            "default": 1,
+            "hint": "权重越高出现概率越大，与其他档位的权重成比例计算。"
+          }
+        }
       },
       "economy_settings": {
         "type": "object",

@@ -25,19 +25,20 @@ class LuckPlugin(Star):
         data_path = os.path.join(os.path.dirname(__file__), "data", "luck_data.json")
         self.bank = LuckBank(data_path)
 
-        # 暂存 WebUI 配置，等 initialize 钩子再启动
-        self._webui_cfg = self.config.get("webui_settings", {})
-
-    async def initialize(self):
-        """AstrBot 异步初始化钩子，事件循环已就绪时调用"""
-        webui_cfg = self._webui_cfg
+        # 启动 WebUI，用独立进程跑，和主程序完全隔离
+        self._webui_process = None
+        webui_cfg = self.config.get("webui_settings", {})
         if webui_cfg.get("enable", False):
             webui_port = int(webui_cfg.get("port", 4399) or 4399)
-            try:
-                await start_webui(host="0.0.0.0", port=webui_port)
-                print(f"[WebUI] 管理界面已启动，端口：{webui_port}")
-            except Exception as e:
-                print(f"[WebUI] 启动失败: {e}")
+            from multiprocessing import Process
+            from .webui.server import run_server_process
+            self._webui_process = Process(
+                target=run_server_process,
+                args=(webui_port,),
+                daemon=True
+            )
+            self._webui_process.start()
+            print(f"[WebUI] 管理界面已在独立进程启动，端口：{webui_port}")
 
     # 🟢 绝对前缀拦截器：只认 /luck，无视后面的空格
     @filter.regex(r"^/luck\s*(.*)$", priority=1000)

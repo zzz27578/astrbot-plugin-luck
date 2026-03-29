@@ -200,7 +200,13 @@ _site = None
 def run_server_process(port: int):
     """给 multiprocessing.Process 调用的同步入口"""
     import asyncio
-    asyncio.run(start_webui(host="0.0.0.0", port=port))
+
+    async def _serve():
+        await start_webui(host="0.0.0.0", port=port)
+        # 永久阻塞，保持进程存活
+        await asyncio.Event().wait()
+
+    asyncio.run(_serve())
 
 
 async def start_webui(host: str = "0.0.0.0", port: int = 4399):

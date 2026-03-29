@@ -25,12 +25,17 @@ class LuckPlugin(Star):
         data_path = os.path.join(os.path.dirname(__file__), "data", "luck_data.json")
         self.bank = LuckBank(data_path)
 
-        # 启动本地 WebUI（仅本机监听）
-        webui_cfg = self.config.get("webui_settings", {})
+        # 暂存 WebUI 配置，等 initialize 钩子再启动
+        self._webui_cfg = self.config.get("webui_settings", {})
+
+    async def initialize(self):
+        """AstrBot 异步初始化钩子，事件循环已就绪时调用"""
+        webui_cfg = self._webui_cfg
         if webui_cfg.get("enable", False):
             webui_port = int(webui_cfg.get("port", 4399) or 4399)
             try:
-                asyncio.get_event_loop().create_task(start_webui(host="0.0.0.0", port=webui_port))
+                await start_webui(host="0.0.0.0", port=webui_port)
+                print(f"[WebUI] 管理界面已启动，端口：{webui_port}")
             except Exception as e:
                 print(f"[WebUI] 启动失败: {e}")
 

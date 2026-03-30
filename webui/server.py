@@ -15,7 +15,9 @@ CONFIG_DIR = ROOT_DIR / "config"
 ASSETS_DIR = ROOT_DIR / "assets" / "func_cards"
 DATA_FILE = ROOT_DIR / "data" / "luck_data.json"
 FUNC_CARDS_FILE = CONFIG_DIR / "func_cards.json"
+FATE_CARDS_FILE = CONFIG_DIR / "cards_config.json"
 SIGN_IN_TEXTS_FILE = CONFIG_DIR / "sign_in_texts.json"
+FATE_ASSETS_DIR = ROOT_DIR / "assets" / "cards"
 WEBUI_DIR = Path(__file__).parent
 STATIC_DIR = WEBUI_DIR / "static"
 
@@ -68,6 +70,55 @@ def _read_json(path: Path, default=None):
 # ==============================================================================
 # API 路由处理
 # ==============================================================================
+
+async def api_get_fate_cards(request):
+    cards = _read_json(FATE_CARDS_FILE, [])
+    return web.json_response({"ok": True, "cards": cards})
+
+
+async def api_save_fate_cards(request):
+    try:
+        body = await request.json()
+        cards = body.get("cards", [])
+        _atomic_write(FATE_CARDS_FILE, cards)
+        return web.json_response({"ok": True})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_upload_fate_image(request):
+    """上传命运牌图片到 assets/cards/"""
+    try:
+        FATE_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+        reader = await request.multipart()
+        uploaded = []
+        async for field in reader:
+            if field.name == "files":
+                filename = field.filename
+                if not filename:
+                    continue
+                safe_name = Path(filename).name
+                dest = FATE_ASSETS_DIR / safe_name
+                with open(dest, "wb") as f:
+                    while True:
+                        chunk = await field.read_chunk(8192)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                uploaded.append(safe_name)
+        return web.json_response({"ok": True, "uploaded": uploaded})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_list_fate_images(request):
+    """列出 assets/cards/ 下所有图片"""
+    if not FATE_ASSETS_DIR.exists():
+        return web.json_response({"ok": True, "images": []})
+    exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+    images = [f.name for f in FATE_ASSETS_DIR.iterdir() if f.suffix.lower() in exts]
+    return web.json_response({"ok": True, "images": sorted(images)})
+
 
 async def api_get_func_cards(request):
     cards = _read_json(FUNC_CARDS_FILE, [])
@@ -215,6 +266,11 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app = web.Application()
 
     # API 路由
+    app.router.add_get("/api/fate_cards", api_get_fate_cards)
+    app.router.add_post("/api/fate_cards", api_save_fate_cards)
+    app.router.add_post("/api/upload_fate_image", api_upload_fate_image)
+    app.router.add_get("/api/fate_images", api_list_fate_images)
+    app.router.add_static("/fate_assets", FATE_ASSETS_DIR, show_index=False)
     app.router.add_get("/api/func_cards", api_get_func_cards)
     app.router.add_post("/api/func_cards", api_save_func_cards)
     app.router.add_get("/api/sign_in_texts", api_get_sign_in_texts)

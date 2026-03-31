@@ -88,6 +88,7 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     total_reward = base_reward
 
     rule = _pick_luck_range_rule(luck_val)
+    rule_label = str(rule.get("label", "")).strip() if rule else ""
     rule_gold_delta = int(rule.get("gold_delta", 0)) if rule else 0
     total_reward += rule_gold_delta
     if total_reward < 0:
@@ -159,7 +160,7 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
 
     msg = (
         f"🔮 【{user_name} 的命运星象】\n"
-        f"🎲 运势：{luck_val}/100 (+{total_reward}{streak_bonus_str})\n"
+        f"🎲 运势：{luck_val}/100{' · '+rule_label if rule_label else ''} (+{total_reward}{streak_bonus_str})\n"
         f"💰 总金币：{user_data['total_gold']} (第 {current_rank} 位)\n"
         f"📅 连续签到：{consec_days} 天{title_str}\n"
         f"✅ 宜：{good_thing}\n"

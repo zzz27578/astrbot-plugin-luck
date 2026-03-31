@@ -35,7 +35,7 @@
     .nav-btn{width:100%;background:transparent;color:var(--text);border:1px solid transparent;border-radius:14px;padding:13px 14px;text-align:left;cursor:pointer;margin-bottom:8px;font-size:14px}
     .nav-btn:hover{background:rgba(255,255,255,.05)} .nav-btn.active{background:linear-gradient(90deg,rgba(244,213,141,.14),rgba(179,136,255,.12));border-color:rgba(244,213,141,.18)}
     .content{padding:26px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}.topbar h2{margin:0;color:#fff6df}.topbar p{margin:6px 0 0;color:var(--muted)}
-    .panel{padding:18px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.btn,.btn-ghost,.btn-danger,.small-btn{border-radius:12px;padding:10px 14px;cursor:pointer;border:1px solid rgba(255,255,255,.08);font-size:14px}.btn{background:linear-gradient(135deg,#f4d58d,#d2a94e);color:#2b210a;font-weight:700}.btn-ghost,.small-btn{background:rgba(255,255,255,.05);color:var(--text)}.btn-danger{background:rgba(255,123,123,.14);color:#ffd2d2;border-color:rgba(255,123,123,.2)}
+    .panel{padding:18px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.btn,.btn-ghost,.btn-danger,.small-btn{border-radius:12px;padding:10px 14px;cursor:pointer;border:1px solid rgba(255,255,255,.08);font-size:14px}.btn{background:linear-gradient(135deg,#f4d58d,#d2a94e);color:#2b210a;font-weight:700}.btn-ghost,.small-btn{background:rgba(255,255,255,.05);color:var(--text)}.btn-danger{background:rgba(255,123,123,.14);color:#ffd2d2;border-color:rgba(255,123,123,.2)}.text-del-btn{padding:10px 12px;font-size:13px;min-width:84px}
     input,select,textarea{width:100%;background:rgba(255,255,255,.05);color:var(--text);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;font-size:14px;outline:none}
     input::placeholder,textarea::placeholder{color:#95a0bf} select option{background:#1b2130;color:#eef2ff}
     .page{display:none}.page.active{display:block}
@@ -121,8 +121,8 @@
 
     <section class="page" id="texts-page">
       <div class="split-two">
-                  <div class="panel"><h3 class="sub-title">✅ 宜做事项</h3><div class="toolbar"><button class="btn" id="btn-add-good">新增一条</button><button class="btn-ghost" id="btn-batch-good">批量导入</button><button class="btn-danger" id="btn-batch-del-good">批量删除</button></div><div id="good-list"></div></div>
-                  <div class="panel"><h3 class="sub-title">❌ 忌做事项</h3><div class="toolbar"><button class="btn" id="btn-add-bad">新增一条</button><button class="btn-ghost" id="btn-batch-bad">批量导入</button><button class="btn-danger" id="btn-batch-del-bad">批量删除</button></div><div id="bad-list"></div></div>
+                  <div class="panel"><h3 class="sub-title">✅ 宜做事项</h3><div class="toolbar"><button class="btn" id="btn-add-good">新增一条</button><button class="btn-ghost" id="btn-batch-good">批量导入</button><button class="btn-danger" id="btn-batch-del-good">批量删除</button><button class="btn-ghost" id="btn-undo-good">撤销删除</button></div><div id="good-list"></div></div>
+                  <div class="panel"><h3 class="sub-title">❌ 忌做事项</h3><div class="toolbar"><button class="btn" id="btn-add-bad">新增一条</button><button class="btn-ghost" id="btn-batch-bad">批量导入</button><button class="btn-danger" id="btn-batch-del-bad">批量删除</button><button class="btn-ghost" id="btn-undo-bad">撤销删除</button></div><div id="bad-list"></div></div>
                 </div>
       <div style="height:18px"></div>
       <div class="panel">
@@ -182,7 +182,7 @@
               <button class="btn" id="btn-save-config">保存系统配置</button>
               <button class="btn-ghost" id="btn-load-config">重新读取</button>
             </div>
-            <div class="help-box">说明：这里保存的是插件自己的运行时覆盖配置。<br>抽卡、对赌、爆率等业务参数会直接被插件读取；WebUI 端口这类启动参数建议保存后重启插件。</div>
+            <div class="help-box">说明：这里保存的是插件自己的运行时覆盖配置。<br>抽卡、对赌、爆率、每日次数等<b>业务参数</b>会在插件下一次处理指令时自动重新读取，通常无需手动重载。<br><b>重要：</b>像 WebUI 端口这类<b>启动参数</b>，保存后仍建议前往 AstrBot 面板<b>重载插件</b>（或直接重启 Bot），否则不会真正切换。</div>
           </div>
         </section>
 
@@ -223,8 +223,7 @@
   <div id="tag-params" class="form-grid" style="margin-top:14px"></div>
   <div style="height:10px"></div><button class="btn" id="btn-add-tag">添加这个词条</button>
   <div style="height:12px"></div><div id="current-tags" class="meta"></div>
-  <div style="height:16px"></div><div class="toolbar"><button class="btn" id="btn-save-card">保存这张卡</button><button class="btn-ghost" id="btn-copy-card">复制当前卡</button><button class="btn-danger" id="btn-delete-card">删除当前卡</button></div>
-</div><div><h3 class="sub-title">🔮 实时预览</h3><div class="preview-box" id="card-preview-box"></div></div></div></div></div>
+  </div><div><h3 class="sub-title">🔮 实时预览</h3><div class="preview-box" id="card-preview-box"></div><div style="height:16px"></div><div class="toolbar"><button class="btn" id="btn-save-card">保存这张卡</button><button class="btn-ghost" id="btn-copy-card">复制当前卡</button><button class="btn-danger" id="btn-delete-card">删除当前卡</button></div></div></div></div></div>
 
 <div class="modal" id="fate-modal"><div class="modal-box"><div class="modal-header"><h2 id="fate-modal-title">新增命运牌</h2><button class="close-x" onclick="closeFateModal()">×</button></div><div class="editor-layout"><div>
   <div class="form-grid">
@@ -312,14 +311,14 @@ function renderCards(){
 }
 function toggleCardSelect(name){ if(state.selectedCardNames.has(name)) state.selectedCardNames.delete(name); else state.selectedCardNames.add(name); renderCards(); }
 function copyCardByName(name){ const idx=state.cards.findIndex(c=>(c.card_name||'')===name); if(idx<0) return; const copied=JSON.parse(JSON.stringify(state.cards[idx])); copied.card_name=(copied.card_name||'未命名功能牌')+' 的副本'; state.cards.unshift(copied); renderCards(); saveCards(); }
-function deleteCardByName(name){ const idx=state.cards.findIndex(c=>(c.card_name||'')===name); if(idx<0) return; if(!confirm(`确定删除功能牌「${name||'未命名功能牌'}」吗？`)) return; if(!confirm('这是二次确认：删除后将无法恢复，确定继续吗？')) return; state.cards.splice(idx,1); renderCards(); saveCards(); }
+function deleteCardByName(name){ const idx=state.cards.findIndex(c=>(c.card_name||'')===name); if(idx<0) return; if(!confirm(`确定删除功能牌「${name||'未命名功能牌'}」吗？`)) return; state.cards.splice(idx,1); renderCards(); saveCards(); }
 window.toggleCardSelect=toggleCardSelect; window.copyCardByName=copyCardByName; window.deleteCardByName=deleteCardByName;
 function renderCardsPie(){const count={attack:0,heal:0,defense:0,other:0};state.cards.forEach(c=>count[count[c.type]!==undefined?c.type:'other']++);qs('#cards-overview-legend').innerHTML=`<span><i style="background:#ff7b7b"></i>攻击 ${count.attack}</span><span><i style="background:#72e2a1"></i>治疗 ${count.heal}</span><span><i style="background:#6ec5ff"></i>防御 ${count.defense}</span><span><i style="background:#b388ff"></i>其他 ${count.other}</span>`; if(window._cardsTypeChart)window._cardsTypeChart.destroy(); window._cardsTypeChart=new Chart(qs('#chart-cards-type'),{type:'doughnut',data:{labels:['攻击','治疗','防御','其他'],datasets:[{data:[count.attack,count.heal,count.defense,count.other],backgroundColor:['#ff7b7b','#72e2a1','#6ec5ff','#b388ff'],borderWidth:0}]},options:{plugins:{legend:{display:false}},cutout:'62%'}})}
 
 function renderFateCards(){const kw=qs('#fate-search').value.trim().toLowerCase();const indexed=state.fateCards.map((c,i)=>({c,i})).sort((a,b)=>Number(isFateIncomplete(b.c))-Number(isFateIncomplete(a.c)));const list=indexed.filter(({c})=>!kw||JSON.stringify(c).toLowerCase().includes(kw));qs('#btn-delete-selected-fate').style.display=state.fateBatchMode?'none':''; qs('#btn-batch-delete-fate').style.display=state.fateBatchMode?'':'none'; qs('#btn-batch-copy-fate').style.display=state.fateBatchMode?'':'none'; qs('#btn-batch-cancel-fate').style.display=state.fateBatchMode?'':'none'; qs('#fate-grid').innerHTML=list.length?list.map(({c,i})=>{const selected=state.selectedFateIdx.has(i); const glow=state.fateBatchMode&&selected?'box-shadow:0 0 0 2px rgba(255,90,90,.9),0 0 28px rgba(255,80,80,.45);border-color:rgba(255,90,90,.85);':''; return `<div class="card-item" data-idx="${i}" style="${glow}"><div class="rarity-bar rarity-3"></div><div class="card-image">${c.filename&&state.fateImages.includes(c.filename)?`<img src="/fate_assets/${encodeURIComponent(c.filename)}">`:`<div class="image-missing">${c.filename?`图片缺失<br><small>${esc(c.filename)}</small>`:'未设置图片'}</div>`}${isFateIncomplete(c)?'<span class="status-badge">待配置</span>':''}</div><div class="card-body"><h3 class="card-title" style="margin:0 0 8px">${esc(c.text||'待填写命运牌文案')}</h3><div class="meta"><span class="pill">value ${c.value??0}</span></div><div class="card-desc">文件：${esc(c.filename||'无')}</div><div class="toolbar" style="margin-top:10px;margin-bottom:0"><button class="small-btn" onclick="event.stopPropagation();copyFateByIndex(${i})" style="color:#c7ffe0;border-color:rgba(114,226,161,.22)">复制</button><button class="small-btn" onclick="event.stopPropagation();deleteFateByIndex(${i})" style="color:#ffd2d2;border-color:rgba(255,123,123,.25)">删除</button></div></div></div>`;}).join(''):'<div class="empty">当前没有命运牌，上传图片可自动建卡。</div>';qsa('#fate-grid .card-item').forEach(el=>el.onclick=()=>{const idx=Number(el.dataset.idx); if(state.fateBatchMode){ toggleFateSelect(idx); } else { openFateModal(idx); }})}
 function toggleFateSelect(i){ if(state.selectedFateIdx.has(i)) state.selectedFateIdx.delete(i); else state.selectedFateIdx.add(i); renderFateCards(); }
 function copyFateByIndex(i){ const base=state.fateCards[i]; if(!base) return; const copied=JSON.parse(JSON.stringify(base)); state.fateCards.unshift(copied); renderFateCards(); saveFateCards(); }
-function deleteFateByIndex(i){ const base=state.fateCards[i]; if(!base) return; if(!confirm('确定删除这张命运牌吗？')) return; if(!confirm('这是二次确认：删除后将无法恢复，确定继续吗？')) return; state.fateCards.splice(i,1); renderFateCards(); saveFateCards(); }
+function deleteFateByIndex(i){ const base=state.fateCards[i]; if(!base) return; if(!confirm('确定删除这张命运牌吗？')) return; state.fateCards.splice(i,1); renderFateCards(); saveFateCards(); }
 window.toggleFateSelect=toggleFateSelect; window.copyFateByIndex=copyFateByIndex; window.deleteFateByIndex=deleteFateByIndex;
 
 function openCardModal(idx){state.selectedCardIndex=idx??-1;qs('#card-modal-title').textContent=idx!=null&&idx>=0?'编辑功能牌':'新增功能牌';const card=idx!=null&&idx>=0?state.cards[idx]:{card_name:'',type:'attack',rarity:1,filename:'',description:'',tags:[]};qs('#edit-card-name').value=card.card_name||'';qs('#edit-card-type').value=card.type||'attack';qs('#edit-card-rarity').value=String(card.rarity||1);qs('#edit-card-filename').value=card.filename||'';qs('#edit-card-desc').value=card.description||'';state.currentTags=[...(card.tags||[])];renderCurrentTags();renderPreview();initTagBuilder();qs('#card-modal').classList.add('show')}
@@ -354,8 +353,8 @@ async function uploadFateImages(files){const fd=new FormData(); [...files].forEa
 async function uploadCurrentFateImage(file){const fd=new FormData(); fd.append('files',file); const res=await fetch('/api/upload_fate_image',{method:'POST',body:fd}); const ret=await res.json(); if(ret.ok&&ret.uploaded&&ret.uploaded[0]){await loadFateCards(); qs('#fate-filename').value=ret.uploaded[0]; renderFatePreview(); alert('图片已上传并绑定到当前命运牌。');} else {alert('上传失败：'+(ret.error||''));}}
 async function checkMissingFate(){const miss=state.fateCards.filter(isFateIncomplete); if(!miss.length){alert('命运牌配置看起来都完整。');return;} state.fateCards=[...miss,...state.fateCards.filter(c=>!isFateIncomplete(c))]; renderFateCards(); alert('已将待配置的命运牌置顶显示，方便你继续补全。');}
 
-function renderTextList(rootId, arr){const root=qs(rootId); root.innerHTML=(arr||[]).map((v,i)=>`<div style="display:grid;grid-template-columns:34px 1fr 76px;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" class="text-check" data-root="${rootId}" data-idx="${i}"><input value="${esc(v)}" data-root="${rootId}" data-idx="${i}" /><button class="small-btn" onclick="removeTextItem('${rootId}',${i})">删除</button></div>`).join('')||'<div class="empty">暂无内容</div>'}
-function removeTextItem(rootId,i){const map={'#good-list':state.signTexts.good_things,'#bad-list':state.signTexts.bad_things,'#c-91_100':state.signTexts.luck_comments['91_100'],'#c-71_90':state.signTexts.luck_comments['71_90'],'#c-51_70':state.signTexts.luck_comments['51_70'],'#c-1_50':state.signTexts.luck_comments['1_50']}; map[rootId].splice(i,1); renderTexts()} window.removeTextItem=removeTextItem;
+function renderTextList(rootId, arr){const root=qs(rootId); root.innerHTML=(arr||[]).map((v,i)=>`<div style="display:grid;grid-template-columns:34px 1fr 92px;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" class="text-check" data-root="${rootId}" data-idx="${i}"><input value="${esc(v)}" data-root="${rootId}" data-idx="${i}" /><button class="small-btn text-del-btn" onclick="removeTextItem('${rootId}',${i})">删除</button></div>`).join('')||'<div class="empty">暂无内容</div>'}
+  function removeTextItem(rootId,i){const map={'#good-list':state.signTexts.good_things,'#bad-list':state.signTexts.bad_things,'#c-91_100':state.signTexts.luck_comments['91_100'],'#c-71_90':state.signTexts.luck_comments['71_90'],'#c-51_70':state.signTexts.luck_comments['51_70'],'#c-1_50':state.signTexts.luck_comments['1_50']}; const list=map[rootId]; state._lastTextDelete={rootId, index:i, value:list[i]}; list.splice(i,1); renderTexts()} window.removeTextItem=removeTextItem;
 function renderTexts(){renderTextList('#good-list',state.signTexts.good_things);renderTextList('#bad-list',state.signTexts.bad_things);renderTextList('#c-91_100',state.signTexts.luck_comments['91_100']);renderTextList('#c-71_90',state.signTexts.luck_comments['71_90']);renderTextList('#c-51_70',state.signTexts.luck_comments['51_70']);renderTextList('#c-1_50',state.signTexts.luck_comments['1_50'])}
 function syncTexts(){state.signTexts.good_things=[...document.querySelectorAll('#good-list input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.bad_things=[...document.querySelectorAll('#bad-list input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['91_100']=[...document.querySelectorAll('#c-91_100 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['71_90']=[...document.querySelectorAll('#c-71_90 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['51_70']=[...document.querySelectorAll('#c-51_70 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['1_50']=[...document.querySelectorAll('#c-1_50 input')].map(i=>i.value.trim()).filter(Boolean)}
 function parseBatchText(raw){
@@ -389,17 +388,43 @@ function batchDeleteTexts(kind){
   const checked=[...document.querySelectorAll(`${root} .text-check:checked`)].map(i=>Number(i.dataset.idx)).sort((a,b)=>b-a);
   if(!checked.length){alert('请先勾选要删除的内容。');return;}
   const target=kind==='good' ? state.signTexts.good_things : state.signTexts.bad_things;
+  state._lastTextBatchDelete={kind, items:checked.map(i=>({index:i,value:target[i]})).sort((a,b)=>a.index-b.index)};
   checked.forEach(i=>target.splice(i,1));
   renderTexts();
 }
+function undoLastTextDelete(){
+  if(state._lastTextBatchDelete&&state._lastTextBatchDelete.items?.length){
+    const target=state._lastTextBatchDelete.kind==='good' ? state.signTexts.good_things : state.signTexts.bad_things;
+    state._lastTextBatchDelete.items.forEach(item=>target.splice(item.index,0,item.value));
+    state._lastTextBatchDelete=null;
+    renderTexts();
+    return;
+  }
+  if(state._lastTextDelete){
+    const map={'#good-list':state.signTexts.good_things,'#bad-list':state.signTexts.bad_things,'#c-91_100':state.signTexts.luck_comments['91_100'],'#c-71_90':state.signTexts.luck_comments['71_90'],'#c-51_70':state.signTexts.luck_comments['51_70'],'#c-1_50':state.signTexts.luck_comments['1_50']};
+    const {rootId,index,value}=state._lastTextDelete;
+    map[rootId].splice(index,0,value);
+    state._lastTextDelete=null;
+    renderTexts();
+    return;
+  }
+  alert('当前没有可撤销的删除操作。');
+}
 window.batchImportTexts=batchImportTexts;
+window.undoLastTextDelete=undoLastTextDelete;
 async function loadTexts(){const ret=await apiGet('/api/sign_in_texts'); state.signTexts=ret.texts||state.signTexts; renderTexts()}
 async function saveTexts(){syncTexts(); const ret=await apiPost('/api/sign_in_texts',{texts:state.signTexts}); if(ret.ok) alert('签到文案已保存'); else alert('保存失败：'+(ret.error||''))}
 
 async function loadRuntimeConfig(){
-  const ret=await apiGet('/api/runtime_config');
-  state.runtimeConfig=ret.config||{};
-  const cfg=state.runtimeConfig;
+  try {
+    const ret=await apiGet('/api/runtime_config');
+    if(!ret.ok){
+      alert('系统配置读取失败：'+(ret.error||'未知错误'));
+      return;
+    }
+    state.runtimeConfig=ret.config||{};
+    const cfg=state.runtimeConfig;
+
   const fate=cfg.fate_cards_settings||{};
   const func=cfg.func_cards_settings||{};
   const eco=func.economy_settings||{};
@@ -425,6 +450,10 @@ async function loadRuntimeConfig(){
   qs('#cfg-draw-cost').value=eco.draw_cost??20;
   qs('#cfg-pity').value=eco.pity_threshold??10;
   qs('#cfg-webui-port').value=webui.port??4399;
+  alert('系统配置已读取。\n\n业务参数保存后通常会在插件下一次处理指令时自动生效；如果你改的是 WebUI 端口这类启动参数，请去 AstrBot 面板重载插件后再验证。');
+  } catch (e) {
+    alert('系统配置读取失败：'+e);
+  }
 }
 
 async function saveRuntimeConfig(){
@@ -461,10 +490,11 @@ async function saveRuntimeConfig(){
       }
     }
   };
-  const ret=await apiPost('/api/runtime_config',{config:cfg});
+    const ret=await apiPost('/api/runtime_config',{config:cfg});
   if(ret.ok){
     state.runtimeConfig=cfg;
-    alert('系统配置已保存。\n\n提示：抽卡/对赌等业务参数会直接生效；WebUI 端口等启动参数建议重启插件后完全生效。');
+    await loadRuntimeConfig();
+    alert('系统配置已保存到插件运行时覆盖配置。\n\n抽卡爆率、对赌参数、每日次数等业务参数，会在插件下一次处理指令时自动重新读取，通常无需手动重载。\n\n但如果你修改了 WebUI 端口这类启动参数，仍需前往 AstrBot 面板重载插件（或直接重启 Bot）后才会真正生效。');
   }else{
     alert('系统配置保存失败：'+(ret.error||''));
   }
@@ -477,7 +507,7 @@ async function loadStats(){const st=await apiGet('/api/user_stats'); state.stats
  const top=Object.entries(state.stats.card_holders||{}).sort((a,b)=>b[1]-a[1]).slice(0,20); if(window._holders)window._holders.destroy(); window._holders=new Chart(qs('#chart-holders'),{type:'bar',data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:'rgba(179,136,255,.55)',borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false,scales:{x:{ticks:{color:'#aeb7d1',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true},y:{ticks:{color:'#aeb7d1'},grid:{color:'rgba(255,255,255,.06)'}}}}});
 }
 
-function bindEvents(){bindNav(); qs('#card-search').oninput=renderCards; qs('#card-filter-type').onchange=renderCards; qs('#card-filter-rarity').onchange=renderCards; qs('#fate-search').oninput=renderFateCards; qs('#btn-new-card').onclick=()=>openCardModal(null); qs('#btn-new-fate').onclick=()=>openFateModal(null); qs('#btn-save-card').onclick=saveCurrentCard; qs('#btn-copy-card').onclick=copyCurrentCard; qs('#btn-delete-card').onclick=deleteCurrentCard; qs('#btn-save-fate').onclick=saveCurrentFate; qs('#btn-delete-fate').onclick=deleteCurrentFate; qs('#btn-add-tag').onclick=addTag; qs('#tag-category').onchange=onTagCategoryChange; qs('#tag-template').onchange=onTagTemplateChange; ['#edit-card-name','#edit-card-type','#edit-card-rarity','#edit-card-filename','#edit-card-desc'].forEach(s=>qs(s).oninput=renderPreview); ['#fate-filename','#fate-text','#fate-value'].forEach(s=>qs(s).oninput=renderFatePreview); qs('#btn-upload-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadCardImages(i.files);i.click()}; qs('#btn-upload-current-card-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{if(i.files&&i.files[0]) uploadCurrentCardImage(i.files[0])};i.click()}; qs('#btn-upload-fate-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadFateImages(i.files);i.click()}; qs('#btn-upload-current-fate-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{if(i.files&&i.files[0]) uploadCurrentFateImage(i.files[0])};i.click()}; qs('#btn-check-missing-cards').onclick=checkMissingCards; qs('#btn-check-missing-fate').onclick=checkMissingFate; qs('#btn-delete-selected-cards').onclick=()=>{state.cardBatchMode=true; state.selectedCardNames.clear(); renderCards();}; qs('#btn-batch-cancel-cards').onclick=()=>{state.cardBatchMode=false; state.selectedCardNames.clear(); renderCards();}; qs('#btn-batch-delete-cards').onclick=()=>{if(!state.selectedCardNames.size)return alert('请先选择要删除的功能牌。'); if(!confirm(`确定删除选中的 ${state.selectedCardNames.size} 张功能牌吗？`)) return; if(!confirm('这是二次确认：删除后将无法恢复，确定继续吗？')) return; state.cards=state.cards.filter(c=>!state.selectedCardNames.has(c.card_name||'')); state.selectedCardNames.clear(); state.cardBatchMode=false; renderCards(); saveCards();}; qs('#btn-batch-copy-cards').onclick=()=>{if(!state.selectedCardNames.size)return alert('请先选择要复制的功能牌。'); const picked=state.cards.filter(c=>state.selectedCardNames.has(c.card_name||'')); const copies=picked.map(c=>{const x=JSON.parse(JSON.stringify(c)); x.card_name=(x.card_name||'未命名功能牌')+' 的副本'; return x;}); state.cards.unshift(...copies); state.selectedCardNames.clear(); state.cardBatchMode=false; renderCards(); saveCards();}; qs('#btn-delete-selected-fate').onclick=()=>{state.fateBatchMode=true; state.selectedFateIdx.clear(); renderFateCards();}; qs('#btn-batch-cancel-fate').onclick=()=>{state.fateBatchMode=false; state.selectedFateIdx.clear(); renderFateCards();}; qs('#btn-batch-delete-fate').onclick=()=>{if(!state.selectedFateIdx.size)return alert('请先选择要删除的命运牌。'); if(!confirm(`确定删除选中的 ${state.selectedFateIdx.size} 张命运牌吗？`)) return; if(!confirm('这是二次确认：删除后将无法恢复，确定继续吗？')) return; state.fateCards=state.fateCards.filter((_,i)=>!state.selectedFateIdx.has(i)); state.selectedFateIdx.clear(); state.fateBatchMode=false; renderFateCards(); saveFateCards();}; qs('#btn-batch-copy-fate').onclick=()=>{if(!state.selectedFateIdx.size)return alert('请先选择要复制的命运牌。'); const idxs=[...state.selectedFateIdx].sort((a,b)=>a-b); const copies=idxs.map(i=>JSON.parse(JSON.stringify(state.fateCards[i]))); state.fateCards.unshift(...copies); state.selectedFateIdx.clear(); state.fateBatchMode=false; renderFateCards(); saveFateCards();}; qs('#btn-add-good').onclick=()=>{state.signTexts.good_things.push('');renderTexts()}; qs('#btn-add-bad').onclick=()=>{state.signTexts.bad_things.push('');renderTexts()}; qs('#btn-batch-good').onclick=()=>batchImportTexts('good'); qs('#btn-batch-bad').onclick=()=>batchImportTexts('bad'); qs('#btn-batch-del-good').onclick=()=>batchDeleteTexts('good'); qs('#btn-batch-del-bad').onclick=()=>batchDeleteTexts('bad'); qs('#btn-save-texts').onclick=saveTexts; qs('#btn-save-config').onclick=saveRuntimeConfig; qs('#btn-load-config').onclick=loadRuntimeConfig; qs('#btn-refresh').onclick=boot; qs('#btn-save-current').onclick=async()=>{const id=document.querySelector('.page.active').id; if(id==='cards-page')await saveCards(); else if(id==='fate-page')await saveFateCards(); else if(id==='texts-page')await saveTexts(); else if(id==='config-page')await saveRuntimeConfig(); else alert('当前页面没有单独保存动作。')}; }
+function bindEvents(){bindNav(); qs('#card-search').oninput=renderCards; qs('#card-filter-type').onchange=renderCards; qs('#card-filter-rarity').onchange=renderCards; qs('#fate-search').oninput=renderFateCards; qs('#btn-new-card').onclick=()=>openCardModal(null); qs('#btn-new-fate').onclick=()=>openFateModal(null); qs('#btn-save-card').onclick=saveCurrentCard; qs('#btn-copy-card').onclick=copyCurrentCard; qs('#btn-delete-card').onclick=deleteCurrentCard; qs('#btn-save-fate').onclick=saveCurrentFate; qs('#btn-delete-fate').onclick=deleteCurrentFate; qs('#btn-add-tag').onclick=addTag; qs('#tag-category').onchange=onTagCategoryChange; qs('#tag-template').onchange=onTagTemplateChange; ['#edit-card-name','#edit-card-type','#edit-card-rarity','#edit-card-filename','#edit-card-desc'].forEach(s=>qs(s).oninput=renderPreview); ['#fate-filename','#fate-text','#fate-value'].forEach(s=>qs(s).oninput=renderFatePreview); qs('#btn-upload-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadCardImages(i.files);i.click()}; qs('#btn-upload-current-card-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{if(i.files&&i.files[0]) uploadCurrentCardImage(i.files[0])};i.click()}; qs('#btn-upload-fate-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadFateImages(i.files);i.click()}; qs('#btn-upload-current-fate-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{if(i.files&&i.files[0]) uploadCurrentFateImage(i.files[0])};i.click()}; qs('#btn-check-missing-cards').onclick=checkMissingCards; qs('#btn-check-missing-fate').onclick=checkMissingFate; qs('#btn-delete-selected-cards').onclick=()=>{state.cardBatchMode=true; state.selectedCardNames.clear(); renderCards();}; qs('#btn-batch-cancel-cards').onclick=()=>{state.cardBatchMode=false; state.selectedCardNames.clear(); renderCards();}; qs('#btn-batch-delete-cards').onclick=()=>{if(!state.selectedCardNames.size)return alert('请先选择要删除的功能牌。'); if(!confirm(`确定删除选中的 ${state.selectedCardNames.size} 张功能牌吗？`)) return; state.cards=state.cards.filter(c=>!state.selectedCardNames.has(c.card_name||'')); state.selectedCardNames.clear(); state.cardBatchMode=false; renderCards(); saveCards();}; qs('#btn-batch-copy-cards').onclick=()=>{if(!state.selectedCardNames.size)return alert('请先选择要复制的功能牌。'); const picked=state.cards.filter(c=>state.selectedCardNames.has(c.card_name||'')); const copies=picked.map(c=>{const x=JSON.parse(JSON.stringify(c)); x.card_name=(x.card_name||'未命名功能牌')+' 的副本'; return x;}); state.cards.unshift(...copies); state.selectedCardNames.clear(); state.cardBatchMode=false; renderCards(); saveCards();}; qs('#btn-delete-selected-fate').onclick=()=>{state.fateBatchMode=true; state.selectedFateIdx.clear(); renderFateCards();}; qs('#btn-batch-cancel-fate').onclick=()=>{state.fateBatchMode=false; state.selectedFateIdx.clear(); renderFateCards();}; qs('#btn-batch-delete-fate').onclick=()=>{if(!state.selectedFateIdx.size)return alert('请先选择要删除的命运牌。'); if(!confirm(`确定删除选中的 ${state.selectedFateIdx.size} 张命运牌吗？`)) return; state.fateCards=state.fateCards.filter((_,i)=>!state.selectedFateIdx.has(i)); state.selectedFateIdx.clear(); state.fateBatchMode=false; renderFateCards(); saveFateCards();}; qs('#btn-batch-copy-fate').onclick=()=>{if(!state.selectedFateIdx.size)return alert('请先选择要复制的命运牌。'); const idxs=[...state.selectedFateIdx].sort((a,b)=>a-b); const copies=idxs.map(i=>JSON.parse(JSON.stringify(state.fateCards[i]))); state.fateCards.unshift(...copies); state.selectedFateIdx.clear(); state.fateBatchMode=false; renderFateCards(); saveFateCards();}; qs('#btn-add-good').onclick=()=>{state.signTexts.good_things.push('');renderTexts()}; qs('#btn-add-bad').onclick=()=>{state.signTexts.bad_things.push('');renderTexts()}; qs('#btn-batch-good').onclick=()=>batchImportTexts('good'); qs('#btn-batch-bad').onclick=()=>batchImportTexts('bad'); qs('#btn-batch-del-good').onclick=()=>batchDeleteTexts('good'); qs('#btn-batch-del-bad').onclick=()=>batchDeleteTexts('bad'); qs('#btn-undo-good').onclick=undoLastTextDelete; qs('#btn-undo-bad').onclick=undoLastTextDelete; qs('#btn-save-texts').onclick=saveTexts; qs('#btn-save-config').onclick=saveRuntimeConfig; qs('#btn-load-config').onclick=loadRuntimeConfig; qs('#btn-refresh').onclick=boot; qs('#btn-save-current').onclick=async()=>{const id=document.querySelector('.page.active').id; if(id==='cards-page')await saveCards(); else if(id==='fate-page')await saveFateCards(); else if(id==='texts-page')await saveTexts(); else if(id==='config-page')await saveRuntimeConfig(); else alert('当前页面没有单独保存动作。')}; }
 
 async function boot(){await Promise.all([loadCards(),loadImages(),loadFateCards(),loadTexts(),loadRuntimeConfig()]); renderPreview(); renderFatePreview(); if(document.querySelector('#stats-page.active')) loadStats();}
 bindEvents(); boot();

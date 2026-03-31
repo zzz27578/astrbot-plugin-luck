@@ -44,9 +44,9 @@ VERSION = "5.1.0-Pro"
 class LuckPlugin(Star):
     def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
-        base_config = config or {}
+        self._base_config = config or {}
         runtime_override = _load_runtime_override()
-        self.config = _deep_merge_dict(base_config, runtime_override)
+        self.config = _deep_merge_dict(self._base_config, runtime_override)
 
         # 激活金币管家，锁定 data 目录下的账本
         data_path = os.path.join(os.path.dirname(__file__), "data", "luck_data.json")
@@ -67,11 +67,17 @@ class LuckPlugin(Star):
             self._webui_process.start()
             print(f"[WebUI] 管理界面已在独立进程启动，端口：{webui_port}")
 
+    def _refresh_runtime_config(self):
+        """每次处理指令前重新读取运行时覆盖配置，让大多数业务参数可热更新。"""
+        runtime_override = _load_runtime_override()
+        self.config = _deep_merge_dict(self._base_config, runtime_override)
+
     # 🟢 绝对前缀拦截器：只认 /luck，无视后面的空格
     @filter.regex(r"^/luck\s*(.*)$", priority=1000)
     async def luck_gateway(self, event: AstrMessageEvent):
         # 第一时间阻断事件，防止底层聊天 AI 抢答
         event.stop_event()
+        self._refresh_runtime_config()
         
         user_id = event.get_sender_id()
         user_name = event.get_sender_name()

@@ -8,1522 +8,311 @@
   <style>
     :root {
       --bg: #0f1117;
-      --bg-soft: #161a22;
-      --panel: rgba(24, 28, 39, 0.92);
-      --line: rgba(255,255,255,0.08);
+      --panel: rgba(24,28,39,.94);
+      --panel2: #171b25;
+      --line: rgba(255,255,255,.08);
       --text: #eef2ff;
-      --text-dim: #aeb7d1;
+      --muted: #aeb7d1;
       --gold: #f4d58d;
-      --purple: #b388ff;
-      --blue: #6ec5ff;
+      --danger: #ff7b7b;
       --green: #72e2a1;
-      --red: #ff7b7b;
-      --shadow: 0 18px 48px rgba(0,0,0,.35);
-      --radius: 18px;
-      --rarity-1: #b8c0d6;
-      --rarity-2: #52a7ff;
-      --rarity-3: #ad6dff;
-      --rarity-4: #f5c25b;
-      --rarity-5: #ff6b8f;
+      --blue: #6ec5ff;
+      --purple: #b388ff;
+      --r1: #d8deee;
+      --r2: #7fc7ff;
+      --r3: #cb9bff;
+      --r4: #ffd777;
+      --r5: #ff7ea1;
     }
-
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      background:
-        radial-gradient(circle at top left, rgba(173,109,255,0.16), transparent 28%),
-        radial-gradient(circle at top right, rgba(110,197,255,0.12), transparent 24%),
-        linear-gradient(180deg, #0a0d13, #10131a 35%, #0d1118 100%);
-      color: var(--text);
-      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      min-height: 100%;
-    }
-
-    body { min-height: 100vh; }
-
-    .app {
-      display: grid;
-      grid-template-columns: 280px 1fr;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      border-right: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(17,20,30,.96), rgba(12,14,22,.96));
-      padding: 22px 18px;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      backdrop-filter: blur(12px);
-    }
-
-    .brand {
-      padding: 18px 18px 22px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-      border-radius: 20px;
-      box-shadow: var(--shadow);
-      margin-bottom: 18px;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: 22px;
-      color: var(--gold);
-    }
-
-    .brand p {
-      margin: 10px 0 0;
-      color: var(--text-dim);
-      line-height: 1.6;
-      font-size: 13px;
-    }
-
-    .nav-group { margin-top: 18px; }
-    .nav-title {
-      padding: 0 10px 10px;
-      color: #8f99b8;
-      font-size: 12px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    .nav-btn {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text);
-      text-align: left;
-      border-radius: 14px;
-      padding: 14px 14px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: .2s ease;
-      font-size: 14px;
-    }
-
-    .nav-btn:hover {
-      background: rgba(255,255,255,.05);
-      border-color: rgba(255,255,255,.08);
-      transform: translateX(2px);
-    }
-
-    .nav-btn.active {
-      background: linear-gradient(90deg, rgba(244,213,141,.14), rgba(173,109,255,.12));
-      border-color: rgba(244,213,141,.22);
-      color: #fff9e9;
-    }
-
-    .content { padding: 28px; }
-
-    .topbar {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 22px;
-      flex-wrap: wrap;
-    }
-
-    .topbar-left h2 {
-      margin: 0;
-      font-size: 28px;
-      color: #fff8e6;
-    }
-
-    .topbar-left p {
-      margin: 8px 0 0;
-      color: var(--text-dim);
-      font-size: 14px;
-    }
-
-    .topbar-right { display: flex; gap: 10px; flex-wrap: wrap; }
-
-    .btn, .btn-ghost, .btn-danger, .small-btn {
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 12px;
-      padding: 11px 16px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: .2s ease;
-    }
-
-    .btn {
-      background: linear-gradient(135deg, #f4d58d, #d2a94e);
-      color: #2c2109;
-      font-weight: 700;
-    }
-
-    .btn-ghost, .small-btn {
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-    }
-
-    .btn-danger {
-      background: rgba(255,107,123,.12);
-      color: #ffc4cb;
-      border-color: rgba(255,107,123,.22);
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 18px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-    }
-
-    .page { display: none; }
-    .page.active { display: block; }
-
-    .toolbar {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      background: rgba(255,255,255,.045);
-      color: var(--text);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 12px;
-      padding: 12px 14px;
-      outline: none;
-      font-size: 14px;
-    }
-
-    .cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
-      gap: 18px;
-    }
-
-    .card-item {
-      position: relative;
-      border-radius: 22px;
-      overflow: hidden;
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border: 1px solid rgba(255,255,255,.08);
-      box-shadow: var(--shadow);
-      transition: .22s ease;
-      cursor: pointer;
-    }
-
-    .card-item:hover {
-      transform: translateY(-4px);
-      border-color: rgba(244,213,141,.24);
-    }
-
-    .card-rarity-bar { height: 6px; width: 100%; }
-    .rarity-1 { background: linear-gradient(90deg, var(--rarity-1), #d8deee); }
-    .rarity-2 { background: linear-gradient(90deg, var(--rarity-2), #9ed8ff); }
-    .rarity-3 { background: linear-gradient(90deg, var(--rarity-3), #d0a8ff); }
-    .rarity-4 { background: linear-gradient(90deg, var(--rarity-4), #ffe49b); }
-    .rarity-5 { background: linear-gradient(90deg, var(--rarity-5), #ff9bb5); }
-
-    .card-image {
-      height: 310px;
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .card-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .image-missing {
-      padding: 18px;
-      text-align: center;
-      color: #cdd4ea;
-      line-height: 1.7;
-      font-size: 14px;
-    }
-
-    .missing-badge {
-      position: absolute;
-      right: 12px;
-      top: 12px;
-      background: rgba(255,107,123,.18);
-      color: #ffd5dc;
-      border: 1px solid rgba(255,107,123,.26);
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-    }
-
-    .card-body { padding: 14px 16px 16px; }
-    .card-title { margin: 0; font-size: 17px; color: #fff5dc; line-height: 1.35; }
-    .card-desc { margin: 10px 0 14px; color: var(--text-dim); line-height: 1.7; font-size: 13px; min-height: 62px; }
-
-    .pill, .tag-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.05);
-      color: var(--text-dim);
-    }
-
-    .pill.attack { color: #ffc1c1; background: rgba(255,123,123,.12); }
-    .pill.heal { color: #bcffd6; background: rgba(114,226,161,.12); }
-    .pill.defense { color: #cde7ff; background: rgba(110,197,255,.12); }
-    .tag-chip { background: rgba(173,109,255,.12); color: #e6d5ff; border-color: rgba(173,109,255,.2); }
-
-    .editor-layout, .split-two {
-      display: grid;
-      grid-template-columns: 1.15fr .85fr;
-      gap: 18px;
-      margin-top: 20px;
-    }
-
-    .split-two { grid-template-columns: 1fr 1fr; }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .full { grid-column: 1 / -1; }
-
-    .field label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 13px;
-      color: #d7def8;
-    }
-
-    .sub-title {
-      margin: 0 0 14px;
-      color: #fff7df;
-      font-size: 17px;
-    }
-
-    .preview-box, .empty-state {
-      min-height: 220px;
-      border-radius: 18px;
-      border: 1px dashed rgba(255,255,255,.12);
-      background: rgba(255,255,255,.025);
-      padding: 16px;
-      color: var(--text-dim);
-    }
-
-    .list-editor { display: grid; gap: 10px; }
-    .list-item {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 14px;
-      padding: 10px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-bottom: 18px;
-    }
-
-        .stat-card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: var(--shadow);
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: white;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.6);
-      backdrop-filter: blur(6px);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .modal-overlay.hidden { display: none; }
-
-    .modal-box {
-      background: linear-gradient(180deg, #161a24, #111520);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 24px;
-      box-shadow: 0 32px 80px rgba(0,0,0,.6);
-      width: 100%;
-      max-width: 960px;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 28px;
-      position: relative;
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 22px;
-    }
-
-    .modal-header h2 {
-      margin: 0;
-      font-size: 22px;
-      color: var(--gold);
-    }
-
-    .modal-close {
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 10px;
-      color: var(--text-dim);
-      font-size: 20px;
-      width: 38px;
-      height: 38px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: .2s;
-    }
-
-    .modal-close:hover { background: rgba(255,80,80,.15); color: #ff7b7b; }
-
-    .chart-wrap {
-      position: relative;
-      width: 100%;
-      max-height: 320px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .type-pie-wrap {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      padding: 14px 0 4px;
-    }
-
-    .type-pie-legend {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--text-dim);
-    }
-
-    .type-pie-legend span {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-
-    .footer-note {
-      margin-top: 18px;
-      color: #8d98b6;
-      font-size: 12px;
-      line-height: 1.8;
-    }
-
-    @media (max-width: 1180px) {
-      .editor-layout, .split-two { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 980px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar {
-        position: relative;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--line);
-      }
-      .content { padding: 18px; }
-    }
-
-    @media (max-width: 680px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .cards-grid { grid-template-columns: 1fr; }
-    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;color:var(--text);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(circle at top left,rgba(179,136,255,.16),transparent 28%),linear-gradient(180deg,#0b0d12,#10131a 45%,#0d1118);min-height:100%}
+    body{min-height:100vh}
+    .app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+    .sidebar{padding:20px;border-right:1px solid var(--line);background:rgba(12,15,22,.94);position:sticky;top:0;height:100vh}
+    .brand,.panel,.stat-card{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 40px rgba(0,0,0,.3)}
+    .brand{padding:18px;margin-bottom:18px}.brand h1{margin:0 0 8px;color:var(--gold);font-size:22px}.brand p{margin:0;color:var(--muted);line-height:1.7;font-size:13px}
+    .nav-title{font-size:12px;color:#8994b3;padding:0 8px 10px;text-transform:uppercase;letter-spacing:1px}
+    .nav-btn{width:100%;background:transparent;color:var(--text);border:1px solid transparent;border-radius:14px;padding:13px 14px;text-align:left;cursor:pointer;margin-bottom:8px;font-size:14px}
+    .nav-btn:hover{background:rgba(255,255,255,.05)} .nav-btn.active{background:linear-gradient(90deg,rgba(244,213,141,.14),rgba(179,136,255,.12));border-color:rgba(244,213,141,.18)}
+    .content{padding:26px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}.topbar h2{margin:0;color:#fff6df}.topbar p{margin:6px 0 0;color:var(--muted)}
+    .panel{padding:18px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.btn,.btn-ghost,.btn-danger,.small-btn{border-radius:12px;padding:10px 14px;cursor:pointer;border:1px solid rgba(255,255,255,.08);font-size:14px}.btn{background:linear-gradient(135deg,#f4d58d,#d2a94e);color:#2b210a;font-weight:700}.btn-ghost,.small-btn{background:rgba(255,255,255,.05);color:var(--text)}.btn-danger{background:rgba(255,123,123,.14);color:#ffd2d2;border-color:rgba(255,123,123,.2)}
+    input,select,textarea{width:100%;background:rgba(255,255,255,.05);color:var(--text);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;font-size:14px;outline:none}
+    input::placeholder,textarea::placeholder{color:#95a0bf} select option{background:#1b2130;color:#eef2ff}
+    .page{display:none}.page.active{display:block}
+    .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+    .card-item{border:1px solid rgba(255,255,255,.08);border-radius:22px;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));cursor:pointer;position:relative}
+    .card-item:hover{transform:translateY(-3px);transition:.2s ease;border-color:rgba(244,213,141,.18)}
+    .rarity-bar{height:12px;position:relative;z-index:2;box-shadow:0 0 18px currentColor,inset 0 -1px 0 rgba(255,255,255,.18)}
+    .rarity-1{background:linear-gradient(90deg,var(--r1),#ffffff);color:var(--r1)} .rarity-2{background:linear-gradient(90deg,var(--r2),#d8f1ff);color:var(--r2)} .rarity-3{background:linear-gradient(90deg,var(--r3),#f0d6ff);color:var(--r3)} .rarity-4{background:linear-gradient(90deg,var(--r4),#fff1bc);color:var(--r4)} .rarity-5{background:linear-gradient(90deg,var(--r5),#ffc1d1);color:var(--r5)}
+    .card-image{height:300px;background:#141926;display:flex;align-items:center;justify-content:center;position:relative}.card-image img{width:100%;height:100%;object-fit:cover;display:block}.image-missing{padding:18px;text-align:center;color:var(--muted);line-height:1.7}
+    .card-body{padding:14px 16px 16px}.card-title{margin:0 0 8px;font-size:16px;color:#fff5dd;line-height:1.45}.card-desc{color:var(--muted);font-size:13px;line-height:1.7;min-height:46px}.meta{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.pill,.tag-chip,.status-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;border:1px solid rgba(255,255,255,.08)} .pill{background:rgba(255,255,255,.05);color:var(--muted)} .tag-chip{background:rgba(179,136,255,.12);color:#ecdfff;border-color:rgba(179,136,255,.2)} .status-badge{position:absolute;right:12px;top:20px;background:rgba(255,140,66,.18);color:#ffd5a3;border-color:rgba(255,140,66,.3)}
+    .attack{color:#ffc8c8;background:rgba(255,123,123,.12)} .heal{color:#c7ffe0;background:rgba(114,226,161,.12)} .defense{color:#d3e8ff;background:rgba(110,197,255,.12)}
+    .empty{padding:38px 16px;text-align:center;color:var(--muted);border:1px dashed rgba(255,255,255,.1);border-radius:18px;background:rgba(255,255,255,.02)}
+    .split-two{display:grid;grid-template-columns:1fr 1fr;gap:18px}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:18px}.stat-card{padding:18px}.stat-value{font-size:30px;font-weight:700}.sub-title{margin:0 0 14px;color:#fff4d7}.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%}
+    .chart-wrap{position:relative;min-height:280px}.field label{display:block;margin:0 0 8px;color:#d9e1fb;font-size:13px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.full{grid-column:1/-1}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.68);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999}.modal.show{display:flex}.modal-box{width:min(1080px,96vw);max-height:92vh;overflow:auto;background:linear-gradient(180deg,#171c28,#101521);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:24px;box-shadow:0 32px 80px rgba(0,0,0,.5)}.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.close-x{width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--text);cursor:pointer}
+    .editor-layout{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.preview-box{min-height:220px;border-radius:18px;border:1px dashed rgba(255,255,255,.12);background:rgba(255,255,255,.02);padding:16px;color:var(--muted)}
+    .help-box{border:1px solid rgba(114,226,161,.18);background:rgba(114,226,161,.08);padding:14px 16px;border-radius:16px;color:#d5ffea;line-height:1.8;font-size:13px}
+    .param-hint{margin-top:6px;color:#9bb0d8;font-size:12px;line-height:1.6}
+    @media (max-width:1100px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.split-two,.editor-layout,.form-grid{grid-template-columns:1fr}.content{padding:18px}}
   </style>
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <h1>🌐 luck_rank WebUI</h1>
-        <p>异世界卡牌图形化管理台。<br>可视化配置，不必手改 JSON，端口可自由调整。</p>
-      </div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>🌐 luck_rank WebUI</h1>
+      <p>可视化管理功能牌、命运牌和签到文案。<br>前面的访问地址看运行环境，后面的端口看配置。</p>
+    </div>
+    <div class="nav-title">管理页面</div>
+    <button class="nav-btn active" data-page="cards-page">🃏 功能牌管理</button>
+    <button class="nav-btn" data-page="fate-page">🎴 命运牌管理</button>
+    <button class="nav-btn" data-page="texts-page">📜 签到文案</button>
+    <button class="nav-btn" data-page="config-page">⚙️ 系统配置</button>
+    <button class="nav-btn" data-page="stats-page">📊 概率分析</button>
+    <div style="height:16px"></div>
+    <div class="panel"><div>✅ WebUI 已启用</div><div style="margin-top:8px;color:var(--muted);font-size:13px;line-height:1.8">本地常见：127.0.0.1:端口<br>服务器常见：服务器地址:端口</div></div>
+  </aside>
+  <main class="content">
+    <div class="topbar">
+      <div><h2 id="page-title">功能牌管理</h2><p id="page-desc">管理功能牌卡池、图片、词条与稀有度。</p></div>
+      <div class="toolbar" style="margin:0"><button class="btn-ghost" id="btn-refresh">刷新数据</button><button class="btn" id="btn-save-current">保存当前页面</button></div>
+    </div>
 
-      <div class="nav-group">
-        <div class="nav-title">管理页面</div>
-        <button class="nav-btn active" data-page="cards-page">🃏 卡牌管理</button>
-        <button class="nav-btn" data-page="fate-page">🎴 命运牌管理</button>
-  <button class="nav-btn" data-page="texts-page">📜 签到文案</button>
-        <button class="nav-btn" data-page="config-page">⚙️ 系统配置</button>
-        <button class="nav-btn" data-page="stats-page">📊 概率分析</button>
-      </div>
-
-      <div class="nav-group">
-        <div class="nav-title">状态</div>
-        <div class="panel">
-                    <div>✅ WebUI 管理界面已启用</div>
-                    <div class="footer-note">
-                      默认端口已设为 <b>4399</b><br>
-                      本地可访问 <b>127.0.0.1:端口</b><br>
-                      服务器可访问 <b>服务器地址:端口</b>
-                    </div>
+    <section class="page active" id="cards-page">
+      <div class="panel" style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap">
+          <div><h3 class="sub-title" style="margin-bottom:8px">📊 卡池概览</h3><div class="legend" id="cards-overview-legend"></div></div>
+          <div style="width:150px;height:150px"><canvas id="chart-cards-type"></canvas></div>
         </div>
       </div>
-    </aside>
-
-    <main class="content">
-      <div class="topbar">
-        <div class="topbar-left">
-          <h2 id="page-title">卡牌管理</h2>
-          <p id="page-desc">管理功能牌卡池、图片、词条与稀有度。</p>
+      <div class="panel">
+        <div class="toolbar">
+          <input id="card-search" placeholder="搜索卡名 / 描述 / tag..." style="flex:1 1 220px" />
+          <select id="card-filter-type"><option value="">全部类型</option><option value="attack">攻击</option><option value="heal">治疗</option><option value="defense">防御</option></select>
+          <select id="card-filter-rarity"><option value="">全部稀有度</option><option value="1">普通</option><option value="2">稀有</option><option value="3">史诗</option><option value="4">传说</option><option value="5">神话</option></select>
+          <button class="btn-ghost" id="btn-upload-images">上传图片</button>
+          <button class="btn-ghost" id="btn-check-missing-cards">检查配置缺失</button>
+          <button class="btn" id="btn-new-card">＋ 新增卡牌</button>
         </div>
-        <div class="topbar-right">
-          <button class="btn-ghost" id="btn-refresh">刷新数据</button>
-          <button class="btn" id="btn-save-current">保存当前页面</button>
-        </div>
+        <div id="cards-grid" class="cards-grid"></div>
       </div>
+    </section>
 
-      <section class="page active" id="cards-page">
-        <div class="panel" style="margin-bottom:18px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;">
-            <div>
-              <h3 class="sub-title" style="margin-bottom:4px;">📊 卡池概览</h3>
-              <div id="cards-overview-legend" class="type-pie-legend" style="flex-direction:row;gap:16px;"></div>
+    <section class="page" id="fate-page">
+      <div class="panel">
+        <div class="toolbar">
+          <input id="fate-search" placeholder="搜索命运牌文案..." style="flex:1 1 220px" />
+          <button class="btn-ghost" id="btn-upload-fate-images">批量上传图片并自动建卡</button>
+          <button class="btn-ghost" id="btn-check-missing-fate">检查配置缺失</button>
+          <button class="btn" id="btn-new-fate">＋ 新增命运牌</button>
+        </div>
+        <div id="fate-grid" class="cards-grid"></div>
+      </div>
+    </section>
+
+    <section class="page" id="texts-page">
+      <div class="split-two">
+              <div class="panel"><h3 class="sub-title">✅ 宜做事项</h3><div id="good-list"></div><div style="height:10px"></div><div class="toolbar"><button class="btn" id="btn-add-good">新增一条</button><button class="btn-ghost" id="btn-batch-good">批量导入</button></div></div>
+              <div class="panel"><h3 class="sub-title">❌ 忌做事项</h3><div id="bad-list"></div><div style="height:10px"></div><div class="toolbar"><button class="btn" id="btn-add-bad">新增一条</button><button class="btn-ghost" id="btn-batch-bad">批量导入</button></div></div>
             </div>
-            <div style="width:140px;height:140px;"><canvas id="chart-cards-type"></canvas></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="toolbar">
-            <input type="text" id="card-search" placeholder="搜索卡名 / 描述 / tag..." />
-            <select id="card-filter-type">
-              <option value="">全部类型</option>
-              <option value="attack">攻击</option>
-              <option value="heal">治疗</option>
-              <option value="defense">防御</option>
-            </select>
-            <select id="card-filter-rarity">
-              <option value="">全部稀有度</option>
-              <option value="1">普通</option>
-              <option value="2">稀有</option>
-              <option value="3">史诗</option>
-              <option value="4">传说</option>
-              <option value="5">神话</option>
-            </select>
-            <button class="btn" id="btn-new-card">新增卡牌</button>
-            <button class="btn-ghost" id="btn-upload-images">批量导入图片</button>
-            <button class="btn-ghost" id="btn-check-missing">检查缺失图片</button>
-          </div>
-
-          <div id="cards-grid" class="cards-grid"></div>
-          <div id="cards-empty" class="empty-state" style="display:none;">当前卡池为空，点击“新增卡牌”开始创建第一张牌。</div>
-        </div>
-
-        <!-- 卡牌编辑模态框 -->
-          <div class="modal-overlay hidden" id="card-modal" onclick="if(event.target.id==='card-modal')closeCardModal()">
-            <div class="modal-box">
-              <div class="modal-header">
-                <h2 id="card-modal-title">🎴 新增卡牌</h2>
-                <button class="modal-close" onclick="closeCardModal()">×</button>
-              </div>
-              <div class="editor-layout">
-                <div>
-                  <div class="form-grid">
-                    <div class="field"><label>卡牌名称</label><input id="edit-card-name" placeholder="例如：命运转盘" /></div>
-                    <div class="field"><label>卡牌类型</label><select id="edit-card-type"><option value="attack">攻击</option><option value="heal">治疗</option><option value="defense">防御</option></select></div>
-                    <div class="field"><label>稀有度</label><select id="edit-card-rarity"><option value="1">1 - 普通</option><option value="2">2 - 稀有</option><option value="3">3 - 史诗</option><option value="4">4 - 传说</option><option value="5">5 - 神话</option></select></div>
-                    <div class="field"><label>图片</label><select id="edit-card-filename-select"><option value="">不绑定图片</option></select><input id="edit-card-filename" placeholder="或手动输入文件名" style="margin-top:8px;" /></div>
-                    <div class="field full"><label>描述</label><textarea id="edit-card-desc" rows="3" placeholder="输入这张牌的效果描述..."></textarea></div>
-                  </div>
-                  <h3 class="sub-title" style="margin-top:18px;">🧩 Tag 可视化构建</h3>
-                  <div class="form-grid">
-                    <div class="field"><label>功能分类</label><select id="tag-category"><option value="">选择分类</option><option value="attack">攻击 / 掠夺 / 控制</option><option value="heal">治疗 / 辅助</option><option value="defense">防御 / 状态</option><option value="aoe">群体效果</option><option value="dice">骰子规则</option></select></div>
-                    <div class="field"><label>具体词条</label><select id="tag-template"><option value="">先选择分类</option></select></div>
-                  </div>
-                  <div id="tag-params" class="form-grid"></div>
-                  <div class="toolbar" style="margin-top:12px;"><button class="btn" id="btn-add-tag">添加词条</button></div>
-                  <div id="current-tags" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
-                  <div class="toolbar" style="margin-top:18px;">
-                    <button class="btn" id="btn-save-card">保存这张卡</button>
-                    <button class="btn-ghost" id="btn-copy-card">复制当前卡</button>
-                    <button class="btn-danger" id="btn-delete-card">删除当前卡</button>
-                  </div>
-                </div>
-                <div>
-                  <h3 class="sub-title">🔮 实时预览</h3>
-                  <div class="preview-box" id="card-preview-box">选择或创建一张牌后，这里会显示卡面预览。</div>
-                  <div class="footer-note">• 预览仅影响 WebUI 显示，不影响 Bot 实际发图。<br>• 允许同名牌，便于做同效果不同卡面版本。</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="topbar-right">
-            <input id="fate-search" class="search-box" type="text" placeholder="搜索文案..." oninput="renderFateCards()" />
-            <button class="btn-ghost" onclick="document.getElementById('fate-img-upload').click()">📁 上传图片</button>
-            <input id="fate-img-upload" type="file" multiple accept="image/*" style="display:none" onchange="uploadFateImages(this)" />
-            <button class="btn-danger" onclick="deleteFateSelected()">🗑 批量删除</button>
-            <button class="btn" onclick="openFateEditor(null)">＋ 新增命运牌</button>
-          </div>
-        </div>
-        <div id="fate-card-grid" class="card-grid"></div>
-      </section>
-
-      <section class="page" id="texts-page">
+      <div style="height:18px"></div>
+      <div class="panel">
+        <h3 class="sub-title">🗣️ 运势评语</h3>
         <div class="split-two">
-          <div class="panel">
-            <h3 class="sub-title">✅ 宜做事项</h3>
-            <div id="good-list" class="list-editor"></div>
-            <div class="toolbar" style="margin-top:14px;">
-              <button class="btn" id="btn-add-good">新增宜做事项</button>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h3 class="sub-title">❌ 忌做事项</h3>
-            <div id="bad-list" class="list-editor"></div>
-            <div class="toolbar" style="margin-top:14px;">
-              <button class="btn" id="btn-add-bad">新增忌做事项</button>
-            </div>
-          </div>
+          <div><h4>91~100</h4><div id="c-91_100"></div></div>
+          <div><h4>71~90</h4><div id="c-71_90"></div></div>
+          <div><h4>51~70</h4><div id="c-51_70"></div></div>
+          <div><h4>1~50</h4><div id="c-1_50"></div></div>
         </div>
+        <div style="height:12px"></div><button class="btn" id="btn-save-texts">保存签到文案</button>
+      </div>
+    </section>
 
-        <div style="height:18px;"></div>
+    <section class="page" id="config-page">
+      <div class="panel">
+        <h3 class="sub-title">⚙️ 系统配置</h3>
+        <p style="color:var(--muted);line-height:1.8">插件参数建议直接在 AstrBot 原生面板里修改，避免重复维护两套配置逻辑。</p>
+        <div class="toolbar"><button class="btn" onclick="window.open('/', '_blank')">前往 AstrBot 面板</button></div>
+        <div class="help-box">WebUI 端口仍由插件配置控制。你可以在 AstrBot 插件配置页里直接修改端口数字。</div>
+      </div>
+    </section>
 
-        <div class="panel">
-          <h3 class="sub-title">🗣️ 运势评语</h3>
-          <div class="split-two">
-            <div><h4>91~100</h4><div id="comment-91_100" class="list-editor"></div></div>
-            <div><h4>71~90</h4><div id="comment-71_90" class="list-editor"></div></div>
-            <div><h4>51~70</h4><div id="comment-51_70" class="list-editor"></div></div>
-            <div><h4>1~50</h4><div id="comment-1_50" class="list-editor"></div></div>
-          </div>
+    <section class="page" id="stats-page">
+      <div class="stats-grid">
+        <div class="stat-card"><div>总用户数</div><div class="stat-value" id="stat-total-users">0</div></div>
+        <div class="stat-card"><div>功能牌总数</div><div class="stat-value" id="stat-total-cards">0</div></div>
+        <div class="stat-card"><div>命运牌总数</div><div class="stat-value" id="stat-total-fate">0</div></div>
+        <div class="stat-card"><div>缺失图片数</div><div class="stat-value" id="stat-missing">0</div></div>
+      </div>
+      <div class="split-two">
+        <div class="panel"><h3 class="sub-title">🎯 稀有度分布</h3><div class="chart-wrap"><canvas id="chart-rarity"></canvas></div></div>
+        <div class="panel"><h3 class="sub-title">⚔️ 类型占比</h3><div class="chart-wrap"><canvas id="chart-type"></canvas></div></div>
+      </div>
+      <div style="height:18px"></div>
+      <div class="panel"><h3 class="sub-title">🧳 玩家持牌 Top20</h3><div class="chart-wrap" style="min-height:420px"><canvas id="chart-holders"></canvas></div></div>
+    </section>
+  </main>
+</div>
 
-          <div class="toolbar" style="margin-top:16px;">
-            <button class="btn" id="btn-save-texts">保存命运牌文案</button>
-            <button class="btn-ghost" id="btn-preview-texts">随机预览一条</button>
-          </div>
-
-          <div class="preview-box" id="texts-preview-box">点击“随机预览一条”后，这里会模拟展示签到文案的片段效果。</div>
-        </div>
-      </section>
-
-      <section class="page" id="config-page">
-        <div class="panel">
-          <h3 class="sub-title">⚙️ 系统配置</h3>
-          <div class="form-grid">
-            <div class="field"><label>功能牌系统</label><select id="cfg-func-enable"><option value="true">开启</option><option value="false">关闭</option></select></div>
-            <div class="field"><label>骰子功能牌</label><select id="cfg-dice-enable"><option value="true">开启</option><option value="false">关闭</option></select></div>
-            <div class="field"><label>公开对赌模式</label><select id="cfg-public-duel"><option value="true">开启</option><option value="false">关闭</option></select></div>
-            <div class="field"><label>同档去重</label><select id="cfg-rarity-dedup"><option value="true">开启</option><option value="false">关闭</option></select></div>
-            <div class="field"><label>稀有度模式</label><select id="cfg-rarity-mode"><option value="default">默认权重</option><option value="custom">自定义权重</option></select></div>
-            <div class="field"><label>WebUI 端口</label><input id="cfg-webui-port" type="number" value="4399" /></div>
-            <div class="field"><label>普通权重</label><input id="cfg-r1" type="number" /></div>
-            <div class="field"><label>稀有权重</label><input id="cfg-r2" type="number" /></div>
-            <div class="field"><label>史诗权重</label><input id="cfg-r3" type="number" /></div>
-            <div class="field"><label>传说权重</label><input id="cfg-r4" type="number" /></div>
-            <div class="field"><label>神话权重</label><input id="cfg-r5" type="number" /></div>
-            <div class="field"><label>基础掉率 (%)</label><input id="cfg-draw-prob" type="number" /></div>
-            <div class="field"><label>每日免费抽取</label><input id="cfg-free-draw" type="number" /></div>
-            <div class="field"><label>额外抽卡费用</label><input id="cfg-draw-cost" type="number" /></div>
-            <div class="field"><label>保底阈值</label><input id="cfg-pity" type="number" /></div>
-          </div>
-
-          <div class="footer-note">
-                        当前先完成前端外观骨架，后续继续接入完整配置读写接口。<br>
-            WebUI 默认端口已预设为 <b>4399</b>，你可以在这里直接修改后面的端口数字。<br>
-            前面的访问地址取决于运行环境：本地常见为 <b>127.0.0.1:端口</b>，服务器常见为 <b>服务器地址:端口</b>。
-          </div>
-        </div>
-      </section>
-
-      <section class="page" id="stats-page">
-        <div class="stats-grid">
-          <div class="stat-card"><h4>总用户数</h4><div class="stat-value" id="stat-total-users">0</div></div>
-          <div class="stat-card"><h4>功能牌总数</h4><div class="stat-value" id="stat-total-cards">0</div></div>
-          <div class="stat-card"><h4>缺失图片数</h4><div class="stat-value" id="stat-missing-images">0</div></div>
-          <div class="stat-card"><h4>被玩家持有的牌种数</h4><div class="stat-value" id="stat-held-types">0</div></div>
-        </div>
-
-                <div class="split-two">
-          <div class="panel">
-            <h3 class="sub-title">🎯 稀有度分布</h3>
-            <div class="chart-wrap"><canvas id="chart-rarity"></canvas></div>
-          </div>
-          <div class="panel">
-            <h3 class="sub-title">⚔️ 卡牌类型占比</h3>
-            <div class="type-pie-wrap">
-              <div style="width:180px;height:180px;flex-shrink:0;"><canvas id="chart-type"></canvas></div>
-              <div class="type-pie-legend" id="type-pie-legend"></div>
-            </div>
-          </div>
-        </div>
-        <div style="height:18px;"></div>
-        <div class="panel">
-          <h3 class="sub-title">🧳 玩家持牌 Top20</h3>
-          <div class="chart-wrap" style="max-height:400px;"><canvas id="chart-holders"></canvas></div>
-        </div>
-      </section>
-    </main>
+<div class="modal" id="card-modal"><div class="modal-box"><div class="modal-header"><h2 id="card-modal-title">新增功能牌</h2><button class="close-x" onclick="closeCardModal()">×</button></div><div class="editor-layout"><div>
+  <div class="form-grid">
+    <div class="field"><label>卡牌名称</label><input id="edit-card-name" placeholder="例如：命运转盘" /></div>
+    <div class="field"><label>卡牌类型</label><select id="edit-card-type"><option value="attack">攻击</option><option value="heal">治疗</option><option value="defense">防御</option></select></div>
+    <div class="field"><label>稀有度</label><select id="edit-card-rarity"><option value="1">普通</option><option value="2">稀有</option><option value="3">史诗</option><option value="4">传说</option><option value="5">神话</option></select></div>
+    <div class="field"><label>图片文件名</label><input id="edit-card-filename" placeholder="上传图片后会自动带入，也可手动修改" /></div>
+    <div class="field full"><label>描述</label><textarea id="edit-card-desc" rows="3" placeholder="输入这张牌的效果描述..."></textarea></div>
   </div>
+  <h3 class="sub-title" style="margin-top:18px">🧩 词条构建</h3>
+  <div class="form-grid">
+    <div class="field"><label>功能分类</label><select id="tag-category"></select></div>
+    <div class="field"><label>具体词条</label><select id="tag-template"></select></div>
+  </div>
+  <div class="help-box" id="tag-help">先选择功能分类和具体词条，下面会用中文说明这个词条的作用，以及你需要填写哪些参数。</div>
+  <div id="tag-params" class="form-grid" style="margin-top:14px"></div>
+  <div style="height:10px"></div><button class="btn" id="btn-add-tag">添加这个词条</button>
+  <div style="height:12px"></div><div id="current-tags" class="meta"></div>
+  <div style="height:16px"></div><div class="toolbar"><button class="btn" id="btn-save-card">保存这张卡</button><button class="btn-ghost" id="btn-copy-card">复制当前卡</button><button class="btn-danger" id="btn-delete-card">删除当前卡</button></div>
+</div><div><h3 class="sub-title">🔮 实时预览</h3><div class="preview-box" id="card-preview-box"></div></div></div></div></div>
 
-  <script>
-    const state = {
-      cards: [],
-      images: [],
-      signTexts: null,
-      selectedCardIndex: -1,
-      currentTags: [],
-      stats: { total_users: 0, card_holders: {} }
-    };
+<div class="modal" id="fate-modal"><div class="modal-box"><div class="modal-header"><h2 id="fate-modal-title">新增命运牌</h2><button class="close-x" onclick="closeFateModal()">×</button></div><div class="editor-layout"><div>
+  <div class="form-grid">
+    <div class="field full"><label>图片文件名</label><input id="fate-filename" /></div>
+    <div class="field full"><label>命运牌文案</label><textarea id="fate-text" rows="3"></textarea></div>
+    <div class="field"><label>数值 value</label><input id="fate-value" type="number" /></div>
+  </div>
+  <div style="height:16px"></div><div class="toolbar"><button class="btn" id="btn-save-fate">保存命运牌</button><button class="btn-danger" id="btn-delete-fate">删除命运牌</button></div>
+</div><div><h3 class="sub-title">🔮 实时预览</h3><div class="preview-box" id="fate-preview-box"></div></div></div></div></div>
 
-    const pageMeta = {
-      "cards-page": { title: "卡牌管理", desc: "管理功能牌卡池、图片、词条与稀有度。" },
-      "fate-page": { title: "命运牌管理", desc: "管理命运牌卡池，配置图片、文案与数值。对接 config/cards_config.json。" },
-    "texts-page": { title: "签到文案", desc: "可视化编辑签到宜/忌事项与运势评语，不再手改 Python。" },
-      "config-page": { title: "系统配置", desc: "图形化查看和调整抽卡、爆率、对赌与 WebUI 参数。" },
-      "stats-page": { title: "概率分析", desc: "查看卡池分布、缺图情况与玩家持牌统计。" }
-    };
+<script>
+const state={cards:[],images:[],fateCards:[],fateImages:[],signTexts:{good_things:[],bad_things:[],luck_comments:{"91_100":[],"71_90":[],"51_70":[],"1_50":[]}},selectedCardIndex:-1,selectedFateIndex:-1,currentTags:[],stats:{total_users:0,card_holders:{}}};
+const pageMeta={"cards-page":["功能牌管理","管理功能牌卡池、图片、词条与稀有度。"],"fate-page":["命运牌管理","管理命运牌卡池，配置图片、文案与数值。"],"texts-page":["签到文案","编辑签到宜做、忌做和运势评语。"],"config-page":["系统配置","跳转到 AstrBot 原生配置面板。"],"stats-page":["概率分析","图表查看卡池分布与玩家持牌情况。"]};
+const tagDefs={
+ attack:[
+  {value:'steal',label:'掠夺金币',desc:'从目标身上直接掠夺金币。',params:[{key:'amount',label:'掠夺金额',hint:'填写要掠夺多少金币'}]},
+  {value:'freeze',label:'冻结目标',desc:'让目标在一段时间内无法正常行动。',params:[{key:'hours',label:'持续小时',hint:'冻结持续多久'}]},
+  {value:'silence',label:'沉默目标',desc:'让目标暂时无法使用功能牌。',params:[{key:'hours',label:'持续小时',hint:'沉默持续多久'}]},
+  {value:'seal_draw_all',label:'封印抽牌',desc:'让目标在一段时间内无法抽牌。',params:[{key:'hours',label:'持续小时',hint:'封印持续多久'}]},
+  {value:'luck_drain',label:'吸取爆率',desc:'吸走目标的气运/爆率加成。',params:[{key:'hours',label:'持续小时',hint:'影响持续多久'},{key:'percent',label:'吸取百分比',hint:'填写要吸走的百分比'}]},
+  {value:'borrow_blade',label:'借刀杀人',desc:'借别人之手造成伤害或干扰。',params:[{key:'min',label:'最低值',hint:'效果范围最小值'},{key:'max',label:'最高值',hint:'效果范围最大值'}]},
+  {value:'bounty_mark',label:'赏金悬令',desc:'给目标挂上赏金标记。',params:[{key:'hours',label:'持续小时',hint:'悬赏持续多久'},{key:'bonus',label:'赏金金额',hint:'赏金奖励是多少'}]},
+  {value:'strip_buff_gain',label:'偷梁换柱',desc:'偷走目标增益并转化为自己的收益。',params:[{key:'percent',label:'转化比例',hint:'填写百分比'},{key:'hours',label:'持续小时',hint:'效果持续多久'}]}
+ ],
+ heal:[
+  {value:'cleanse',label:'净化',desc:'清除负面状态。',params:[]},
+  {value:'luck_bless',label:'好运加护',desc:'给目标附加好运，提升爆率或收益。',params:[{key:'hours',label:'持续小时',hint:'加护持续多久'},{key:'percent',label:'提升百分比',hint:'提升多少百分比'}]},
+  {value:'fate_roulette',label:'命运转盘',desc:'随机触发命运效果。',params:[]}
+ ],
+ defense:[
+  {value:'add_shield',label:'无懈可击',desc:'给目标添加护盾。',params:[]},
+  {value:'thorn_armor',label:'反甲',desc:'被打时反弹部分伤害。',params:[{key:'hours',label:'持续小时',hint:'反甲持续多久'},{key:'ratio',label:'反弹比例',hint:'填写百分比或比例'}]}
+ ],
+ aoe:[
+  {value:'aoe_damage',label:'群体伤害',desc:'同时攻击多名目标。',params:[{key:'min',label:'最低值',hint:'伤害最低值'},{key:'max',label:'最高值',hint:'伤害最高值'},{key:'count',label:'目标人数',hint:'最多影响几个人'}]},
+  {value:'aoe_heal',label:'群体治疗',desc:'同时治疗多名目标。',params:[{key:'min',label:'最低值',hint:'治疗最低值'},{key:'max',label:'最高值',hint:'治疗最高值'},{key:'count',label:'目标人数',hint:'最多影响几个人'}]}
+ ],
+ dice:[
+  {value:'dice_rule',label:'骰子规则',desc:'绑定一个骰子规则 key。',params:[{key:'key',label:'规则 Key',hint:'填写对应规则标识'}]},
+  {value:'dice_duel',label:'公开对赌',desc:'触发一场公开骰子对赌。',params:[{key:'stake',label:'赌注金额',hint:'这场对赌的金额'}]},
+  {value:'dice_reroll_lowest_once',label:'天命重投',desc:'自动重投最低点一次。',params:[]}
+ ]
+};
+const qs=s=>document.querySelector(s), qsa=s=>Array.from(document.querySelectorAll(s));
+const apiGet=async u=>(await fetch(u)).json(); const apiPost=async(u,b)=>(await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json();
+function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
+function typeLabel(t){return t==='attack'?'攻击':t==='heal'?'治疗':t==='defense'?'防御':'其他'}
+function rarityClass(r){return 'rarity-'+(Number(r)||1)}
+function isCardIncomplete(c){return !String(c.card_name||'').trim()||!String(c.description||'').trim()||!(c.tags||[]).length}
+function isFateIncomplete(c){return !String(c.text||'').trim()||!String(c.filename||'').trim()}
 
-    const tagTemplates = {
-      attack: [
-        { value: "steal", label: "掠夺金币 steal:X", params: ["amount"] },
-        { value: "freeze", label: "冻结 freeze:X", params: ["hours"] },
-        { value: "silence", label: "沉默 silence:X", params: ["hours"] },
-        { value: "seal_draw_all", label: "封印抽牌 seal_draw_all:X", params: ["hours"] },
-        { value: "luck_drain", label: "抽取爆率 luck_drain:X:Y", params: ["hours", "percent"] },
-        { value: "borrow_blade", label: "借刀杀人 borrow_blade:X:Y", params: ["min", "max"] },
-        { value: "bounty_mark", label: "赏金悬令 bounty_mark:X:Y", params: ["hours", "bonus"] },
-        { value: "strip_buff_gain", label: "偷梁换柱 strip_buff_gain:X:Y", params: ["percent", "hours"] }
-      ],
-      heal: [
-        { value: "cleanse", label: "净化 cleanse", params: [] },
-        { value: "luck_bless", label: "好运加护 luck_bless:X:Y", params: ["hours", "percent"] },
-        { value: "fate_roulette", label: "命运转盘 fate_roulette", params: [] }
-      ],
-      defense: [
-        { value: "add_shield", label: "无懈可击 add_shield", params: [] },
-        { value: "thorn_armor", label: "反甲 thorn_armor:X:Y", params: ["hours", "ratio"] }
-      ],
-      aoe: [
-        { value: "aoe_damage", label: "群攻 aoe_damage:X:Y:Z", params: ["min", "max", "count"] },
-        { value: "aoe_heal", label: "群疗 aoe_heal:X:Y:Z", params: ["min", "max", "count"] }
-      ],
-      dice: [
-        { value: "dice_rule", label: "骰子规则 dice_rule:KEY", params: ["key"] },
-        { value: "dice_duel", label: "对赌 dice_duel:X", params: ["stake"] },
-        { value: "dice_reroll_lowest_once", label: "天命重投 dice_reroll_lowest_once", params: [] }
-      ]
-    };
+function switchPage(id){qsa('.page').forEach(p=>p.classList.remove('active'));qsa('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===id));qs('#'+id).classList.add('active');qs('#page-title').textContent=pageMeta[id][0];qs('#page-desc').textContent=pageMeta[id][1];if(id==='stats-page')loadStats();}
+function bindNav(){qsa('.nav-btn').forEach(btn=>btn.onclick=()=>switchPage(btn.dataset.page))}
 
-    const qs = s => document.querySelector(s);
-    const qsa = s => Array.from(document.querySelectorAll(s));
+function renderCards(){
+  const kw=qs('#card-search').value.trim().toLowerCase(), ft=qs('#card-filter-type').value, fr=qs('#card-filter-rarity').value;
+  const list=state.cards.filter(c=>(!kw||JSON.stringify(c).toLowerCase().includes(kw))&&(!ft||c.type===ft)&&(!fr||String(c.rarity)===fr));
+  qs('#cards-grid').innerHTML=list.length?list.map(c=>`<div class="card-item" data-name="${esc(c.card_name)}"><div class="rarity-bar ${rarityClass(c.rarity)}"></div><div class="card-image">${c.filename&&state.images.includes(c.filename)?`<img src="/assets/${encodeURIComponent(c.filename)}">`:`<div class="image-missing">${c.filename?`图片缺失<br><small>${esc(c.filename)}</small>`:'未设置图片'}</div>`}${isCardIncomplete(c)?'<span class="status-badge">待配置</span>':''}</div><div class="card-body"><h3 class="card-title">${esc(c.card_name||'未命名功能牌')}</h3><div class="meta"><span class="pill ${esc(c.type)}">${typeLabel(c.type)}</span><span class="pill">稀有度 ${Number(c.rarity)||1}</span></div><div class="card-desc">${esc(c.description||'暂无描述')}</div><div class="meta">${(c.tags||[]).slice(0,3).map(t=>`<span class="tag-chip">${esc(t)}</span>`).join('')}</div></div></div>`).join(''):'<div class="empty">当前没有功能牌，点击右上角新增。</div>';
+  qsa('#cards-grid .card-item').forEach(el=>el.onclick=()=>{const idx=state.cards.findIndex(c=>c.card_name===el.dataset.name);openCardModal(idx)});
+  renderCardsPie();
+}
+function renderCardsPie(){const count={attack:0,heal:0,defense:0,other:0};state.cards.forEach(c=>count[count[c.type]!==undefined?c.type:'other']++);qs('#cards-overview-legend').innerHTML=`<span><i style="background:#ff7b7b"></i>攻击 ${count.attack}</span><span><i style="background:#72e2a1"></i>治疗 ${count.heal}</span><span><i style="background:#6ec5ff"></i>防御 ${count.defense}</span><span><i style="background:#b388ff"></i>其他 ${count.other}</span>`; if(window._cardsTypeChart)window._cardsTypeChart.destroy(); window._cardsTypeChart=new Chart(qs('#chart-cards-type'),{type:'doughnut',data:{labels:['攻击','治疗','防御','其他'],datasets:[{data:[count.attack,count.heal,count.defense,count.other],backgroundColor:['#ff7b7b','#72e2a1','#6ec5ff','#b388ff'],borderWidth:0}]},options:{plugins:{legend:{display:false}},cutout:'62%'}})}
 
-    function escapeHtml(str) {
-      return String(str ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
-    }
+function renderFateCards(){const kw=qs('#fate-search').value.trim().toLowerCase();const list=state.fateCards.filter(c=>!kw||JSON.stringify(c).toLowerCase().includes(kw));qs('#fate-grid').innerHTML=list.length?list.map((c,i)=>`<div class="card-item" data-idx="${i}"><div class="rarity-bar rarity-3"></div><div class="card-image">${c.filename&&state.fateImages.includes(c.filename)?`<img src="/fate_assets/${encodeURIComponent(c.filename)}">`:`<div class="image-missing">${c.filename?`图片缺失<br><small>${esc(c.filename)}</small>`:'未设置图片'}</div>`}${isFateIncomplete(c)?'<span class="status-badge">待配置</span>':''}</div><div class="card-body"><h3 class="card-title">${esc(c.text||'待填写命运牌文案')}</h3><div class="meta"><span class="pill">value ${c.value??0}</span></div><div class="card-desc">文件：${esc(c.filename||'无')}</div></div></div>`).join(''):'<div class="empty">当前没有命运牌，上传图片可自动建卡。</div>';qsa('#fate-grid .card-item').forEach(el=>el.onclick=()=>openFateModal(Number(el.dataset.idx)))}
 
-    function rarityClass(r) { return "rarity-" + (Number(r) || 1); }
-    function typeLabel(type) {
-      if (type === "attack") return "攻击";
-      if (type === "heal") return "治疗";
-      if (type === "defense") return "防御";
-      return type || "未知";
-    }
+function openCardModal(idx){state.selectedCardIndex=idx??-1;qs('#card-modal-title').textContent=idx!=null&&idx>=0?'编辑功能牌':'新增功能牌';const card=idx!=null&&idx>=0?state.cards[idx]:{card_name:'',type:'attack',rarity:1,filename:'',description:'',tags:[]};qs('#edit-card-name').value=card.card_name||'';qs('#edit-card-type').value=card.type||'attack';qs('#edit-card-rarity').value=String(card.rarity||1);qs('#edit-card-filename').value=card.filename||'';qs('#edit-card-desc').value=card.description||'';state.currentTags=[...(card.tags||[])];renderCurrentTags();renderPreview();initTagBuilder();qs('#card-modal').classList.add('show')}
+function closeCardModal(){qs('#card-modal').classList.remove('show')}
+function renderCurrentTags(){qs('#current-tags').innerHTML=state.currentTags.length?state.currentTags.map((t,i)=>`<span class="tag-chip">${esc(t)} <button class="small-btn" onclick="removeTag(${i})">×</button></span>`).join(''):'<span style="color:var(--muted)">当前还没有词条。</span>'}
+function removeTag(i){state.currentTags.splice(i,1);renderCurrentTags();renderPreview()} window.removeTag=removeTag;
+function renderPreview(){const c={card_name:qs('#edit-card-name').value.trim(),type:qs('#edit-card-type').value,rarity:Number(qs('#edit-card-rarity').value||1),filename:qs('#edit-card-filename').value.trim(),description:qs('#edit-card-desc').value.trim(),tags:[...state.currentTags]};qs('#card-preview-box').innerHTML=`<div class="rarity-bar ${rarityClass(c.rarity)}" style="border-radius:999px"></div><div style="height:12px"></div>${c.filename&&state.images.includes(c.filename)?`<img src="/assets/${encodeURIComponent(c.filename)}" style="width:100%;max-height:300px;object-fit:cover;border-radius:14px">`:`<div class="image-missing" style="height:220px;border-radius:14px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center">${c.filename?`图片缺失：${esc(c.filename)}`:'未设置图片'}</div>`}<div style="height:12px"></div><h3 class="sub-title" style="margin-bottom:8px">${esc(c.card_name||'未命名卡牌')}</h3><div class="meta"><span class="pill ${esc(c.type)}">${typeLabel(c.type)}</span><span class="pill">稀有度 ${c.rarity}</span></div><div class="card-desc">${esc(c.description||'暂无描述')}</div><div class="meta">${c.tags.map(t=>`<span class="tag-chip">${esc(t)}</span>`).join('')||'<span style="color:var(--muted)">暂无词条</span>'}</div>`}
+function initTagBuilder(){const cats=[['','选择分类'],['attack','攻击 / 掠夺 / 控制'],['heal','治疗 / 辅助'],['defense','防御 / 状态'],['aoe','群体效果'],['dice','骰子规则']];qs('#tag-category').innerHTML=cats.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');qs('#tag-template').innerHTML='<option value="">先选择分类</option>';qs('#tag-help').textContent='先选择功能分类和具体词条，下面会用中文说明这个词条的作用，以及你需要填写哪些参数。';qs('#tag-params').innerHTML='';}
+function onTagCategoryChange(){const cat=qs('#tag-category').value;const arr=tagDefs[cat]||[];qs('#tag-template').innerHTML='<option value="">选择具体词条</option>'+arr.map(t=>`<option value="${t.value}">${t.label}</option>`).join('');qs('#tag-help').textContent='选择具体词条后，这里会显示中文说明。';qs('#tag-params').innerHTML=''}
+function onTagTemplateChange(){const cat=qs('#tag-category').value, val=qs('#tag-template').value, def=(tagDefs[cat]||[]).find(t=>t.value===val); if(!def){qs('#tag-help').textContent='选择具体词条后，这里会显示中文说明。';qs('#tag-params').innerHTML='';return;} qs('#tag-help').innerHTML=`<b>${def.label}</b><br>${def.desc}${def.params.length?'<br>需要填写以下参数：':''}`; qs('#tag-params').innerHTML=def.params.map(p=>`<div class="field"><label>${p.label}</label><input data-param="${p.key}" placeholder="${p.label}" /><div class="param-hint">${p.hint}</div></div>`).join('')}
+function addTag(){const cat=qs('#tag-category').value,val=qs('#tag-template').value,def=(tagDefs[cat]||[]).find(t=>t.value===val); if(!def){alert('请先选择具体词条');return;} const params=def.params.map(p=>{const v=(document.querySelector(`[data-param="${p.key}"]`)?.value||'').trim(); return v}); if(params.some((v,i)=>!v&&def.params[i])){alert('请先填写完整参数');return;} const tag=def.params.length?`${val}:${params.join(':')}`:val; state.currentTags.push(tag); renderCurrentTags(); renderPreview()}
+function saveCurrentCard(){const c={card_name:qs('#edit-card-name').value.trim(),type:qs('#edit-card-type').value,rarity:Number(qs('#edit-card-rarity').value||1),filename:qs('#edit-card-filename').value.trim(),description:qs('#edit-card-desc').value.trim(),tags:[...state.currentTags]}; if(!c.card_name){alert('卡牌名称不能为空');return;} if(state.selectedCardIndex>=0)state.cards[state.selectedCardIndex]=c; else state.cards.unshift(c); closeCardModal(); renderCards(); saveCards()}
+function copyCurrentCard(){if(state.selectedCardIndex<0)return alert('请先选择一张卡'); const base=JSON.parse(JSON.stringify(state.cards[state.selectedCardIndex])); base.card_name=(base.card_name||'未命名')+' 的副本'; state.cards.unshift(base); renderCards()}
+function deleteCurrentCard(){if(state.selectedCardIndex<0)return alert('请先选择一张卡'); if(!confirm('确定删除当前卡牌吗？'))return; state.cards.splice(state.selectedCardIndex,1); closeCardModal(); renderCards(); saveCards()}
 
-    async function apiGet(url) {
-      const res = await fetch(url);
-      return await res.json();
-    }
+function openFateModal(idx){state.selectedFateIndex=idx??-1;qs('#fate-modal-title').textContent=idx!=null&&idx>=0?'编辑命运牌':'新增命运牌';const c=idx!=null&&idx>=0?state.fateCards[idx]:{filename:'',text:'',value:0};qs('#fate-filename').value=c.filename||'';qs('#fate-text').value=c.text||'';qs('#fate-value').value=c.value??0;renderFatePreview();qs('#fate-modal').classList.add('show')}
+function closeFateModal(){qs('#fate-modal').classList.remove('show')}
+function renderFatePreview(){const fn=qs('#fate-filename').value.trim(), txt=qs('#fate-text').value.trim(), val=Number(qs('#fate-value').value||0);qs('#fate-preview-box').innerHTML=`${fn&&state.fateImages.includes(fn)?`<img src="/fate_assets/${encodeURIComponent(fn)}" style="width:100%;max-height:300px;object-fit:cover;border-radius:14px">`:`<div class="image-missing" style="height:220px;border-radius:14px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center">${fn?`图片缺失：${esc(fn)}`:'未设置图片'}</div>`}<div style="height:12px"></div><h3 class="sub-title" style="margin-bottom:8px">${esc(txt||'待填写命运牌文案')}</h3><div class="meta"><span class="pill">value ${val}</span></div><div class="card-desc">图片：${esc(fn||'无')}</div>`}
+function saveCurrentFate(){const c={filename:qs('#fate-filename').value.trim(),text:qs('#fate-text').value.trim(),value:Number(qs('#fate-value').value||0)}; if(state.selectedFateIndex>=0)state.fateCards[state.selectedFateIndex]=c; else state.fateCards.unshift(c); closeFateModal(); renderFateCards(); saveFateCards()}
+function deleteCurrentFate(){if(state.selectedFateIndex<0)return alert('请先选择一张命运牌'); if(!confirm('确定删除这张命运牌吗？'))return; state.fateCards.splice(state.selectedFateIndex,1); closeFateModal(); renderFateCards(); saveFateCards()}
 
-    async function apiPost(url, body) {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      return await res.json();
-    }
+async function loadCards(){const ret=await apiGet('/api/func_cards'); state.cards=ret.cards||[]; renderCards()}
+async function loadImages(){const ret=await apiGet('/api/images'); state.images=ret.files||[]; renderCards()}
+async function saveCards(){const ret=await apiPost('/api/func_cards',{cards:state.cards}); if(!ret.ok)alert('功能牌保存失败：'+(ret.error||''));}
+async function uploadCardImages(files){const fd=new FormData(); [...files].forEach(f=>fd.append('files',f)); const res=await fetch('/api/upload_image',{method:'POST',body:fd}); const ret=await res.json(); if(ret.ok){await loadImages(); ret.uploaded.forEach(fn=>state.cards.unshift({card_name:fn.replace(/\.[^.]+$/,''),type:'attack',rarity:1,filename:fn,description:'',tags:[]})); renderCards(); alert('图片已上传，并已自动生成待配置卡牌。');} else alert('上传失败：'+(ret.error||''))}
+async function checkMissingCards(){const miss=state.cards.filter(isCardIncomplete); alert(miss.length?('以下功能牌待配置：\n'+miss.map(c=>'- '+(c.card_name||c.filename||'未命名')).join('\n')):'功能牌配置看起来都完整。')}
 
-    function renderNav() {
-      qsa(".nav-btn").forEach(btn => {
-        btn.onclick = () => {
-          qsa(".nav-btn").forEach(x => x.classList.remove("active"));
-          qsa(".page").forEach(x => x.classList.remove("active"));
-          btn.classList.add("active");
-          const page = btn.dataset.page;
-          const el = qs("#" + page);
-          if (el) el.classList.add("active");
-          if (pageMeta[page]) {
-            qs("#page-title").textContent = pageMeta[page].title;
-            qs("#page-desc").textContent = pageMeta[page].desc;
-          }
-          if (page === "fate-page") loadFateCards();
-          if (page === "stats-page") loadStats();
-        };
-      });
-    }
+async function loadFateCards(){const ret=await apiGet('/api/fate_cards'); state.fateCards=ret.cards||[]; const imgs=await apiGet('/api/fate_images'); state.fateImages=imgs.images||[]; renderFateCards()}
+async function saveFateCards(){const ret=await apiPost('/api/fate_cards',{cards:state.fateCards}); if(!ret.ok)alert('命运牌保存失败：'+(ret.error||''));}
+async function uploadFateImages(files){const fd=new FormData(); [...files].forEach(f=>fd.append('files',f)); const res=await fetch('/api/upload_fate_image',{method:'POST',body:fd}); const ret=await res.json(); if(ret.ok){await loadFateCards(); ret.uploaded.forEach(fn=>state.fateCards.unshift({filename:fn,text:'',value:0})); renderFateCards(); alert('图片已上传，并已自动生成待配置命运牌。');} else alert('上传失败：'+(ret.error||''))}
+async function checkMissingFate(){const miss=state.fateCards.filter(isFateIncomplete); alert(miss.length?('以下命运牌待配置：\n'+miss.map(c=>'- '+(c.filename||'未命名')).join('\n')):'命运牌配置看起来都完整。')}
 
-    function renderCards() {
-      // 卡池概览饼图
-      const typeCount2 = { attack: 0, heal: 0, defense: 0, other: 0 };
-      state.cards.forEach(c => {
-        const t = c.type || "other";
-        if (typeCount2[t] !== undefined) typeCount2[t]++; else typeCount2.other++;
-      });
-      const tLabels = ["攻击","治疗","防御","其他"];
-      const tColors = ["#ff7b7b","#72e2a1","#6ec5ff","#b388ff"];
-      const tVals = [typeCount2.attack, typeCount2.heal, typeCount2.defense, typeCount2.other];
-      const overviewLegend = qs("#cards-overview-legend");
-      if (overviewLegend) {
-        overviewLegend.innerHTML = tLabels.map((l,i) =>
-          `<span><i class="legend-dot" style="background:${tColors[i]}"></i>${l} ${tVals[i]}</span>`
-        ).join("");
-      }
-      const ctxType = qs("#chart-cards-type");
-      if (ctxType) {
-        if (_chartCardsType) _chartCardsType.destroy();
-        _chartCardsType = new Chart(ctxType, {
-          type: "doughnut",
-          data: {
-            labels: tLabels,
-            datasets: [{ data: tVals, backgroundColor: tColors, borderWidth: 0, hoverOffset: 6 }]
-          },
-          options: {
-            responsive: true,
-            cutout: "60%",
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}：${ctx.parsed} 张` } } }
-          }
-        });
-      }
-
-      const grid = qs("#cards-grid");
-      const kw = qs("#card-search").value.trim().toLowerCase();
-      const type = qs("#card-filter-type").value;
-      const rarity = qs("#card-filter-rarity").value;
-
-      const cards = state.cards.filter(card => {
-        const hitKw = !kw || JSON.stringify(card).toLowerCase().includes(kw);
-        const hitType = !type || card.type === type;
-        const hitRarity = !rarity || String(card.rarity) === rarity;
-        return hitKw && hitType && hitRarity;
-      });
-
-      qs("#cards-empty").style.display = cards.length ? "none" : "block";
-      grid.innerHTML = cards.map(card => {
-        const filename = String(card.filename || "").trim();
-        const hasImage = filename && state.images.includes(filename);
-        const missing = filename && !hasImage;
-        const imageHtml = hasImage
-          ? `<img src="/assets/${encodeURIComponent(filename)}" alt="${escapeHtml(card.card_name)}">`
-          : `<div class="image-missing">${filename ? "图片缺失<br><small>" + escapeHtml(filename) + "</small>" : "未设置图片"}</div>`;
-
-        return `
-          <div class="card-item" data-card-name="${escapeHtml(card.card_name)}">
-            <div class="card-rarity-bar ${rarityClass(card.rarity)}"></div>
-            <div class="card-image">
-              ${imageHtml}
-              ${missing ? '<div class="missing-badge">图片缺失</div>' : ""}
-            </div>
-            <div class="card-body">
-              <h3 class="card-title">${escapeHtml(card.card_name)}</h3>
-              <div style="margin:8px 0 10px;"><span class="pill ${escapeHtml(card.type)}">${typeLabel(card.type)}</span></div>
-              <div class="card-desc">${escapeHtml(card.description || "暂无描述")}</div>
-              <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                ${(card.tags || []).slice(0, 4).map(tag => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join("")}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      qsa(".card-item").forEach(el => {
-          el.onclick = () => {
-            selectCardByName(el.dataset.cardName);
-            openCardModal(state.selectedCardIndex);
-          };
-        });
-    }
-
-    function renderCurrentTags() {
-      const wrap = qs("#current-tags");
-      if (!state.currentTags.length) {
-        wrap.innerHTML = "当前还没有词条，先从上方选择一个功能并添加。";
-        return;
-      }
-      wrap.innerHTML = state.currentTags.map((tag, idx) =>
-        `<span class="tag-chip">${escapeHtml(tag)} <button class="small-btn" onclick="removeTag(${idx})">×</button></span>`
-      ).join("");
-    }
-
-    function renderPreview(card = null) {
-      const c = card || {
-        card_name: qs("#edit-card-name").value.trim(),
-        type: qs("#edit-card-type").value,
-        rarity: Number(qs("#edit-card-rarity").value || 1),
-        filename: qs("#edit-card-filename").value.trim(),
-        description: qs("#edit-card-desc").value.trim(),
-        tags: state.currentTags
-      };
-
-      const filename = String(c.filename || "").trim();
-      const hasImage = filename && state.images.includes(filename);
-      const missing = filename && !hasImage;
-      const imageHtml = hasImage
-        ? `<img src="/assets/${encodeURIComponent(filename)}" alt="${escapeHtml(c.card_name)}" style="width:100%;max-height:300px;object-fit:cover;border-radius:14px;">`
-        : `<div class="image-missing" style="height:220px;border-radius:14px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;">${filename ? "图片缺失：" + escapeHtml(filename) : "未设置图片"}</div>`;
-
-      qs("#card-preview-box").innerHTML = `
-        <div class="card-rarity-bar ${rarityClass(c.rarity)}" style="border-radius:999px;"></div>
-        <div style="height:12px;"></div>
-        ${imageHtml}
-        <div style="height:14px;"></div>
-        <h3 class="sub-title" style="margin-bottom:8px;">${escapeHtml(c.card_name || "未命名卡牌")}</h3>
-        <div class="pill ${escapeHtml(c.type)}">${typeLabel(c.type)}</div>
-        <p class="card-desc" style="min-height:auto;">${escapeHtml(c.description || "暂无描述")}</p>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${(c.tags || []).map(tag => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join("") || "暂无词条"}
-        </div>
-        ${missing ? '<div class="footer-note" style="color:#ffc6cf;">⚠️ 当前配置引用了图片，但图片文件不存在。</div>' : ""}
-      `;
-    }
-
-    function fillEditor(card) {
-      qs("#edit-card-name").value = card.card_name || "";
-      qs("#edit-card-type").value = card.type || "attack";
-      qs("#edit-card-rarity").value = String(card.rarity || 1);
-      qs("#edit-card-filename").value = card.filename || "";
-      qs("#edit-card-desc").value = card.description || "";
-      state.currentTags = Array.isArray(card.tags) ? [...card.tags] : [];
-      renderCurrentTags();
-      renderPreview(card);
-    }
-
-    function resetEditor() {
-        state.selectedCardIndex = -1;
-        state.currentTags = [];
-        qs("#edit-card-name").value = "";
-        qs("#edit-card-type").value = "attack";
-        qs("#edit-card-rarity").value = "1";
-        qs("#edit-card-filename").value = "";
-        qs("#edit-card-desc").value = "";
-        renderCurrentTags();
-        renderPreview();
-      }
-
-    function openCardModal(idx) {
-        const sel = qs("#edit-card-filename-select");
-        if (sel) {
-          sel.innerHTML = '<option value="">不绑定图片</option>' +
-            state.images.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join("");
-          sel.onchange = () => { qs("#edit-card-filename").value = sel.value; renderPreview(); };
-        }
-        if (idx !== null && idx >= 0) {
-          qs("#card-modal-title").textContent = "🎴 编辑卡牌";
-          fillEditor(state.cards[idx]);
-          if (sel) sel.value = state.cards[idx].filename || "";
-        } else {
-          qs("#card-modal-title").textContent = "🎴 新增卡牌";
-          resetEditor();
-        }
-        qs("#card-modal").classList.remove("hidden");
-      }
-
-    function closeCardModal() {
-        qs("#card-modal").classList.add("hidden");
-      }
-    window.closeCardModal = closeCardModal;
-
-    function selectCardByName(name) {
-      const idx = state.cards.findIndex(c => c.card_name === name);
-      if (idx < 0) return;
-      state.selectedCardIndex = idx;
-      fillEditor(state.cards[idx]);
-    }
-
-    function removeTag(idx) {
-      state.currentTags.splice(idx, 1);
-      renderCurrentTags();
-      renderPreview();
-    }
-    window.removeTag = removeTag;
-
-    function renderTagTemplateOptions() {
-      const category = qs("#tag-category").value;
-      const list = tagTemplates[category] || [];
-      qs("#tag-template").innerHTML = `<option value="">选择词条</option>` + list.map(item =>
-        `<option value="${item.value}">${item.label}</option>`
-      ).join("");
-      qs("#tag-params").innerHTML = "";
-    }
-
-    function renderTagParams() {
-      const category = qs("#tag-category").value;
-      const tag = qs("#tag-template").value;
-      const found = (tagTemplates[category] || []).find(x => x.value === tag);
-      if (!found) {
-        qs("#tag-params").innerHTML = "";
-        return;
-      }
-      qs("#tag-params").innerHTML = found.params.map(param => `
-        <div class="field">
-          <label>${param}</label>
-          <input data-param="${param}" placeholder="填写 ${param}" />
-        </div>
-      `).join("");
-    }
-
-    function buildTag() {
-      const category = qs("#tag-category").value;
-      const tag = qs("#tag-template").value;
-      if (!category || !tag) return null;
-      const found = (tagTemplates[category] || []).find(x => x.value === tag);
-      if (!found) return null;
-      if (!found.params.length) return tag;
-      const values = found.params.map(p => {
-        const el = document.querySelector(`[data-param="${p}"]`);
-        return (el?.value || "").trim();
-      });
-      if (values.some(v => !v)) {
-        alert("请先填写完整参数。");
-        return null;
-      }
-      if (tag === "dice_rule") return `${tag}:${values[0]}`;
-      return `${tag}:${values.join(":")}`;
-    }
-
-    function saveCurrentCard() {
-      const card = {
-        card_name: qs("#edit-card-name").value.trim(),
-        type: qs("#edit-card-type").value,
-        rarity: Number(qs("#edit-card-rarity").value || 1),
-        filename: qs("#edit-card-filename").value.trim(),
-        description: qs("#edit-card-desc").value.trim(),
-        tags: [...state.currentTags]
-      };
-
-      if (!card.card_name) {
-        alert("卡牌名称不能为空。");
-        return;
-      }
-
-      if (state.selectedCardIndex >= 0) {
-        state.cards[state.selectedCardIndex] = card;
-  } else {
-        state.cards.unshift(card);
-        state.selectedCardIndex = 0;
+function renderTextList(rootId, arr){const root=qs(rootId); root.innerHTML=(arr||[]).map((v,i)=>`<div class="toolbar" style="margin-bottom:8px"><input value="${esc(v)}" data-root="${rootId}" data-idx="${i}" /><button class="btn-danger" onclick="removeTextItem('${rootId}',${i})">删除</button></div>`).join('')||'<div class="empty">暂无内容</div>'}
+function removeTextItem(rootId,i){const map={'#good-list':state.signTexts.good_things,'#bad-list':state.signTexts.bad_things,'#c-91_100':state.signTexts.luck_comments['91_100'],'#c-71_90':state.signTexts.luck_comments['71_90'],'#c-51_70':state.signTexts.luck_comments['51_70'],'#c-1_50':state.signTexts.luck_comments['1_50']}; map[rootId].splice(i,1); renderTexts()} window.removeTextItem=removeTextItem;
+function renderTexts(){renderTextList('#good-list',state.signTexts.good_things);renderTextList('#bad-list',state.signTexts.bad_things);renderTextList('#c-91_100',state.signTexts.luck_comments['91_100']);renderTextList('#c-71_90',state.signTexts.luck_comments['71_90']);renderTextList('#c-51_70',state.signTexts.luck_comments['51_70']);renderTextList('#c-1_50',state.signTexts.luck_comments['1_50'])}
+function syncTexts(){state.signTexts.good_things=[...document.querySelectorAll('#good-list input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.bad_things=[...document.querySelectorAll('#bad-list input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['91_100']=[...document.querySelectorAll('#c-91_100 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['71_90']=[...document.querySelectorAll('#c-71_90 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['51_70']=[...document.querySelectorAll('#c-51_70 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['1_50']=[...document.querySelectorAll('#c-1_50 input')].map(i=>i.value.trim()).filter(Boolean)}
+function parseBatchText(raw){
+  const text=String(raw||'').replace(/\r/g,'').trim();
+  if(!text)return [];
+  let items=[];
+  if(text.includes('\n')){
+    items=text.split('\n').map(s=>s.trim()).filter(Boolean);
+  }else{
+    const normalized=' '+text;
+    const parts=normalized.split(/\s*(?=\d+[、.．。:：\s])/).map(s=>s.trim()).filter(Boolean);
+    if(parts.length>1) items=parts;
+    else items=[text];
   }
+  return items
+    .map(s=>s.replace(/^\d+[、.．。:：\s-]*/,'').trim())
+    .filter(Boolean);
+}
+function batchImportTexts(kind){
+  const raw=prompt('把整段内容粘贴进来。\n\n支持两种方式：\n1）按行切分：每一行作为一条\n2）按数字切分：例如 1吃饭 2洗澡\n\n系统会自动去掉前面的数字编号。');
+  if(raw===null)return;
+  const items=parseBatchText(raw);
+  if(!items.length){alert('没有识别到可导入的内容。');return;}
+  if(kind==='good') state.signTexts.good_things.push(...items);
+  if(kind==='bad') state.signTexts.bad_things.push(...items);
+  renderTexts();
+  alert(`已导入 ${items.length} 条内容。`);
+}
+window.batchImportTexts=batchImportTexts;
+async function loadTexts(){const ret=await apiGet('/api/sign_in_texts'); state.signTexts=ret.texts||state.signTexts; renderTexts()}
+async function saveTexts(){syncTexts(); const ret=await apiPost('/api/sign_in_texts',{texts:state.signTexts}); if(ret.ok) alert('签到文案已保存'); else alert('保存失败：'+(ret.error||''))}
 
-  renderCards();
-  renderPreview(card);
-  loadStats();
-  closeCardModal();
-      alert("卡牌已写入前端缓存，记得点击“保存当前页面”同步到文件。");
-    }
+async function loadStats(){const st=await apiGet('/api/user_stats'); state.stats=st.stats||{total_users:0,card_holders:{}}; const miss=await apiGet('/api/check_missing_images'); qs('#stat-total-users').textContent=state.stats.total_users||0; qs('#stat-total-cards').textContent=state.cards.length; qs('#stat-total-fate').textContent=state.fateCards.length; qs('#stat-missing').textContent=(miss.missing||[]).length;
+ const rarity=[0,0,0,0,0]; state.cards.forEach(c=>{const r=Number(c.rarity)||1; if(r>=1&&r<=5) rarity[r-1]++}); if(window._rarity)window._rarity.destroy(); window._rarity=new Chart(qs('#chart-rarity'),{type:'bar',data:{labels:['普通','稀有','史诗','传说','神话'],datasets:[{data:rarity,backgroundColor:['#d8deee','#7fc7ff','#cb9bff','#ffd777','#ff7ea1'],borderRadius:8}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#aeb7d1'},grid:{color:'rgba(255,255,255,.06)'}},y:{ticks:{color:'#aeb7d1',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}}}});
+ const t={attack:0,heal:0,defense:0,other:0}; state.cards.forEach(c=>t[t[c.type]!==undefined?c.type:'other']++); if(window._type)window._type.destroy(); window._type=new Chart(qs('#chart-type'),{type:'doughnut',data:{labels:['攻击','治疗','防御','其他'],datasets:[{data:[t.attack,t.heal,t.defense,t.other],backgroundColor:['#ff7b7b','#72e2a1','#6ec5ff','#b388ff'],borderWidth:0}]},options:{plugins:{legend:{display:true,labels:{color:'#aeb7d1'}}},cutout:'62%'}});
+ const top=Object.entries(state.stats.card_holders||{}).sort((a,b)=>b[1]-a[1]).slice(0,20); if(window._holders)window._holders.destroy(); window._holders=new Chart(qs('#chart-holders'),{type:'bar',data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:'rgba(179,136,255,.55)',borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#aeb7d1',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true},y:{ticks:{color:'#aeb7d1'},grid:{color:'rgba(255,255,255,.06)'}}}}});
+}
 
-    function copyCurrentCard() {
-      if (state.selectedCardIndex < 0) {
-        alert("请先选择一张卡。");
-        return;
-      }
-      const base = state.cards[state.selectedCardIndex];
-      const copied = JSON.parse(JSON.stringify(base));
-      copied.card_name = `${base.card_name} 的副本`;
-      state.cards.unshift(copied);
-      state.selectedCardIndex = 0;
-      fillEditor(copied);
-      renderCards();
-    }
+function bindEvents(){bindNav(); qs('#card-search').oninput=renderCards; qs('#card-filter-type').onchange=renderCards; qs('#card-filter-rarity').onchange=renderCards; qs('#fate-search').oninput=renderFateCards; qs('#btn-new-card').onclick=()=>openCardModal(null); qs('#btn-new-fate').onclick=()=>openFateModal(null); qs('#btn-save-card').onclick=saveCurrentCard; qs('#btn-copy-card').onclick=copyCurrentCard; qs('#btn-delete-card').onclick=deleteCurrentCard; qs('#btn-save-fate').onclick=saveCurrentFate; qs('#btn-delete-fate').onclick=deleteCurrentFate; qs('#btn-add-tag').onclick=addTag; qs('#tag-category').onchange=onTagCategoryChange; qs('#tag-template').onchange=onTagTemplateChange; ['#edit-card-name','#edit-card-type','#edit-card-rarity','#edit-card-filename','#edit-card-desc'].forEach(s=>qs(s).oninput=renderPreview); ['#fate-filename','#fate-text','#fate-value'].forEach(s=>qs(s).oninput=renderFatePreview); qs('#btn-upload-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadCardImages(i.files);i.click()}; qs('#btn-upload-fate-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadFateImages(i.files);i.click()}; qs('#btn-check-missing-cards').onclick=checkMissingCards; qs('#btn-check-missing-fate').onclick=checkMissingFate; qs('#btn-add-good').onclick=()=>{state.signTexts.good_things.push('');renderTexts()}; qs('#btn-add-bad').onclick=()=>{state.signTexts.bad_things.push('');renderTexts()}; qs('#btn-batch-good').onclick=()=>batchImportTexts('good'); qs('#btn-batch-bad').onclick=()=>batchImportTexts('bad'); qs('#btn-save-texts').onclick=saveTexts; qs('#btn-refresh').onclick=boot; qs('#btn-save-current').onclick=async()=>{const id=document.querySelector('.page.active').id; if(id==='cards-page')await saveCards(); else if(id==='fate-page')await saveFateCards(); else if(id==='texts-page')await saveTexts(); else alert('当前页面没有单独保存动作。')}; }
 
-    function deleteCurrentCard() {
-      if (state.selectedCardIndex < 0) {
-        alert("请先选择一张卡。");
-        return;
-      }
-      if (!confirm("确定删除当前卡牌吗？")) return;
-      state.cards.splice(state.selectedCardIndex, 1);
-      resetEditor();
-      renderCards();
-      loadStats();
-    }
-
-    async function saveCards() {
-      const ret = await apiPost("/api/func_cards", { cards: state.cards });
-      alert(ret.ok ? "功能牌卡池已保存。" : ("保存失败：" + (ret.error || "未知错误")));
-      if (ret.ok) await loadStats();
-    }
-
-    // ==================== 命运牌管理 JS ====================
-    state.fateCards = [];
-    state.fateImages = [];
-    state.fateSelected = new Set();
-
-    async function loadFateCards() {
-      const ret = await apiGet("/api/fate_cards");
-      state.fateCards = ret.cards || [];
-      const imgRet = await apiGet("/api/fate_images");
-      state.fateImages = imgRet.images || [];
-      renderFateCards();
-    }
-
-    function renderFateCards() {
-      const grid = qs("#fate-card-grid");
-      const kw = (qs("#fate-search")?.value || "").trim().toLowerCase();
-      const cards = state.fateCards.filter(c =>
-        !kw || JSON.stringify(c).toLowerCase().includes(kw)
-      );
-      if (!cards.length) {
-        grid.innerHTML = '<div class="empty-state">命运牌卡池为空，点击右上角新增。</div>';
-        return;
-      }
-      grid.innerHTML = cards.map((card, idx) => {
-        const fn = String(card.filename || "").trim();
-        const hasImg = fn && state.fateImages.includes(fn);
-        const imgHtml = hasImg
-          ? `<img src="/fate_assets/${encodeURIComponent(fn)}" style="width:100%;height:100%;object-fit:cover;">`
-          : `<div class="image-missing">${fn ? "图片缺失<br><small>" + escapeHtml(fn) + "</small>" : "未设置图片"}</div>`;
-        const checked = state.fateSelected.has(idx);
-        return `
-          <div class="card-item" onclick="openFateEditor(${idx})">
-            <div class="card-rarity-bar rarity-3"></div>
-            <div class="card-image">${imgHtml}</div>
-            <div class="card-body">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <input type="checkbox" ${checked ? "checked" : ""} onclick="event.stopPropagation();toggleFateSelect(${idx})" />
-                <h3 class="card-title" style="font-size:14px;">${escapeHtml(card.text || "暂无文案")}</h3>
-              </div>
-              <div style="margin-top:8px;color:#aeb7d1;font-size:13px;">数值：${card.value ?? 0} &nbsp;|&nbsp; 图片：${escapeHtml(fn || "无")}</div>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function toggleFateSelect(idx) {
-      if (state.fateSelected.has(idx)) state.fateSelected.delete(idx);
-      else state.fateSelected.add(idx);
-      renderFateCards();
-    }
-    window.toggleFateSelect = toggleFateSelect;
-
-    function deleteFateSelected() {
-      if (!state.fateSelected.size) { alert("请先勾选要删除的命运牌。"); return; }
-      if (!confirm(`确定删除选中的 ${state.fateSelected.size} 张命运牌？`)) return;
-      const idxs = Array.from(state.fateSelected).sort((a,b) => b-a);
-      idxs.forEach(i => state.fateCards.splice(i, 1));
-      state.fateSelected.clear();
-      renderFateCards();
-    }
-    window.deleteFateSelected = deleteFateSelected;
-
-    function openFateEditor(idx) {
-      const card = idx !== null ? state.fateCards[idx] : { filename: "", text: "", value: 0 };
-      const fn = String(card.filename || "").trim();
-      const hasImg = fn && state.fateImages.includes(fn);
-      const imgPreview = hasImg
-        ? `<img src="/fate_assets/${encodeURIComponent(fn)}" style="width:100%;max-height:260px;object-fit:cover;border-radius:12px;margin-bottom:12px;">`
-        : `<div class="image-missing" style="height:160px;border-radius:12px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">${fn ? "图片缺失：" + escapeHtml(fn) : "未设置图片"}</div>`;
-
-      const imgOptions = state.fateImages.map(f =>
-        `<option value="${escapeHtml(f)}" ${f === fn ? "selected" : ""}>${escapeHtml(f)}</option>`
-      ).join("");
-
-      const html = `
-        <div style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:999;display:flex;align-items:center;justify-content:center;" id="fate-modal" onclick="if(event.target.id==='fate-modal')closeFateModal()">
-          <div style="background:#161a22;border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:28px;width:480px;max-height:90vh;overflow-y:auto;">
-            <h3 style="margin:0 0 18px;color:#fff7df;">${idx !== null ? "编辑命运牌" : "新增命运牌"}</h3>
-            ${imgPreview}
-            <div class="field" style="margin-bottom:12px;">
-              <label>图片文件名</label>
-              <select id="fate-edit-filename" style="margin-bottom:8px;">
-                <option value="">不绑定图片</option>
-                ${imgOptions}
-              </select>
-              <input id="fate-edit-filename-manual" placeholder="或手动输入文件名" value="${escapeHtml(fn)}" />
-            </div>
-            <div class="field" style="margin-bottom:12px;">
-              <label>卡面文案</label>
-              <textarea id="fate-edit-text" rows="3" style="width:100%;">${escapeHtml(card.text || "")}</textarea>
-            </div>
-            <div class="field" style="margin-bottom:18px;">
-              <label>数值 (value)</label>
-              <input id="fate-edit-value" type="number" value="${card.value ?? 0}" />
-            </div>
-            <div style="display:flex;gap:10px;">
-              <button class="btn" onclick="saveFateEditor(${idx})">保存</button>
-              ${idx !== null ? `<button class="btn-danger" onclick="deleteFateOne(${idx})">删除这张</button>` : ""}
-              <button class="btn-ghost" onclick="closeFateModal()">取消</button>
-            </div>
-          </div>
-        </div>
-      `;
-      document.body.insertAdjacentHTML("beforeend", html);
-    }
-    window.openFateEditor = openFateEditor;
-
-    function closeFateModal() {
-      const m = qs("#fate-modal");
-      if (m) m.remove();
-    }
-    window.closeFateModal = closeFateModal;
-
-    function saveFateEditor(idx) {
-      const filename = (qs("#fate-edit-filename-manual")?.value.trim() || qs("#fate-edit-filename")?.value || "").trim();
-      const text = qs("#fate-edit-text")?.value.trim() || "";
-      const value = Number(qs("#fate-edit-value")?.value || 0);
-      const card = { filename, text, value };
-      if (idx !== null) {
-        state.fateCards[idx] = card;
-      } else {
-        state.fateCards.unshift(card);
-      }
-      closeFateModal();
-      renderFateCards();
-    }
-    window.saveFateEditor = saveFateEditor;
-
-    function deleteFateOne(idx) {
-      if (!confirm("确定删除这张命运牌？")) return;
-      state.fateCards.splice(idx, 1);
-      state.fateSelected.delete(idx);
-      closeFateModal();
-      renderFateCards();
-    }
-    window.deleteFateOne = deleteFateOne;
-
-    async function saveFateCards() {
-      const ret = await apiPost("/api/fate_cards", { cards: state.fateCards });
-      alert(ret.ok ? "命运牌卡池已保存。" : ("保存失败：" + (ret.error || "未知错误")));
-    }
-    window.saveFateCards = saveFateCards;
-
-    async function uploadFateImages(input) {
-      if (!input.files?.length) return;
-      const fd = new FormData();
-      Array.from(input.files).forEach(f => fd.append("files", f));
-      const res = await fetch("/api/upload_fate_image", { method: "POST", body: fd });
-      const ret = await res.json();
-      alert(ret.ok ? `已上传 ${ret.uploaded.length} 张图片。` : ("上传失败：" + (ret.error || "")));
-      if (ret.ok) await loadFateCards();
-    }
-    window.uploadFateImages = uploadFateImages;
-
-    async function loadCards() {
-      const ret = await apiGet("/api/func_cards");
-      state.cards = ret.cards || [];
-      renderCards();
-      if (!state.cards.length) resetEditor();
-    }
-
-    async function loadImages() {
-      const ret = await apiGet("/api/images");
-      state.images = ret.files || [];
-      renderCards();
-      renderPreview();
-    }
-
-    async function uploadImages() {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.multiple = true;
-      input.accept = "image/*";
-      input.onchange = async () => {
-        if (!input.files?.length) return;
-        const fd = new FormData();
-        Array.from(input.files).forEach(file => fd.append("files", file));
-        const res = await fetch("/api/upload_image", { method: "POST", body: fd });
-        const ret = await res.json();
-        alert(ret.ok ? `已上传 ${ret.uploaded.length} 张图片。` : ("上传失败：" + (ret.error || "未知错误")));
-        if (ret.ok) await loadImages();
-      };
-      input.click();
-    }
-
-    async function checkMissingImages() {
-      const ret = await apiGet("/api/check_missing_images");
-      const list = ret.missing || [];
-      if (!list.length) {
-        alert("当前没有缺失图片。");
-        return;
-      }
-      alert("缺失图片：\n" + list.map(x => `- ${x.card_name} -> ${x.filename}`).join("\n"));
-    }
-
-    function renderListEditor(selector, arr) {
-      const root = qs(selector);
-      root.innerHTML = arr.map((item, idx) => `
-        <div class="list-item">
-          <input value="${escapeHtml(item)}" data-list-root="${selector}" data-index="${idx}">
-          <button class="small-btn" onclick="removeListItem('${selector}', ${idx})">删除</button>
-        </div>
-      `).join("") || '暂无内容，可点击下方按钮添加。';
-    }
-
-    function renderTextLists() {
-      renderListEditor("#good-list", state.signTexts.good_things || []);
-      renderListEditor("#bad-list", state.signTexts.bad_things || []);
-      renderListEditor("#comment-91_100", (state.signTexts.luck_comments || {})["91_100"] || []);
-      renderListEditor("#comment-71_90", (state.signTexts.luck_comments || {})["71_90"] || []);
-      renderListEditor("#comment-51_70", (state.signTexts.luck_comments || {})["51_70"] || []);
-      renderListEditor("#comment-1_50", (state.signTexts.luck_comments || {})["1_50"] || []);
-    }
-
-    async function loadTexts() {
-      const ret = await apiGet("/api/sign_in_texts");
-      state.signTexts = ret.texts || { good_things: [], bad_things: [], luck_comments: {} };
-      renderTextLists();
-    }
-
-    function syncTextsFromInputs() {
-      state.signTexts.good_things = Array.from(document.querySelectorAll('#good-list input')).map(i => i.value.trim()).filter(Boolean);
-      state.signTexts.bad_things = Array.from(document.querySelectorAll('#bad-list input')).map(i => i.value.trim()).filter(Boolean);
-      state.signTexts.luck_comments["91_100"] = Array.from(document.querySelectorAll('#comment-91_100 input')).map(i => i.value.trim()).filter(Boolean);
-      state.signTexts.luck_comments["71_90"] = Array.from(document.querySelectorAll('#comment-71_90 input')).map(i => i.value.trim()).filter(Boolean);
-      state.signTexts.luck_comments["51_70"] = Array.from(document.querySelectorAll('#comment-51_70 input')).map(i => i.value.trim()).filter(Boolean);
-      state.signTexts.luck_comments["1_50"] = Array.from(document.querySelectorAll('#comment-1_50 input')).map(i => i.value.trim()).filter(Boolean);
-    }
-
-    async function saveTexts() {
-      syncTextsFromInputs();
-      const ret = await apiPost("/api/sign_in_texts", { texts: state.signTexts });
-      alert(ret.ok ? "命运牌文案已保存。" : ("保存失败：" + (ret.error || "未知错误")));
-    }
-
-    function addListItem(which) {
-      if (which === "good") state.signTexts.good_things.push("");
-      if (which === "bad") state.signTexts.bad_things.push("");
-      renderTextLists();
-    }
-
-    function removeListItem(selector, idx) {
-      const map = {
-        "#good-list": state.signTexts.good_things,
-        "#bad-list": state.signTexts.bad_things,
-        "#comment-91_100": state.signTexts.luck_comments["91_100"],
-        "#comment-71_90": state.signTexts.luck_comments["71_90"],
-        "#comment-51_70": state.signTexts.luck_comments["51_70"],
-        "#comment-1_50": state.signTexts.luck_comments["1_50"]
-      };
-      map[selector].splice(idx, 1);
-      renderTextLists();
-    }
-    window.removeListItem = removeListItem;
-
-    function previewTexts() {
-      syncTextsFromInputs();
-      const good = (state.signTexts.good_things || [])[Math.floor(Math.random() * Math.max((state.signTexts.good_things || []).length, 1))] || "暂无";
-      const bad = (state.signTexts.bad_things || [])[Math.floor(Math.random() * Math.max((state.signTexts.bad_things || []).length, 1))] || "暂无";
-      const groups = ["91_100","71_90","51_70","1_50"];
-      const key = groups[Math.floor(Math.random() * groups.length)];
-      const pool = (state.signTexts.luck_comments || {})[key] || [];
-      const comment = pool[Math.floor(Math.random() * Math.max(pool.length, 1))] || "暂无评语";
-      qs("#texts-preview-box").innerHTML = `
-        <div>✅ 宜：${escapeHtml(good)}</div>
-        <div>❌ 忌：${escapeHtml(bad)}</div>
-        <div>🗣️ 评语：${escapeHtml(comment)}</div>
-      `;
-    }
-
-    let _chartCardsType = null;
-  let _chartRarity = null;
-    let _chartType = null;
-    let _chartHolders = null;
-
-    async function loadStats() {
-      const statsRet = await apiGet("/api/user_stats");
-      state.stats = statsRet.stats || { total_users: 0, card_holders: {} };
-      const missRet = await apiGet("/api/check_missing_images");
-      const missing = missRet.missing || [];
-
-      qs("#stat-total-users").textContent = state.stats.total_users || 0;
-      qs("#stat-total-cards").textContent = state.cards.length || 0;
-      qs("#stat-missing-images").textContent = missing.length;
-      qs("#stat-held-types").textContent = Object.keys(state.stats.card_holders || {}).length;
-
-      // ---- 稀有度柱状图 ----
-      const rarityMap = {1:"普通",2:"稀有",3:"史诗",4:"传说",5:"神话"};
-      const rarityColors = ["#b8c0d6","#52a7ff","#ad6dff","#f5c25b","#ff6b8f"];
-      const rarityCount = [0,0,0,0,0];
-      state.cards.forEach(c => { const r = Number(c.rarity)||1; if(r>=1&&r<=5) rarityCount[r-1]++; });
-
-      if (_chartRarity) _chartRarity.destroy();
-      _chartRarity = new Chart(qs("#chart-rarity"), {
-        type: "bar",
-        data: {
-          labels: ["普通","稀有","史诗","传说","神话"],
-          datasets: [{
-            label: "卡牌数量",
-            data: rarityCount,
-            backgroundColor: rarityColors,
-            borderRadius: 8,
-            borderSkipped: false
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} 张` } }
-          },
-          scales: {
-            x: { grid: { color: "rgba(255,255,255,.06)" }, ticks: { color: "#aeb7d1" } },
-            y: { grid: { color: "rgba(255,255,255,.06)" }, ticks: { color: "#aeb7d1", stepSize: 1 }, beginAtZero: true }
-          }
-        }
-      });
-
-      // ---- 类型饼图 ----
-      const typeCount = { attack: 0, heal: 0, defense: 0, other: 0 };
-      state.cards.forEach(c => {
-        const t = c.type || "other";
-        if (typeCount[t] !== undefined) typeCount[t]++; else typeCount.other++;
-      });
-      const typeLabels = ["攻击","治疗","防御","其他"];
-      const typeColors = ["#ff7b7b","#72e2a1","#6ec5ff","#b388ff"];
-      const typeValues = [typeCount.attack, typeCount.heal, typeCount.defense, typeCount.other];
-
-      if (_chartType) _chartType.destroy();
-      _chartType = new Chart(qs("#chart-type"), {
-        type: "doughnut",
-        data: {
-          labels: typeLabels,
-          datasets: [{ data: typeValues, backgroundColor: typeColors, borderWidth: 0, hoverOffset: 8 }]
-        },
-        options: {
-          responsive: true,
-          cutout: "62%",
-          plugins: { legend: { display: false } }
-        }
-      });
-      qs("#type-pie-legend").innerHTML = typeLabels.map((l,i) =>
-        `<span><i class="legend-dot" style="background:${typeColors[i]}"></i>${l}：${typeValues[i]} 张</span>`
-      ).join("");
-
-      // ---- 持牌横向条形图 ----
-      const holders = Object.entries(state.stats.card_holders || {}).sort((a,b)=>b[1]-a[1]).slice(0,20);
-      if (_chartHolders) _chartHolders.destroy();
-      if (holders.length) {
-        _chartHolders = new Chart(qs("#chart-holders"), {
-          type: "bar",
-          data: {
-            labels: holders.map(([n]) => n),
-            datasets: [{
-              label: "持有人数",
-              data: holders.map(([,c]) => c),
-              backgroundColor: "rgba(173,109,255,.55)",
-              borderRadius: 6,
-              borderSkipped: false
-            }]
-          },
-          options: {
-            indexAxis: "y",
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { grid: { color: "rgba(255,255,255,.06)" }, ticks: { color: "#aeb7d1", stepSize: 1 }, beginAtZero: true },
-              y: { grid: { color: "rgba(255,255,255,.06)" }, ticks: { color: "#aeb7d1" } }
-            }
-          }
-        });
-      } else {
-        qs("#chart-holders").parentElement.innerHTML = '<div class="preview-box" style="min-height:80px;">暂时没有任何玩家持有功能牌。</div>';
-      }
-    }
-
-    function bindEvents() {
-      renderNav();
-
-      qs("#card-search").oninput = renderCards;
-      qs("#card-filter-type").onchange = renderCards;
-      qs("#card-filter-rarity").onchange = renderCards;
-
-      qs("#edit-card-name").oninput = () => renderPreview();
-      qs("#edit-card-type").onchange = () => renderPreview();
-      qs("#edit-card-rarity").onchange = () => renderPreview();
-      qs("#edit-card-filename").oninput = () => renderPreview();
-      qs("#edit-card-desc").oninput = () => renderPreview();
-
-      qs("#tag-category").onchange = renderTagTemplateOptions;
-      qs("#tag-template").onchange = renderTagParams;
-      qs("#btn-add-tag").onclick = () => {
-        const tag = buildTag();
-        if (!tag) return;
-        state.currentTags.push(tag);
-        renderCurrentTags();
-        renderPreview();
-      };
-
-      qs("#btn-new-card").onclick = () => openCardModal(null);
-      qs("#btn-save-card").onclick = saveCurrentCard;
-      qs("#btn-copy-card").onclick = copyCurrentCard;
-      qs("#btn-delete-card").onclick = deleteCurrentCard;
-
-      qs("#btn-save-current").onclick = async () => {
-        const activePage = document.querySelector(".page.active")?.id;
-        if (activePage === "cards-page") await saveCards();
-        else if (activePage === "fate-page") await saveFateCards();
-        else if (activePage === "texts-page") await saveTexts();
-        else alert("当前页面暂无保存接口，后续继续接入。");
-      };
-
-      qs("#btn-refresh").onclick = async () => { await boot(); alert("数据已刷新。"); };
-      qs("#btn-upload-images").onclick = uploadImages;
-      qs("#btn-check-missing").onclick = checkMissingImages;
-
-      qs("#btn-add-good").onclick = () => addListItem("good");
-      qs("#btn-add-bad").onclick = () => addListItem("bad");
-      qs("#btn-save-texts").onclick = saveTexts;
-      qs("#btn-preview-texts").onclick = previewTexts;
-    }
-
-    async function boot() {
-      await Promise.all([loadCards(), loadImages(), loadTexts(), loadFateCards()]);
-      await loadStats();
-      renderPreview();
-    }
-
-    bindEvents();
-    boot();
-  </script>
+async function boot(){await Promise.all([loadCards(),loadImages(),loadFateCards(),loadTexts()]); renderPreview(); renderFatePreview(); if(document.querySelector('#stats-page.active')) loadStats();}
+bindEvents(); boot();
+</script>
 </body>
 </html>

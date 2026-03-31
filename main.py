@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import asyncio
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
@@ -11,16 +12,42 @@ from .core.luck_bank import LuckBank
 from .modules import m_sign_in, m_fate_cards, m_func_cards
 from .webui.server import start_webui
 
+
+RUNTIME_CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config", "webui_runtime_config.json")
+
+
+def _deep_merge_dict(base: dict, override: dict) -> dict:
+    result = dict(base or {})
+    for k, v in (override or {}).items():
+        if isinstance(v, dict) and isinstance(result.get(k), dict):
+            result[k] = _deep_merge_dict(result[k], v)
+        else:
+            result[k] = v
+    return result
+
+
+def _load_runtime_override() -> dict:
+    if not os.path.exists(RUNTIME_CONFIG_FILE):
+        return {}
+    try:
+        with open(RUNTIME_CONFIG_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
 PLUGIN_NAME = "luck_rank"
 AUTHOR = "YourName" # 可修改为你自己的名字
-VERSION = "4.0.0-Pro"
+VERSION = "5.1.0-Pro"
 
 @register(PLUGIN_NAME, AUTHOR, "异世界战术金币系统", VERSION)
 class LuckPlugin(Star):
     def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
-        self.config = config or {}
-        
+        base_config = config or {}
+        runtime_override = _load_runtime_override()
+        self.config = _deep_merge_dict(base_config, runtime_override)
+
         # 激活金币管家，锁定 data 目录下的账本
         data_path = os.path.join(os.path.dirname(__file__), "data", "luck_data.json")
         self.bank = LuckBank(data_path)

@@ -17,6 +17,7 @@ DATA_FILE = ROOT_DIR / "data" / "luck_data.json"
 FUNC_CARDS_FILE = CONFIG_DIR / "func_cards.json"
 FATE_CARDS_FILE = CONFIG_DIR / "cards_config.json"
 SIGN_IN_TEXTS_FILE = CONFIG_DIR / "sign_in_texts.json"
+RUNTIME_CONFIG_FILE = CONFIG_DIR / "webui_runtime_config.json"
 FATE_ASSETS_DIR = ROOT_DIR / "assets" / "cards"
 WEBUI_DIR = Path(__file__).parent
 STATIC_DIR = WEBUI_DIR / "static"
@@ -67,9 +68,74 @@ def _read_json(path: Path, default=None):
         return default if default is not None else {}
 
 
-# ==============================================================================
+def _deep_merge_dict(base: dict, override: dict) -> dict:
+    result = dict(base or {})
+    for k, v in (override or {}).items():
+        if isinstance(v, dict) and isinstance(result.get(k), dict):
+            result[k] = _deep_merge_dict(result[k], v)
+        else:
+            result[k] = v
+    return result
+
+
+def _default_runtime_config() -> dict:
+    return {
+        "webui_settings": {
+            "enable": True,
+            "port": 4399,
+        },
+        "fate_cards_settings": {
+            "enable": True,
+            "daily_draw_limit": 3,
+        },
+        "func_cards_settings": {
+            "enable": True,
+            "enable_dice_cards": True,
+            "enable_public_duel_mode": False,
+            "public_duel_daily_limit": 3,
+            "public_duel_min_stake": 10,
+            "public_duel_max_stake": 200,
+            "enable_rarity_dedup": True,
+            "rarity_mode": "default",
+            "custom_rarity_weights": {
+                "rarity_1": 30,
+                "rarity_2": 30,
+                "rarity_3": 28,
+                "rarity_4": 11,
+                "rarity_5": 1,
+            },
+            "economy_settings": {
+                "draw_probability": 5,
+                "free_daily_draw": 1,
+                "draw_cost": 20,
+                "pity_threshold": 10,
+            },
+        },
+    }
+
+
+# ============================================================================== 
 # API 路由处理
 # ==============================================================================
+
+async def api_get_runtime_config(request):
+    current = _read_json(RUNTIME_CONFIG_FILE, {})
+    merged = _deep_merge_dict(_default_runtime_config(), current)
+    return web.json_response({"ok": True, "config": merged})
+
+
+async def api_save_runtime_config(request):
+    try:
+        body = await request.json()
+        cfg = body.get("config", {})
+        if not isinstance(cfg, dict):
+            return web.json_response({"ok": False, "error": "config must be object"}, status=400)
+        merged = _deep_merge_dict(_default_runtime_config(), cfg)
+        _atomic_write(RUNTIME_CONFIG_FILE, merged)
+        return web.json_response({"ok": True})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
 
 async def api_get_fate_cards(request):
     cards = _read_json(FATE_CARDS_FILE, [])
@@ -266,6 +332,8 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app = web.Application()
 
     # API 路由
+    app.router.add_get("/api/runtime_config", api_get_runtime_config)
+    app.router.add_post("/api/runtime_config", api_save_runtime_config)
     app.router.add_get("/api/fate_cards", api_get_fate_cards)
     app.router.add_post("/api/fate_cards", api_save_fate_cards)
     app.router.add_post("/api/upload_fate_image", api_upload_fate_image)

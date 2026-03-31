@@ -38,7 +38,13 @@ DEFAULT_SIGN_IN_TEXTS = {
         "71_90": ["大吉。如有神助，爆率飙升。", "今日气运高涨，宜乘势而为。"],
         "51_70": ["小吉。灵力涌动，爆率提升。", "稳中有进，今日不宜冒进。"],
         "1_50": ["平平无奇。宜蛰伏蓄锐，莫生事端。", "天道轮回，蛰伏等待时机。"]
-    }
+    },
+    "luck_ranges": [
+        {"min": 1, "max": 50, "gold_delta": 0, "comments": ["平平无奇。宜蛰伏蓄锐，莫生事端。", "天道轮回，蛰伏等待时机。"]},
+        {"min": 51, "max": 70, "gold_delta": 0, "comments": ["小吉。灵力涌动，爆率提升。", "稳中有进，今日不宜冒进。"]},
+        {"min": 71, "max": 90, "gold_delta": 0, "comments": ["大吉。如有神助，爆率飙升。", "今日气运高涨，宜乘势而为。"]},
+        {"min": 91, "max": 100, "gold_delta": 0, "comments": ["天命之子！鸿运当头，此时不抽更待何时！", "星轨共鸣，今日诸事大吉！"]}
+    ]
 }
 
 
@@ -203,10 +209,17 @@ async def api_save_func_cards(request):
 
 async def api_get_sign_in_texts(request):
     texts = _read_json(SIGN_IN_TEXTS_FILE, DEFAULT_SIGN_IN_TEXTS)
-    # 补齐缺失字段
     for key in DEFAULT_SIGN_IN_TEXTS:
         if key not in texts:
             texts[key] = DEFAULT_SIGN_IN_TEXTS[key]
+    if not texts.get("luck_ranges"):
+        legacy = texts.get("luck_comments", {})
+        texts["luck_ranges"] = [
+            {"min": 1, "max": 50, "gold_delta": 0, "comments": legacy.get("1_50", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["1_50"])},
+            {"min": 51, "max": 70, "gold_delta": 0, "comments": legacy.get("51_70", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["51_70"])},
+            {"min": 71, "max": 90, "gold_delta": 0, "comments": legacy.get("71_90", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["71_90"])},
+            {"min": 91, "max": 100, "gold_delta": 0, "comments": legacy.get("91_100", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["91_100"])},
+        ]
     return web.json_response({"ok": True, "texts": texts})
 
 

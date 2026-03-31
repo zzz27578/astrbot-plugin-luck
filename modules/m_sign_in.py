@@ -1,7 +1,11 @@
 import random
+import json
+import os
 from datetime import datetime, timedelta
 from astrbot.api.event import AstrMessageEvent
 from ..core.title_engine import TitleEngine
+
+SIGN_IN_TEXTS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "sign_in_texts.json")
 
 # ================= 🔮 原汁原味的异世界观配置区 🔮 =================
 GOOD_THINGS = [
@@ -24,6 +28,27 @@ async def calculate_rank(bank, user_id):
     for rank, (uid, _) in enumerate(sorted_users):
         if uid == user_id: return rank + 1
     return 999
+
+def _load_sign_in_texts():
+    try:
+        if os.path.exists(SIGN_IN_TEXTS_FILE):
+            with open(SIGN_IN_TEXTS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
+    except Exception:
+        pass
+    return {}
+
+
+def _pick_luck_range_rule(luck_val: int):
+    texts = _load_sign_in_texts()
+    ranges = texts.get("luck_ranges", [])
+    valid = [r for r in ranges if isinstance(r, dict) and isinstance(r.get("min"), int) and isinstance(r.get("max"), int)]
+    for rule in valid:
+        if int(rule.get("min", 0)) <= luck_val <= int(rule.get("max", 0)):
+            return rule
+    return None
+
 
 async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     """处理 /luck 运势 逻辑 (彻底同步精准爆率)"""
@@ -61,6 +86,12 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     
     base_reward = (luck_val - 1) // 10 + 1
     total_reward = base_reward
+
+    rule = _pick_luck_range_rule(luck_val)
+    rule_gold_delta = int(rule.get("gold_delta", 0)) if rule else 0
+    total_reward += rule_gold_delta
+    if total_reward < 0:
+        total_reward = 0
 
     streak_bonus_str = ""
     if consec_days > 3:
@@ -105,14 +136,22 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     total_prob = base_prob + luck_mod + title_mod
 
     current_rank = await calculate_rank(bank, user_id)
-    good_thing = random.choice(GOOD_THINGS)
-    bad_thing = random.choice(BAD_THINGS)
-    
+    texts_cfg = _load_sign_in_texts()
+    good_pool = [x for x in texts_cfg.get("good_things", GOOD_THINGS) if isinstance(x, str) and x.strip()]
+    bad_pool = [x for x in texts_cfg.get("bad_things", BAD_THINGS) if isinstance(x, str) and x.strip()]
+    good_thing = random.choice(good_pool or GOOD_THINGS)
+    bad_thing = random.choice(bad_pool or BAD_THINGS)
+
     comment = ""
-    if luck_val >= 91: comment = "天命之子！鸿运当头，此时不抽更待何时！" if func_cards_enabled else "天命之子！鸿运当头，今日诸事皆宜。"
-    elif luck_val >= 71: comment = "大吉。如有神助，爆率飙升。" if func_cards_enabled else "大吉。如有神助，宜乘势而为。"
-    elif luck_val >= 51: comment = "小吉。灵力涌动，爆率提升。" if func_cards_enabled else "小吉。灵力涌动，稳中有进。"
-    else: comment = "平平无奇。宜蛰伏蓄锐，莫生事端。"
+    if rule and isinstance(rule.get("comments"), list):
+        pool = [x for x in rule.get("comments", []) if isinstance(x, str) and x.strip()]
+        if pool:
+            comment = random.choice(pool)
+    if not comment:
+        if luck_val >= 91: comment = "天命之子！鸿运当头，此时不抽更待何时！" if func_cards_enabled else "天命之子！鸿运当头，今日诸事皆宜。"
+        elif luck_val >= 71: comment = "大吉。如有神助，爆率飙升。" if func_cards_enabled else "大吉。如有神助，宜乘势而为。"
+        elif luck_val >= 51: comment = "小吉。灵力涌动，爆率提升。" if func_cards_enabled else "小吉。灵力涌动，稳中有进。"
+        else: comment = "平平无奇。宜蛰伏蓄锐，莫生事端。"
 
     extra_line = ""
     if func_cards_enabled:

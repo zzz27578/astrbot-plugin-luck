@@ -125,35 +125,31 @@
                   <div class="panel"><h3 class="sub-title">❌ 忌做事项</h3><div class="toolbar"><button class="btn" id="btn-add-bad">新增一条</button><button class="btn-ghost" id="btn-batch-bad">批量导入</button><button class="btn-danger" id="btn-batch-del-bad">批量删除</button><button class="btn-ghost" id="btn-undo-bad">撤销删除</button></div><div id="bad-list"></div></div>
                 </div>
       <div style="height:18px"></div>
-      <div class="panel">
-        <h3 class="sub-title">🗣️ 运势评语</h3>
-        <div class="split-two">
-          <div><h4>91~100</h4><div id="c-91_100"></div></div>
-          <div><h4>71~90</h4><div id="c-71_90"></div></div>
-          <div><h4>51~70</h4><div id="c-51_70"></div></div>
-          <div><h4>1~50</h4><div id="c-1_50"></div></div>
+              <div class="panel">
+          <h3 class="sub-title">🗣️ 运势区间配置</h3>
+          <div class="help-box">左侧彩条表示 1~100 运势刻度。每个区间都可以配置：分数范围、金币增减、评语列表。<br>未配置完整的区间会显示灰色，且无法保存。</div>
+          <div style="display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:start">
+            <div>
+              <div style="position:relative;height:560px;border-radius:18px;background:linear-gradient(180deg,#ff8aa8 0%,#ffc86e 28%,#7fd8ff 62%,#8c9bff 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden" id="luck-range-scale"></div>
+            </div>
+            <div id="luck-ranges-editor"></div>
+          </div>
+          <div style="height:12px"></div><div class="toolbar"><button class="btn-ghost" id="btn-add-range">新增区间</button><button class="btn" id="btn-save-texts">保存签到文案</button></div>
         </div>
-        <div style="height:12px"></div><button class="btn" id="btn-save-texts">保存签到文案</button>
-      </div>
     </section>
 
     <section class="page" id="config-page">
           <div class="panel">
             <h3 class="sub-title">⚙️ 系统配置</h3>
-            <p style="color:var(--muted);line-height:1.8">这里可以直接调整插件常用运行参数。保存后会写入插件自己的运行时覆盖配置文件。<br>其中 <b>WebUI 端口</b> 这类启动参数通常需要你<b>重启插件</b>后完全生效。</p>
+            <p style="color:var(--muted);line-height:1.8">这里只放 WebUI 适合微调的小参数。<br><b>功能开关、端口、基础启停项请统一去 AstrBot 面板里修改。</b></p>
             <div class="split-two">
               <div>
-                <h4 style="margin:0 0 12px;color:#fff4d7">🎴 命运牌</h4>
+                <h4 style="margin:0 0 12px;color:#fff4d7">🎴 命运牌微调</h4>
                 <div class="form-grid">
-                  <div class="field"><label>命运牌开关</label><select id="cfg-fate-enable"><option value="true">开启</option><option value="false">关闭</option></select></div>
                   <div class="field"><label>每日换牌上限</label><input id="cfg-fate-daily" type="number" min="1" /></div>
                 </div>
-
-                <h4 style="margin:18px 0 12px;color:#fff4d7">⚔️ 功能牌总控</h4>
+                <h4 style="margin:18px 0 12px;color:#fff4d7">⚔️ 对赌微调</h4>
                 <div class="form-grid">
-                  <div class="field"><label>功能牌开关</label><select id="cfg-func-enable"><option value="true">开启</option><option value="false">关闭</option></select></div>
-                  <div class="field"><label>骰子玩法开关</label><select id="cfg-dice-enable"><option value="true">开启</option><option value="false">关闭</option></select></div>
-                  <div class="field"><label>公开对赌开关</label><select id="cfg-duel-enable"><option value="true">开启</option><option value="false">关闭</option></select></div>
                   <div class="field"><label>公开对赌每日上限</label><input id="cfg-duel-limit" type="number" min="0" /></div>
                   <div class="field"><label>公开对赌最低赌注</label><input id="cfg-duel-min" type="number" min="0" /></div>
                   <div class="field"><label>公开对赌最高赌注</label><input id="cfg-duel-max" type="number" min="0" /></div>
@@ -173,7 +169,6 @@
                   <div class="field"><label>每日免费抽取次数</label><input id="cfg-free-draw" type="number" min="0" /></div>
                   <div class="field"><label>单次抽取消耗</label><input id="cfg-draw-cost" type="number" min="0" /></div>
                   <div class="field"><label>深渊保底阈值</label><input id="cfg-pity" type="number" min="0" /></div>
-                  <div class="field"><label>WebUI 端口</label><input id="cfg-webui-port" type="number" min="1" /></div>
                 </div>
               </div>
             </div>
@@ -182,7 +177,7 @@
               <button class="btn" id="btn-save-config">保存系统配置</button>
               <button class="btn-ghost" id="btn-load-config">重新读取</button>
             </div>
-            <div class="help-box">说明：这里保存的是插件自己的运行时覆盖配置。<br>抽卡、对赌、爆率、每日次数等<b>业务参数</b>会在插件下一次处理指令时自动重新读取，通常无需手动重载。<br><b>重要：</b>像 WebUI 端口这类<b>启动参数</b>，保存后仍建议前往 AstrBot 面板<b>重载插件</b>（或直接重启 Bot），否则不会真正切换。</div>
+            <div class="help-box">说明：WebUI 里的这些值会覆盖 AstrBot 面板里的同名<b>小参数</b>，并作为插件运行时最终生效值。<br>如果你想恢复跟 AstrBot 面板一致，请把对应字段改回去，或后续清理覆盖配置。<br><b>功能开关、端口等大参数不在这里改。</b></div>
           </div>
         </section>
 
@@ -235,8 +230,8 @@
 </div><div><h3 class="sub-title">🔮 实时预览</h3><div class="preview-box" id="fate-preview-box"></div></div></div></div></div>
 
 <script>
-const state={cards:[],images:[],fateCards:[],fateImages:[],signTexts:{good_things:[],bad_things:[],luck_comments:{"91_100":[],"71_90":[],"51_70":[],"1_50":[]}},selectedCardIndex:-1,selectedFateIndex:-1,currentTags:[],stats:{total_users:0,card_holders:{}},selectedCardNames:new Set(),selectedFateIdx:new Set(),runtimeConfig:null,cardBatchMode:false,fateBatchMode:false};
-const pageMeta={"cards-page":["功能牌管理","管理功能牌卡池、图片、词条与稀有度。"],"fate-page":["命运牌管理","管理命运牌卡池，配置图片、文案与数值。"],"texts-page":["签到文案","编辑签到宜做、忌做和运势评语。"],"config-page":["系统配置","直接修改插件运行时配置，保存后部分启动项需重启插件生效。"],"stats-page":["概率分析","图表查看卡池分布与玩家持牌情况。"]};
+const state={cards:[],images:[],fateCards:[],fateImages:[],signTexts:{good_things:[],bad_things:[],luck_comments:{"91_100":[],"71_90":[],"51_70":[],"1_50":[]},luck_ranges:[]},selectedCardIndex:-1,selectedFateIndex:-1,currentTags:[],stats:{total_users:0,card_holders:{}},selectedCardNames:new Set(),selectedFateIdx:new Set(),runtimeConfig:null,cardBatchMode:false,fateBatchMode:false};
+const pageMeta={"cards-page":["功能牌管理","管理功能牌卡池、图片、词条与稀有度。"],"fate-page":["命运牌管理","管理命运牌卡池，配置图片、文案与数值。"],"texts-page":["签到文案","编辑签到宜做、忌做和运势评语。"],"config-page":["系统配置","这里只放小参数微调。功能开关、端口等基础项请在 AstrBot 面板里修改。"],"stats-page":["概率分析","图表查看卡池分布与玩家持牌情况。"]};
 const tagDefs={
  attack:[
   {value:'steal',label:'掠夺金币',desc:'从目标身上直接掠夺金币。',params:[{key:'amount',label:'掠夺金额',hint:'填写要掠夺多少金币'}]},
@@ -355,8 +350,12 @@ async function checkMissingFate(){const miss=state.fateCards.filter(isFateIncomp
 
 function renderTextList(rootId, arr){const root=qs(rootId); root.innerHTML=(arr||[]).map((v,i)=>`<div style="display:grid;grid-template-columns:34px 1fr 92px;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" class="text-check" data-root="${rootId}" data-idx="${i}"><input value="${esc(v)}" data-root="${rootId}" data-idx="${i}" /><button class="small-btn text-del-btn" onclick="removeTextItem('${rootId}',${i})">删除</button></div>`).join('')||'<div class="empty">暂无内容</div>'}
   function removeTextItem(rootId,i){const map={'#good-list':state.signTexts.good_things,'#bad-list':state.signTexts.bad_things,'#c-91_100':state.signTexts.luck_comments['91_100'],'#c-71_90':state.signTexts.luck_comments['71_90'],'#c-51_70':state.signTexts.luck_comments['51_70'],'#c-1_50':state.signTexts.luck_comments['1_50']}; const list=map[rootId]; state._lastTextDelete={rootId, index:i, value:list[i]}; list.splice(i,1); renderTexts()} window.removeTextItem=removeTextItem;
-function renderTexts(){renderTextList('#good-list',state.signTexts.good_things);renderTextList('#bad-list',state.signTexts.bad_things);renderTextList('#c-91_100',state.signTexts.luck_comments['91_100']);renderTextList('#c-71_90',state.signTexts.luck_comments['71_90']);renderTextList('#c-51_70',state.signTexts.luck_comments['51_70']);renderTextList('#c-1_50',state.signTexts.luck_comments['1_50'])}
-function syncTexts(){state.signTexts.good_things=[...document.querySelectorAll('#good-list input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.bad_things=[...document.querySelectorAll('#bad-list input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['91_100']=[...document.querySelectorAll('#c-91_100 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['71_90']=[...document.querySelectorAll('#c-71_90 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['51_70']=[...document.querySelectorAll('#c-51_70 input')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.luck_comments['1_50']=[...document.querySelectorAll('#c-1_50 input')].map(i=>i.value.trim()).filter(Boolean)}
+function isLuckRangeComplete(r){return Number.isInteger(Number(r.min))&&Number.isInteger(Number(r.max))&&Number(r.min)>=1&&Number(r.max)<=100&&Number(r.min)<=Number(r.max)&&Array.isArray(r.comments)&&r.comments.some(x=>String(x||'').trim())}
+function validateLuckRanges(){const list=[...(state.signTexts.luck_ranges||[])].map((r,i)=>({...r,_idx:i,min:Number(r.min),max:Number(r.max)})).sort((a,b)=>a.min-b.min); const issues=[]; if(!list.length) return {ok:false,message:'至少需要配置一个运势区间。'}; for(const r of list){ if(!isLuckRangeComplete(r)) issues.push(`区间 ${r.min}~${r.max} 未配置完整`); } for(let i=0;i<list.length;i++){ const cur=list[i]; if(cur.min<1||cur.max>100||cur.min>cur.max) issues.push(`区间 ${cur.min}~${cur.max} 范围非法`); if(i===0&&cur.min!==1) issues.push(`运势区间起点必须从 1 开始，当前从 ${cur.min} 开始`); if(i>0){ const prev=list[i-1]; if(cur.min<=prev.max) issues.push(`区间 ${prev.min}~${prev.max} 与 ${cur.min}~${cur.max} 存在重叠`); if(cur.min>prev.max+1) issues.push(`区间 ${prev.max+1}~${cur.min-1} 没有配置，存在断档`); } if(i===list.length-1&&cur.max!==100) issues.push(`运势区间终点必须到 100，当前到 ${cur.max}`); } return issues.length?{ok:false,message:issues.join('\n')}:{ok:true};}
+function renderLuckRangeScale(){const root=qs('#luck-range-scale'); if(!root) return; const ranges=(state.signTexts.luck_ranges||[]); root.innerHTML=`<div style="position:absolute;inset:0;padding:8px 0">${Array.from({length:10},(_,i)=>{const score=100-i*10; return `<div style="position:absolute;left:0;right:0;top:${i*10}%;height:1px;background:rgba(255,255,255,.16)"><span style="position:absolute;left:10px;top:-10px;font-size:12px;color:#fff8de">${score}</span></div>`}).join('')}${ranges.map((r,i)=>{const top=(100-Number(r.max||0)); const height=Math.max(3,Number(r.max||0)-Number(r.min||0)+1); const ok=isLuckRangeComplete(r); const active=!!r._open; return `<button type="button" onclick="focusLuckRange(${i})" title="${Number(r.min||0)}~${Number(r.max||0)}" style="position:absolute;left:18px;right:18px;top:${top}%;height:${height}%;min-height:20px;border-radius:14px;background:${ok?(active?'rgba(26,34,56,.86)':'rgba(16,22,36,.58)'):'rgba(120,120,120,.5)'};border:1px solid ${active?'rgba(255,227,143,.95)':ok?'rgba(255,255,255,.35)':'rgba(180,180,180,.35)'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;backdrop-filter:blur(2px);cursor:pointer;box-shadow:${active?'0 0 0 2px rgba(255,227,143,.28),0 0 18px rgba(255,227,143,.16)':'none'}">${Number(r.min||0)}~${Number(r.max||0)}</button>`}).join('')}</div>`}
+function renderLuckRangesEditor(){const root=qs('#luck-ranges-editor'); const list=state.signTexts.luck_ranges||[]; root.innerHTML=list.length?list.map((r,i)=>{const ok=isLuckRangeComplete(r); return `<div class="panel" id="luck-range-card-${i}" style="margin-bottom:12px;${ok?'':'opacity:.72;border:1px dashed rgba(255,255,255,.18)'}"><div class="toolbar" style="justify-content:space-between"><div><span class="pill">运势 ${Number(r.min||0)} ~ ${Number(r.max||0)}</span><span class="pill">金币 ${Number(r.gold_delta||0)>=0?'+':''}${Number(r.gold_delta||0)}</span></div><div class="toolbar" style="margin-bottom:0"><button class="small-btn" onclick="toggleRangeEditor(${i})">${r._open?'收起':'编辑'}</button><button class="small-btn" onclick="previewRangeComment(${i})">随机预览</button><button class="small-btn" onclick="deleteLuckRange(${i})">删除</button></div></div><div class="help-box" style="margin-top:8px">${ok?'已配置完成':'未配置完整，保存时会拦截'}${r._preview?`<br>预览：${esc(r._preview)}`:''}</div>${r._open?`<div class="form-grid" style="margin-top:12px"><div class="field"><label>最小分数</label><input type="number" value="${Number(r.min||1)}" oninput="updateLuckRangeField(${i},'min',this.value)" /></div><div class="field"><label>最大分数</label><input type="number" value="${Number(r.max||100)}" oninput="updateLuckRangeField(${i},'max',this.value)" /></div><div class="field"><label>金币增减</label><input type="number" value="${Number(r.gold_delta||0)}" oninput="updateLuckRangeField(${i},'gold_delta',this.value)" /></div></div><div style="height:10px"></div><div>${(r.comments||[]).map((c,j)=>`<div style="display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:8px"><input value="${esc(c)}" oninput="updateLuckRangeComment(${i},${j},this.value)" /><button class="small-btn text-del-btn" onclick="removeLuckRangeComment(${i},${j})">删除</button></div>`).join('')||'<div class="empty">当前还没有评语</div>'}</div><div class="toolbar" style="margin-top:8px;margin-bottom:0"><button class="btn-ghost" onclick="addLuckRangeComment(${i})">新增评语</button></div>`:''}</div>`}).join(''):'<div class="empty">还没有配置运势区间。</div>'; renderLuckRangeScale()}
+function renderTexts(){renderTextList('#good-list',state.signTexts.good_things);renderTextList('#bad-list',state.signTexts.bad_things);renderLuckRangesEditor()}
+function syncTexts(){state.signTexts.good_things=[...document.querySelectorAll('#good-list input[type="text"]')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.bad_things=[...document.querySelectorAll('#bad-list input[type="text"]')].map(i=>i.value.trim()).filter(Boolean); state.signTexts.luck_ranges=(state.signTexts.luck_ranges||[]).map(r=>({...r, comments:(r.comments||[]).map(x=>String(x||'').trim()).filter(Boolean)}));}
 function parseBatchText(raw){
   const text=String(raw||'').replace(/\r/g,'').trim();
   if(!text)return [];
@@ -412,8 +411,16 @@ function undoLastTextDelete(){
 }
 window.batchImportTexts=batchImportTexts;
 window.undoLastTextDelete=undoLastTextDelete;
-async function loadTexts(){const ret=await apiGet('/api/sign_in_texts'); state.signTexts=ret.texts||state.signTexts; renderTexts()}
-async function saveTexts(){syncTexts(); const ret=await apiPost('/api/sign_in_texts',{texts:state.signTexts}); if(ret.ok) alert('签到文案已保存'); else alert('保存失败：'+(ret.error||''))}
+function toggleRangeEditor(i){state.signTexts.luck_ranges[i]._open=!state.signTexts.luck_ranges[i]._open; renderTexts()} window.toggleRangeEditor=toggleRangeEditor;
+function focusLuckRange(i){(state.signTexts.luck_ranges||[]).forEach((r,idx)=>r._open=idx===i); renderTexts(); setTimeout(()=>qs(`#luck-range-card-${i}`)?.scrollIntoView({behavior:'smooth',block:'nearest'}),30)} window.focusLuckRange=focusLuckRange;
+function updateLuckRangeField(i,key,val){const n=Number(val); state.signTexts.luck_ranges[i][key]=Number.isNaN(n)?0:n; renderLuckRangesEditor()} window.updateLuckRangeField=updateLuckRangeField;
+function updateLuckRangeComment(i,j,val){state.signTexts.luck_ranges[i].comments[j]=val; } window.updateLuckRangeComment=updateLuckRangeComment;
+function addLuckRangeComment(i){state.signTexts.luck_ranges[i].comments=state.signTexts.luck_ranges[i].comments||[]; state.signTexts.luck_ranges[i].comments.push(''); renderLuckRangesEditor()} window.addLuckRangeComment=addLuckRangeComment;
+function removeLuckRangeComment(i,j){state.signTexts.luck_ranges[i].comments.splice(j,1); renderLuckRangesEditor()} window.removeLuckRangeComment=removeLuckRangeComment;
+function deleteLuckRange(i){if(!confirm('确定删除这个运势区间吗？')) return; state.signTexts.luck_ranges.splice(i,1); renderTexts()} window.deleteLuckRange=deleteLuckRange;
+function previewRangeComment(i){const arr=(state.signTexts.luck_ranges[i].comments||[]).filter(Boolean); state.signTexts.luck_ranges[i]._preview=arr.length?arr[Math.floor(Math.random()*arr.length)]:'当前还没有评语可预览。'; renderLuckRangesEditor()} window.previewRangeComment=previewRangeComment;
+async function loadTexts(){const ret=await apiGet('/api/sign_in_texts'); state.signTexts=ret.texts||state.signTexts; if(!Array.isArray(state.signTexts.luck_ranges)) state.signTexts.luck_ranges=[]; state.signTexts.luck_ranges=state.signTexts.luck_ranges.map((r,idx)=>({...r,_open:idx===0})); renderTexts()}
+async function saveTexts(){syncTexts(); const validation=validateLuckRanges(); if(!validation.ok){alert('运势区间配置有问题，无法保存：\n'+validation.message); return;} const ret=await apiPost('/api/sign_in_texts',{texts:state.signTexts}); if(ret.ok) alert('签到文案已保存'); else alert('保存失败：'+(ret.error||''))}
 
 async function loadRuntimeConfig(){
   try {
@@ -425,16 +432,11 @@ async function loadRuntimeConfig(){
     state.runtimeConfig=ret.config||{};
     const cfg=state.runtimeConfig;
 
-  const fate=cfg.fate_cards_settings||{};
+    const fate=cfg.fate_cards_settings||{};
   const func=cfg.func_cards_settings||{};
   const eco=func.economy_settings||{};
   const weights=func.custom_rarity_weights||{};
-  const webui=cfg.webui_settings||{};
-  qs('#cfg-fate-enable').value=String(Boolean(fate.enable));
   qs('#cfg-fate-daily').value=fate.daily_draw_limit??3;
-  qs('#cfg-func-enable').value=String(Boolean(func.enable));
-  qs('#cfg-dice-enable').value=String(Boolean(func.enable_dice_cards));
-  qs('#cfg-duel-enable').value=String(Boolean(func.enable_public_duel_mode));
   qs('#cfg-duel-limit').value=func.public_duel_daily_limit??3;
   qs('#cfg-duel-min').value=func.public_duel_min_stake??10;
   qs('#cfg-duel-max').value=func.public_duel_max_stake??200;
@@ -449,27 +451,17 @@ async function loadRuntimeConfig(){
   qs('#cfg-free-draw').value=eco.free_daily_draw??1;
   qs('#cfg-draw-cost').value=eco.draw_cost??20;
   qs('#cfg-pity').value=eco.pity_threshold??10;
-  qs('#cfg-webui-port').value=webui.port??4399;
-  alert('系统配置已读取。\n\n业务参数保存后通常会在插件下一次处理指令时自动生效；如果你改的是 WebUI 端口这类启动参数，请去 AstrBot 面板重载插件后再验证。');
   } catch (e) {
     alert('系统配置读取失败：'+e);
   }
 }
 
 async function saveRuntimeConfig(){
-  const cfg={
-    webui_settings:{
-      enable:true,
-      port:Number(qs('#cfg-webui-port').value||4399)
-    },
+    const cfg={
     fate_cards_settings:{
-      enable:qs('#cfg-fate-enable').value==='true',
       daily_draw_limit:Number(qs('#cfg-fate-daily').value||3)
     },
     func_cards_settings:{
-      enable:qs('#cfg-func-enable').value==='true',
-      enable_dice_cards:qs('#cfg-dice-enable').value==='true',
-      enable_public_duel_mode:qs('#cfg-duel-enable').value==='true',
       public_duel_daily_limit:Number(qs('#cfg-duel-limit').value||3),
       public_duel_min_stake:Number(qs('#cfg-duel-min').value||10),
       public_duel_max_stake:Number(qs('#cfg-duel-max').value||200),
@@ -507,7 +499,7 @@ async function loadStats(){const st=await apiGet('/api/user_stats'); state.stats
  const top=Object.entries(state.stats.card_holders||{}).sort((a,b)=>b[1]-a[1]).slice(0,20); if(window._holders)window._holders.destroy(); window._holders=new Chart(qs('#chart-holders'),{type:'bar',data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:'rgba(179,136,255,.55)',borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false,scales:{x:{ticks:{color:'#aeb7d1',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true},y:{ticks:{color:'#aeb7d1'},grid:{color:'rgba(255,255,255,.06)'}}}}});
 }
 
-function bindEvents(){bindNav(); qs('#card-search').oninput=renderCards; qs('#card-filter-type').onchange=renderCards; qs('#card-filter-rarity').onchange=renderCards; qs('#fate-search').oninput=renderFateCards; qs('#btn-new-card').onclick=()=>openCardModal(null); qs('#btn-new-fate').onclick=()=>openFateModal(null); qs('#btn-save-card').onclick=saveCurrentCard; qs('#btn-copy-card').onclick=copyCurrentCard; qs('#btn-delete-card').onclick=deleteCurrentCard; qs('#btn-save-fate').onclick=saveCurrentFate; qs('#btn-delete-fate').onclick=deleteCurrentFate; qs('#btn-add-tag').onclick=addTag; qs('#tag-category').onchange=onTagCategoryChange; qs('#tag-template').onchange=onTagTemplateChange; ['#edit-card-name','#edit-card-type','#edit-card-rarity','#edit-card-filename','#edit-card-desc'].forEach(s=>qs(s).oninput=renderPreview); ['#fate-filename','#fate-text','#fate-value'].forEach(s=>qs(s).oninput=renderFatePreview); qs('#btn-upload-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadCardImages(i.files);i.click()}; qs('#btn-upload-current-card-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{if(i.files&&i.files[0]) uploadCurrentCardImage(i.files[0])};i.click()}; qs('#btn-upload-fate-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadFateImages(i.files);i.click()}; qs('#btn-upload-current-fate-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{if(i.files&&i.files[0]) uploadCurrentFateImage(i.files[0])};i.click()}; qs('#btn-check-missing-cards').onclick=checkMissingCards; qs('#btn-check-missing-fate').onclick=checkMissingFate; qs('#btn-delete-selected-cards').onclick=()=>{state.cardBatchMode=true; state.selectedCardNames.clear(); renderCards();}; qs('#btn-batch-cancel-cards').onclick=()=>{state.cardBatchMode=false; state.selectedCardNames.clear(); renderCards();}; qs('#btn-batch-delete-cards').onclick=()=>{if(!state.selectedCardNames.size)return alert('请先选择要删除的功能牌。'); if(!confirm(`确定删除选中的 ${state.selectedCardNames.size} 张功能牌吗？`)) return; state.cards=state.cards.filter(c=>!state.selectedCardNames.has(c.card_name||'')); state.selectedCardNames.clear(); state.cardBatchMode=false; renderCards(); saveCards();}; qs('#btn-batch-copy-cards').onclick=()=>{if(!state.selectedCardNames.size)return alert('请先选择要复制的功能牌。'); const picked=state.cards.filter(c=>state.selectedCardNames.has(c.card_name||'')); const copies=picked.map(c=>{const x=JSON.parse(JSON.stringify(c)); x.card_name=(x.card_name||'未命名功能牌')+' 的副本'; return x;}); state.cards.unshift(...copies); state.selectedCardNames.clear(); state.cardBatchMode=false; renderCards(); saveCards();}; qs('#btn-delete-selected-fate').onclick=()=>{state.fateBatchMode=true; state.selectedFateIdx.clear(); renderFateCards();}; qs('#btn-batch-cancel-fate').onclick=()=>{state.fateBatchMode=false; state.selectedFateIdx.clear(); renderFateCards();}; qs('#btn-batch-delete-fate').onclick=()=>{if(!state.selectedFateIdx.size)return alert('请先选择要删除的命运牌。'); if(!confirm(`确定删除选中的 ${state.selectedFateIdx.size} 张命运牌吗？`)) return; state.fateCards=state.fateCards.filter((_,i)=>!state.selectedFateIdx.has(i)); state.selectedFateIdx.clear(); state.fateBatchMode=false; renderFateCards(); saveFateCards();}; qs('#btn-batch-copy-fate').onclick=()=>{if(!state.selectedFateIdx.size)return alert('请先选择要复制的命运牌。'); const idxs=[...state.selectedFateIdx].sort((a,b)=>a-b); const copies=idxs.map(i=>JSON.parse(JSON.stringify(state.fateCards[i]))); state.fateCards.unshift(...copies); state.selectedFateIdx.clear(); state.fateBatchMode=false; renderFateCards(); saveFateCards();}; qs('#btn-add-good').onclick=()=>{state.signTexts.good_things.push('');renderTexts()}; qs('#btn-add-bad').onclick=()=>{state.signTexts.bad_things.push('');renderTexts()}; qs('#btn-batch-good').onclick=()=>batchImportTexts('good'); qs('#btn-batch-bad').onclick=()=>batchImportTexts('bad'); qs('#btn-batch-del-good').onclick=()=>batchDeleteTexts('good'); qs('#btn-batch-del-bad').onclick=()=>batchDeleteTexts('bad'); qs('#btn-undo-good').onclick=undoLastTextDelete; qs('#btn-undo-bad').onclick=undoLastTextDelete; qs('#btn-save-texts').onclick=saveTexts; qs('#btn-save-config').onclick=saveRuntimeConfig; qs('#btn-load-config').onclick=loadRuntimeConfig; qs('#btn-refresh').onclick=boot; qs('#btn-save-current').onclick=async()=>{const id=document.querySelector('.page.active').id; if(id==='cards-page')await saveCards(); else if(id==='fate-page')await saveFateCards(); else if(id==='texts-page')await saveTexts(); else if(id==='config-page')await saveRuntimeConfig(); else alert('当前页面没有单独保存动作。')}; }
+function bindEvents(){bindNav(); qs('#card-search').oninput=renderCards; qs('#card-filter-type').onchange=renderCards; qs('#card-filter-rarity').onchange=renderCards; qs('#fate-search').oninput=renderFateCards; qs('#btn-new-card').onclick=()=>openCardModal(null); qs('#btn-new-fate').onclick=()=>openFateModal(null); qs('#btn-save-card').onclick=saveCurrentCard; qs('#btn-copy-card').onclick=copyCurrentCard; qs('#btn-delete-card').onclick=deleteCurrentCard; qs('#btn-save-fate').onclick=saveCurrentFate; qs('#btn-delete-fate').onclick=deleteCurrentFate; qs('#btn-add-tag').onclick=addTag; qs('#tag-category').onchange=onTagCategoryChange; qs('#tag-template').onchange=onTagTemplateChange; ['#edit-card-name','#edit-card-type','#edit-card-rarity','#edit-card-filename','#edit-card-desc'].forEach(s=>qs(s).oninput=renderPreview); ['#fate-filename','#fate-text','#fate-value'].forEach(s=>qs(s).oninput=renderFatePreview); qs('#btn-upload-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadCardImages(i.files);i.click()}; qs('#btn-upload-current-card-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{if(i.files&&i.files[0]) uploadCurrentCardImage(i.files[0])};i.click()}; qs('#btn-upload-fate-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>uploadFateImages(i.files);i.click()}; qs('#btn-upload-current-fate-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{if(i.files&&i.files[0]) uploadCurrentFateImage(i.files[0])};i.click()}; qs('#btn-check-missing-cards').onclick=checkMissingCards; qs('#btn-check-missing-fate').onclick=checkMissingFate; qs('#btn-delete-selected-cards').onclick=()=>{state.cardBatchMode=true; state.selectedCardNames.clear(); renderCards();}; qs('#btn-batch-cancel-cards').onclick=()=>{state.cardBatchMode=false; state.selectedCardNames.clear(); renderCards();}; qs('#btn-batch-delete-cards').onclick=()=>{if(!state.selectedCardNames.size)return alert('请先选择要删除的功能牌。'); if(!confirm(`确定删除选中的 ${state.selectedCardNames.size} 张功能牌吗？`)) return; state.cards=state.cards.filter(c=>!state.selectedCardNames.has(c.card_name||'')); state.selectedCardNames.clear(); state.cardBatchMode=false; renderCards(); saveCards();}; qs('#btn-batch-copy-cards').onclick=()=>{if(!state.selectedCardNames.size)return alert('请先选择要复制的功能牌。'); const picked=state.cards.filter(c=>state.selectedCardNames.has(c.card_name||'')); const copies=picked.map(c=>{const x=JSON.parse(JSON.stringify(c)); x.card_name=(x.card_name||'未命名功能牌')+' 的副本'; return x;}); state.cards.unshift(...copies); state.selectedCardNames.clear(); state.cardBatchMode=false; renderCards(); saveCards();}; qs('#btn-delete-selected-fate').onclick=()=>{state.fateBatchMode=true; state.selectedFateIdx.clear(); renderFateCards();}; qs('#btn-batch-cancel-fate').onclick=()=>{state.fateBatchMode=false; state.selectedFateIdx.clear(); renderFateCards();}; qs('#btn-batch-delete-fate').onclick=()=>{if(!state.selectedFateIdx.size)return alert('请先选择要删除的命运牌。'); if(!confirm(`确定删除选中的 ${state.selectedFateIdx.size} 张命运牌吗？`)) return; state.fateCards=state.fateCards.filter((_,i)=>!state.selectedFateIdx.has(i)); state.selectedFateIdx.clear(); state.fateBatchMode=false; renderFateCards(); saveFateCards();}; qs('#btn-batch-copy-fate').onclick=()=>{if(!state.selectedFateIdx.size)return alert('请先选择要复制的命运牌。'); const idxs=[...state.selectedFateIdx].sort((a,b)=>a-b); const copies=idxs.map(i=>JSON.parse(JSON.stringify(state.fateCards[i]))); state.fateCards.unshift(...copies); state.selectedFateIdx.clear(); state.fateBatchMode=false; renderFateCards(); saveFateCards();}; qs('#btn-add-good').onclick=()=>{state.signTexts.good_things.push('');renderTexts()}; qs('#btn-add-bad').onclick=()=>{state.signTexts.bad_things.push('');renderTexts()}; qs('#btn-batch-good').onclick=()=>batchImportTexts('good'); qs('#btn-batch-bad').onclick=()=>batchImportTexts('bad'); qs('#btn-batch-del-good').onclick=()=>batchDeleteTexts('good'); qs('#btn-batch-del-bad').onclick=()=>batchDeleteTexts('bad'); qs('#btn-undo-good').onclick=undoLastTextDelete; qs('#btn-undo-bad').onclick=undoLastTextDelete; qs('#btn-add-range').onclick=()=>{state.signTexts.luck_ranges.push({min:1,max:100,gold_delta:0,comments:[''],_open:true}); renderTexts()}; qs('#btn-save-texts').onclick=saveTexts; qs('#btn-save-config').onclick=saveRuntimeConfig; qs('#btn-load-config').onclick=loadRuntimeConfig; qs('#btn-refresh').onclick=boot; qs('#btn-save-current').onclick=async()=>{const id=document.querySelector('.page.active').id; if(id==='cards-page')await saveCards(); else if(id==='fate-page')await saveFateCards(); else if(id==='texts-page')await saveTexts(); else if(id==='config-page')await saveRuntimeConfig(); else alert('当前页面没有单独保存动作。')}; }
 
 async function boot(){await Promise.all([loadCards(),loadImages(),loadFateCards(),loadTexts(),loadRuntimeConfig()]); renderPreview(); renderFatePreview(); if(document.querySelector('#stats-page.active')) loadStats();}
 bindEvents(); boot();

@@ -46,8 +46,9 @@
       .rarity-1{background:linear-gradient(90deg,var(--r1),#ffffff);color:var(--r1)} .rarity-2{background:linear-gradient(90deg,var(--r2),#d8f1ff);color:var(--r2)} .rarity-3{background:linear-gradient(90deg,var(--r3),#f0d6ff);color:var(--r3)} .rarity-4{background:linear-gradient(90deg,var(--r4),#fff1bc);color:var(--r4)} .rarity-5{background:linear-gradient(90deg,var(--r5),#ffc1d1);color:var(--r5)}
       .card-image{height:300px;background:#141926;display:flex;align-items:center;justify-content:center;position:relative}.card-image img{width:100%;height:100%;object-fit:cover;display:block}.image-missing{padding:18px;text-align:center;color:var(--muted);line-height:1.7}
       .card-body{padding:14px 16px 16px;position:relative}.card-title{margin:0 0 8px;font-size:16px;color:#fff5dd;line-height:1.45}.card-desc{color:var(--muted);font-size:13px;line-height:1.7;min-height:46px}.meta{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.pill,.tag-chip,.status-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;border:1px solid rgba(255,255,255,.08)} .pill{background:rgba(255,255,255,.05);color:var(--muted)} .tag-chip{background:rgba(179,136,255,.12);color:#ecdfff;border-color:rgba(179,136,255,.2)} .status-badge{background:rgba(255,140,66,.18);color:#ffd5a3;border-color:rgba(255,140,66,.3)}
-      .card-mini-actions{position:absolute;right:14px;bottom:14px;display:flex;gap:6px}.card-mini-actions .small-btn{padding:6px 10px;font-size:12px;border-radius:10px}
-      .incomplete-glow{box-shadow:0 0 0 1px rgba(255,96,96,.72),0 0 26px rgba(255,82,82,.22)}
+      .card-mini-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.card-mini-actions .small-btn{padding:6px 10px;font-size:12px;border-radius:10px}
+        .range-status-chip{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:24px;padding:0 8px;border-radius:8px;font-size:11px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#d7e0fb}
+        .range-card{border-left:4px solid var(--range-accent,#8ea0ff)}
       .compact-help{padding:10px 12px;font-size:12px;line-height:1.55;margin-top:10px}
     .attack{color:#ffc8c8;background:rgba(255,123,123,.12)} .heal{color:#c7ffe0;background:rgba(114,226,161,.12)} .defense{color:#d3e8ff;background:rgba(110,197,255,.12)}
     .empty{padding:38px 16px;text-align:center;color:var(--muted);border:1px dashed rgba(255,255,255,.1);border-radius:18px;background:rgba(255,255,255,.02)}
@@ -123,26 +124,32 @@
     </section>
 
     <section class="page" id="texts-page">
-      <div class="split-two">
-                  <div class="panel"><h3 class="sub-title">✅ 宜做事项</h3><div class="toolbar"><button class="btn" id="btn-add-good">新增一条</button><button class="btn-ghost" id="btn-batch-good">批量导入</button><button class="btn-danger" id="btn-batch-del-good">批量删除</button><button class="btn-ghost" id="btn-undo-good">撤销删除</button></div><div id="good-list"></div></div>
-                  <div class="panel"><h3 class="sub-title">❌ 忌做事项</h3><div class="toolbar"><button class="btn" id="btn-add-bad">新增一条</button><button class="btn-ghost" id="btn-batch-bad">批量导入</button><button class="btn-danger" id="btn-batch-del-bad">批量删除</button><button class="btn-ghost" id="btn-undo-bad">撤销删除</button></div><div id="bad-list"></div></div>
-                </div>
-      <div style="height:18px"></div>
-              <div class="panel">
-          <h3 class="sub-title">🗣️ 运势区间配置</h3>
-          <div class="help-box">左侧彩条表示 1~100 运势刻度。每个区间都可以配置：分数范围、金币增减、评语列表。<br>未配置完整的区间会显示灰色，且无法保存。</div>
-          <div style="display:grid;grid-template-columns:140px 1fr;gap:16px;align-items:start">
-                <div>
-                  <div id="luck-range-scale-wrap" style="position:relative;height:560px;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 10px 30px rgba(0,0,0,.18);overflow:hidden;padding:14px">
-                    <canvas id="luck-range-scale-canvas" style="width:100%;height:100%;display:block;cursor:crosshair"></canvas>
-                    <div id="luck-range-hover" style="position:absolute;display:none;pointer-events:none;padding:6px 10px;border-radius:12px;background:rgba(12,16,24,.92);border:1px solid rgba(255,255,255,.12);font-size:12px;color:#fff6df;transform:translate(12px,-50%)"></div>
-                  </div>
-                </div>
-                <div><div class="toolbar"><button class="btn-ghost" id="btn-preview-signin">签到效果预览</button></div><div class="help-box" id="signin-preview-box" style="margin-bottom:12px">点击“签到效果预览”，这里会随机生成一条完整签到效果。</div><div id="luck-ranges-editor"></div></div>
-              </div>
-              <div style="height:12px"></div><div class="toolbar"><button class="btn-ghost" id="btn-add-range">新增区间</button><button class="btn" id="btn-save-texts">保存签到文案</button></div>
+        <div class="panel">
+          <h3 class="sub-title">🔮 签到效果预览</h3>
+          <div class="toolbar"><button class="btn-ghost" id="btn-preview-signin">随机生成一条</button></div>
+          <div class="help-box" id="signin-preview-box">点击按钮后，这里会生成一条完整签到效果预览。</div>
         </div>
-    </section>
+        <div style="height:18px"></div>
+        <div class="split-two">
+                    <div class="panel"><h3 class="sub-title">✅ 宜做事项</h3><div class="toolbar"><button class="btn" id="btn-add-good">新增一条</button><button class="btn-ghost" id="btn-batch-good">批量导入</button><button class="btn-danger" id="btn-batch-del-good">批量删除</button><button class="btn-ghost" id="btn-undo-good">撤销删除</button></div><div id="good-list"></div></div>
+                    <div class="panel"><h3 class="sub-title">❌ 忌做事项</h3><div class="toolbar"><button class="btn" id="btn-add-bad">新增一条</button><button class="btn-ghost" id="btn-batch-bad">批量导入</button><button class="btn-danger" id="btn-batch-del-bad">批量删除</button><button class="btn-ghost" id="btn-undo-bad">撤销删除</button></div><div id="bad-list"></div></div>
+                  </div>
+        <div style="height:18px"></div>
+                <div class="panel">
+            <h3 class="sub-title">🗣️ 运势区间配置</h3>
+            <div class="help-box">左侧彩条只负责可视化选区与拖拽调节。右侧负责名称、金币与文案配置。保存时会自动拦截重叠与断档。</div>
+            <div style="display:grid;grid-template-columns:140px 1fr;gap:16px;align-items:start">
+              <div>
+                <div id="luck-range-scale-wrap" style="position:relative;height:560px;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,.01));box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 12px 28px rgba(0,0,0,.12);overflow:hidden;padding:14px">
+                  <canvas id="luck-range-scale-canvas" style="width:100%;height:100%;display:block;cursor:crosshair"></canvas>
+                  <div id="luck-range-hover" style="position:absolute;display:none;pointer-events:none;padding:6px 10px;border-radius:12px;background:rgba(12,16,24,.9);border:1px solid rgba(255,255,255,.10);font-size:12px;color:#fff6df;transform:translate(12px,-50%)"></div>
+                </div>
+              </div>
+              <div id="luck-ranges-editor"></div>
+            </div>
+            <div style="height:12px"></div><div class="toolbar"><button class="btn-ghost" id="btn-add-range">新增区间</button><button class="btn" id="btn-save-texts">保存签到文案</button></div>
+          </div>
+      </section>
 
     <section class="page" id="config-page">
           <div class="panel">
@@ -236,7 +243,7 @@
 </div><div><h3 class="sub-title">🔮 实时预览</h3><div class="preview-box" id="fate-preview-box"></div></div></div></div></div>
 
 <script>
-const state={cards:[],images:[],fateCards:[],fateImages:[],signTexts:{good_things:[],bad_things:[],luck_comments:{"91_100":[],"71_90":[],"51_70":[],"1_50":[]},luck_ranges:[]},selectedCardIndex:-1,selectedFateIndex:-1,currentTags:[],stats:{total_users:0,card_holders:{}},selectedCardNames:new Set(),selectedFateIdx:new Set(),runtimeConfig:null,cardBatchMode:false,fateBatchMode:false,luckScale:{hoverScore:null,startScore:null,endScore:null,dragging:false,canvasBound:false,rangeRects:[]}};
+const state={cards:[],images:[],fateCards:[],fateImages:[],signTexts:{good_things:[],bad_things:[],luck_comments:{"91_100":[],"71_90":[],"51_70":[],"1_50":[]},luck_ranges:[]},selectedCardIndex:-1,selectedFateIndex:-1,currentTags:[],stats:{total_users:0,card_holders:{}},selectedCardNames:new Set(),selectedFateIdx:new Set(),runtimeConfig:null,cardBatchMode:false,fateBatchMode:false,luckScale:{hoverScore:null,startScore:null,endScore:null,dragging:false,resizeIdx:null,resizeEdge:null,canvasBound:false,rangeRects:[]}};
 const pageMeta={"cards-page":["功能牌管理","管理功能牌卡池、图片、词条与稀有度。"],"fate-page":["命运牌管理","管理命运牌卡池，配置图片、文案与数值。"],"texts-page":["签到文案","编辑签到宜做、忌做和运势评语。"],"config-page":["系统配置","这里只放小参数微调。功能开关、端口等基础项请在 AstrBot 面板里修改。"],"stats-page":["概率分析","图表查看卡池分布与玩家持牌情况。"]};
 const tagDefs={
  attack:[
@@ -305,7 +312,7 @@ function renderCards(){
 
     const selected=state.selectedCardNames.has(c.card_name||'');
     const glow=state.cardBatchMode&&selected?'box-shadow:0 0 0 2px rgba(255,90,90,.9),0 0 28px rgba(255,80,80,.45);border-color:rgba(255,90,90,.85);':'';
-    const incomplete=isCardIncomplete(c); const cardGlow=(incomplete?`box-shadow:0 0 0 1px rgba(255,96,96,.72),0 0 26px rgba(255,82,82,.22);`:``)+(glow||''); return `<div class="card-item ${incomplete?'incomplete-glow':''}" data-name="${esc(c.card_name)}" style="${cardGlow}"><div class="rarity-bar ${rarityClass(c.rarity)}"></div><div class="card-image">${c.filename&&state.images.includes(c.filename)?`<img src="/assets/${encodeURIComponent(c.filename)}">`:`<div class="image-missing">${c.filename?`图片缺失<br><small>${esc(c.filename)}</small>`:'未设置图片'}</div>`}</div><div class="card-body"><h3 class="card-title" style="margin:0 0 8px">${esc(c.card_name||'未命名功能牌')}</h3><div class="meta"><span class="pill ${esc(c.type)}">${typeLabel(c.type)}</span><span class="pill">稀有度 ${Number(c.rarity)||1}</span>${incomplete?'<span class="status-badge">待配置</span>':''}</div><div class="card-desc">${esc(c.description||'暂无描述')}</div><div class="meta" style="padding-right:72px">${(c.tags||[]).slice(0,3).map(t=>`<span class="tag-chip">${esc(parseTagToChinese(t))}</span>`).join('')}</div><div class="card-mini-actions"><button class="small-btn" onclick="event.stopPropagation();copyCardByName('${esc(c.card_name||'')}')" style="color:#c7ffe0;border-color:rgba(114,226,161,.22)">复制</button><button class="small-btn" onclick="event.stopPropagation();deleteCardByName('${esc(c.card_name||'')}')" style="color:#ffd2d2;border-color:rgba(255,123,123,.25)">删除</button></div></div></div>`;
+    const incomplete=isCardIncomplete(c); const cardGlow=(incomplete?`box-shadow:0 0 0 1px rgba(255,96,96,.72),0 0 26px rgba(255,82,82,.22);`:``)+(glow||''); return `<div class="card-item ${incomplete?'incomplete-glow':''}" data-name="${esc(c.card_name)}" style="${cardGlow}"><div class="rarity-bar ${rarityClass(c.rarity)}"></div><div class="card-image">${c.filename&&state.images.includes(c.filename)?`<img src="/assets/${encodeURIComponent(c.filename)}">`:`<div class="image-missing">${c.filename?`图片缺失<br><small>${esc(c.filename)}</small>`:'未设置图片'}</div>`}</div><div class="card-body"><h3 class="card-title" style="margin:0 0 8px">${esc(c.card_name||'未命名功能牌')}</h3><div class="meta"><span class="pill ${esc(c.type)}">${typeLabel(c.type)}</span><span class="pill">稀有度 ${Number(c.rarity)||1}</span>${incomplete?'<span class="status-badge">待配置</span>':''}</div><div class="card-desc">${esc(c.description||'暂无描述')}</div><div class="meta">${(c.tags||[]).slice(0,3).map(t=>`<span class="tag-chip">${esc(parseTagToChinese(t))}</span>`).join('')}</div><div class="card-mini-actions"><button class="small-btn" onclick="event.stopPropagation();copyCardByName('${esc(c.card_name||'')}')" style="color:#c7ffe0;border-color:rgba(114,226,161,.22)">复制</button><button class="small-btn" onclick="event.stopPropagation();deleteCardByName('${esc(c.card_name||'')}')" style="color:#ffd2d2;border-color:rgba(255,123,123,.25)">删除</button></div></div></div>`;
   }).join(''):'<div class="empty">当前没有功能牌，点击右上角新增。</div>';
   qsa('#cards-grid .card-item').forEach(el=>el.onclick=()=>{const idx=state.cards.findIndex(c=>c.card_name===el.dataset.name); if(state.cardBatchMode){ toggleCardSelect(el.dataset.name); } else { openCardModal(idx); }});
   renderCardsPie();
@@ -316,7 +323,7 @@ function deleteCardByName(name){ const idx=state.cards.findIndex(c=>(c.card_name
 window.toggleCardSelect=toggleCardSelect; window.copyCardByName=copyCardByName; window.deleteCardByName=deleteCardByName;
 function renderCardsPie(){const count={attack:0,heal:0,defense:0,other:0};state.cards.forEach(c=>count[count[c.type]!==undefined?c.type:'other']++);qs('#cards-overview-legend').innerHTML=`<span><i style="background:#ff7b7b"></i>攻击 ${count.attack}</span><span><i style="background:#72e2a1"></i>治疗 ${count.heal}</span><span><i style="background:#6ec5ff"></i>防御 ${count.defense}</span><span><i style="background:#b388ff"></i>其他 ${count.other}</span>`; if(window._cardsTypeChart)window._cardsTypeChart.destroy(); window._cardsTypeChart=new Chart(qs('#chart-cards-type'),{type:'doughnut',data:{labels:['攻击','治疗','防御','其他'],datasets:[{data:[count.attack,count.heal,count.defense,count.other],backgroundColor:['#ff7b7b','#72e2a1','#6ec5ff','#b388ff'],borderWidth:0}]},options:{plugins:{legend:{display:false}},cutout:'62%'}})}
 
-function renderFateCards(){const kw=qs('#fate-search').value.trim().toLowerCase();const indexed=state.fateCards.map((c,i)=>({c,i})).sort((a,b)=>Number(isFateIncomplete(b.c))-Number(isFateIncomplete(a.c)));const list=indexed.filter(({c})=>!kw||JSON.stringify(c).toLowerCase().includes(kw));qs('#btn-delete-selected-fate').style.display=state.fateBatchMode?'none':''; qs('#btn-batch-delete-fate').style.display=state.fateBatchMode?'':'none'; qs('#btn-batch-copy-fate').style.display=state.fateBatchMode?'':'none'; qs('#btn-batch-cancel-fate').style.display=state.fateBatchMode?'':'none'; qs('#fate-grid').innerHTML=list.length?list.map(({c,i})=>{const selected=state.selectedFateIdx.has(i); const glow=state.fateBatchMode&&selected?'box-shadow:0 0 0 2px rgba(255,90,90,.9),0 0 28px rgba(255,80,80,.45);border-color:rgba(255,90,90,.85);':''; return `<div class="card-item" data-idx="${i}" style="${glow}"><div class="rarity-bar rarity-3"></div><div class="card-image">${c.filename&&state.fateImages.includes(c.filename)?`<img src="/fate_assets/${encodeURIComponent(c.filename)}">`:`<div class="image-missing">${c.filename?`图片缺失<br><small>${esc(c.filename)}</small>`:'未设置图片'}</div>`}${isFateIncomplete(c)?'<span class="status-badge">待配置</span>':''}</div><div class="card-body"><h3 class="card-title" style="margin:0 0 8px">${esc(c.text||'待填写命运牌文案')}</h3><div class="meta"><span class="pill">value ${c.value??0}</span></div><div class="card-desc">文件：${esc(c.filename||'无')}</div><div class="toolbar" style="margin-top:10px;margin-bottom:0"><button class="small-btn" onclick="event.stopPropagation();copyFateByIndex(${i})" style="color:#c7ffe0;border-color:rgba(114,226,161,.22)">复制</button><button class="small-btn" onclick="event.stopPropagation();deleteFateByIndex(${i})" style="color:#ffd2d2;border-color:rgba(255,123,123,.25)">删除</button></div></div></div>`;}).join(''):'<div class="empty">当前没有命运牌，上传图片可自动建卡。</div>';qsa('#fate-grid .card-item').forEach(el=>el.onclick=()=>{const idx=Number(el.dataset.idx); if(state.fateBatchMode){ toggleFateSelect(idx); } else { openFateModal(idx); }})}
+function renderFateCards(){const kw=qs('#fate-search').value.trim().toLowerCase();const indexed=state.fateCards.map((c,i)=>({c,i})).sort((a,b)=>Number(isFateIncomplete(b.c))-Number(isFateIncomplete(a.c)));const list=indexed.filter(({c})=>!kw||JSON.stringify(c).toLowerCase().includes(kw));qs('#btn-delete-selected-fate').style.display=state.fateBatchMode?'none':''; qs('#btn-batch-delete-fate').style.display=state.fateBatchMode?'':'none'; qs('#btn-batch-copy-fate').style.display=state.fateBatchMode?'':'none'; qs('#btn-batch-cancel-fate').style.display=state.fateBatchMode?'':'none'; qs('#fate-grid').innerHTML=list.length?list.map(({c,i})=>{const selected=state.selectedFateIdx.has(i); const glow=state.fateBatchMode&&selected?'box-shadow:0 0 0 2px rgba(255,90,90,.9),0 0 28px rgba(255,80,80,.45);border-color:rgba(255,90,90,.85);':''; const incomplete=isFateIncomplete(c); return `<div class="card-item" data-idx="${i}" style="${glow}"><div class="rarity-bar rarity-3"></div><div class="card-image">${c.filename&&state.fateImages.includes(c.filename)?`<img src="/fate_assets/${encodeURIComponent(c.filename)}">`:`<div class="image-missing">${c.filename?`图片缺失<br><small>${esc(c.filename)}</small>`:'未设置图片'}</div>`}</div><div class="card-body"><h3 class="card-title" style="margin:0 0 8px">${esc(c.text||'待填写命运牌文案')}</h3><div class="meta"><span class="pill">value ${c.value??0}</span></div><div class="card-desc">文件：${esc(c.filename||'无')}</div><div class="card-mini-actions"><button class="small-btn" onclick="event.stopPropagation();copyFateByIndex(${i})" style="color:#c7ffe0;border-color:rgba(114,226,161,.22)">复制</button><button class="small-btn" onclick="event.stopPropagation();deleteFateByIndex(${i})" style="color:#ffd2d2;border-color:rgba(255,123,123,.25)">删除</button>${incomplete?'<button class="small-btn" style="color:#ffd5a3;border-color:rgba(255,140,66,.3)">待配置</button>':''}</div></div></div>`;}).join(''):'<div class="empty">当前没有命运牌，上传图片可自动建卡。</div>';qsa('#fate-grid .card-item').forEach(el=>el.onclick=()=>{const idx=Number(el.dataset.idx); if(state.fateBatchMode){ toggleFateSelect(idx); } else { openFateModal(idx); }})}
 function toggleFateSelect(i){ if(state.selectedFateIdx.has(i)) state.selectedFateIdx.delete(i); else state.selectedFateIdx.add(i); renderFateCards(); }
 function copyFateByIndex(i){ const base=state.fateCards[i]; if(!base) return; const copied=JSON.parse(JSON.stringify(base)); state.fateCards.unshift(copied); renderFateCards(); saveFateCards(); }
 function deleteFateByIndex(i){ const base=state.fateCards[i]; if(!base) return; if(!confirm('确定删除这张命运牌吗？')) return; state.fateCards.splice(i,1); renderFateCards(); saveFateCards(); }
@@ -365,181 +372,106 @@ function _ensureLuckScaleCanvasEvents(){
   const wrap=qs('#luck-range-scale-wrap');
   const tip=qs('#luck-range-hover');
   if(!canvas||!wrap||state.luckScale.canvasBound) return;
-  const hitExistingRange=(x,y)=>{
-    return (state.luckScale.rangeRects||[]).find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);
+  const findHit=(x,y)=> (state.luckScale.rangeRects||[]).find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);
+  const clampNewRange=(a,b)=>{
+    let min=Math.min(a,b), max=Math.max(a,b);
+    const all=(state.signTexts.luck_ranges||[]).map(r=>({min:Number(r.min),max:Number(r.max)})).sort((x,y)=>x.min-y.min);
+    for(const r of all){
+      if(max<r.min||min>r.max) continue;
+      if(min>=r.min&&min<=r.max) min=r.max+1;
+      if(max>=r.min&&max<=r.max) max=r.min-1;
+    }
+    min=Math.max(1,min); max=Math.min(100,max);
+    return min<=max?{min,max}:null;
+  };
+  const clampResize=(idx,edge,score)=>{
+    const list=state.signTexts.luck_ranges||[];
+    const cur=list[idx]; if(!cur) return score;
+    const sorted=list.map((r,i)=>({i,min:Number(r.min),max:Number(r.max)})).sort((a,b)=>a.min-b.min);
+    const pos=sorted.findIndex(x=>x.i===idx);
+    const prev=pos>0?sorted[pos-1]:null;
+    const next=pos<sorted.length-1?sorted[pos+1]:null;
+    if(edge==='min') return Math.max(prev?prev.max+1:1, Math.min(Number(cur.max), score));
+    return Math.min(next?next.min-1:100, Math.max(Number(cur.min), score));
   };
   canvas.addEventListener('mousemove',(ev)=>{
     const rect=canvas.getBoundingClientRect();
-    const x=ev.clientX-rect.left;
-    const y=ev.clientY-rect.top;
+    const x=ev.clientX-rect.left, y=ev.clientY-rect.top;
     const score=_yToScore(y,rect.height);
     state.luckScale.hoverScore=score;
-    const hit=hitExistingRange(x,y);
+    const hit=findHit(x,y);
     tip.style.display='block';
     tip.style.left=`${Math.min(rect.width-42, x)}px`;
     tip.style.top=`${Math.max(16, Math.min(rect.height-16, y))}px`;
-    if(hit){
-      tip.textContent=`${hit.min} ~ ${hit.max} · 点我编辑`;
-    }else if(state.luckScale.dragging&&state.luckScale.startScore!=null){
-      tip.textContent=`创建区间：${Math.min(state.luckScale.startScore,score)} ~ ${Math.max(state.luckScale.startScore,score)}`;
-      state.luckScale.endScore=score;
-    }else{
+    if(state.luckScale.dragging&&state.luckScale.resizeIdx!=null){
+      const idx=state.luckScale.resizeIdx; const edge=state.luckScale.resizeEdge; const nextScore=clampResize(idx,edge,score);
+      state.signTexts.luck_ranges[idx][edge]=nextScore;
+      tip.textContent=`${Number(state.signTexts.luck_ranges[idx].min)} ~ ${Number(state.signTexts.luck_ranges[idx].max)}`;
+    } else if(state.luckScale.dragging&&state.luckScale.startScore!=null){
+      const snapped=clampNewRange(state.luckScale.startScore,score);
+      if(snapped){state.luckScale.endScore=snapped.max>=state.luckScale.startScore?snapped.max:snapped.min; tip.textContent=`创建区间：${snapped.min} ~ ${snapped.max}`;} else tip.textContent='这里无法创建';
+    } else if(hit){
+      tip.textContent=`${hit.min} ~ ${hit.max}`;
+    } else {
       tip.textContent=`运势 ${score}`;
     }
     renderLuckRangeScale();
   });
-  canvas.addEventListener('mouseleave',()=>{state.luckScale.hoverScore=null; tip.style.display='none'; if(!state.luckScale.dragging){state.luckScale.endScore=null;} renderLuckRangeScale();});
+  canvas.addEventListener('mouseleave',()=>{state.luckScale.hoverScore=null; tip.style.display='none'; if(!state.luckScale.dragging&&state.luckScale.resizeIdx==null) state.luckScale.endScore=null; renderLuckRangeScale();});
   canvas.addEventListener('mousedown',(ev)=>{
     const rect=canvas.getBoundingClientRect();
-    const x=ev.clientX-rect.left;
-    const y=ev.clientY-rect.top;
-    const hit=hitExistingRange(x,y);
-    if(hit){ focusLuckRange(hit.idx); return; }
-    state.luckScale.dragging=true;
-    state.luckScale.startScore=_yToScore(y,rect.height);
-    state.luckScale.endScore=state.luckScale.startScore;
-    renderLuckRangeScale();
+    const x=ev.clientX-rect.left, y=ev.clientY-rect.top;
+    const hit=findHit(x,y);
+    if(hit){
+      const edgeTop=Math.abs(y-hit.y)<8, edgeBottom=Math.abs(y-(hit.y+hit.h))<8;
+      if(edgeTop||edgeBottom){state.luckScale.dragging=true; state.luckScale.resizeIdx=hit.idx; state.luckScale.resizeEdge=edgeTop?'max':'min'; return;}
+      focusLuckRange(hit.idx); return;
+    }
+    state.luckScale.dragging=true; state.luckScale.resizeIdx=null; state.luckScale.resizeEdge=null; state.luckScale.startScore=_yToScore(y,rect.height); state.luckScale.endScore=state.luckScale.startScore; renderLuckRangeScale();
   });
   window.addEventListener('mouseup',(ev)=>{
     if(!state.luckScale.dragging) return;
     const rect=canvas.getBoundingClientRect();
     const y=Math.max(0,Math.min(rect.height,ev.clientY-rect.top));
-    state.luckScale.endScore=_yToScore(y,rect.height);
-    const min=Math.min(state.luckScale.startScore,state.luckScale.endScore);
-    const max=Math.max(state.luckScale.startScore,state.luckScale.endScore);
-    state.luckScale.dragging=false;
-    if(Math.abs(max-min)>=0){
-            (state.signTexts.luck_ranges||[]).forEach(r=>r._open=false);
-      state.signTexts.luck_ranges.push({label:'新气运',min,max,gold_delta:0,comments:[''],_open:true,_preview:''});
-
-      state.luckScale.startScore=null;
-      state.luckScale.endScore=null;
-      renderTexts();
-      setTimeout(()=>qs(`#luck-range-card-${state.signTexts.luck_ranges.length-1}`)?.scrollIntoView({behavior:'smooth',block:'nearest'}),30);
-      return;
+    const score=_yToScore(y,rect.height);
+    if(state.luckScale.resizeIdx!=null){
+      const idx=state.luckScale.resizeIdx, edge=state.luckScale.resizeEdge; state.signTexts.luck_ranges[idx][edge]=clampResize(idx,edge,score); state.luckScale.dragging=false; state.luckScale.resizeIdx=null; state.luckScale.resizeEdge=null; renderTexts(); return;
     }
-    state.luckScale.startScore=null;
-    state.luckScale.endScore=null;
-    renderLuckRangeScale();
+    const snapped=clampNewRange(state.luckScale.startScore,score); state.luckScale.dragging=false;
+    if(snapped&&Math.abs(snapped.max-snapped.min)>=1){(state.signTexts.luck_ranges||[]).forEach(r=>r._open=false); state.signTexts.luck_ranges.push({label:'新气运',min:snapped.min,max:snapped.max,gold_delta:0,comments:[''],_open:true,_preview:''}); state.luckScale.startScore=null; state.luckScale.endScore=null; renderTexts(); return;}
+    state.luckScale.startScore=null; state.luckScale.endScore=null; renderLuckRangeScale();
   });
   state.luckScale.canvasBound=true;
 }
 function renderLuckRangeScale(){
-  const canvas=qs('#luck-range-scale-canvas');
-  const wrap=qs('#luck-range-scale-wrap');
-  if(!canvas||!wrap) return;
-  const dpr=window.devicePixelRatio||1;
-  const w=Math.max(80,wrap.clientWidth-28), h=Math.max(240,wrap.clientHeight-28);
-  canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr); canvas.style.width=w+'px'; canvas.style.height=h+'px';
-  const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
-  _ensureLuckScaleCanvasEvents();
-
-  const segments=[
-    {min:91,max:100,color:'#ff7aa8',glow:'rgba(255,122,168,.30)',label:'天命'},
-    {min:71,max:90,color:'#ffb65e',glow:'rgba(255,182,94,.26)',label:'大吉'},
-    {min:51,max:70,color:'#6fd6b2',glow:'rgba(111,214,178,.24)',label:'小吉'},
-    {min:1,max:50,color:'#7f9cff',glow:'rgba(127,156,255,.24)',label:'平运'}
-  ];
-  const segColor=(score)=>segments.find(s=>score>=s.min&&score<=s.max)?.color||'#cfd7ff';
-  const centerX=Math.floor(w*0.58);
-  const hover=state.luckScale.hoverScore;
-  const selectedA=state.luckScale.startScore;
-  const selectedB=state.luckScale.endScore;
-  const tempMin=selectedA!=null&&selectedB!=null?Math.min(selectedA,selectedB):selectedA!=null&&hover!=null?Math.min(selectedA,hover):null;
-  const tempMax=selectedA!=null&&selectedB!=null?Math.max(selectedA,selectedB):selectedA!=null&&hover!=null?Math.max(selectedA,hover):null;
-  state.luckScale.rangeRects=[];
-
-  segments.forEach(seg=>{
-    const y1=_scoreToY(seg.max,h), y2=_scoreToY(seg.min,h);
-    const rg=ctx.createLinearGradient(0,y1,0,y2);
-    rg.addColorStop(0,seg.glow);
-    rg.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=rg;
-    ctx.fillRect(centerX-56,y1,22,Math.max(16,y2-y1));
-    ctx.fillStyle='rgba(255,255,255,.52)';
-    ctx.font='11px Segoe UI';
-    ctx.fillText(seg.label, 8, y1+14);
-  });
-
-  for(let score=1; score<=100; score++){
-    const y=_scoreToY(score,h);
-    const dist=hover==null?999:Math.abs(score-hover);
-    const amp=hover==null?0:Math.max(0,1-dist/7);
-    const major=score%10===0;
-    const mid=score%5===0;
-    const len=(major?34:mid?24:14)+amp*34;
-    const lw=(major?2.3:mid?1.6:1)+(amp*2.8);
-    ctx.beginPath();
-    ctx.strokeStyle=segColor(score);
-    ctx.lineWidth=lw;
-    ctx.lineCap='round';
-    ctx.shadowColor=amp>0.02?segColor(score):'transparent';
-    ctx.shadowBlur=amp*14;
-    ctx.moveTo(centerX-len,y);
-    ctx.lineTo(centerX+len*0.2,y);
-    ctx.stroke();
-    ctx.shadowBlur=0;
-    if(major||score===hover){
-      ctx.fillStyle=score===hover?'#fff8e8':'rgba(255,248,232,.76)';
-      ctx.font=score===hover?'bold 12px Segoe UI':'12px Segoe UI';
-      ctx.fillText(String(score), centerX-len-28, y+4);
+    const canvas=qs('#luck-range-scale-canvas');
+    const wrap=qs('#luck-range-scale-wrap');
+    if(!canvas||!wrap) return;
+    const dpr=window.devicePixelRatio||1;
+    const w=Math.max(80,wrap.clientWidth-28), h=Math.max(240,wrap.clientHeight-28);
+    canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr); canvas.style.width=w+'px'; canvas.style.height=h+'px';
+    const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+    _ensureLuckScaleCanvasEvents();
+    const palette=['#8ea0ff','#79cabd','#ffbf80','#f4a3bb','#a998ff','#7dbdff'];
+    const centerX=Math.floor(w*0.58);
+    const hover=state.luckScale.hoverScore, selectedA=state.luckScale.startScore, selectedB=state.luckScale.endScore;
+    const tempMin=selectedA!=null&&selectedB!=null?Math.min(selectedA,selectedB):selectedA!=null&&hover!=null?Math.min(selectedA,hover):null;
+    const tempMax=selectedA!=null&&selectedB!=null?Math.max(selectedA,selectedB):selectedA!=null&&hover!=null?Math.max(selectedA,hover):null;
+    const sorted=[...(state.signTexts.luck_ranges||[])].sort((a,b)=>Number(a.min||0)-Number(b.min||0));
+    const segColor=(score)=>{const idx=sorted.findIndex(r=>score>=Number(r.min||0)&&score<=Number(r.max||0)); return idx>=0?(sorted[idx]._color||palette[idx%palette.length]):'rgba(210,220,255,.62)'};
+    state.luckScale.rangeRects=[];
+    for(let score=1; score<=100; score++){
+      const y=_scoreToY(score,h); const dist=hover==null?999:Math.abs(score-hover); const amp=Math.max(0,1-dist/3);
+      const major=score%10===0; const len=(major?24:14)+amp*12; const lw=(major?1.6:1)+amp*1.2;
+      ctx.beginPath(); ctx.strokeStyle=segColor(score); ctx.lineWidth=lw; ctx.lineCap='round'; ctx.moveTo(centerX-len,y); ctx.lineTo(centerX+10+amp*4,y); ctx.stroke();
+      if(score===hover||major){ctx.fillStyle=score===hover?'#fff8ea':'rgba(255,248,234,.58)'; ctx.font=score===hover?'bold 12px Segoe UI':'12px Segoe UI'; ctx.fillText(String(score), centerX-len-24, y+4);}
     }
+    if(tempMin!=null&&tempMax!=null){const y1=_scoreToY(tempMax,h), y2=_scoreToY(tempMin,h); ctx.fillStyle='rgba(255,255,255,.08)'; ctx.strokeStyle='rgba(255,255,255,.26)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.roundRect(centerX-28,y1,56,Math.max(10,y2-y1),14); ctx.fill(); ctx.stroke();}
+    sorted.forEach((r,displayIdx)=>{const idx=(state.signTexts.luck_ranges||[]).indexOf(r); const min=Number(r.min||1), max=Number(r.max||1), active=!!r._open; const color=r._color||palette[displayIdx%palette.length]; const y1=_scoreToY(max,h), y2=_scoreToY(min,h), rh=Math.max(12,y2-y1), rx=centerX-32, ry=y1, rw=64; r._color=color; ctx.fillStyle=active?'rgba(20,24,34,.84)':'rgba(16,20,28,.64)'; ctx.strokeStyle=color; ctx.lineWidth=active?2:1.2; ctx.beginPath(); ctx.roundRect(rx,ry,rw,rh,14); ctx.fill(); ctx.stroke(); ctx.fillStyle=color; ctx.fillRect(rx+2,ry+2,4,Math.max(8,rh-4)); state.luckScale.rangeRects.push({x:rx,y:ry,w:rw,h:rh,idx,min,max});});
   }
-
-  if(tempMin!=null&&tempMax!=null){
-    const y1=_scoreToY(tempMax,h), y2=_scoreToY(tempMin,h);
-    const cg=ctx.createLinearGradient(0,y1,0,y2);
-    cg.addColorStop(0,'rgba(255,233,154,.30)');
-    cg.addColorStop(1,'rgba(255,196,104,.12)');
-    ctx.fillStyle=cg;
-    ctx.strokeStyle='rgba(255,226,132,.95)';
-    ctx.lineWidth=2;
-    ctx.shadowColor='rgba(255,218,120,.42)';
-    ctx.shadowBlur=22;
-    ctx.beginPath();
-    ctx.roundRect(centerX-30,y1,60,Math.max(10,y2-y1),16);
-    ctx.fill();
-    ctx.stroke();
-    ctx.shadowBlur=0;
-  }
-
-  (state.signTexts.luck_ranges||[]).forEach((r,idx)=>{
-    const min=Number(r.min||1), max=Number(r.max||1), active=!!r._open;
-    const y1=_scoreToY(max,h), y2=_scoreToY(min,h);
-    const rh=Math.max(12,y2-y1);
-    const rx=centerX-36, ry=y1, rw=72;
-    const base=segColor(Math.round((min+max)/2));
-    ctx.fillStyle=active?'rgba(17,22,34,.82)':'rgba(16,20,30,.56)';
-    ctx.strokeStyle=active?base:'rgba(255,255,255,.24)';
-    ctx.lineWidth=active?2.2:1;
-    ctx.shadowColor=active?base:'transparent';
-    ctx.shadowBlur=active?16:0;
-    ctx.beginPath();
-    ctx.roundRect(rx,ry,rw,rh,14);
-    ctx.fill();
-    ctx.stroke();
-    ctx.shadowBlur=0;
-    const edge=ctx.createLinearGradient(rx,ry,rx+rw,ry);
-    edge.addColorStop(0,base);
-    edge.addColorStop(1,'rgba(255,255,255,.08)');
-    ctx.fillStyle=edge;
-    ctx.fillRect(rx+1,ry+1,4,Math.max(10,rh-2));
-    ctx.fillStyle='#fff7e8';
-    ctx.font=active?'bold 12px Segoe UI':'12px Segoe UI';
-    ctx.fillText(`${min}~${max}`, centerX-24, y1+16);
-    state.luckScale.rangeRects.push({x:rx,y:ry,w:rw,h:rh,idx,min,max});
-  });
-
-  if(selectedA!=null&&!state.luckScale.dragging){
-    const y=_scoreToY(selectedA,h);
-    ctx.beginPath();
-    ctx.fillStyle='rgba(255,227,143,.95)';
-    ctx.arc(centerX,y,5,0,Math.PI*2);
-    ctx.fill();
-  }
-}
-window.addEventListener('resize',()=>{ if(qs('#luck-range-scale-canvas')) renderLuckRangeScale(); });
-function renderLuckRangesEditor(){const root=qs('#luck-ranges-editor'); const list=state.signTexts.luck_ranges||[]; root.innerHTML=list.length?list.map((r,i)=>{const ok=isLuckRangeComplete(r); return `<div class="panel" id="luck-range-card-${i}" style="margin-bottom:12px;${ok?'':'opacity:.72;border:1px dashed rgba(255,255,255,.18)'}"><div class="toolbar" style="justify-content:space-between"><div><span class="pill">${esc(r.label||'未命名气运')}</span><span class="pill">运势 ${Number(r.min||0)} ~ ${Number(r.max||0)}</span><span class="pill">金币 ${Number(r.gold_delta||0)>=0?'+':''}${Number(r.gold_delta||0)}</span></div><div class="toolbar" style="margin-bottom:0"><button class="small-btn" onclick="toggleRangeEditor(${i})">${r._open?'收起':'编辑'}</button><button class="small-btn" onclick="previewRangeComment(${i})">随机预览</button><button class="small-btn" onclick="deleteLuckRange(${i})">删除</button></div></div><div class="help-box" style="margin-top:8px">${ok?'已配置完成':'未配置完整，保存时会拦截'}${r._preview?`<br>预览：${esc(r._preview)}`:''}</div>${r._open?`<div class="form-grid" style="margin-top:12px"><div class="field"><label>气运名称</label><input type="text" value="${esc(r.label||'')}" oninput="updateLuckRangeLabel(${i},this.value)" /></div><div class="field"><label>最小分数</label><input type="number" value="${Number(r.min||1)}" oninput="updateLuckRangeField(${i},'min',this.value)" /></div><div class="field"><label>最大分数</label><input type="number" value="${Number(r.max||100)}" oninput="updateLuckRangeField(${i},'max',this.value)" /></div><div class="field"><label>金币增减</label><input type="number" value="${Number(r.gold_delta||0)}" oninput="updateLuckRangeField(${i},'gold_delta',this.value)" /></div></div><div style="height:10px"></div><div>${(r.comments||[]).map((c,j)=>`<div style="display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:8px"><input value="${esc(c)}" oninput="updateLuckRangeComment(${i},${j},this.value)" /><button class="small-btn text-del-btn" onclick="removeLuckRangeComment(${i},${j})">删除</button></div>`).join('')||'<div class="empty">当前还没有评语</div>'}</div><div class="toolbar" style="margin-top:8px;margin-bottom:0"><button class="btn-ghost" onclick="addLuckRangeComment(${i})">新增评语</button></div>`:''}</div>`}).join(''):'<div class="empty">还没有配置运势区间。</div>'; renderLuckRangeScale()}
+  window.addEventListener('resize',()=>{ if(qs('#luck-range-scale-canvas')) renderLuckRangeScale(); });
+function getRangeAccent(r,i){const palette=['#8ea0ff','#79cabd','#ffbf80','#f4a3bb','#a998ff','#7dbdff']; return r._color||palette[i%palette.length]}
+  function renderLuckRangesEditor(){const root=qs('#luck-ranges-editor'); const list=state.signTexts.luck_ranges||[]; const scaleWrap=qs('#luck-range-scale-wrap'); if(scaleWrap){scaleWrap.style.height=`${Math.max(560, 180 + list.length*104)}px`;} root.innerHTML=list.length?list.map((r,i)=>{const ok=isLuckRangeComplete(r); const accent=getRangeAccent(r,i); r._color=accent; return `<div class="panel range-card" id="luck-range-card-${i}" style="--range-accent:${accent};margin-bottom:12px;${ok?'':'opacity:.78;border:1px dashed rgba(255,255,255,.14)'}"><div class="toolbar" style="justify-content:space-between"><div><span class="range-status-chip" style="border-color:${ok?'rgba(114,226,161,.25)':'rgba(255,181,121,.25)'};color:${ok?'#c9ffe4':'#ffd7b8'}">${ok?'已保存':'未保存'}</span><span class="pill" style="border-color:${accent}55">${esc(r.label||'未命名气运')}</span><span class="pill">${Number(r.min||0)} ~ ${Number(r.max||0)}</span><span class="pill">金币 ${Number(r.gold_delta||0)>=0?'+':''}${Number(r.gold_delta||0)}</span></div><div class="toolbar" style="margin-bottom:0"><button class="small-btn" onclick="toggleRangeEditor(${i})">${r._open?'收起':'编辑'}</button><button class="small-btn" onclick="deleteLuckRange(${i})">删除</button></div></div>${r._open?`<div class="form-grid" style="margin-top:12px"><div class="field"><label>气运名称</label><input type="text" value="${esc(r.label||'')}" oninput="updateLuckRangeLabel(${i},this.value)" /></div><div class="field"><label>金币增减</label><input type="number" value="${Number(r.gold_delta||0)}" oninput="updateLuckRangeField(${i},'gold_delta',this.value)" /></div></div><div style="height:10px"></div><div>${(r.comments||[]).map((c,j)=>`<div style="display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:8px"><input value="${esc(c)}" oninput="updateLuckRangeComment(${i},${j},this.value)" /><button class="small-btn text-del-btn" onclick="removeLuckRangeComment(${i},${j})">删除</button></div>`).join('')||'<div class="empty">当前还没有评语</div>'}</div><div class="toolbar" style="margin-top:8px;margin-bottom:0"><button class="btn-ghost" onclick="addLuckRangeComment(${i})">新增评语</button></div>`:''}</div>`}).join(''):'<div class="empty">还没有配置运势区间。</div>'; renderLuckRangeScale()}
 function renderTexts(){renderTextList('#good-list',state.signTexts.good_things);renderTextList('#bad-list',state.signTexts.bad_things);renderLuckRangesEditor()}
 function syncTexts(){state.signTexts.good_things=[...document.querySelectorAll('#good-list input[type="text"]')].map(i=>i.value.trim()).filter(Boolean);state.signTexts.bad_things=[...document.querySelectorAll('#bad-list input[type="text"]')].map(i=>i.value.trim()).filter(Boolean); state.signTexts.luck_ranges=(state.signTexts.luck_ranges||[]).map(r=>({...r, comments:(r.comments||[]).map(x=>String(x||'').trim()).filter(Boolean)}));}
 function parseBatchText(raw){

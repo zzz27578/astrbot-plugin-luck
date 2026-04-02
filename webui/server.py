@@ -13,8 +13,10 @@ from aiohttp import web
 ROOT_DIR = Path(__file__).parent.parent
 CONFIG_DIR = ROOT_DIR / "config"
 ASSETS_DIR = ROOT_DIR / "assets" / "func_cards"
-DATA_FILE = ROOT_DIR / "data" / "luck_data.json"
+DATA_DIR = ROOT_DIR / "data"
+DATA_FILE = DATA_DIR / "luck_data.json"
 FUNC_CARDS_FILE = CONFIG_DIR / "func_cards.json"
+# 命运牌属于本地私有数据：始终直接读取本地 config/cards_config.json
 FATE_CARDS_FILE = CONFIG_DIR / "cards_config.json"
 SIGN_IN_TEXTS_FILE = CONFIG_DIR / "sign_in_texts.json"
 RUNTIME_CONFIG_FILE = CONFIG_DIR / "webui_runtime_config.json"
@@ -84,7 +86,15 @@ def _deep_merge_dict(base: dict, override: dict) -> dict:
     return result
 
 
-def _default_runtime_config() -> dict:
+def _ensure_private_dirs():
+    """确保本地私有数据目录存在，避免 WebUI 因目录缺失读取异常。"""
+    for directory in (DATA_DIR, FATE_ASSETS_DIR, ASSETS_DIR):
+        directory.mkdir(parents=True, exist_ok=True)
+        gitkeep = directory / ".gitkeep"
+        if not gitkeep.exists():
+            gitkeep.touch()
+
+
     return {
         "webui_settings": {
             "enable": True,
@@ -342,6 +352,7 @@ def run_server_process(port: int):
 async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     global _runner, _site
 
+    _ensure_private_dirs()
     app = web.Application()
 
     # API 路由

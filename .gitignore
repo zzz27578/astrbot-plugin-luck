@@ -2,17 +2,20 @@
 __pycache__/
 *.py[cod]
 
-# Runtime data (private)
-data/*
+# Runtime data (private, never sync to repo)
+data/**
+!data/
 !data/.gitkeep
 
-# Private card assets (do not upload)
-assets/cards/*
+# Private card assets (never sync to repo)
+assets/cards/**
+!assets/cards/
 !assets/cards/.gitkeep
-assets/func_cards/*
+assets/func_cards/**
+!assets/func_cards/
 !assets/func_cards/.gitkeep
 
-# Optional private card pool config
+# Private local fate card pool (never sync to repo)
 config/cards_config.json
 
 # Local IDE files

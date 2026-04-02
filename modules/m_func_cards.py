@@ -10,6 +10,7 @@ from astrbot.api.message_components import Plain, Image, At
 from ..core.card_engine import CardEngine
 from ..core.dice_engine import DiceEngine
 from ..core.title_engine import TitleEngine
+from ..core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
 from ..core.logic_gate import (
     find_gate_block,
     format_gate_block_message,
@@ -93,9 +94,11 @@ def _apply_reroll_status(user_data: dict, hours: int = 24):
     })
 
 
+_STORAGE_PATHS = migrate_legacy_storage(PLUGIN_NAME)
+
 def load_func_cards_config(config: dict = None):
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "func_cards.json")
-    if not os.path.exists(config_path):
+    config_path = _STORAGE_PATHS["func_cards_file"]
+    if not config_path.exists():
         return []
 
     try:
@@ -931,7 +934,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
 
     cards_config = load_func_cards_config(config)
     if not cards_config:
-        yield event.plain_result("⚠️ 功能牌卡池为空或配置无效，请检查 config/func_cards.json。")
+        yield event.plain_result("⚠️ 功能牌卡池为空或配置无效，请检查功能牌池数据。")
         return
     eco_cfg = config.get("func_cards_settings", {}).get("economy_settings", {})
     draw_cost = eco_cfg.get("draw_cost", 20)

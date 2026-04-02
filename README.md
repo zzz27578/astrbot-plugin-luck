@@ -84,7 +84,102 @@
 
 ---
 
-## 三、关键配置说明
+## 三、文件结构与数据存储（重要）
+
+### 1) 插件目录（代码 / 模板区）
+
+以下内容位于插件目录内，主要用于：
+- 存放代码
+- 存放 WebUI
+- 存放默认模板
+- 跟随插件版本更新
+
+主要结构示意：
+
+```text README.md
+data/plugins/luck_rank/
+├─ main.py
+├─ metadata.yaml
+├─ requirements.txt
+├─ README.md
+├─ _conf_schema.json
+├─ core/
+├─ modules/
+├─ webui/
+└─ config/
+   └─ func_cards.json
+```
+
+说明：
+- `config/func_cards.json` 现在作为**默认功能牌模板**保留在仓库内。
+- 真实运行时使用的数据，会自动迁移到 AstrBot 官方隔离数据区。
+
+### 2) 官方隔离数据区（唯一真实数据源）
+
+本插件当前版本开始，真实数据统一使用 AstrBot 官方安全目录：
+
+```text README.md
+data/plugin_data/luck_rank/
+├─ luck_data.json
+├─ cards_config.json
+├─ func_cards.json
+├─ sign_in_texts.json
+├─ webui_runtime_config.json
+├─ cards/
+└─ func_cards/
+```
+
+含义如下：
+- `luck_data.json`：用户资产、背包、状态、战报等
+- `cards_config.json`：命运牌池数据
+- `func_cards.json`：功能牌池真实运行数据
+- `sign_in_texts.json`：签到文案与运势区间数据
+- `webui_runtime_config.json`：WebUI 小参数运行配置
+- `cards/`：命运牌图片
+- `func_cards/`：功能牌图片
+
+### 3) WebUI 当前读取规则
+
+WebUI 现在会直接读写官方隔离数据区，也就是：
+- WebUI 看到的是 `data/plugin_data/luck_rank/` 里的真实数据
+- WebUI 保存时修改的也是 `data/plugin_data/luck_rank/` 里的文件
+- 游戏运行时读取的也是这一份
+
+也就是说：
+**代码、WebUI、运行时逻辑，现在统一只认数据区这一份真实数据。**
+
+### 4) 旧版本数据如何处理
+
+为兼容旧版本，插件启动时会自动尝试把旧位置的数据复制到新的官方隔离目录。
+
+旧位置包括：
+- `data/luck_data.json`
+- `config/cards_config.json`
+- `config/func_cards.json`
+- `config/sign_in_texts.json`
+- `config/webui_runtime_config.json`
+- `assets/cards/`
+- `assets/func_cards/`
+
+迁移规则：
+- 如果新数据区里还没有对应文件，则自动复制旧数据过去
+- 一旦迁移完成，后续运行将以新数据区为准
+- 旧文件不会立刻强删，便于人工核对
+
+### 5) 为什么这样改
+
+这是为了符合 AstrBot 插件持久化存储规范：
+- 插件目录可能会被更新、覆盖、重装
+- `data/plugin_data/luck_rank/` 不会随着插件目录替换而一起被删
+
+因此从这一版开始：
+- 更新插件代码不会正常覆盖你的真实数据
+- WebUI 修改的数据也不会再和插件目录绑死
+- 后续重装/覆盖插件框架时，数据可以无缝衔接
+
+---
+
+## 四、关键配置说明
 
 ### 1) 配置文件分布
 
@@ -128,26 +223,32 @@
 
 ---
 
-## 六、隐私与开源发布注意事项（重要）
+## 七、隐私与开源发布注意事项（重要）
 
 你准备上传 GitHub 时，建议：
 
-- 不要提交 `data/luck_data.json`（包含用户ID、昵称、资产、战报）
-- 不要提交你私有卡面资源（`assets/cards/*`、`assets/func_cards/*`）
-- 不要提交你私有命运牌池配置（`config/cards_config.json`，如果里面含私货）
+- 不要提交 `data/plugin_data/luck_rank/luck_data.json`（包含用户ID、昵称、资产、战报）
+- 不要提交 `data/plugin_data/luck_rank/cards_config.json`（命运牌池真实本地数据）
+- 不要提交 `data/plugin_data/luck_rank/func_cards.json`（功能牌池真实本地数据）
+- 不要提交 `data/plugin_data/luck_rank/sign_in_texts.json`（本地签到文案数据）
+- 不要提交 `data/plugin_data/luck_rank/webui_runtime_config.json`（本地运行配置）
+- 不要提交 `data/plugin_data/luck_rank/cards/*`、`data/plugin_data/luck_rank/func_cards/*`（本地图片资源）
 
-本仓库已提供 `.gitignore`，默认会忽略以上私有内容，并保留 `.gitkeep` 目录占位。
+仓库中的 `config/func_cards.json` 仅作为默认模板参考，不再是唯一真实运行数据。
 
 ---
 
-## 七、用户数据结构与兼容性说明
+## 八、用户数据结构与兼容性说明
 
-- 用户数据主文件：`data/luck_data.json`
+- 当前唯一真实数据主目录：`data/plugin_data/luck_rank/`
+- 用户主档案文件：`data/plugin_data/luck_rank/luck_data.json`
 - 当前版本在原有字段基础上增加了新字段（如状态、卡槽、善恶值、对赌计数等）。
 - `LuckBank` 内置了迁移与兜底补齐逻辑：
   - 老数据可自动补字段；
   - 旧字段 `total_score / last_drawn_value` 会迁移到新字段；
-  - 战报自动保留最近 3 天。
+  - 战报自动保留最近 3 天；
+  - 旧插件目录内的数据会在首次启动时自动复制到官方隔离数据区。
 
 结论：
 - **数据结构确实扩展了**，但做了向后兼容，老档可平滑升级。
+- **从本版本开始，插件真实数据与插件代码目录正式分离。**

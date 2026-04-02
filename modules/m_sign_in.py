@@ -4,8 +4,9 @@ import os
 from datetime import datetime, timedelta
 from astrbot.api.event import AstrMessageEvent
 from ..core.title_engine import TitleEngine
+from ..core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
 
-SIGN_IN_TEXTS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "sign_in_texts.json")
+SIGN_IN_TEXTS_FILE = str(migrate_legacy_storage(PLUGIN_NAME)["sign_in_texts_file"])
 
 # ================= 🔮 原汁原味的异世界观配置区 🔮 =================
 GOOD_THINGS = [

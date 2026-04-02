@@ -5,11 +5,14 @@ from datetime import datetime
 from astrbot.api.event import AstrMessageEvent
 from astrbot.api.message_components import Plain, Image
 from ..core.logic_gate import find_gate_block, format_gate_block_message, GATE_DRAW_FATE_CARD
+from ..core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
+
+_STORAGE_PATHS = migrate_legacy_storage(PLUGIN_NAME)
 
 def load_cards_config():
-    """读取你原有的静态命运牌配置"""
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "cards_config.json")
-    if os.path.exists(config_path):
+    """读取命运牌配置（优先官方隔离数据区）"""
+    config_path = _STORAGE_PATHS["fate_cards_file"]
+    if config_path.exists():
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -25,7 +28,7 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, max_limit: int = 
 
     cards_config = load_cards_config()
     if not cards_config:
-        yield event.plain_result("⚠️ 异世界的卡池空空如也，请联系天道配置 config/cards_config.json！")
+        yield event.plain_result("⚠️ 异世界的卡池空空如也，请联系天道配置命运牌池数据。")
         return
 
     # 获取用户档案
@@ -64,9 +67,9 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, max_limit: int = 
     value = card.get("value", 0)
 
     # 匹配原有的图库路径
-    img_path = os.path.join(os.path.dirname(__file__), "..", "assets", "cards", img_filename)
+    img_path = _STORAGE_PATHS["fate_assets_dir"] / img_filename
     
-    if not os.path.exists(img_path):
+    if not img_path.exists():
         # 图片丢失时的失败回滚保护
         user_data["total_gold"] += user_data.get("last_drawn_gold", 0)
         yield event.plain_result(f"⚠️ 抽到了卡牌，但异界裂缝吞噬了卡面图片：{img_filename}")
@@ -84,7 +87,7 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, max_limit: int = 
 
     # 原汁原味的图文混排输出
     chain = [
-        Image.fromFileSystem(img_path),
+        Image.fromFileSystem(str(img_path)),
         Plain(f"\n\n{text}\n━━━━━━━━\n💰 金币波动：{val_str}\n💰 当前总金币：{user_data['total_gold']}\n💡 {chance_hint}")
     ]
     yield event.chain_result(chain)

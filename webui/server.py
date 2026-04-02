@@ -9,18 +9,19 @@ import shutil
 from pathlib import Path
 from aiohttp import web
 
+from ..core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
+
 # 路径配置
 ROOT_DIR = Path(__file__).parent.parent
 CONFIG_DIR = ROOT_DIR / "config"
-ASSETS_DIR = ROOT_DIR / "assets" / "func_cards"
-DATA_DIR = ROOT_DIR / "data"
-DATA_FILE = DATA_DIR / "luck_data.json"
-FUNC_CARDS_FILE = CONFIG_DIR / "func_cards.json"
-# 命运牌属于本地私有数据：始终直接读取本地 config/cards_config.json
-FATE_CARDS_FILE = CONFIG_DIR / "cards_config.json"
-SIGN_IN_TEXTS_FILE = CONFIG_DIR / "sign_in_texts.json"
-RUNTIME_CONFIG_FILE = CONFIG_DIR / "webui_runtime_config.json"
-FATE_ASSETS_DIR = ROOT_DIR / "assets" / "cards"
+STORAGE_PATHS = migrate_legacy_storage(PLUGIN_NAME)
+ASSETS_DIR = STORAGE_PATHS["func_assets_dir"]
+DATA_FILE = STORAGE_PATHS["luck_data_file"]
+FUNC_CARDS_FILE = STORAGE_PATHS["func_cards_file"]
+FATE_CARDS_FILE = STORAGE_PATHS["fate_cards_file"]
+SIGN_IN_TEXTS_FILE = STORAGE_PATHS["sign_in_texts_file"]
+RUNTIME_CONFIG_FILE = STORAGE_PATHS["runtime_config_file"]
+FATE_ASSETS_DIR = STORAGE_PATHS["fate_assets_dir"]
 WEBUI_DIR = Path(__file__).parent
 STATIC_DIR = WEBUI_DIR / "static"
 
@@ -87,14 +88,12 @@ def _deep_merge_dict(base: dict, override: dict) -> dict:
 
 
 def _ensure_private_dirs():
-    """确保本地私有数据目录存在，避免 WebUI 因目录缺失读取异常。"""
-    for directory in (DATA_DIR, FATE_ASSETS_DIR, ASSETS_DIR):
+    """确保官方隔离数据目录存在，避免 WebUI 因目录缺失读取异常。"""
+    for directory in (STORAGE_PATHS["plugin_data_dir"], FATE_ASSETS_DIR, ASSETS_DIR):
         directory.mkdir(parents=True, exist_ok=True)
-        gitkeep = directory / ".gitkeep"
-        if not gitkeep.exists():
-            gitkeep.touch()
 
 
+def _default_runtime_config() -> dict:
     return {
         "webui_settings": {
             "enable": True,
@@ -353,6 +352,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     global _runner, _site
 
     _ensure_private_dirs()
+    migrate_legacy_storage(PLUGIN_NAME)
     app = web.Application()
 
     # API 路由

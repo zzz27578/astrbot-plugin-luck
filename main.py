@@ -9,11 +9,12 @@ from .modules.m_sign_in import handle_sign_in, handle_leaderboard
 
 # ================= 🔌 核心底座与模块导入 =================
 from .core.luck_bank import LuckBank
+from .core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
 from .modules import m_sign_in, m_fate_cards, m_func_cards
 from .webui.server import start_webui
 
 
-RUNTIME_CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config", "webui_runtime_config.json")
+RUNTIME_CONFIG_FILE = str(migrate_legacy_storage(PLUGIN_NAME)["runtime_config_file"])
 
 
 def _deep_merge_dict(base: dict, override: dict) -> dict:
@@ -38,19 +39,19 @@ def _load_runtime_override() -> dict:
 
 PLUGIN_NAME = "luck_rank"
 AUTHOR = "YourName" # 可修改为你自己的名字
-VERSION = "5.1.0-Pro"
+VERSION = "5.3.0-Pro"
 
 @register(PLUGIN_NAME, AUTHOR, "异世界战术金币系统", VERSION)
 class LuckPlugin(Star):
     def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
+        self.storage_paths = migrate_legacy_storage(self.name or PLUGIN_NAME)
         self._base_config = config or {}
         runtime_override = _load_runtime_override()
         self.config = _deep_merge_dict(self._base_config, runtime_override)
 
-        # 激活金币管家，锁定 data 目录下的账本
-        data_path = os.path.join(os.path.dirname(__file__), "data", "luck_data.json")
-        self.bank = LuckBank(data_path)
+        # 激活金币管家，账本放到 AstrBot 官方隔离数据区
+        self.bank = LuckBank(str(self.storage_paths["luck_data_file"]))
 
         # 启动 WebUI，用独立进程跑，和主程序完全隔离
         self._webui_process = None

@@ -18,7 +18,7 @@ LEGACY_ASSETS_DIR = ROOT_DIR / "assets"
 
 def get_plugin_data_dir(plugin_name: str = PLUGIN_NAME) -> Path:
     if get_astrbot_data_path is not None:
-        return get_astrbot_data_path() / "plugin_data" / plugin_name
+        return Path(get_astrbot_data_path()) / "plugin_data" / plugin_name
     return ROOT_DIR / ".plugin_data_fallback" / plugin_name
 
 

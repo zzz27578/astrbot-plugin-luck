@@ -735,18 +735,50 @@
       return `${url}${sep}profile=${encodeURIComponent(profile || 'default')}`;
     }
 
+    function buildApiCandidates(url, profile, withProfile = true) {
+      const finalUrl = withProfile ? purl(url, profile) : url;
+      const normalized = finalUrl.startsWith('/') ? finalUrl.slice(1) : finalUrl;
+      const fromOrigin = new URL(finalUrl, window.location.origin).toString();
+      const fromCurrent = new URL(normalized, window.location.href).toString();
+      return [...new Set([fromOrigin, fromCurrent])];
+    }
+
+    async function fetchJsonSmart(url, options = {}) {
+      const candidates = buildApiCandidates(url, options.profile, options.withProfile !== false);
+      let lastError = '';
+      for (const candidate of candidates) {
+        try {
+          const response = await fetch(candidate, options.fetchOptions || {});
+          const text = await response.text();
+          if (!text.trim()) {
+            lastError = `[${response.status}] ${candidate} 返回空响应`;
+            continue;
+          }
+          if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+            lastError = `[${response.status}] ${candidate} 返回了 HTML 而不是 JSON`;
+            continue;
+          }
+          return JSON.parse(text);
+        } catch (err) {
+          lastError = `${candidate} -> ${err}`;
+        }
+      }
+      throw new Error(lastError || `接口请求失败: ${url}`);
+    }
+
     async function apiGet(url, options = {}) {
-      const real = options.withProfile === false ? url : purl(url, options.profile);
-      return fetch(real).then((r) => r.json());
+      return fetchJsonSmart(url, options);
     }
 
     async function apiPost(url, body, options = {}) {
-      const real = options.withProfile === false ? url : purl(url, options.profile);
-      return fetch(real, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      }).then((r) => r.json());
+      return fetchJsonSmart(url, {
+        ...options,
+        fetchOptions: {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        }
+      });
     }
 
     function parseTagLabel(tag) {
@@ -1407,8 +1439,24 @@
     async function upload(endpoint, fileList, callback) {
       const fd = new FormData();
       [...fileList].forEach((f) => fd.append('files', f));
-      const res = await fetch(purl(endpoint), { method: 'POST', body: fd });
-      const ret = await res.json();
+      const candidates = buildApiCandidates(endpoint, state.currentProfile, true);
+      let ret = null;
+      let lastError = '';
+      for (const candidate of candidates) {
+        try {
+          const res = await fetch(candidate, { method: 'POST', body: fd });
+          const text = await res.text();
+          if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+            lastError = `${candidate} 返回了 HTML`;
+            continue;
+          }
+          ret = JSON.parse(text);
+          break;
+        } catch (err) {
+          lastError = String(err);
+        }
+      }
+      if (!ret) return alert(`上传失败：${lastError || '未知错误'}`);
       if (!ret.ok) return alert(ret.error || '上传失败');
       await callback(ret.uploaded || []);
     }
@@ -1616,7 +1664,7 @@
     bindEvents();
     boot().catch((err) => {
       console.error(err);
-      alert('前端初始化失败，请打开浏览器控制台查看错误。');
+      alert(`前端初始化失败：${err?.message || err}`);
     });
   </script>
 </body>

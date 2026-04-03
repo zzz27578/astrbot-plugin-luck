@@ -12,9 +12,13 @@ from aiohttp import web
 from ..core.plugin_storage import (
     DEFAULT_PROFILE_NAME,
     PLUGIN_NAME,
+    ensure_default_profile,
+    ensure_profile_dirs,
     get_base_storage_paths,
+    get_group_profile_map,
     get_profile_storage_paths,
     migrate_legacy_storage,
+    save_group_profile_map,
 )
 
 # 路径配置
@@ -26,6 +30,8 @@ migrate_legacy_storage(PLUGIN_NAME)
 ASSETS_DIR = STORAGE_PATHS["func_assets_dir"]
 GROUP_DATA_DIR = BASE_PATHS["group_data_dir"]
 GROUP_PROFILE_MAP_FILE = BASE_PATHS["group_profile_map_file"]
+PROFILE_META_FILENAME = "profile_meta.json"
+GROUP_ACCESS_FILE = BASE_PATHS["plugin_data_dir"] / "group_access_control.json"
 FUNC_CARDS_FILE = STORAGE_PATHS["func_cards_file"]
 FATE_CARDS_FILE = STORAGE_PATHS["fate_cards_file"]
 SIGN_IN_TEXTS_FILE = STORAGE_PATHS["sign_in_texts_file"]
@@ -102,6 +108,101 @@ def _ensure_private_dirs():
         directory.mkdir(parents=True, exist_ok=True)
 
 
+def _default_group_access_config() -> dict:
+    return {
+        "mode": "off",
+        "blacklist": [],
+        "whitelist": [],
+    }
+
+
+def _sanitize_profile_id(profile_id: str) -> str:
+    raw = str(profile_id or "").strip()
+    if not raw:
+        return DEFAULT_PROFILE_NAME
+    cleaned = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in raw)
+    return cleaned[:64] or DEFAULT_PROFILE_NAME
+
+
+def _profile_meta_path(profile_id: str) -> Path:
+    return get_profile_storage_paths(profile_id, PLUGIN_NAME)["profile_dir"] / PROFILE_META_FILENAME
+
+
+def _default_profile_meta(profile_id: str) -> dict:
+    return {
+        "profile_id": profile_id,
+        "display_name": "默认配置" if profile_id == DEFAULT_PROFILE_NAME else profile_id,
+        "cover_image": "",
+        "created_at": "",
+    }
+
+
+def _get_profile_meta(profile_id: str) -> dict:
+    meta = _read_json(_profile_meta_path(profile_id), _default_profile_meta(profile_id))
+    if not isinstance(meta, dict):
+        meta = _default_profile_meta(profile_id)
+    meta.setdefault("profile_id", profile_id)
+    meta.setdefault("display_name", "默认配置" if profile_id == DEFAULT_PROFILE_NAME else profile_id)
+    meta.setdefault("cover_image", "")
+    meta.setdefault("created_at", "")
+    return meta
+
+
+def _save_profile_meta(profile_id: str, meta: dict):
+    base = _default_profile_meta(profile_id)
+    base.update(meta or {})
+    _atomic_write(_profile_meta_path(profile_id), base)
+
+
+def _get_request_profile_id(request) -> str:
+    profile_id = _sanitize_profile_id(request.query.get("profile") or request.headers.get("X-Luck-Profile") or DEFAULT_PROFILE_NAME)
+    ensure_profile_dirs(profile_id, PLUGIN_NAME)
+    return profile_id
+
+
+def _get_request_profile_paths(request) -> dict:
+    profile_id = _get_request_profile_id(request)
+    return get_profile_storage_paths(profile_id, PLUGIN_NAME)
+
+
+def _list_profile_ids() -> list[str]:
+    ensure_default_profile(PLUGIN_NAME)
+    profiles_dir = BASE_PATHS["profiles_dir"]
+    result = []
+    for item in profiles_dir.iterdir():
+        if item.is_dir():
+            result.append(item.name)
+    if DEFAULT_PROFILE_NAME not in result:
+        result.insert(0, DEFAULT_PROFILE_NAME)
+    return sorted(set(result), key=lambda x: (x != DEFAULT_PROFILE_NAME, x.lower()))
+
+
+def _collect_profile_stats(profile_id: str) -> dict:
+    paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+    meta = _get_profile_meta(profile_id)
+    func_cards = _read_json(paths["func_cards_file"], [])
+    fate_cards = _read_json(paths["fate_cards_file"], [])
+    mapping = get_group_profile_map(PLUGIN_NAME)
+    groups = sorted([gid for gid, pid in mapping.items() if pid == profile_id])
+    total_users = 0
+    for gid in groups:
+        group_file = GROUP_DATA_DIR / str(gid) / "luck_data.json"
+        group_data = _read_json(group_file, {})
+        if isinstance(group_data, dict):
+            total_users += len(group_data)
+    return {
+        "profile_id": profile_id,
+        "display_name": meta.get("display_name") or profile_id,
+        "cover_image": meta.get("cover_image", ""),
+        "groups": groups,
+        "group_count": len(groups),
+        "user_count": total_users,
+        "func_card_count": len(func_cards) if isinstance(func_cards, list) else 0,
+        "fate_card_count": len(fate_cards) if isinstance(fate_cards, list) else 0,
+        "is_default": profile_id == DEFAULT_PROFILE_NAME,
+    }
+
+
 def _default_runtime_config() -> dict:
     return {
         "webui_settings": {
@@ -143,7 +244,8 @@ def _default_runtime_config() -> dict:
 # ==============================================================================
 
 async def api_get_runtime_config(request):
-    current = _read_json(RUNTIME_CONFIG_FILE, {})
+    paths = _get_request_profile_paths(request)
+    current = _read_json(paths["runtime_config_file"], {})
     merged = _deep_merge_dict(_default_runtime_config(), current)
     return web.json_response({"ok": True, "config": merged})
 
@@ -155,14 +257,16 @@ async def api_save_runtime_config(request):
         if not isinstance(cfg, dict):
             return web.json_response({"ok": False, "error": "config must be object"}, status=400)
         merged = _deep_merge_dict(_default_runtime_config(), cfg)
-        _atomic_write(RUNTIME_CONFIG_FILE, merged)
+        paths = _get_request_profile_paths(request)
+        _atomic_write(paths["runtime_config_file"], merged)
         return web.json_response({"ok": True})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
 async def api_get_fate_cards(request):
-    cards = _read_json(FATE_CARDS_FILE, [])
+    paths = _get_request_profile_paths(request)
+    cards = _read_json(paths["fate_cards_file"], [])
     return web.json_response({"ok": True, "cards": cards})
 
 
@@ -170,7 +274,8 @@ async def api_save_fate_cards(request):
     try:
         body = await request.json()
         cards = body.get("cards", [])
-        _atomic_write(FATE_CARDS_FILE, cards)
+        paths = _get_request_profile_paths(request)
+        _atomic_write(paths["fate_cards_file"], cards)
         return web.json_response({"ok": True})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
@@ -179,7 +284,9 @@ async def api_save_fate_cards(request):
 async def api_upload_fate_image(request):
     """上传命运牌图片到 assets/cards/"""
     try:
-        FATE_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+        paths = _get_request_profile_paths(request)
+        fate_assets_dir = paths["fate_assets_dir"]
+        fate_assets_dir.mkdir(parents=True, exist_ok=True)
         reader = await request.multipart()
         uploaded = []
         async for field in reader:
@@ -188,7 +295,7 @@ async def api_upload_fate_image(request):
                 if not filename:
                     continue
                 safe_name = Path(filename).name
-                dest = FATE_ASSETS_DIR / safe_name
+                dest = fate_assets_dir / safe_name
                 with open(dest, "wb") as f:
                     while True:
                         chunk = await field.read_chunk(8192)
@@ -203,15 +310,18 @@ async def api_upload_fate_image(request):
 
 async def api_list_fate_images(request):
     """列出 assets/cards/ 下所有图片"""
-    if not FATE_ASSETS_DIR.exists():
+    paths = _get_request_profile_paths(request)
+    fate_assets_dir = paths["fate_assets_dir"]
+    if not fate_assets_dir.exists():
         return web.json_response({"ok": True, "images": []})
     exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
-    images = [f.name for f in FATE_ASSETS_DIR.iterdir() if f.suffix.lower() in exts]
+    images = [f.name for f in fate_assets_dir.iterdir() if f.suffix.lower() in exts]
     return web.json_response({"ok": True, "images": sorted(images)})
 
 
 async def api_get_func_cards(request):
-    cards = _read_json(FUNC_CARDS_FILE, [])
+    paths = _get_request_profile_paths(request)
+    cards = _read_json(paths["func_cards_file"], [])
     return web.json_response({"ok": True, "cards": cards})
 
 
@@ -219,14 +329,16 @@ async def api_save_func_cards(request):
     try:
         body = await request.json()
         cards = body.get("cards", [])
-        _atomic_write(FUNC_CARDS_FILE, cards)
+        paths = _get_request_profile_paths(request)
+        _atomic_write(paths["func_cards_file"], cards)
         return web.json_response({"ok": True})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
 async def api_get_sign_in_texts(request):
-    texts = _read_json(SIGN_IN_TEXTS_FILE, DEFAULT_SIGN_IN_TEXTS)
+    paths = _get_request_profile_paths(request)
+    texts = _read_json(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
     for key in DEFAULT_SIGN_IN_TEXTS:
         if key not in texts:
             texts[key] = DEFAULT_SIGN_IN_TEXTS[key]
@@ -245,25 +357,31 @@ async def api_save_sign_in_texts(request):
     try:
         body = await request.json()
         texts = body.get("texts", {})
-        _atomic_write(SIGN_IN_TEXTS_FILE, texts)
+        paths = _get_request_profile_paths(request)
+        _atomic_write(paths["sign_in_texts_file"], texts)
         return web.json_response({"ok": True})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
 async def api_get_user_stats(request):
-    """按群汇总只读用户数据，供概率分析和持牌检测用"""
+    """按方案汇总只读用户数据，供概率分析和持牌检测用"""
+    profile_id = _get_request_profile_id(request)
     stats = {
         "total_groups": 0,
         "total_users": 0,
         "card_holders": {},
-        "groups": []
+        "groups": [],
+        "profile_id": profile_id,
     }
     if not GROUP_DATA_DIR.exists():
         return web.json_response({"ok": True, "stats": stats})
 
+    mapping = get_group_profile_map(PLUGIN_NAME)
     for group_dir in GROUP_DATA_DIR.iterdir():
         if not group_dir.is_dir():
+            continue
+        if mapping.get(group_dir.name, DEFAULT_PROFILE_NAME) != profile_id:
             continue
         data = _read_json(group_dir / "luck_data.json", {})
         if not isinstance(data, dict):
@@ -282,7 +400,9 @@ async def api_get_user_stats(request):
 async def api_upload_image(request):
     """上传卡图到 assets/func_cards/"""
     try:
-        ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+        paths = _get_request_profile_paths(request)
+        assets_dir = paths["func_assets_dir"]
+        assets_dir.mkdir(parents=True, exist_ok=True)
         reader = await request.multipart()
         uploaded = []
         async for field in reader:
@@ -291,7 +411,7 @@ async def api_upload_image(request):
                 if not filename:
                     continue
                 safe_name = Path(filename).name
-                dest = ASSETS_DIR / safe_name
+                dest = assets_dir / safe_name
                 with open(dest, "wb") as f:
                     while True:
                         chunk = await field.read_chunk(8192)
@@ -306,9 +426,11 @@ async def api_upload_image(request):
 
 async def api_list_images(request):
     """列出 assets/func_cards/ 下所有图片文件"""
-    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    paths = _get_request_profile_paths(request)
+    assets_dir = paths["func_assets_dir"]
+    assets_dir.mkdir(parents=True, exist_ok=True)
     exts = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-    files = [f.name for f in ASSETS_DIR.iterdir() if f.suffix.lower() in exts]
+    files = [f.name for f in assets_dir.iterdir() if f.suffix.lower() in exts]
     files.sort()
     return web.json_response({"ok": True, "files": files})
 
@@ -317,7 +439,8 @@ async def api_delete_image(request):
     filename = request.match_info.get("filename", "")
     if not filename:
         return web.json_response({"ok": False, "error": "no filename"}, status=400)
-    target = ASSETS_DIR / Path(filename).name
+    paths = _get_request_profile_paths(request)
+    target = paths["func_assets_dir"] / Path(filename).name
     if target.exists():
         target.unlink()
     return web.json_response({"ok": True})
@@ -325,19 +448,145 @@ async def api_delete_image(request):
 
 async def api_check_missing_images(request):
     """检查所有卡牌中引用了但实际不存在的图片"""
-    cards = _read_json(FUNC_CARDS_FILE, [])
+    paths = _get_request_profile_paths(request)
+    cards = _read_json(paths["func_cards_file"], [])
     missing = []
     for card in cards:
         fn = str(card.get("filename", "")).strip()
-        if fn and not (ASSETS_DIR / fn).exists():
+        if fn and not (paths["func_assets_dir"] / fn).exists():
             missing.append({"card_name": card.get("card_name"), "filename": fn})
     return web.json_response({"ok": True, "missing": missing})
+
+
+async def api_profile_overview(request):
+    profiles = [_collect_profile_stats(pid) for pid in _list_profile_ids()]
+    return web.json_response({"ok": True, "profiles": profiles, "default_profile": DEFAULT_PROFILE_NAME})
+
+
+async def api_create_profile(request):
+    try:
+        body = await request.json()
+        name = str(body.get("name", "")).strip()
+        copy_from = _sanitize_profile_id(body.get("copy_from") or DEFAULT_PROFILE_NAME)
+        if not name:
+            return web.json_response({"ok": False, "error": "name required"}, status=400)
+        profile_id = _sanitize_profile_id(body.get("profile_id") or name.lower())
+        if profile_id == DEFAULT_PROFILE_NAME and name != "默认配置":
+            return web.json_response({"ok": False, "error": "default profile id reserved"}, status=400)
+        paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+        if paths["profile_dir"].exists() and any(paths["profile_dir"].iterdir()):
+            return web.json_response({"ok": False, "error": "profile already exists"}, status=400)
+        source_paths = get_profile_storage_paths(copy_from, PLUGIN_NAME)
+        ensure_profile_dirs(copy_from, PLUGIN_NAME)
+        ensure_profile_dirs(profile_id, PLUGIN_NAME)
+        for key in ("func_cards_file", "fate_cards_file", "sign_in_texts_file", "runtime_config_file"):
+            data = _read_json(source_paths[key], [] if "cards" in key else {})
+            _atomic_write(paths[key], data)
+        for src_key, dst_key in (("func_assets_dir", "func_assets_dir"), ("fate_assets_dir", "fate_assets_dir")):
+            src_dir = source_paths[src_key]
+            dst_dir = paths[dst_key]
+            dst_dir.mkdir(parents=True, exist_ok=True)
+            if src_dir.exists():
+                for item in src_dir.iterdir():
+                    if item.is_file():
+                        shutil.copy2(item, dst_dir / item.name)
+        _save_profile_meta(profile_id, {"display_name": name, "cover_image": ""})
+        return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_update_profile_meta(request):
+    try:
+        body = await request.json()
+        profile_id = _sanitize_profile_id(body.get("profile_id") or DEFAULT_PROFILE_NAME)
+        name = str(body.get("display_name", "")).strip()
+        cover_image = str(body.get("cover_image", "")).strip()
+        if not name:
+            return web.json_response({"ok": False, "error": "display_name required"}, status=400)
+        meta = _get_profile_meta(profile_id)
+        meta["display_name"] = name
+        meta["cover_image"] = cover_image
+        _save_profile_meta(profile_id, meta)
+        return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_bind_group_profile(request):
+    try:
+        body = await request.json()
+        profile_id = _sanitize_profile_id(body.get("profile_id") or DEFAULT_PROFILE_NAME)
+        group_id = str(body.get("group_id", "")).strip()
+        if not group_id.isdigit():
+            return web.json_response({"ok": False, "error": "group_id invalid"}, status=400)
+        ensure_profile_dirs(profile_id, PLUGIN_NAME)
+        mapping = get_group_profile_map(PLUGIN_NAME)
+        mapping[group_id] = profile_id
+        save_group_profile_map(mapping, PLUGIN_NAME)
+        return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_unbind_group_profile(request):
+    try:
+        body = await request.json()
+        profile_id = _sanitize_profile_id(body.get("profile_id") or DEFAULT_PROFILE_NAME)
+        group_id = str(body.get("group_id", "")).strip()
+        mapping = get_group_profile_map(PLUGIN_NAME)
+        if mapping.get(group_id) == profile_id:
+            mapping.pop(group_id, None)
+            save_group_profile_map(mapping, PLUGIN_NAME)
+        return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_get_group_access(request):
+    cfg = _read_json(GROUP_ACCESS_FILE, _default_group_access_config())
+    if not isinstance(cfg, dict):
+        cfg = _default_group_access_config()
+    cfg.setdefault("mode", "off")
+    cfg.setdefault("blacklist", [])
+    cfg.setdefault("whitelist", [])
+    return web.json_response({"ok": True, "config": cfg})
+
+
+async def api_save_group_access(request):
+    try:
+        body = await request.json()
+        cfg = body.get("config", {})
+        if not isinstance(cfg, dict):
+            return web.json_response({"ok": False, "error": "config must be object"}, status=400)
+        mode = str(cfg.get("mode", "off")).strip().lower()
+        if mode not in {"off", "blacklist", "whitelist"}:
+            return web.json_response({"ok": False, "error": "invalid mode"}, status=400)
+        data = {
+            "mode": mode,
+            "blacklist": [str(x).strip() for x in cfg.get("blacklist", []) if str(x).strip()],
+            "whitelist": [str(x).strip() for x in cfg.get("whitelist", []) if str(x).strip()],
+        }
+        _atomic_write(GROUP_ACCESS_FILE, data)
+        return web.json_response({"ok": True, "config": data})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def serve_fate_image(request):
+    filename = request.match_info.get("filename", "")
+    profile_id = _sanitize_profile_id(request.query.get("profile") or DEFAULT_PROFILE_NAME)
+    target = get_profile_storage_paths(profile_id, PLUGIN_NAME)["fate_assets_dir"] / Path(filename).name
+    if not target.exists():
+        raise web.HTTPNotFound()
+    return web.FileResponse(target)
 
 
 async def serve_image(request):
     """提供图片文件访问"""
     filename = request.match_info.get("filename", "")
-    target = ASSETS_DIR / Path(filename).name
+    profile_id = _sanitize_profile_id(request.query.get("profile") or DEFAULT_PROFILE_NAME)
+    target = get_profile_storage_paths(profile_id, PLUGIN_NAME)["func_assets_dir"] / Path(filename).name
     if not target.exists():
         raise web.HTTPNotFound()
     return web.FileResponse(target)
@@ -378,13 +627,20 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app = web.Application()
 
     # API 路由
+    app.router.add_get("/api/profile_overview", api_profile_overview)
+    app.router.add_post("/api/profiles", api_create_profile)
+    app.router.add_post("/api/profile_meta", api_update_profile_meta)
+    app.router.add_post("/api/profile_bind_group", api_bind_group_profile)
+    app.router.add_post("/api/profile_unbind_group", api_unbind_group_profile)
+    app.router.add_get("/api/group_access", api_get_group_access)
+    app.router.add_post("/api/group_access", api_save_group_access)
     app.router.add_get("/api/runtime_config", api_get_runtime_config)
     app.router.add_post("/api/runtime_config", api_save_runtime_config)
     app.router.add_get("/api/fate_cards", api_get_fate_cards)
     app.router.add_post("/api/fate_cards", api_save_fate_cards)
     app.router.add_post("/api/upload_fate_image", api_upload_fate_image)
     app.router.add_get("/api/fate_images", api_list_fate_images)
-    app.router.add_static("/fate_assets", FATE_ASSETS_DIR, show_index=False)
+    app.router.add_get("/fate_assets/{filename}", serve_fate_image)
     app.router.add_get("/api/func_cards", api_get_func_cards)
     app.router.add_post("/api/func_cards", api_save_func_cards)
     app.router.add_get("/api/sign_in_texts", api_get_sign_in_texts)

@@ -10,7 +10,6 @@ from astrbot.api.message_components import Plain, Image, At
 from ..core.card_engine import CardEngine
 from ..core.dice_engine import DiceEngine
 from ..core.title_engine import TitleEngine
-from ..core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
 from ..core.logic_gate import (
     find_gate_block,
     format_gate_block_message,
@@ -22,6 +21,7 @@ from ..core.logic_gate import (
 # ================= 🎲 骰局会话状态（全局单局） =================
 PENDING_DUEL = {
     "active": False,
+    "group_id": "",
     "session_id": "",
     "challenger_uid": "",
     "challenger_name": "",
@@ -94,11 +94,10 @@ def _apply_reroll_status(user_data: dict, hours: int = 24):
     })
 
 
-_STORAGE_PATHS = migrate_legacy_storage(PLUGIN_NAME)
-
 def load_func_cards_config(config: dict = None):
-    config_path = _STORAGE_PATHS["func_cards_file"]
-    if not config_path.exists():
+    storage_paths = (config or {}).get("_storage_paths", {})
+    config_path = storage_paths.get("func_cards_file")
+    if config_path is None or not config_path.exists():
         return []
 
     try:
@@ -220,6 +219,7 @@ def _get_public_duel_settings(config: dict | None) -> dict:
 def _reset_pending_duel():
     PENDING_DUEL.update({
         "active": False,
+        "group_id": "",
         "session_id": "",
         "challenger_uid": "",
         "challenger_name": "",
@@ -447,9 +447,10 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool) -> str:
 
 async def handle_confirm_duel(event: AstrMessageEvent, bank):
     user_id = event.get_sender_id()
+    group_id = str(getattr(event, "group_id", "") or (getattr(event, "session_id", "") if getattr(event, "session_id", "") else ""))
 
     async with PENDING_DUEL_LOCK:
-        if not PENDING_DUEL.get("active"):
+        if not PENDING_DUEL.get("active") or (group_id and str(PENDING_DUEL.get("group_id", "")) != group_id):
             yield event.plain_result("🎲 当前没有待确认的对赌局。")
             return
 
@@ -520,6 +521,7 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
 
 async def handle_raise_duel(event: AstrMessageEvent, bank):
     user_id = event.get_sender_id()
+    group_id = str(getattr(event, "group_id", "") or (getattr(event, "session_id", "") if getattr(event, "session_id", "") else ""))
     raw_text = event.message_str.replace("/luck", "").strip()
     match = re.search(r"加注\s*(-?\d+)", raw_text)
     if not match:
@@ -529,7 +531,7 @@ async def handle_raise_duel(event: AstrMessageEvent, bank):
     raise_stake = int(match.group(1))
 
     async with PENDING_DUEL_LOCK:
-        if not PENDING_DUEL.get("active"):
+        if not PENDING_DUEL.get("active") or (group_id and str(PENDING_DUEL.get("group_id", "")) != group_id):
             yield event.plain_result("🎲 当前没有可加注的对赌局。")
             return
 
@@ -583,6 +585,7 @@ async def handle_raise_duel(event: AstrMessageEvent, bank):
 async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
     user_id = event.get_sender_id()
     user_name = event.get_sender_name()
+    group_id = str((config or {}).get("_group_id", "")).strip()
     today = datetime.now().strftime("%Y-%m-%d")
 
     duel_cfg = _get_public_duel_settings(config)
@@ -636,14 +639,15 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
     target_name = all_users.get(target_id, {}).get("name", f"群友({target_id})")
 
     async with PENDING_DUEL_LOCK:
-        if PENDING_DUEL.get("active"):
+        if PENDING_DUEL.get("active") and str(PENDING_DUEL.get("group_id", "")) == group_id:
             yield event.plain_result("🎰 当前已有对局进行中，请稍候再开盘。")
             return
 
         confirm_event = asyncio.Event()
         PENDING_DUEL.update({
             "active": True,
-            "session_id": f"duel:{user_id}:{target_id}:{int(time.time())}",
+            "group_id": group_id,
+            "session_id": f"duel:{group_id}:{user_id}:{target_id}:{int(time.time())}",
             "challenger_uid": user_id,
             "challenger_name": user_name,
             "target_uid": target_id,
@@ -1116,7 +1120,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     cards_config = load_func_cards_config(config)
     card_cfg = next((c for c in cards_config if c.get("card_name") == target_card_name), None)
     if not card_cfg:
-        all_cards = load_func_cards_config(None)
+        all_cards = load_func_cards_config(config)
         raw_cfg = next((c for c in all_cards if c.get("card_name") == target_card_name), None)
         if raw_cfg and _is_dice_card_by_tags(raw_cfg.get("tags", [])) and not (config or {}).get("func_cards_settings", {}).get("enable_dice_cards", True):
             yield event.plain_result("🎲 当前已关闭骰子玩法，无法使用该骰子功能牌。")
@@ -1210,7 +1214,8 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             stake = 20
 
         async with PENDING_DUEL_LOCK:
-            if PENDING_DUEL.get("active"):
+            current_group_id = str((config or {}).get("_group_id", "")).strip()
+            if PENDING_DUEL.get("active") and str(PENDING_DUEL.get("group_id", "")) == current_group_id:
                 yield event.plain_result("🎰 当前已有对局进行中，请稍候再开盘。")
                 return
 
@@ -1218,7 +1223,8 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             confirm_event = asyncio.Event()
             PENDING_DUEL.update({
                 "active": True,
-                "session_id": f"duel:{user_id}:{target_id}:{int(time.time())}",
+                "group_id": current_group_id,
+                "session_id": f"duel:{current_group_id}:{user_id}:{target_id}:{int(time.time())}",
                 "challenger_uid": user_id,
                 "challenger_name": user_name,
                 "target_uid": target_id,
@@ -1393,7 +1399,8 @@ async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_act
                 yield event.plain_result(f"⚠️ [{target_card_name}] 已经处于该状态了。")
                 return
                 
-            cards_config = load_func_cards_config()
+            cards_config = load_func_cards_config(config)
+
             card_cfg = next((c for c in cards_config if c.get("card_name") == target_card_name), {})
             
             if card_cfg.get("type") != "defense":

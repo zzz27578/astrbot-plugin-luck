@@ -4,9 +4,6 @@ import os
 from datetime import datetime, timedelta
 from astrbot.api.event import AstrMessageEvent
 from ..core.title_engine import TitleEngine
-from ..core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
-
-SIGN_IN_TEXTS_FILE = str(migrate_legacy_storage(PLUGIN_NAME)["sign_in_texts_file"])
 
 # ================= 🔮 原汁原味的异世界观配置区 🔮 =================
 GOOD_THINGS = [
@@ -30,10 +27,11 @@ async def calculate_rank(bank, user_id):
         if uid == user_id: return rank + 1
     return 999
 
-def _load_sign_in_texts():
+def _load_sign_in_texts(config: dict | None = None):
+    sign_in_file = str((config or {}).get("_storage_paths", {}).get("sign_in_texts_file", ""))
     try:
-        if os.path.exists(SIGN_IN_TEXTS_FILE):
-            with open(SIGN_IN_TEXTS_FILE, "r", encoding="utf-8") as f:
+        if sign_in_file and os.path.exists(sign_in_file):
+            with open(sign_in_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return data if isinstance(data, dict) else {}
     except Exception:
@@ -41,8 +39,8 @@ def _load_sign_in_texts():
     return {}
 
 
-def _pick_luck_range_rule(luck_val: int):
-    texts = _load_sign_in_texts()
+def _pick_luck_range_rule(luck_val: int, config: dict | None = None):
+    texts = _load_sign_in_texts(config)
     ranges = texts.get("luck_ranges", [])
     valid = [r for r in ranges if isinstance(r, dict) and isinstance(r.get("min"), int) and isinstance(r.get("max"), int)]
     for rule in valid:
@@ -88,7 +86,7 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     base_reward = (luck_val - 1) // 10 + 1
     total_reward = base_reward
 
-    rule = _pick_luck_range_rule(luck_val)
+    rule = _pick_luck_range_rule(luck_val, config)
     rule_label = str(rule.get("label", "")).strip() if rule else ""
     rule_gold_delta = int(rule.get("gold_delta", 0)) if rule else 0
     total_reward += rule_gold_delta
@@ -138,7 +136,7 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     total_prob = base_prob + luck_mod + title_mod
 
     current_rank = await calculate_rank(bank, user_id)
-    texts_cfg = _load_sign_in_texts()
+    texts_cfg = _load_sign_in_texts(config)
     good_pool = [x for x in texts_cfg.get("good_things", GOOD_THINGS) if isinstance(x, str) and x.strip()]
     bad_pool = [x for x in texts_cfg.get("bad_things", BAD_THINGS) if isinstance(x, str) and x.strip()]
     good_thing = random.choice(good_pool or GOOD_THINGS)

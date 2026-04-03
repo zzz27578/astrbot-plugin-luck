@@ -9,14 +9,23 @@ import shutil
 from pathlib import Path
 from aiohttp import web
 
-from ..core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
+from ..core.plugin_storage import (
+    DEFAULT_PROFILE_NAME,
+    PLUGIN_NAME,
+    get_base_storage_paths,
+    get_profile_storage_paths,
+    migrate_legacy_storage,
+)
 
 # 路径配置
 ROOT_DIR = Path(__file__).parent.parent
 CONFIG_DIR = ROOT_DIR / "config"
-STORAGE_PATHS = migrate_legacy_storage(PLUGIN_NAME)
+BASE_PATHS = get_base_storage_paths(PLUGIN_NAME)
+STORAGE_PATHS = get_profile_storage_paths(DEFAULT_PROFILE_NAME, PLUGIN_NAME)
+migrate_legacy_storage(PLUGIN_NAME)
 ASSETS_DIR = STORAGE_PATHS["func_assets_dir"]
-DATA_FILE = STORAGE_PATHS["luck_data_file"]
+GROUP_DATA_DIR = BASE_PATHS["group_data_dir"]
+GROUP_PROFILE_MAP_FILE = BASE_PATHS["group_profile_map_file"]
 FUNC_CARDS_FILE = STORAGE_PATHS["func_cards_file"]
 FATE_CARDS_FILE = STORAGE_PATHS["fate_cards_file"]
 SIGN_IN_TEXTS_FILE = STORAGE_PATHS["sign_in_texts_file"]
@@ -89,7 +98,7 @@ def _deep_merge_dict(base: dict, override: dict) -> dict:
 
 def _ensure_private_dirs():
     """确保官方隔离数据目录存在，避免 WebUI 因目录缺失读取异常。"""
-    for directory in (STORAGE_PATHS["plugin_data_dir"], FATE_ASSETS_DIR, ASSETS_DIR):
+    for directory in (BASE_PATHS["plugin_data_dir"], BASE_PATHS["profiles_dir"], GROUP_DATA_DIR, FATE_ASSETS_DIR, ASSETS_DIR):
         directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -243,17 +252,30 @@ async def api_save_sign_in_texts(request):
 
 
 async def api_get_user_stats(request):
-    """只读用户数据，供概率分析和持牌检测用"""
-    data = _read_json(DATA_FILE, {})
+    """按群汇总只读用户数据，供概率分析和持牌检测用"""
     stats = {
-        "total_users": len(data),
-        "card_holders": {}  # card_name -> count
+        "total_groups": 0,
+        "total_users": 0,
+        "card_holders": {},
+        "groups": []
     }
-    for uid, info in data.items():
-        for card in info.get("inventory", []):
-            name = card.get("card_name", "")
-            if name:
-                stats["card_holders"][name] = stats["card_holders"].get(name, 0) + 1
+    if not GROUP_DATA_DIR.exists():
+        return web.json_response({"ok": True, "stats": stats})
+
+    for group_dir in GROUP_DATA_DIR.iterdir():
+        if not group_dir.is_dir():
+            continue
+        data = _read_json(group_dir / "luck_data.json", {})
+        if not isinstance(data, dict):
+            continue
+        stats["total_groups"] += 1
+        stats["groups"].append({"group_id": group_dir.name, "user_count": len(data)})
+        stats["total_users"] += len(data)
+        for _, info in data.items():
+            for card in info.get("inventory", []):
+                name = card.get("card_name", "")
+                if name:
+                    stats["card_holders"][name] = stats["card_holders"].get(name, 0) + 1
     return web.json_response({"ok": True, "stats": stats})
 
 

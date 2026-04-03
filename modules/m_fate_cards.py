@@ -5,14 +5,12 @@ from datetime import datetime
 from astrbot.api.event import AstrMessageEvent
 from astrbot.api.message_components import Plain, Image
 from ..core.logic_gate import find_gate_block, format_gate_block_message, GATE_DRAW_FATE_CARD
-from ..core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
 
-_STORAGE_PATHS = migrate_legacy_storage(PLUGIN_NAME)
 
-def load_cards_config():
-    """读取命运牌配置（优先官方隔离数据区）"""
-    config_path = _STORAGE_PATHS["fate_cards_file"]
-    if config_path.exists():
+def load_cards_config(config: dict | None = None):
+    """读取命运牌配置（按群绑定的 profile 隔离）"""
+    config_path = (config or {}).get("_storage_paths", {}).get("fate_cards_file")
+    if config_path and config_path.exists():
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -20,13 +18,13 @@ def load_cards_config():
             return []
     return []
 
-async def handle_fate_card_draw(event: AstrMessageEvent, bank, max_limit: int = 3):
+async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max_limit: int = 3):
     """处理 /luck 抽卡 (命运牌) 逻辑"""
     user_id = event.get_sender_id()
     user_name = event.get_sender_name()
     today = datetime.now().strftime("%Y-%m-%d")
 
-    cards_config = load_cards_config()
+    cards_config = load_cards_config(config)
     if not cards_config:
         yield event.plain_result("⚠️ 异世界的卡池空空如也，请联系天道配置命运牌池数据。")
         return
@@ -67,7 +65,7 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, max_limit: int = 
     value = card.get("value", 0)
 
     # 匹配原有的图库路径
-    img_path = _STORAGE_PATHS["fate_assets_dir"] / img_filename
+    img_path = config.get("_storage_paths", {}).get("fate_assets_dir") / img_filename
     
     if not img_path.exists():
         # 图片丢失时的失败回滚保护

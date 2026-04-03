@@ -9,12 +9,12 @@ from .modules.m_sign_in import handle_sign_in, handle_leaderboard
 
 # ================= 🔌 核心底座与模块导入 =================
 from .core.luck_bank import LuckBank
-from .core.plugin_storage import PLUGIN_NAME, migrate_legacy_storage
+from .core.plugin_storage import PLUGIN_NAME, get_runtime_context, migrate_legacy_storage
 from .modules import m_sign_in, m_fate_cards, m_func_cards
 from .webui.server import start_webui
 
 
-RUNTIME_CONFIG_FILE = str(migrate_legacy_storage(PLUGIN_NAME)["runtime_config_file"])
+migrate_legacy_storage(PLUGIN_NAME)
 
 
 def _deep_merge_dict(base: dict, override: dict) -> dict:
@@ -27,35 +27,89 @@ def _deep_merge_dict(base: dict, override: dict) -> dict:
     return result
 
 
-def _load_runtime_override() -> dict:
-    if not os.path.exists(RUNTIME_CONFIG_FILE):
+def _load_runtime_override(runtime_config_file: str) -> dict:
+    if not os.path.exists(runtime_config_file):
         return {}
     try:
-        with open(RUNTIME_CONFIG_FILE, "r", encoding="utf-8") as f:
+        with open(runtime_config_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             return data if isinstance(data, dict) else {}
     except Exception:
         return {}
 
+
+def _extract_group_id(event: AstrMessageEvent) -> str | None:
+    """尽可能兼容不同 AstrBot 版本/适配器的群号提取。"""
+    candidates = []
+
+    for attr in ("get_group_id", "get_chat_id"):
+        getter = getattr(event, attr, None)
+        if callable(getter):
+            try:
+                value = getter()
+                if value:
+                    candidates.append(value)
+            except Exception:
+                pass
+
+    for attr in ("group_id", "chat_id"):
+        value = getattr(event, attr, None)
+        if value:
+            candidates.append(value)
+
+    message_obj = getattr(event, "message_obj", None)
+    if message_obj is not None:
+        for attr in ("group_id", "group_openid", "peer_id"):
+            value = getattr(message_obj, attr, None)
+            if value:
+                candidates.append(value)
+        for nested in ("group", "sender", "scene"):
+            obj = getattr(message_obj, nested, None)
+            if obj is None:
+                continue
+            for attr in ("id", "group_id"):
+                value = getattr(obj, attr, None)
+                if value:
+                    candidates.append(value)
+
+    session = getattr(event, "session", None)
+    if session is not None:
+        for attr in ("group_id",):
+            value = getattr(session, attr, None)
+            if value:
+                candidates.append(value)
+
+    for value in candidates:
+        text = str(value).strip()
+        if not text:
+            continue
+        if text.isdigit():
+            return text
+        match = re.search(r"(\d{5,})", text)
+        if match:
+            return match.group(1)
+
+    return None
+
+
 PLUGIN_NAME = "luck_rank"
 AUTHOR = "YourName" # 可修改为你自己的名字
-VERSION = "5.3.0-Pro"
+VERSION = "5.4.0-Pro"
 
 @register(PLUGIN_NAME, AUTHOR, "异世界战术金币系统", VERSION)
 class LuckPlugin(Star):
     def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
-        self.storage_paths = migrate_legacy_storage(self.name or PLUGIN_NAME)
         self._base_config = config or {}
-        runtime_override = _load_runtime_override()
-        self.config = _deep_merge_dict(self._base_config, runtime_override)
+        self._bank_cache: dict[str, LuckBank] = {}
+        self._last_runtime_config = self._base_config
 
-        # 激活金币管家，账本放到 AstrBot 官方隔离数据区
-        self.bank = LuckBank(str(self.storage_paths["luck_data_file"]))
+        # 启动时先确保默认 profile 与旧数据迁移到位
+        migrate_legacy_storage(self.name or PLUGIN_NAME)
 
         # 启动 WebUI，用独立进程跑，和主程序完全隔离
         self._webui_process = None
-        webui_cfg = self.config.get("webui_settings", {})
+        webui_cfg = self._base_config.get("webui_settings", {})
         if webui_cfg.get("enable", False):
             webui_port = int(webui_cfg.get("port", 4399) or 4399)
             from multiprocessing import Process
@@ -68,25 +122,40 @@ class LuckPlugin(Star):
             self._webui_process.start()
             print(f"[WebUI] 管理界面已在独立进程启动，端口：{webui_port}")
 
-    def _refresh_runtime_config(self):
-        """每次处理指令前重新读取运行时覆盖配置，让大多数业务参数可热更新。"""
-        runtime_override = _load_runtime_override()
-        self.config = _deep_merge_dict(self._base_config, runtime_override)
+    def _refresh_runtime_config(self, group_id: str) -> tuple[LuckBank, dict]:
+        """按群读取运行时配置，确保用户数据与配置方案双重隔离。"""
+        runtime_ctx = get_runtime_context(group_id, self.name or PLUGIN_NAME)
+        runtime_override = _load_runtime_override(str(runtime_ctx["runtime_config_file"]))
+        merged_config = _deep_merge_dict(self._base_config, runtime_override)
+        merged_config["_storage_paths"] = runtime_ctx
+        merged_config["_group_id"] = str(group_id)
+        merged_config["_profile_name"] = str(runtime_ctx["active_profile_name"])
+        self._last_runtime_config = merged_config
+
+        group_key = str(group_id)
+        if group_key not in self._bank_cache:
+            self._bank_cache[group_key] = LuckBank(str(runtime_ctx["luck_data_file"]))
+        return self._bank_cache[group_key], merged_config
 
     # 🟢 绝对前缀拦截器：只认 /luck，无视后面的空格
     @filter.regex(r"^/luck\s*(.*)$", priority=1000)
     async def luck_gateway(self, event: AstrMessageEvent):
         # 第一时间阻断事件，防止底层聊天 AI 抢答
         event.stop_event()
-        self._refresh_runtime_config()
-        
+        group_id = _extract_group_id(event)
+        if not group_id:
+            yield event.plain_result("⚠️ 当前功能仅支持群聊使用，私聊场景不参与签到与排行映射。")
+            return
+
+        bank, current_config = self._refresh_runtime_config(group_id)
+
         user_id = event.get_sender_id()
         user_name = event.get_sender_name()
         
         # 提取纯净指令
         match = re.match(r"^/luck\s*(.*)$", event.get_message_str())
         cmd_str = match.group(1).strip() if match else ""
-        func_cards_enabled = self.config.get("func_cards_settings", {}).get("enable", True)
+        func_cards_enabled = current_config.get("func_cards_settings", {}).get("enable", True)
 
         # ================= 🚧 0. 功能牌总开关统一拦截 =================
         if not func_cards_enabled and self._is_func_cards_command(cmd_str):
@@ -95,7 +164,7 @@ class LuckPlugin(Star):
 
         # ================= 👑 1. 天道管理员特权路由 =================
         if cmd_str.startswith("增加"):
-            async for res in self._handle_admin_add(event, user_id, cmd_str):
+            async for res in self._handle_admin_add(event, user_id, cmd_str, bank, current_config):
                 yield res
             return
 
@@ -111,114 +180,114 @@ class LuckPlugin(Star):
 
         # ================= 📜 3. 基础运势签到路由 =================
         if re.match(r"^(运势|签到|今日运势|jrrp)$", cmd_str):
-            if not self.config.get("sign_in_settings", {}).get("enable", True):
+            if not current_config.get("sign_in_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 异世界星象观测台今日维护，基础签到暂未开放。")
                 return
-            async for res in handle_sign_in(event, self.bank, self.config):
+            async for res in handle_sign_in(event, bank, current_config):
                 yield res
             return
 
        # ================= 🏆 4. 风云排行榜路由 =================
         if re.match(r"^(排行榜|金币榜|财富榜|气运榜|运势榜)$", cmd_str):
-            board_length = self.config.get("ui_settings", {}).get("board_length", 10)
-            async for res in m_sign_in.handle_leaderboard(event, self.bank, board_length):
+            board_length = current_config.get("ui_settings", {}).get("board_length", 10)
+            async for res in m_sign_in.handle_leaderboard(event, bank, board_length):
                 yield res
             return
 
         if cmd_str == "善恶榜":
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            board_length = self.config.get("ui_settings", {}).get("board_length", 10)
-            async for res in m_func_cards.handle_karma_leaderboard(event, self.bank, board_length):
+            board_length = current_config.get("ui_settings", {}).get("board_length", 10)
+            async for res in m_func_cards.handle_karma_leaderboard(event, bank, board_length):
                 yield res
             return
 
         # ================= 🎴 5. 命运牌抽换路由 =================
         if re.match(r"^(幸运牌|抽牌|抽卡|命运卡牌|换牌|换一张|换一张牌)$", cmd_str):
-            if not self.config.get("fate_cards_settings", {}).get("enable", True):
+            if not current_config.get("fate_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 命运卡牌池已被天道封锁，暂未开放。")
                 return
             
-            max_limit = self.config.get("fate_cards_settings", {}).get("daily_draw_limit", 3)
-            async for res in m_fate_cards.handle_fate_card_draw(event, self.bank, max_limit):
+            max_limit = current_config.get("fate_cards_settings", {}).get("daily_draw_limit", 3)
+            async for res in m_fate_cards.handle_fate_card_draw(event, bank, current_config, max_limit):
                 yield res
             return
 
         # ================= ⚔️ 6. 战术功能牌路由 =================
         if cmd_str == "面板":
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放，面板无法观测。")
                 return
-            async for res in m_func_cards.handle_panel(event, self.bank, self.config):
+            async for res in m_func_cards.handle_panel(event, bank, current_config):
                 yield res
             return
             
         if cmd_str == "抽取功能牌":
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
             # 替换成调用真实的抽卡引擎
-            async for res in m_func_cards.handle_draw_func_card(event, self.bank, self.config):
+            async for res in m_func_cards.handle_draw_func_card(event, bank, current_config):
                 yield res
             return
 
         # ================= 🗑️ 7. 丢弃卡牌路由 =================
         if cmd_str.startswith("丢弃"):
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
             target_card = cmd_str.replace("丢弃", "").strip()
-            async for res in m_func_cards.handle_discard_card(event, self.bank, target_card):
+            async for res in m_func_cards.handle_discard_card(event, bank, target_card):
                 yield res
             return
 
         # ================= ⚔️ 8. 核心干涉引擎 =================
         if cmd_str.startswith("使用"):
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_use_card(event, self.bank, cmd_str, self.config):
+            async for res in m_func_cards.handle_use_card(event, bank, cmd_str, current_config):
                 yield res
             return
 
         if cmd_str.startswith("对赌"):
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_pure_duel(event, self.bank, self.config):
+            async for res in m_func_cards.handle_pure_duel(event, bank, current_config):
                 yield res
             return
 
         if cmd_str == "确认":
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_confirm_duel(event, self.bank):
+            async for res in m_func_cards.handle_confirm_duel(event, bank):
                 yield res
             return
 
         if cmd_str.startswith("加注"):
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_raise_duel(event, self.bank):
+            async for res in m_func_cards.handle_raise_duel(event, bank):
                 yield res
             return
 
         if cmd_str.startswith("启用"):
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_active_card(event, self.bank, cmd_str, True):
+            async for res in m_func_cards.handle_active_card(event, bank, cmd_str, True):
                 yield res
             return
 
         if cmd_str.startswith("停用"):
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_active_card(event, self.bank, cmd_str, False):
+            async for res in m_func_cards.handle_active_card(event, bank, cmd_str, False):
                 yield res
             return
 
@@ -240,15 +309,15 @@ class LuckPlugin(Star):
         return False
 
    # ---------------- 👑 管理员私有方法 ----------------
-    async def _handle_admin_add(self, event: AstrMessageEvent, sender_id: str, cmd_str: str):
+    async def _handle_admin_add(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
         # 1. 权限校验 (动态读取，安全开源版)
         is_admin = False
         
         # 兼容 AstrBot 面板的两种数据保存格式 (嵌套结构 vs 扁平结构)
-        admin_cfg = self.config.get("admin_settings", {})
+        admin_cfg = current_config.get("admin_settings", {})
         
         # 灵活提取：优先从嵌套结构取，如果没有，则退化到根节点取
-        extra_admins_str = admin_cfg.get("extra_admin_qqs") or self.config.get("extra_admin_qqs", "")
+        extra_admins_str = admin_cfg.get("extra_admin_qqs") or current_config.get("extra_admin_qqs", "")
         
         # 安全拆分：支持中英文逗号，自动过滤空格和空字符
         extra_admins_str = str(extra_admins_str).replace("，", ",")
@@ -287,27 +356,27 @@ class LuckPlugin(Star):
         add_count = int(match.group(2))
 
         # 4. 调取档案并执行“资产篡改”
-        user_data = await self.bank.get_user_data(target_id, target_name)
+        user_data = await bank.get_user_data(target_id, target_name)
         
         if card_type == "命运牌":
             current_drawn = user_data.get("last_card_draw_count", 0)
             user_data["last_card_draw_count"] = current_drawn - add_count
-            await self.bank.save_user_data()
+            await bank.save_user_data()
             yield event.plain_result(f"✅ 天道意志降临！\n已为 {target_name} 补充了 {add_count} 次【命运牌】换牌机会！")
             
         elif card_type == "功能牌":
-            if not self.config.get("func_cards_settings", {}).get("enable", True):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术功能牌系统未开启，无法调整功能牌次数。")
                 return
             current_free = user_data.get("today_free_draws", 0)
             user_data["today_free_draws"] = current_free + add_count
-            await self.bank.save_user_data()
+            await bank.save_user_data()
             yield event.plain_result(f"✅ 天赐机缘！\n已为 {target_name} 额外发放了 {add_count} 次【功能牌】免费抽取机会！")
             
         elif card_type in ["金币", "气运", "运势"]:
             current_gold = user_data.get("total_gold", 0)
             user_data["total_gold"] = current_gold + add_count
-            await self.bank.save_user_data()
+            await bank.save_user_data()
             
             # 根据正负数动态改变文案
             action_str = "增加" if add_count >= 0 else "剥夺"
@@ -316,11 +385,12 @@ class LuckPlugin(Star):
 
     # ---------------- 📖 纯文本视图方法 ----------------
     async def _show_menu(self, event: AstrMessageEvent):
-        sign_enabled = self.config.get("sign_in_settings", {}).get("enable", True)
-        fate_enabled = self.config.get("fate_cards_settings", {}).get("enable", True)
-        func_enabled = self.config.get("func_cards_settings", {}).get("enable", True)
-        dice_cards_enabled = self.config.get("func_cards_settings", {}).get("enable_dice_cards", True)
-        duel_cfg = self.config.get("func_cards_settings", {})
+        current_config = self._last_runtime_config
+        sign_enabled = current_config.get("sign_in_settings", {}).get("enable", True)
+        fate_enabled = current_config.get("fate_cards_settings", {}).get("enable", True)
+        func_enabled = current_config.get("func_cards_settings", {}).get("enable", True)
+        dice_cards_enabled = current_config.get("func_cards_settings", {}).get("enable_dice_cards", True)
+        duel_cfg = current_config.get("func_cards_settings", {})
         duel_enabled = duel_cfg.get("enable_public_duel_mode", duel_cfg.get("enable_pure_dice_mode", False))
         duel_limit = int(duel_cfg.get("public_duel_daily_limit", duel_cfg.get("pure_dice_daily_limit", 3)) or 3)
         duel_min = int(duel_cfg.get("public_duel_min_stake", 10) or 10)
@@ -364,11 +434,12 @@ class LuckPlugin(Star):
         yield event.plain_result("\n".join(lines))
 
     async def _show_help(self, event: AstrMessageEvent):
-        sign_enabled = self.config.get("sign_in_settings", {}).get("enable", True)
-        fate_enabled = self.config.get("fate_cards_settings", {}).get("enable", True)
-        func_enabled = self.config.get("func_cards_settings", {}).get("enable", True)
-        dice_cards_enabled = self.config.get("func_cards_settings", {}).get("enable_dice_cards", True)
-        duel_cfg = self.config.get("func_cards_settings", {})
+        current_config = self._last_runtime_config
+        sign_enabled = current_config.get("sign_in_settings", {}).get("enable", True)
+        fate_enabled = current_config.get("fate_cards_settings", {}).get("enable", True)
+        func_enabled = current_config.get("func_cards_settings", {}).get("enable", True)
+        dice_cards_enabled = current_config.get("func_cards_settings", {}).get("enable_dice_cards", True)
+        duel_cfg = current_config.get("func_cards_settings", {})
         duel_enabled = duel_cfg.get("enable_public_duel_mode", duel_cfg.get("enable_pure_dice_mode", False))
         duel_limit = int(duel_cfg.get("public_duel_daily_limit", duel_cfg.get("pure_dice_daily_limit", 3)) or 3)
         duel_min = int(duel_cfg.get("public_duel_min_stake", 10) or 10)

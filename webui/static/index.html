@@ -850,8 +850,22 @@
     }
 
     async function loadProfiles() {
-      const ret = await apiGet('/api/profile_overview', { withProfile: false });
-      state.profiles = ret.profiles || [];
+      try {
+        const ret = await apiGet('/api/profile_overview', { withProfile: false });
+        state.profiles = ret.profiles || [];
+      } catch (err) {
+        console.warn('profile_overview unavailable, fallback to single-profile mode', err);
+        state.profiles = [{
+          profile_id: 'default',
+          display_name: '默认配置',
+          groups: [],
+          group_count: 0,
+          user_count: 0,
+          func_card_count: state.cards.length || 0,
+          fate_card_count: state.fateCards.length || 0,
+          is_default: true
+        }];
+      }
       const current = state.profiles.find((x) => x.profile_id === state.currentProfile) || state.profiles[0];
       if (current) state.currentProfile = current.profile_id;
       qs('#current-profile-label').textContent = current?.display_name || state.currentProfile;
@@ -903,8 +917,13 @@
     }
 
     async function loadGroupAccess() {
-      const ret = await apiGet('/api/group_access', { withProfile: false });
-      state.groupAccess = ret.config || state.groupAccess;
+      try {
+        const ret = await apiGet('/api/group_access', { withProfile: false });
+        state.groupAccess = ret.config || state.groupAccess;
+      } catch (err) {
+        console.warn('group_access unavailable, fallback to off', err);
+        state.groupAccess = { mode: 'off', blacklist: [], whitelist: [] };
+      }
       renderGroupAccess();
     }
 
@@ -1657,8 +1676,14 @@
     }
 
     async function boot() {
-      await Promise.all([loadProfiles(), loadGroupAccess()]);
+      await Promise.allSettled([loadProfiles(), loadGroupAccess()]);
       await bootProfileData();
+      if (!state.profiles.length) {
+        state.profiles = [{ profile_id: 'default', display_name: '默认配置', groups: [], group_count: 0, user_count: 0, func_card_count: state.cards.length || 0, fate_card_count: state.fateCards.length || 0, is_default: true }];
+        state.currentProfile = 'default';
+        qs('#current-profile-label').textContent = '默认配置';
+        renderProfileBoard();
+      }
     }
 
     bindEvents();

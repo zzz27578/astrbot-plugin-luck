@@ -6,123 +6,1618 @@
   <title>luck_rank WebUI</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    :root{--line:rgba(255,255,255,.1);--text:#eef4ff;--muted:#9fb0cc;--shadow:0 22px 60px rgba(0,0,0,.35)}
-    *{box-sizing:border-box}html,body{margin:0;padding:0;min-height:100%;font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);background:radial-gradient(circle at top left,rgba(125,211,252,.16),transparent 24%),radial-gradient(circle at top right,rgba(167,139,250,.14),transparent 22%),linear-gradient(180deg,#08101c,#0d1626 45%,#101a2d)}body{min-height:100vh}
-    .app{display:grid;grid-template-columns:290px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;overflow:auto;padding:22px 18px;border-right:1px solid var(--line);background:rgba(8,12,22,.88);backdrop-filter:blur(18px)}.content{padding:28px}
-    .brand,.panel,.stat-card,.card-item,.profile-card,.modal-box{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid var(--line);box-shadow:var(--shadow)}.brand,.panel,.stat-card,.card-item,.profile-card{border-radius:24px}.brand{padding:20px;margin-bottom:18px}.brand h1{margin:0 0 8px;font-size:23px}.brand p{margin:0;color:var(--muted);font-size:13px;line-height:1.8}
-    .nav-title{padding:0 8px 10px;color:#7f93b7;font-size:12px;letter-spacing:.14em;text-transform:uppercase}.nav-btn,.nav-accordion,.btn,.btn-ghost,.btn-danger,.small-btn,.toggle-pill{transition:.18s ease;cursor:pointer}.nav-btn{width:100%;margin-bottom:8px;padding:13px 14px;border-radius:16px;border:1px solid transparent;background:transparent;color:var(--text);text-align:left}.nav-btn:hover,.nav-accordion:hover,.btn:hover,.btn-ghost:hover,.btn-danger:hover,.small-btn:hover,.toggle-pill:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.08)}.nav-btn.active{background:linear-gradient(135deg,rgba(125,211,252,.18),rgba(167,139,250,.15));border-color:rgba(125,211,252,.32)}
-    .nav-group{margin-bottom:14px}.nav-accordion{width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text)}.nav-children{display:none;padding:8px 0 0 10px}.nav-group.open .nav-children{display:block}.nav-btn.sub{font-size:13px;padding:11px 12px;background:rgba(255,255,255,.02)}
-    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}.topbar h2{margin:0;font-size:30px}.topbar p{margin:8px 0 0;color:var(--muted);line-height:1.8}
-    .panel{padding:20px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.btn,.btn-ghost,.btn-danger,.small-btn,.toggle-pill{padding:10px 14px;border-radius:14px;border:1px solid var(--line);font-size:14px;background:rgba(255,255,255,.05);color:var(--text)}.btn{background:linear-gradient(135deg,rgba(125,211,252,.26),rgba(167,139,250,.24));font-weight:700}.btn-danger{background:rgba(252,165,165,.1)}
-    input,select,textarea{width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--text);outline:none}select option{background:#142036;color:#fff}input::placeholder,textarea::placeholder{color:#7f92b1}
-    .page{display:none}.page.active{display:block}.cards-grid,.profile-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}.card-item,.profile-card{overflow:hidden;position:relative}.card-item:hover,.profile-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.18)}.profile-card.active{border-color:rgba(125,211,252,.38);box-shadow:0 0 0 1px rgba(125,211,252,.22),var(--shadow)}.card-item.selected{box-shadow:0 0 0 2px rgba(252,165,165,.9),var(--shadow)}
-    .rarity-bar{height:10px}.rarity-1{background:linear-gradient(90deg,#cbd5e1,#fff)}.rarity-2{background:linear-gradient(90deg,#93c5fd,#e0f2fe)}.rarity-3{background:linear-gradient(90deg,#c084fc,#f5d0fe)}.rarity-4{background:linear-gradient(90deg,#fcd34d,#fef3c7)}.rarity-5{background:linear-gradient(90deg,#fb7185,#ffe4e6)}.card-image{height:300px;background:#0d1728;display:flex;align-items:center;justify-content:center}.card-image img{width:100%;height:100%;object-fit:cover}.image-missing{padding:18px;text-align:center;color:var(--muted);line-height:1.7}.card-body{padding:14px 16px 16px}.card-title,.profile-name{margin:0 0 8px}.card-desc,.muted,.profile-sub,.inline-note{color:var(--muted);font-size:13px;line-height:1.7}.meta,.profile-badges,.group-strip,.profile-actions{display:flex;gap:8px;flex-wrap:wrap}.meta{margin:10px 0}.pill,.tag-chip,.status-badge,.profile-badge,.group-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06)}.status-badge{background:rgba(249,202,123,.14)}
-    .split-two,.editor-layout,.profile-shell{display:grid;grid-template-columns:1fr 1fr;gap:18px}.profile-shell{grid-template-columns:1.2fr .8fr}.profile-side-stack{display:grid;gap:18px}.panel-title-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.profile-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}.profile-cover{width:78px;height:78px;border-radius:20px;background:linear-gradient(135deg,rgba(125,211,252,.16),rgba(167,139,250,.18));display:flex;align-items:center;justify-content:center;font-size:28px}.profile-form-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:12px}.hint-card,.help-box,.preview-box,.empty{border-radius:18px}.hint-card,.help-box{padding:14px 16px;line-height:1.8;border:1px dashed rgba(255,255,255,.12);background:rgba(255,255,255,.03)}.preview-box{min-height:220px;padding:16px;border:1px dashed rgba(255,255,255,.12);background:rgba(255,255,255,.02)}.empty{text-align:center;padding:36px 16px;color:var(--muted);border:1px dashed rgba(255,255,255,.1);background:rgba(255,255,255,.02)}
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:18px}.stat-card{padding:18px}.stat-value{font-size:30px;font-weight:700}.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%}.chart-wrap{position:relative;min-height:280px}.field label{display:block;margin:0 0 8px;font-size:13px;color:#dce7fb}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.full{grid-column:1/-1}.tag-builder{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999}.modal.show{display:flex}.modal-box{width:min(1100px,96vw);max-height:92vh;overflow:auto;border-radius:28px;padding:24px;background:linear-gradient(180deg,#10203a,#0d1629)}.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.close-x{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;cursor:pointer}
-    @media (max-width:1100px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.content{padding:18px}.split-two,.editor-layout,.profile-shell,.profile-form-row,.form-grid,.tag-builder{grid-template-columns:1fr}}
+    :root {
+      --bg: #0a0a0a;
+      --bg-2: #111111;
+      --panel: #171717;
+      --panel-2: #1f1f1f;
+      --line: rgba(255,255,255,.14);
+      --line-strong: rgba(255,122,0,.55);
+      --text: #f5f5f5;
+      --muted: #8e8e8e;
+      --accent: #ff7a00;
+      --accent-soft: rgba(255,122,0,.16);
+      --blue: #66c7ff;
+      --green: #8de25d;
+      --red: #ff5f57;
+      --yellow: #ffc14d;
+      --shadow: 0 0 0 1px rgba(255,255,255,.04), 0 22px 40px rgba(0,0,0,.45);
+      --snap: cubic-bezier(.25,1,.5,1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(180deg, #080808, #0f0f0f 55%, #111111);
+      background-size: 48px 48px, 48px 48px, 100% 100%;
+      color: var(--text);
+      font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .06;
+      background-image: radial-gradient(circle at 1px 1px, #fff 1px, transparent 0);
+      background-size: 6px 6px;
+      mix-blend-mode: screen;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 18px;
+      border-right: 1px solid var(--line);
+      background: rgba(11,11,11,.94);
+    }
+
+    .content {
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+    }
+
+    .brand,
+    .panel,
+    .stat-card,
+    .card-item,
+    .profile-card,
+    .modal-box {
+      position: relative;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .brand::before,
+    .panel::before,
+    .stat-card::before,
+    .card-item::before,
+    .profile-card::before,
+    .modal-box::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent 0 12px, rgba(255,255,255,.04) 12px 13px, transparent 13px),
+        linear-gradient(0deg, transparent 0 12px, rgba(255,255,255,.03) 12px 13px, transparent 13px);
+      opacity: .35;
+    }
+
+    .corner::before,
+    .corner::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-top: 1px solid var(--line-strong);
+      border-left: 1px solid var(--line-strong);
+      top: 8px;
+      left: 8px;
+      pointer-events: none;
+    }
+
+    .corner::after {
+      top: auto;
+      left: auto;
+      right: 8px;
+      bottom: 8px;
+      border-top: 0;
+      border-left: 0;
+      border-right: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .brand {
+      padding: 18px;
+      margin-bottom: 14px;
+      min-height: 210px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 44px;
+      line-height: .92;
+      letter-spacing: .02em;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .brand .sub {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .industrial-note {
+      position: absolute;
+      font-size: 10px;
+      color: rgba(255,255,255,.38);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .note-a { top: 10px; right: 12px; }
+    .note-b { left: 18px; bottom: 14px; }
+    .note-c { right: 18px; bottom: 38px; transform: rotate(-90deg); transform-origin: right bottom; }
+
+    .nav-title {
+      margin: 14px 0 8px;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .22em;
+    }
+
+    .nav-btn,
+    .nav-accordion,
+    .btn,
+    .btn-ghost,
+    .btn-danger,
+    .small-btn,
+    .toggle-pill {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color: var(--text);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: .14s var(--snap);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 12px;
+    }
+
+    .nav-btn,
+    .nav-accordion { width: 100%; text-align: left; margin-bottom: 8px; }
+    .nav-btn.sub { font-size: 11px; }
+
+    .nav-btn:hover,
+    .nav-accordion:hover,
+    .btn:hover,
+    .btn-ghost:hover,
+    .btn-danger:hover,
+    .small-btn:hover,
+    .toggle-pill:hover {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 #000;
+    }
+
+    .nav-btn.active,
+    .toggle-pill.active {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.2);
+    }
+
+    .btn { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 800; }
+    .btn-ghost { background: transparent; }
+    .btn-danger { border-color: rgba(255,95,87,.6); color: #ffd7d5; }
+
+    .nav-group { margin-bottom: 12px; }
+    .nav-children { display: none; padding-left: 14px; border-left: 1px solid var(--line); }
+    .nav-group.open .nav-children { display: block; }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      border: 1px solid var(--line);
+      padding: 18px;
+      background: linear-gradient(90deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      position: relative;
+    }
+
+    .hero-mark {
+      position: absolute;
+      right: 20px;
+      top: -18px;
+      font-size: 74px;
+      font-weight: 900;
+      line-height: 1;
+      opacity: .08;
+      letter-spacing: .08em;
+      pointer-events: none;
+    }
+
+    .topbar h2 {
+      margin: 0;
+      font-size: 44px;
+      font-weight: 900;
+      line-height: .95;
+      text-transform: uppercase;
+    }
+
+    .topbar p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .profile-shell,
+    .split-two,
+    .editor-layout { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; }
+    .split-two { grid-template-columns: 1fr 1fr; }
+    .profile-side-stack { display: grid; gap: 18px; }
+    .profile-board,
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+
+    .panel { padding: 18px; }
+    .panel-title-row { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
+    .sub-title {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .muted,.profile-sub,.inline-note,.card-desc { color: var(--muted); font-size: 12px; line-height: 1.75; }
+    .profile-head { display: grid; grid-template-columns: 78px 1fr; gap: 14px; margin-bottom: 14px; }
+    .profile-cover { border: 1px solid var(--line); background: linear-gradient(135deg, rgba(255,122,0,.14), rgba(255,255,255,.02)); display: grid; place-items: center; font-size: 24px; min-height: 78px; }
+    .profile-name { margin: 0 0 6px; font-size: 20px; font-weight: 900; text-transform: uppercase; }
+    .profile-badges,.group-strip,.profile-actions,.meta,.legend { display: flex; flex-wrap: wrap; gap: 8px; }
+    .profile-badge,.group-chip,.pill,.tag-chip,.status-badge {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      padding: 6px 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .status-badge { color: #000; background: var(--yellow); border-color: var(--yellow); }
+    .profile-form-row,.form-grid { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 12px; }
+    .form-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .full { grid-column: 1 / -1; }
+    .field label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: #cfcfcf;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+    }
+    input,select,textarea {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color: var(--text);
+      padding: 12px;
+      font-size: 13px;
+      min-width: 0;
+    }
+    textarea { resize: vertical; }
+    input:focus,select:focus,textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .card-item { cursor: pointer; }
+    .card-item.selected { box-shadow: 0 0 0 1px var(--accent), 6px 6px 0 rgba(255,122,0,.22); }
+    .rarity-bar { height: 10px; }
+    .rarity-1 { background: linear-gradient(90deg, #d0d0d0, #fff); }
+    .rarity-2 { background: linear-gradient(90deg, #82cfff, #dbf5ff); }
+    .rarity-3 { background: linear-gradient(90deg, #b888ff, #f1deff); }
+    .rarity-4 { background: linear-gradient(90deg, #ffbe40, #ffe6a6); }
+    .rarity-5 { background: linear-gradient(90deg, #ff6d9b, #ffd2df); }
+    .card-image { height: 320px; position: relative; clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%); }
+    .card-image img { width: 100%; height: 100%; object-fit: cover; }
+    .image-missing { padding: 18px; text-align: center; }
+    .card-body { padding: 14px 16px 16px; }
+    .card-title { margin: 0 0 8px; font-size: 18px; font-weight: 900; }
+
+    .hint-card,.help-box,.preview-box,.empty {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      padding: 14px;
+      position: relative;
+    }
+    .preview-box { min-height: 220px; }
+    .empty { text-align: center; padding: 36px 16px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 18px; margin-bottom: 18px; }
+    .stat-card { padding: 18px; min-height: 118px; }
+    .stat-value { font-size: 34px; font-weight: 900; margin-top: 12px; }
+    .chart-wrap { min-height: 260px; position: relative; }
+
+    .tag-builder { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0,0,0,.78);
+      z-index: 9999;
+    }
+    .modal.show { display: flex; }
+    .modal-box { width: min(1200px, 96vw); max-height: 92vh; overflow: auto; padding: 20px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .close-x {
+      width: 40px; height: 40px; border: 1px solid var(--line); background: transparent; color: #fff; cursor: pointer;
+    }
+
+    .crosshair {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: -8px;
+      top: -8px;
+      pointer-events: none;
+    }
+    .crosshair::before,
+    .crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(255,255,255,.22);
+    }
+    .crosshair::before { width: 16px; height: 1px; top: 7px; left: 0; }
+    .crosshair::after { width: 1px; height: 16px; left: 7px; top: 0; }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; }
+      .content { padding: 14px; }
+      .profile-shell,.split-two,.editor-layout,.stats-grid,.form-grid,.profile-form-row,.tag-builder { grid-template-columns: 1fr; }
+      .topbar { grid-template-columns: 1fr; }
+      .hero-mark { display: none; }
+    }
   </style>
 </head>
 <body>
-<div class="app">
-  <aside class="sidebar">
-    <div class="brand"><h1>luck_rank WebUI</h1><p>面向配置方案的可视化后台。<br>前卫、清爽、可直接管理四大模块与群接入规则。</p></div>
-    <div class="nav-title">主控制台</div>
-    <button class="nav-btn active" data-page="profile-page">配置管理</button>
-    <div class="nav-title" style="margin-top:16px">当前方案</div>
-    <div class="nav-group open" id="scheme-nav-group">
-      <button class="nav-accordion" id="scheme-nav-toggle"><span>配置方案<br><small id="current-profile-label">默认配置</small></span><span id="scheme-nav-caret">▾</span></button>
-      <div class="nav-children">
-        <button class="nav-btn sub" data-page="config-page">运行配置</button>
-        <button class="nav-btn sub" data-page="texts-page">签到配置</button>
-        <button class="nav-btn sub" data-page="fate-page">命运牌</button>
-        <button class="nav-btn sub" data-page="cards-page">功能牌</button>
-        <button class="nav-btn sub" data-page="stats-page">方案统计</button>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand corner">
+        <div class="industrial-note note-a">VER. 2.4.0 / LUCK-RANK / UI-REWORK</div>
+        <div class="industrial-note note-b">[ TACTICAL CONFIG TERMINAL ]</div>
+        <div class="industrial-note note-c">COORD 31.2304 / 121.4737 / HEX 0X7A</div>
+        <h1>LUCK<br>RANK</h1>
+        <div class="sub">[ CONFIGURATION CONSOLE ]<br>工业排印 / 战术面板 / 配置方案驱动</div>
+      </div>
+
+      <div class="nav-title">[ MASTER ]</div>
+      <button class="nav-btn active" data-page="profile-page">配置管理</button>
+
+      <div class="nav-title">[ CURRENT PROFILE ]</div>
+      <div class="nav-group open" id="scheme-nav-group">
+        <button class="nav-accordion" id="scheme-nav-toggle">[ SCHEME ] <span id="current-profile-label">默认配置</span></button>
+        <div class="nav-children">
+          <button class="nav-btn sub" data-page="config-page">运行配置</button>
+          <button class="nav-btn sub" data-page="texts-page">签到配置</button>
+          <button class="nav-btn sub" data-page="fate-page">命运牌</button>
+          <button class="nav-btn sub" data-page="cards-page">功能牌</button>
+          <button class="nav-btn sub" data-page="stats-page">方案统计</button>
+        </div>
+      </div>
+
+      <div class="panel corner">
+        <div class="crosshair"></div>
+        <div class="sub-title">[ ONLINE ]</div>
+        <div class="muted">系统已连接。先选择配置方案，再进入四个模块。所有资源都与当前方案绑定。</div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="topbar corner">
+        <div class="hero-mark">LRK</div>
+        <div>
+          <h2 id="page-title">CONFIG</h2>
+          <p id="page-desc">先选择配置方案，再进入运行配置、签到配置、命运牌和功能牌模块。</p>
+        </div>
+        <div class="toolbar">
+          <button class="btn-ghost" id="btn-refresh">[ REFRESH ]</button>
+          <button class="btn" id="btn-save-current">[ SAVE ]</button>
+        </div>
+      </div>
+
+      <section class="page active" id="profile-page">
+        <div class="profile-shell">
+          <div class="panel corner">
+            <div class="panel-title-row">
+              <div>
+                <h3 class="sub-title">[ PROFILE CONTROL ]</h3>
+                <div class="muted">方案驱动四大模块。默认配置作为新群初始模板。</div>
+              </div>
+              <div class="toolbar">
+                <button class="btn-ghost" id="btn-refresh-profiles">[ RELOAD ]</button>
+                <button class="btn" id="btn-create-profile">[ NEW PROFILE ]</button>
+              </div>
+            </div>
+            <div style="height:16px"></div>
+            <div id="profile-board" class="profile-board"></div>
+          </div>
+
+          <div class="profile-side-stack">
+            <div class="panel corner">
+              <h3 class="sub-title">[ ACCESS RULE ]</h3>
+              <div class="toolbar" style="margin-bottom:12px">
+                <button class="toggle-pill active" data-access-mode="off">OFF</button>
+                <button class="toggle-pill" data-access-mode="blacklist">BLACKLIST</button>
+                <button class="toggle-pill" data-access-mode="whitelist">WHITELIST</button>
+              </div>
+              <div class="hint-card">黑白名单互斥。关闭时所有群按默认逻辑接入；开启后仅应用一种规则。</div>
+              <div class="field" style="margin-top:12px"><label>黑名单群号</label><textarea id="group-blacklist" rows="6"></textarea></div>
+              <div class="field"><label>白名单群号</label><textarea id="group-whitelist" rows="6"></textarea></div>
+              <div class="toolbar"><button class="btn" id="btn-save-group-access">[ SAVE RULE ]</button></div>
+            </div>
+
+            <div class="panel corner">
+              <h3 class="sub-title">[ INSTRUCTION ]</h3>
+              <div class="help-box">点击方案卡即可切换当前方案。左侧折叠导航下的运行配置、签到配置、命运牌、功能牌和统计页面，都会读写当前方案数据。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="cards-page">
+        <div class="panel corner" style="margin-bottom:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap">
+            <div>
+              <h3 class="sub-title">[ FUNCTION CARD POOL ]</h3>
+              <div class="legend" id="cards-overview-legend"></div>
+            </div>
+            <div style="width:150px;height:150px"><canvas id="chart-cards-type"></canvas></div>
+          </div>
+        </div>
+        <div class="panel corner">
+          <div class="toolbar">
+            <input id="card-search" placeholder="搜索卡名 / 描述 / tag..." style="flex:1 1 220px" />
+            <select id="card-filter-type">
+              <option value="">全部类型</option><option value="attack">攻击</option><option value="heal">治疗</option><option value="defense">防御</option>
+            </select>
+            <select id="card-filter-rarity">
+              <option value="">全部稀有度</option><option value="1">普通</option><option value="2">稀有</option><option value="3">史诗</option><option value="4">传说</option><option value="5">神话</option>
+            </select>
+            <button class="btn-ghost" id="btn-upload-images">[ UPLOAD ]</button>
+            <button class="btn-ghost" id="btn-check-missing-cards">[ CHECK ]</button>
+            <button class="btn-danger" id="btn-toggle-card-batch">[ BATCH ]</button>
+            <button class="btn-danger" id="btn-card-delete-selected" style="display:none">[ DELETE ]</button>
+            <button class="btn-ghost" id="btn-card-copy-selected" style="display:none">[ COPY ]</button>
+            <button class="btn-ghost" id="btn-card-cancel-batch" style="display:none">[ CANCEL ]</button>
+            <button class="btn" id="btn-new-card">[ NEW CARD ]</button>
+          </div>
+          <div id="cards-grid" class="cards-grid"></div>
+        </div>
+      </section>
+
+      <section class="page" id="fate-page">
+        <div class="panel corner">
+          <div class="toolbar">
+            <input id="fate-search" placeholder="搜索命运牌文案..." style="flex:1 1 220px" />
+            <button class="btn-ghost" id="btn-upload-fate-images">[ UPLOAD ]</button>
+            <button class="btn-ghost" id="btn-check-missing-fate">[ CHECK ]</button>
+            <button class="btn-danger" id="btn-toggle-fate-batch">[ BATCH ]</button>
+            <button class="btn-danger" id="btn-fate-delete-selected" style="display:none">[ DELETE ]</button>
+            <button class="btn-ghost" id="btn-fate-copy-selected" style="display:none">[ COPY ]</button>
+            <button class="btn-ghost" id="btn-fate-cancel-batch" style="display:none">[ CANCEL ]</button>
+            <button class="btn" id="btn-new-fate">[ NEW FATE ]</button>
+          </div>
+          <div id="fate-grid" class="cards-grid"></div>
+        </div>
+      </section>
+
+      <section class="page" id="texts-page">
+        <div class="panel corner">
+          <h3 class="sub-title">[ SIGN-IN PREVIEW ]</h3>
+          <div class="toolbar"><button class="btn-ghost" id="btn-preview-signin">[ GENERATE ]</button></div>
+          <div class="help-box" id="signin-preview-box">点击按钮后，这里会生成一条完整的签到效果预览。</div>
+        </div>
+        <div style="height:18px"></div>
+        <div class="split-two">
+          <div class="panel corner">
+            <h3 class="sub-title">[ GOOD THINGS ]</h3>
+            <div class="toolbar"><button class="btn" id="btn-add-good">[ ADD ]</button><button class="btn-ghost" id="btn-batch-good">[ IMPORT ]</button></div>
+            <div id="good-list"></div>
+          </div>
+          <div class="panel corner">
+            <h3 class="sub-title">[ BAD THINGS ]</h3>
+            <div class="toolbar"><button class="btn" id="btn-add-bad">[ ADD ]</button><button class="btn-ghost" id="btn-batch-bad">[ IMPORT ]</button></div>
+            <div id="bad-list"></div>
+          </div>
+        </div>
+        <div style="height:18px"></div>
+        <div class="panel corner">
+          <h3 class="sub-title">[ LUCK RANGE ]</h3>
+          <div class="help-box">按区间配置签到评语与金币变化。保存时会校验是否有重叠、断档和非法范围。</div>
+          <div style="height:14px"></div>
+          <div id="luck-ranges-editor"></div>
+          <div class="toolbar" style="margin-top:12px"><button class="btn-ghost" id="btn-add-range">[ NEW RANGE ]</button><button class="btn" id="btn-save-texts">[ SAVE TEXTS ]</button></div>
+        </div>
+      </section>
+
+      <section class="page" id="config-page">
+        <div class="panel corner">
+          <h3 class="sub-title">[ RUNTIME CONFIG ]</h3>
+          <div class="split-two">
+            <div>
+              <h4 class="sub-title" style="font-size:14px">[ FATE ]</h4>
+              <div class="form-grid"><div class="field"><label>每日抽取上限</label><input id="cfg-fate-daily" type="number" min="1" /></div></div>
+              <h4 class="sub-title" style="font-size:14px; margin-top:20px">[ PUBLIC DUEL ]</h4>
+              <div class="form-grid">
+                <div class="field"><label>每日上限</label><input id="cfg-duel-limit" type="number" min="0" /></div>
+                <div class="field"><label>最低赌注</label><input id="cfg-duel-min" type="number" min="0" /></div>
+                <div class="field"><label>最高赌注</label><input id="cfg-duel-max" type="number" min="0" /></div>
+              </div>
+            </div>
+            <div>
+              <h4 class="sub-title" style="font-size:14px">[ RARITY / DRAW ]</h4>
+              <div class="form-grid">
+                <div class="field"><label>同档去重</label><select id="cfg-rarity-dedup"><option value="true">开启</option><option value="false">关闭</option></select></div>
+                <div class="field"><label>爆率模式</label><select id="cfg-rarity-mode"><option value="default">默认权重</option><option value="custom">自定义权重</option></select></div>
+                <div class="field"><label>普通权重</label><input id="cfg-r1" type="number" min="0" /></div>
+                <div class="field"><label>稀有权重</label><input id="cfg-r2" type="number" min="0" /></div>
+                <div class="field"><label>史诗权重</label><input id="cfg-r3" type="number" min="0" /></div>
+                <div class="field"><label>传说权重</label><input id="cfg-r4" type="number" min="0" /></div>
+                <div class="field"><label>神话权重</label><input id="cfg-r5" type="number" min="0" /></div>
+                <div class="field"><label>基础掉率(%)</label><input id="cfg-draw-prob" type="number" min="0" /></div>
+                <div class="field"><label>每日免费抽取</label><input id="cfg-free-draw" type="number" min="0" /></div>
+                <div class="field"><label>单次抽取消耗</label><input id="cfg-draw-cost" type="number" min="0" /></div>
+                <div class="field"><label>保底阈值</label><input id="cfg-pity" type="number" min="0" /></div>
+              </div>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top:16px"><button class="btn" id="btn-save-config">[ SAVE CONFIG ]</button><button class="btn-ghost" id="btn-load-config">[ RELOAD CONFIG ]</button></div>
+        </div>
+      </section>
+
+      <section class="page" id="stats-page">
+        <div class="stats-grid">
+          <div class="stat-card corner"><div>[ TOTAL USERS ]</div><div class="stat-value" id="stat-total-users">0</div></div>
+          <div class="stat-card corner"><div>[ FUNC CARDS ]</div><div class="stat-value" id="stat-total-cards">0</div></div>
+          <div class="stat-card corner"><div>[ FATE CARDS ]</div><div class="stat-value" id="stat-total-fate">0</div></div>
+          <div class="stat-card corner"><div>[ MISSING IMAGES ]</div><div class="stat-value" id="stat-missing">0</div></div>
+        </div>
+        <div class="split-two">
+          <div class="panel corner"><h3 class="sub-title">[ RARITY DISTRIBUTION ]</h3><div class="chart-wrap"><canvas id="chart-rarity"></canvas></div></div>
+          <div class="panel corner"><h3 class="sub-title">[ TYPE DISTRIBUTION ]</h3><div class="chart-wrap"><canvas id="chart-type"></canvas></div></div>
+        </div>
+        <div style="height:18px"></div>
+        <div class="split-two">
+          <div class="panel corner"><h3 class="sub-title">[ COMPLETION STATUS ]</h3><div class="chart-wrap"><canvas id="chart-incomplete"></canvas></div></div>
+          <div class="panel corner"><h3 class="sub-title">[ HOLDER TOP20 ]</h3><div class="chart-wrap"><canvas id="chart-holders"></canvas></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="card-modal">
+    <div class="modal-box corner">
+      <div class="modal-header"><h2 id="card-modal-title">新增功能牌</h2><button class="close-x" type="button" onclick="closeCardModal()">×</button></div>
+      <div class="editor-layout">
+        <div>
+          <div class="form-grid">
+            <div class="field"><label>卡牌名称</label><input id="edit-card-name" /></div>
+            <div class="field"><label>卡牌类型</label><select id="edit-card-type"><option value="attack">攻击</option><option value="heal">治疗</option><option value="defense">防御</option></select></div>
+            <div class="field"><label>稀有度</label><select id="edit-card-rarity"><option value="1">普通</option><option value="2">稀有</option><option value="3">史诗</option><option value="4">传说</option><option value="5">神话</option></select></div>
+            <div class="field"><label>图片文件名</label><input id="edit-card-filename" /><div style="height:8px"></div><button class="btn-ghost" type="button" id="btn-upload-current-card-image">[ UPLOAD IMAGE ]</button></div>
+            <div class="field full"><label>描述</label><textarea id="edit-card-desc" rows="3"></textarea></div>
+            <div class="field full"><label>当前 tags（每行一个）</label><textarea id="edit-card-tags" rows="6"></textarea></div>
+          </div>
+          <h3 class="sub-title" style="margin-top:18px">[ TAG BUILDER ]</h3>
+          <div class="tag-builder">
+            <div class="field"><label>分类</label><select id="tag-category"></select></div>
+            <div class="field"><label>词条</label><select id="tag-template"></select></div>
+            <button class="btn" id="btn-add-tag">[ ADD ]</button>
+          </div>
+          <div id="tag-help" class="help-box" style="margin:12px 0">先选择分类与词条。</div>
+          <div id="tag-params" class="form-grid"></div>
+        </div>
+        <div>
+          <h3 class="sub-title">[ LIVE PREVIEW ]</h3>
+          <div class="preview-box" id="card-preview-box"></div>
+          <div style="height:16px"></div>
+          <div class="toolbar"><button class="btn" id="btn-save-card">[ SAVE CARD ]</button><button class="btn-danger" id="btn-delete-card">[ DELETE CARD ]</button></div>
+        </div>
       </div>
     </div>
-    <div class="panel"><div style="font-weight:700">系统已连接</div><div class="muted" style="margin-top:8px">先选择方案，再进入四个模块。群号和黑白名单只在后台显示。</div></div>
-  </aside>
-  <main class="content">
-    <div class="topbar"><div><h2 id="page-title">配置管理</h2><p id="page-desc">先选择配置方案，再进入运行配置、签到配置、命运牌和功能牌模块。</p></div><div class="toolbar" style="margin:0"><button class="btn-ghost" id="btn-refresh">刷新数据</button><button class="btn" id="btn-save-current">保存当前页面</button></div></div>
+  </div>
 
-    <section class="page active" id="profile-page"><div class="profile-shell"><div class="panel"><div class="panel-title-row"><div><h3 class="sub-title" style="margin-bottom:8px">配置方案管理</h3><div class="muted">默认配置会自动浮现，并作为新群初始方案来源。当前方案会同步驱动四大模块。</div></div><div class="toolbar" style="margin:0"><button class="btn-ghost" id="btn-refresh-profiles">刷新方案</button><button class="btn" id="btn-create-profile">新建方案</button></div></div><div style="height:16px"></div><div id="profile-board" class="profile-board"></div></div><div class="profile-side-stack"><div class="panel"><h3 class="sub-title">群接入规则</h3><div class="toolbar" style="margin-bottom:12px"><button class="toggle-pill active" data-access-mode="off">关闭</button><button class="toggle-pill" data-access-mode="blacklist">黑名单</button><button class="toggle-pill" data-access-mode="whitelist">白名单</button></div><div class="hint-card" style="margin-bottom:12px">黑白名单互斥。关闭时所有群按默认逻辑接入；开启后仅应用一种规则。</div><div class="field"><label>黑名单群号（每行一个）</label><textarea id="group-blacklist" rows="6"></textarea></div><div class="field"><label>白名单群号（每行一个）</label><textarea id="group-whitelist" rows="6"></textarea></div><div class="toolbar"><button class="btn" id="btn-save-group-access">保存接入规则</button></div></div><div class="panel"><h3 class="sub-title">使用说明</h3><div class="hint-card">点击方案卡即可切换当前方案。左侧折叠导航下的运行配置、签到配置、命运牌、功能牌和统计页面，都会读写当前方案的数据。</div></div></div></div></section>
+  <div class="modal" id="fate-modal">
+    <div class="modal-box corner">
+      <div class="modal-header"><h2 id="fate-modal-title">新增命运牌</h2><button class="close-x" type="button" onclick="closeFateModal()">×</button></div>
+      <div class="editor-layout">
+        <div>
+          <div class="form-grid">
+            <div class="field full"><label>图片文件名</label><input id="fate-filename" /><div style="height:8px"></div><button class="btn-ghost" type="button" id="btn-upload-current-fate-image">[ UPLOAD IMAGE ]</button></div>
+            <div class="field full"><label>命运牌文案</label><textarea id="fate-text" rows="3"></textarea></div>
+            <div class="field"><label>数值 value</label><input id="fate-value" type="number" /></div>
+          </div>
+          <div style="height:16px"></div>
+          <div class="toolbar"><button class="btn" id="btn-save-fate">[ SAVE FATE ]</button><button class="btn-danger" id="btn-delete-fate">[ DELETE FATE ]</button></div>
+        </div>
+        <div>
+          <h3 class="sub-title">[ LIVE PREVIEW ]</h3>
+          <div class="preview-box" id="fate-preview-box"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <section class="page" id="cards-page"><div class="panel" style="margin-bottom:18px"><div style="display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap"><div><h3 class="sub-title" style="margin-bottom:8px">卡池概览</h3><div class="legend" id="cards-overview-legend"></div></div><div style="width:150px;height:150px"><canvas id="chart-cards-type"></canvas></div></div></div><div class="panel"><div class="toolbar"><input id="card-search" placeholder="搜索卡名 / 描述 / tag..." style="flex:1 1 220px" /><select id="card-filter-type"><option value="">全部类型</option><option value="attack">攻击</option><option value="heal">治疗</option><option value="defense">防御</option></select><select id="card-filter-rarity"><option value="">全部稀有度</option><option value="1">普通</option><option value="2">稀有</option><option value="3">史诗</option><option value="4">传说</option><option value="5">神话</option></select><button class="btn-ghost" id="btn-upload-images">上传图片并自动建卡</button><button class="btn-ghost" id="btn-check-missing-cards">检查待补全</button><button class="btn-danger" id="btn-toggle-card-batch">批量模式</button><button class="btn-danger" id="btn-card-delete-selected" style="display:none">删除已选</button><button class="btn-ghost" id="btn-card-copy-selected" style="display:none">复制已选</button><button class="btn-ghost" id="btn-card-cancel-batch" style="display:none">取消</button><button class="btn" id="btn-new-card">新增功能牌</button></div><div id="cards-grid" class="cards-grid"></div></div></section>
+  <script>
+    const state = {
+      cards: [],
+      images: [],
+      fateCards: [],
+      fateImages: [],
+      signTexts: { good_things: [], bad_things: [], luck_ranges: [] },
+      runtimeConfig: null,
+      currentProfile: 'default',
+      profiles: [],
+      groupAccess: { mode: 'off', blacklist: [], whitelist: [] },
+      selectedCardIndex: -1,
+      selectedFateIndex: -1,
+      cardBatchMode: false,
+      fateBatchMode: false,
+      selectedCardNames: new Set(),
+      selectedFateIndices: new Set(),
+      stats: { total_users: 0, card_holders: {} }
+    };
 
-    <section class="page" id="fate-page"><div class="panel"><div class="toolbar"><input id="fate-search" placeholder="搜索命运牌文案..." style="flex:1 1 220px" /><button class="btn-ghost" id="btn-upload-fate-images">上传图片并自动建卡</button><button class="btn-ghost" id="btn-check-missing-fate">检查待补全</button><button class="btn-danger" id="btn-toggle-fate-batch">批量模式</button><button class="btn-danger" id="btn-fate-delete-selected" style="display:none">删除已选</button><button class="btn-ghost" id="btn-fate-copy-selected" style="display:none">复制已选</button><button class="btn-ghost" id="btn-fate-cancel-batch" style="display:none">取消</button><button class="btn" id="btn-new-fate">新增命运牌</button></div><div id="fate-grid" class="cards-grid"></div></div></section>
+    const pageMeta = {
+      'profile-page': ['CONFIG', '先选择配置方案，再进入运行配置、签到配置、命运牌和功能牌模块。'],
+      'cards-page': ['FUNCTION CARDS', '管理功能牌卡池、图片、词条与稀有度。'],
+      'fate-page': ['FATE CARDS', '管理命运牌卡池，配置图片、文案与数值。'],
+      'texts-page': ['SIGN-IN TEXTS', '编辑签到宜做、忌做和运势评语。'],
+      'config-page': ['RUNTIME CONFIG', '调整方案对应的抽卡、对赌与签到参数。'],
+      'stats-page': ['TACTICAL STATS', '查看当前方案卡池分布与玩家持牌情况。']
+    };
 
-    <section class="page" id="texts-page"><div class="panel"><h3 class="sub-title">签到效果预览</h3><div class="toolbar"><button class="btn-ghost" id="btn-preview-signin">随机生成一条</button></div><div class="help-box" id="signin-preview-box">点击按钮后，这里会生成一条完整的签到效果预览。</div></div><div style="height:18px"></div><div class="split-two"><div class="panel"><h3 class="sub-title">宜做事项</h3><div class="toolbar"><button class="btn" id="btn-add-good">新增一条</button><button class="btn-ghost" id="btn-batch-good">批量导入</button></div><div id="good-list"></div></div><div class="panel"><h3 class="sub-title">忌做事项</h3><div class="toolbar"><button class="btn" id="btn-add-bad">新增一条</button><button class="btn-ghost" id="btn-batch-bad">批量导入</button></div><div id="bad-list"></div></div></div><div style="height:18px"></div><div class="panel"><h3 class="sub-title">运势区间配置</h3><div class="help-box">这里按区间配置签到评语与金币变化，保存时会校验是否有重叠、断档和非法范围。</div><div style="height:14px"></div><div id="luck-ranges-editor"></div><div class="toolbar" style="margin-top:12px"><button class="btn-ghost" id="btn-add-range">新增区间</button><button class="btn" id="btn-save-texts">保存签到配置</button></div></div></section>
+    const tagDefs = {
+      attack: [
+        { value: 'steal', label: '掠夺金币', desc: '从目标身上掠夺金币。', params: ['amount'] },
+        { value: 'freeze', label: '冻结目标', desc: '冻结目标一段时间。', params: ['hours'] },
+        { value: 'silence', label: '沉默目标', desc: '沉默目标一段时间。', params: ['hours'] },
+        { value: 'seal_draw_all', label: '封印抽牌', desc: '封印目标抽牌能力。', params: ['hours'] },
+        { value: 'luck_drain', label: '吸取爆率', desc: '吸走目标部分运气。', params: ['hours', 'percent'] },
+        { value: 'borrow_blade', label: '借刀杀人', desc: '借别人之手造成伤害。', params: ['min', 'max'] },
+        { value: 'bounty_mark', label: '赏金悬令', desc: '给目标挂赏金。', params: ['hours', 'bonus'] },
+        { value: 'strip_buff_gain', label: '偷梁换柱', desc: '偷走目标增益。', params: ['percent', 'hours'] }
+      ],
+      heal: [
+        { value: 'cleanse', label: '净化', desc: '清除负面状态。', params: [] },
+        { value: 'luck_bless', label: '时来运转', desc: '提高收益或好运。', params: ['hours', 'percent'] },
+        { value: 'fate_roulette', label: '命运转盘', desc: '随机触发命运效果。', params: [] }
+      ],
+      defense: [
+        { value: 'add_shield', label: '添加护盾', desc: '给予护盾。', params: [] },
+        { value: 'thorn_armor', label: '反甲', desc: '反弹部分伤害。', params: ['hours', 'ratio'] }
+      ],
+      aoe: [
+        { value: 'aoe_damage', label: '群体伤害', desc: '攻击多人。', params: ['min', 'max', 'count'] },
+        { value: 'aoe_heal', label: '群体治疗', desc: '治疗多人。', params: ['min', 'max', 'count'] }
+      ],
+      dice: [
+        { value: 'dice_rule', label: '骰子规则', desc: '绑定骰子规则。', params: ['key'] },
+        { value: 'dice_duel', label: '公开对赌', desc: '触发公开对赌。', params: ['stake'] },
+        { value: 'dice_reroll_lowest_once', label: '天命重投', desc: '重投最低点一次。', params: [] }
+      ]
+    };
 
-    <section class="page" id="config-page"><div class="panel"><h3 class="sub-title">运行配置</h3><div class="split-two"><div><h4>命运牌</h4><div class="form-grid"><div class="field"><label>每日抽取上限</label><input id="cfg-fate-daily" type="number" min="1" /></div></div><h4>公开对赌</h4><div class="form-grid"><div class="field"><label>每日上限</label><input id="cfg-duel-limit" type="number" min="0" /></div><div class="field"><label>最低赌注</label><input id="cfg-duel-min" type="number" min="0" /></div><div class="field"><label>最高赌注</label><input id="cfg-duel-max" type="number" min="0" /></div></div></div><div><h4>稀有度与抽卡</h4><div class="form-grid"><div class="field"><label>同档去重</label><select id="cfg-rarity-dedup"><option value="true">开启</option><option value="false">关闭</option></select></div><div class="field"><label>爆率模式</label><select id="cfg-rarity-mode"><option value="default">默认权重</option><option value="custom">自定义权重</option></select></div><div class="field"><label>普通权重</label><input id="cfg-r1" type="number" min="0" /></div><div class="field"><label>稀有权重</label><input id="cfg-r2" type="number" min="0" /></div><div class="field"><label>史诗权重</label><input id="cfg-r3" type="number" min="0" /></div><div class="field"><label>传说权重</label><input id="cfg-r4" type="number" min="0" /></div><div class="field"><label>神话权重</label><input id="cfg-r5" type="number" min="0" /></div><div class="field"><label>基础掉率(%)</label><input id="cfg-draw-prob" type="number" min="0" /></div><div class="field"><label>每日免费抽取</label><input id="cfg-free-draw" type="number" min="0" /></div><div class="field"><label>单次抽取消耗</label><input id="cfg-draw-cost" type="number" min="0" /></div><div class="field"><label>保底阈值</label><input id="cfg-pity" type="number" min="0" /></div></div></div></div><div class="toolbar" style="margin-top:16px"><button class="btn" id="btn-save-config">保存运行配置</button><button class="btn-ghost" id="btn-load-config">重新读取</button></div></div></section>
+    const qs = (s) => document.querySelector(s);
+    const qsa = (s) => Array.from(document.querySelectorAll(s));
+    const clone = (x) => JSON.parse(JSON.stringify(x));
+    const esc = (s) => String(s ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+    const typeLabel = (t) => t === 'attack' ? '攻击' : t === 'heal' ? '治疗' : t === 'defense' ? '防御' : '其他';
+    const rarityClass = (r) => `rarity-${Number(r) || 1}`;
+    const isCardIncomplete = (c) => !String(c.card_name || '').trim() || !String(c.description || '').trim() || !(c.tags || []).length;
+    const isFateIncomplete = (c) => !String(c.text || '').trim() || !String(c.filename || '').trim();
 
-    <section class="page" id="stats-page"><div class="stats-grid"><div class="stat-card"><div>总用户数</div><div class="stat-value" id="stat-total-users">0</div></div><div class="stat-card"><div>功能牌总数</div><div class="stat-value" id="stat-total-cards">0</div></div><div class="stat-card"><div>命运牌总数</div><div class="stat-value" id="stat-total-fate">0</div></div><div class="stat-card"><div>缺失图片数</div><div class="stat-value" id="stat-missing">0</div></div></div><div class="split-two"><div class="panel"><h3 class="sub-title">稀有度分布</h3><div class="chart-wrap" style="min-height:180px"><canvas id="chart-rarity"></canvas></div></div><div class="panel"><h3 class="sub-title">类型占比</h3><div class="chart-wrap" style="min-height:220px"><canvas id="chart-type"></canvas></div></div></div><div style="height:18px"></div><div class="split-two"><div class="panel"><h3 class="sub-title">待配置占比</h3><div class="chart-wrap" style="min-height:220px"><canvas id="chart-incomplete"></canvas></div></div><div class="panel"><h3 class="sub-title">玩家持牌 Top20</h3><div class="chart-wrap" style="min-height:420px"><canvas id="chart-holders"></canvas></div></div></div></section>
-  </main>
-</div>
+    function purl(url, profile = state.currentProfile) {
+      const sep = url.includes('?') ? '&' : '?';
+      return `${url}${sep}profile=${encodeURIComponent(profile || 'default')}`;
+    }
 
-<div class="modal" id="card-modal"><div class="modal-box"><div class="modal-header"><h2 id="card-modal-title">新增功能牌</h2><button class="close-x" onclick="closeCardModal()">×</button></div><div class="editor-layout"><div><div class="form-grid"><div class="field"><label>卡牌名称</label><input id="edit-card-name" /></div><div class="field"><label>卡牌类型</label><select id="edit-card-type"><option value="attack">攻击</option><option value="heal">治疗</option><option value="defense">防御</option></select></div><div class="field"><label>稀有度</label><select id="edit-card-rarity"><option value="1">普通</option><option value="2">稀有</option><option value="3">史诗</option><option value="4">传说</option><option value="5">神话</option></select></div><div class="field"><label>图片文件名</label><input id="edit-card-filename" /><div style="height:8px"></div><button class="btn-ghost" type="button" id="btn-upload-current-card-image">给这张卡上传图片</button></div><div class="field full"><label>描述</label><textarea id="edit-card-desc" rows="3"></textarea></div><div class="field full"><label>当前 tags（每行一个）</label><textarea id="edit-card-tags" rows="6"></textarea></div></div><h3 class="sub-title" style="margin-top:18px">Tag 构建器</h3><div class="tag-builder"><div class="field"><label>分类</label><select id="tag-category"></select></div><div class="field"><label>词条</label><select id="tag-template"></select></div><button class="btn" id="btn-add-tag">添加</button></div><div id="tag-help" class="help-box" style="margin:12px 0">先选择分类与词条。</div><div id="tag-params" class="form-grid"></div></div><div><h3 class="sub-title">实时预览</h3><div class="preview-box" id="card-preview-box"></div><div style="height:16px"></div><div class="toolbar"><button class="btn" id="btn-save-card">保存这张卡</button><button class="btn-danger" id="btn-delete-card">删除当前卡</button></div></div></div></div></div>
-<div class="modal" id="fate-modal"><div class="modal-box"><div class="modal-header"><h2 id="fate-modal-title">新增命运牌</h2><button class="close-x" onclick="closeFateModal()">×</button></div><div class="editor-layout"><div><div class="form-grid"><div class="field full"><label>图片文件名</label><input id="fate-filename" /><div style="height:8px"></div><button class="btn-ghost" type="button" id="btn-upload-current-fate-image">给这张命运牌上传图片</button></div><div class="field full"><label>命运牌文案</label><textarea id="fate-text" rows="3"></textarea></div><div class="field"><label>数值 value</label><input id="fate-value" type="number" /></div></div><div style="height:16px"></div><div class="toolbar"><button class="btn" id="btn-save-fate">保存命运牌</button><button class="btn-danger" id="btn-delete-fate">删除命运牌</button></div></div><div><h3 class="sub-title">实时预览</h3><div class="preview-box" id="fate-preview-box"></div></div></div></div></div>
+    async function apiGet(url, options = {}) {
+      const real = options.withProfile === false ? url : purl(url, options.profile);
+      return fetch(real).then((r) => r.json());
+    }
 
-<script>
-const state={cards:[],images:[],fateCards:[],fateImages:[],signTexts:{good_things:[],bad_things:[],luck_ranges:[]},runtimeConfig:null,currentProfile:'default',profiles:[],groupAccess:{mode:'off',blacklist:[],whitelist:[]},selectedCardIndex:-1,selectedFateIndex:-1,cardBatchMode:false,fateBatchMode:false,selectedCardNames:new Set(),selectedFateIndices:new Set(),stats:{card_holders:{},total_users:0}};
-const pageMeta={"profile-page":["配置管理","先选择配置方案，再进入运行配置、签到配置、命运牌和功能牌模块。"],"cards-page":["功能牌管理","管理功能牌卡池、图片、词条与稀有度。"],"fate-page":["命运牌管理","管理命运牌卡池，配置图片、文案与数值。"],"texts-page":["签到配置","编辑签到宜做、忌做和运势评语。"],"config-page":["运行配置","调整方案对应的抽卡、对赌与签到参数。"],"stats-page":["方案统计","查看当前方案卡池分布与玩家持牌情况。"]};
-const tagDefs={attack:[{value:'steal',label:'掠夺金币',desc:'从目标身上掠夺金币。',params:['amount']},{value:'freeze',label:'冻结目标',desc:'冻结目标一段时间。',params:['hours']},{value:'silence',label:'沉默目标',desc:'沉默目标一段时间。',params:['hours']},{value:'seal_draw_all',label:'封印抽牌',desc:'封印目标抽牌能力。',params:['hours']},{value:'luck_drain',label:'吸取爆率',desc:'吸走目标部分运气。',params:['hours','percent']},{value:'borrow_blade',label:'借刀杀人',desc:'借别人之手造成伤害。',params:['min','max']},{value:'bounty_mark',label:'赏金悬令',desc:'给目标挂赏金。',params:['hours','bonus']},{value:'strip_buff_gain',label:'偷梁换柱',desc:'偷走目标增益。',params:['percent','hours']}],heal:[{value:'cleanse',label:'净化',desc:'清除负面状态。',params:[]},{value:'luck_bless',label:'时来运转',desc:'提高收益或好运。',params:['hours','percent']},{value:'fate_roulette',label:'命运转盘',desc:'随机触发命运效果。',params:[]}],defense:[{value:'add_shield',label:'添加护盾',desc:'给予护盾。',params:[]},{value:'thorn_armor',label:'反甲',desc:'反弹部分伤害。',params:['hours','ratio']}],aoe:[{value:'aoe_damage',label:'群体伤害',desc:'攻击多人。',params:['min','max','count']},{value:'aoe_heal',label:'群体治疗',desc:'治疗多人。',params:['min','max','count']}],dice:[{value:'dice_rule',label:'骰子规则',desc:'绑定骰子规则。',params:['key']},{value:'dice_duel',label:'公开对赌',desc:'触发公开对赌。',params:['stake']},{value:'dice_reroll_lowest_once',label:'天命重投',desc:'重投最低点一次。',params:[]}]};
-const qs=s=>document.querySelector(s),qsa=s=>Array.from(document.querySelectorAll(s));
-const esc=s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-const typeLabel=t=>t==='attack'?'攻击':t==='heal'?'治疗':t==='defense'?'防御':'其他'; const rarityClass=r=>'rarity-'+(Number(r)||1); const isCardIncomplete=c=>!String(c.card_name||'').trim()||!String(c.description||'').trim()||!(c.tags||[]).length; const isFateIncomplete=c=>!String(c.text||'').trim()||!String(c.filename||'').trim();
-function purl(u,p=state.currentProfile){const s=u.includes('?')?'&':'?';return `${u}${s}profile=${encodeURIComponent(p||'default')}`}
-const apiGet=async(u,o={})=>(await fetch(o.withProfile===false?u:purl(u,o.profile))).json();
-const apiPost=async(u,b,o={})=>(await fetch(o.withProfile===false?u:purl(u,o.profile),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json();
-function switchPage(id){qsa('.page').forEach(p=>p.classList.remove('active'));qsa('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===id));qs('#'+id).classList.add('active');qs('#page-title').textContent=pageMeta[id][0];qs('#page-desc').textContent=pageMeta[id][1];if(id==='stats-page')loadStats()}
-function bindNav(){qsa('.nav-btn').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));qs('#scheme-nav-toggle').onclick=()=>{const g=qs('#scheme-nav-group');g.classList.toggle('open');qs('#scheme-nav-caret').textContent=g.classList.contains('open')?'▾':'▸';}}
-function mask(g){g=String(g||'');return g.length<=4?g:`${g.slice(0,2)}****${g.slice(-2)}`}
-function parseTagLabel(tag){const [head,...rest]=String(tag||'').split(':');for(const group of Object.values(tagDefs)){const def=group.find(x=>x.value===head);if(def)return rest.length?`${def.label}（${rest.join('，')}）`:def.label}return tag}
-function clone(x){return JSON.parse(JSON.stringify(x))}
-function validateRanges(list){const ranges=(list||[]).map(r=>({label:String(r.label||''),min:Number(r.min),max:Number(r.max),comments:(r.comments||[]).filter(Boolean)})).sort((a,b)=>a.min-b.min);if(!ranges.length)return '至少需要一个运势区间';for(let i=0;i<ranges.length;i++){const r=ranges[i];if(!r.label)return `第 ${i+1} 个区间名称不能为空`;if(!Number.isInteger(r.min)||!Number.isInteger(r.max)||r.min<1||r.max>100||r.min>r.max)return `区间 ${r.label} 范围非法`;if(!r.comments.length)return `区间 ${r.label} 至少需要一条评语`;if(i===0&&r.min!==1)return '运势区间必须从 1 开始';if(i>0){const p=ranges[i-1];if(r.min<=p.max)return `区间 ${p.label} 与 ${r.label} 重叠`;if(r.min!==p.max+1)return `区间 ${p.label} 与 ${r.label} 之间存在断档`;}}if(ranges[ranges.length-1].max!==100)return '运势区间必须覆盖到 100';return ''}
+    async function apiPost(url, body, options = {}) {
+      const real = options.withProfile === false ? url : purl(url, options.profile);
+      return fetch(real, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }).then((r) => r.json());
+    }
 
-function renderProfileBoard(){qs('#profile-board').innerHTML=state.profiles.map(p=>`<div class="profile-card ${p.profile_id===state.currentProfile?'active':''}"><div class="card-body"><div class="profile-head"><div class="profile-cover">🧩</div><div><h3 class="profile-name">${esc(p.display_name||p.profile_id)}</h3><div class="profile-sub">${p.is_default?'默认配置 · 新群初始模板':'自定义配置方案'}<br>ID：${esc(p.profile_id)}</div></div></div><div class="profile-badges"><span class="profile-badge">使用群：${p.group_count||0}</span><span class="profile-badge">用户：${p.user_count||0}</span><span class="profile-badge">命运牌：${p.fate_card_count||0}</span><span class="profile-badge">功能牌：${p.func_card_count||0}</span></div><div class="group-strip">${(p.groups||[]).slice(0,6).map(g=>`<span class="group-chip">群 ${mask(g)}</span>`).join('')||'<span class="inline-note">当前还没有绑定群。</span>'}</div><div class="profile-form-row"><input data-pname="${esc(p.profile_id)}" value="${esc(p.display_name||p.profile_id)}"><button class="small-btn" onclick="renameProfile('${esc(p.profile_id)}')">改名</button></div><div class="profile-form-row"><input data-pbind="${esc(p.profile_id)}" placeholder="输入群号后绑定到此方案"><button class="small-btn" onclick="bindGroup('${esc(p.profile_id)}')">绑定群</button></div><div class="profile-actions"><button class="small-btn" onclick="useProfile('${esc(p.profile_id)}')">进入此方案</button>${(p.groups||[]).slice(0,3).map(g=>`<button class="small-btn" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${mask(g)}</button>`).join('')}</div></div></div>`).join('')||'<div class="empty">当前还没有配置方案。</div>'}
-async function loadProfiles(){const ret=await apiGet('/api/profile_overview',{withProfile:false});state.profiles=ret.profiles||[];const cur=state.profiles.find(x=>x.profile_id===state.currentProfile)||state.profiles[0];if(cur)state.currentProfile=cur.profile_id;qs('#current-profile-label').textContent=cur?.display_name||state.currentProfile;renderProfileBoard()}
-async function renameProfile(id){const display_name=(qs(`[data-pname="${CSS.escape(id)}"]`)?.value||'').trim();if(!display_name)return alert('请输入方案名称');const ret=await apiPost('/api/profile_meta',{profile_id:id,display_name},{withProfile:false});if(!ret.ok)return alert(ret.error||'改名失败');await loadProfiles()} async function bindGroup(id){const group_id=(qs(`[data-pbind="${CSS.escape(id)}"]`)?.value||'').trim();if(!/^\d+$/.test(group_id))return alert('请输入合法群号');const ret=await apiPost('/api/profile_bind_group',{profile_id:id,group_id},{withProfile:false});if(!ret.ok)return alert(ret.error||'绑定失败');await loadProfiles()} async function unbindGroup(id,group_id){const ret=await apiPost('/api/profile_unbind_group',{profile_id:id,group_id},{withProfile:false});if(!ret.ok)return alert(ret.error||'解绑失败');await loadProfiles()} async function useProfile(id){state.currentProfile=id;state.selectedCardNames.clear();state.selectedFateIndices.clear();await loadProfiles();await bootProfileData();switchPage('config-page')} window.renameProfile=renameProfile;window.bindGroup=bindGroup;window.unbindGroup=unbindGroup;window.useProfile=useProfile;
-function renderGroupAccess(){qsa('[data-access-mode]').forEach(x=>x.classList.toggle('active',x.dataset.accessMode===state.groupAccess.mode));qs('#group-blacklist').value=(state.groupAccess.blacklist||[]).join('\n');qs('#group-whitelist').value=(state.groupAccess.whitelist||[]).join('\n')}
-async function loadGroupAccess(){const ret=await apiGet('/api/group_access',{withProfile:false});state.groupAccess=ret.config||state.groupAccess;renderGroupAccess()} async function saveGroupAccess(){const mode=qsa('[data-access-mode]').find(x=>x.classList.contains('active'))?.dataset.accessMode||'off';const config={mode,blacklist:qs('#group-blacklist').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),whitelist:qs('#group-whitelist').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean)};const ret=await apiPost('/api/group_access',{config},{withProfile:false});alert(ret.ok?'群接入规则已保存':(ret.error||'保存失败'))}
+    function parseTagLabel(tag) {
+      const [head, ...rest] = String(tag || '').split(':');
+      for (const group of Object.values(tagDefs)) {
+        const def = group.find((x) => x.value === head);
+        if (def) return rest.length ? `${def.label}（${rest.join('，')}）` : def.label;
+      }
+      return tag;
+    }
 
-function cardImage(fn){return fn&&state.images.includes(fn)?`<img src="${purl('/assets/'+encodeURIComponent(fn))}">`:`<div class="image-missing">${fn?`图片缺失<br><small>${esc(fn)}</small>`:'未设置图片'}</div>`}
-function fateImage(fn){return fn&&state.fateImages.includes(fn)?`<img src="${purl('/fate_assets/'+encodeURIComponent(fn))}">`:`<div class="image-missing">${fn?`图片缺失<br><small>${esc(fn)}</small>`:'未设置图片'}</div>`}
+    function switchPage(id) {
+      qsa('.page').forEach((p) => p.classList.remove('active'));
+      qsa('.nav-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.page === id));
+      qs(`#${id}`).classList.add('active');
+      qs('#page-title').textContent = pageMeta[id][0];
+      qs('#page-desc').textContent = pageMeta[id][1];
+      if (id === 'stats-page') loadStats();
+    }
 
-function renderCards(){const kw=qs('#card-search').value.trim().toLowerCase(),ft=qs('#card-filter-type').value,fr=qs('#card-filter-rarity').value;const list=state.cards.filter(c=>(!kw||JSON.stringify(c).toLowerCase().includes(kw))&&(!ft||c.type===ft)&&(!fr||String(c.rarity)===fr));qs('#btn-card-delete-selected').style.display=state.cardBatchMode?'':'none';qs('#btn-card-copy-selected').style.display=state.cardBatchMode?'':'none';qs('#btn-card-cancel-batch').style.display=state.cardBatchMode?'':'none';qs('#cards-grid').innerHTML=list.map(c=>`<div class="card-item ${state.selectedCardNames.has(c.card_name||'')?'selected':''}" onclick="handleCardClick('${esc(c.card_name||'')}')"><div class="rarity-bar ${rarityClass(c.rarity)}"></div><div class="card-image">${cardImage(c.filename)}</div><div class="card-body"><h3 class="card-title">${esc(c.card_name||'未命名功能牌')}</h3><div class="meta"><span class="pill">${typeLabel(c.type)}</span><span class="pill">稀有度 ${Number(c.rarity)||1}</span>${isCardIncomplete(c)?'<span class="status-badge">待补全</span>':''}</div><div class="card-desc">${esc(c.description||'暂无描述')}</div><div class="meta">${(c.tags||[]).slice(0,3).map(t=>`<span class="tag-chip">${esc(parseTagLabel(t))}</span>`).join('')}</div></div></div>`).join('')||'<div class="empty">当前没有功能牌。</div>';const count={attack:0,heal:0,defense:0,other:0};state.cards.forEach(c=>count[count[c.type]!==undefined?c.type:'other']++);qs('#cards-overview-legend').innerHTML=`<span><i style="background:#fca5a5"></i>攻击 ${count.attack}</span><span><i style="background:#86efac"></i>治疗 ${count.heal}</span><span><i style="background:#7dd3fc"></i>防御 ${count.defense}</span><span><i style="background:#c4b5fd"></i>其他 ${count.other}</span>`;if(window._ct)window._ct.destroy();window._ct=new Chart(qs('#chart-cards-type'),{type:'doughnut',data:{labels:['攻击','治疗','防御','其他'],datasets:[{data:[count.attack,count.heal,count.defense,count.other],backgroundColor:['#fca5a5','#86efac','#7dd3fc','#c4b5fd'],borderWidth:0}]},options:{plugins:{legend:{display:false}},cutout:'62%'}})}
-function handleCardClick(name){if(state.cardBatchMode){state.selectedCardNames.has(name)?state.selectedCardNames.delete(name):state.selectedCardNames.add(name);renderCards();return;}openCardModal(state.cards.findIndex(c=>(c.card_name||'')===name))} window.handleCardClick=handleCardClick;
-function renderFateCards(){const kw=qs('#fate-search').value.trim().toLowerCase();const indexed=state.fateCards.map((c,i)=>({c,i})).filter(({c})=>!kw||JSON.stringify(c).toLowerCase().includes(kw));qs('#btn-fate-delete-selected').style.display=state.fateBatchMode?'':'none';qs('#btn-fate-copy-selected').style.display=state.fateBatchMode?'':'none';qs('#btn-fate-cancel-batch').style.display=state.fateBatchMode?'':'none';qs('#fate-grid').innerHTML=indexed.map(({c,i})=>`<div class="card-item ${state.selectedFateIndices.has(i)?'selected':''}" onclick="handleFateClick(${i})"><div class="rarity-bar rarity-3"></div><div class="card-image">${fateImage(c.filename)}</div><div class="card-body"><h3 class="card-title">${esc(c.text||'待填写命运牌文案')}</h3><div class="meta"><span class="pill">value ${c.value??0}</span>${isFateIncomplete(c)?'<span class="status-badge">待补全</span>':''}</div><div class="card-desc">文件：${esc(c.filename||'无')}</div></div></div>`).join('')||'<div class="empty">当前没有命运牌。</div>'}
-function handleFateClick(i){if(state.fateBatchMode){state.selectedFateIndices.has(i)?state.selectedFateIndices.delete(i):state.selectedFateIndices.add(i);renderFateCards();return;}openFateModal(i)} window.handleFateClick=handleFateClick;
+    function bindNav() {
+      qsa('.nav-btn').forEach((btn) => btn.addEventListener('click', () => switchPage(btn.dataset.page)));
+      qs('#scheme-nav-toggle').addEventListener('click', () => qs('#scheme-nav-group').classList.toggle('open'));
+    }
 
-function initTagBuilder(){qs('#tag-category').innerHTML='<option value="">选择分类</option>'+Object.keys(tagDefs).map(k=>`<option value="${k}">${k}</option>`).join('');qs('#tag-template').innerHTML='<option value="">先选分类</option>';qs('#tag-help').textContent='先选择分类与词条。';qs('#tag-params').innerHTML=''}
-function onTagCategoryChange(){const cat=qs('#tag-category').value;qs('#tag-template').innerHTML='<option value="">选择词条</option>'+(tagDefs[cat]||[]).map(x=>`<option value="${x.value}">${x.label}</option>`).join('');qs('#tag-help').textContent='选择词条后可填写参数。';qs('#tag-params').innerHTML=''}
-function onTagTemplateChange(){const cat=qs('#tag-category').value,val=qs('#tag-template').value;const def=(tagDefs[cat]||[]).find(x=>x.value===val);if(!def){qs('#tag-help').textContent='选择词条后可填写参数。';qs('#tag-params').innerHTML='';return;}qs('#tag-help').innerHTML=`<b>${def.label}</b><br>${def.desc}`;qs('#tag-params').innerHTML=def.params.map((p,i)=>`<div class="field"><label>参数 ${i+1}</label><input data-tag-param="${i}" placeholder="${p}"></div>`).join('')}
-function addTagFromBuilder(){const cat=qs('#tag-category').value,val=qs('#tag-template').value;const def=(tagDefs[cat]||[]).find(x=>x.value===val);if(!def)return alert('请先选择词条');const params=def.params.map((_,i)=>(document.querySelector(`[data-tag-param="${i}"]`)?.value||'').trim());if(params.some((x,i)=>!x&&def.params[i]))return alert('请把参数填完整');const line=[val,...params].join(':');const box=qs('#edit-card-tags');box.value=(box.value.trim()?box.value.trim()+'\n':'')+line;renderCardPreview()}
+    function mask(g) {
+      g = String(g || '');
+      return g.length <= 4 ? g : `${g.slice(0,2)}****${g.slice(-2)}`;
+    }
 
-function openCardModal(idx=-1){state.selectedCardIndex=idx;const c=idx>=0?clone(state.cards[idx]):{card_name:'',type:'attack',rarity:1,filename:'',description:'',tags:[]};qs('#card-modal-title').textContent=idx>=0?'编辑功能牌':'新增功能牌';qs('#edit-card-name').value=c.card_name||'';qs('#edit-card-type').value=c.type||'attack';qs('#edit-card-rarity').value=String(c.rarity||1);qs('#edit-card-filename').value=c.filename||'';qs('#edit-card-desc').value=c.description||'';qs('#edit-card-tags').value=(c.tags||[]).join('\n');initTagBuilder();renderCardPreview();qs('#card-modal').classList.add('show')} function closeCardModal(){qs('#card-modal').classList.remove('show')} window.closeCardModal=closeCardModal;
-function renderCardPreview(){const c={card_name:qs('#edit-card-name').value.trim(),type:qs('#edit-card-type').value,rarity:Number(qs('#edit-card-rarity').value||1),filename:qs('#edit-card-filename').value.trim(),description:qs('#edit-card-desc').value.trim(),tags:qs('#edit-card-tags').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean)};qs('#card-preview-box').innerHTML=`<div class="rarity-bar ${rarityClass(c.rarity)}" style="border-radius:999px"></div><div style="height:12px"></div><div class="card-image" style="height:220px;border-radius:16px;overflow:hidden">${cardImage(c.filename)}</div><div style="height:12px"></div><h3 class="sub-title">${esc(c.card_name||'未命名功能牌')}</h3><div class="meta"><span class="pill">${typeLabel(c.type)}</span><span class="pill">稀有度 ${c.rarity}</span></div><div class="card-desc">${esc(c.description||'暂无描述')}</div><div class="meta">${c.tags.map(t=>`<span class="tag-chip">${esc(parseTagLabel(t))}</span>`).join('')||'<span class="muted">暂无 tag</span>'}</div>`}
-async function saveCard(){const c={card_name:qs('#edit-card-name').value.trim(),type:qs('#edit-card-type').value,rarity:Number(qs('#edit-card-rarity').value||1),filename:qs('#edit-card-filename').value.trim(),description:qs('#edit-card-desc').value.trim(),tags:qs('#edit-card-tags').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean)};if(!c.card_name)return alert('卡牌名称不能为空');if(state.selectedCardIndex>=0)state.cards[state.selectedCardIndex]=c;else state.cards.unshift(c);const ret=await apiPost('/api/func_cards',{cards:state.cards});if(!ret.ok)return alert(ret.error||'保存失败');closeCardModal();renderCards();alert('功能牌已保存')}
-async function deleteCard(){if(state.selectedCardIndex<0)return alert('当前是新建状态，无法删除');if(!confirm('确定删除当前功能牌吗？'))return;state.cards.splice(state.selectedCardIndex,1);const ret=await apiPost('/api/func_cards',{cards:state.cards});if(!ret.ok)return alert(ret.error||'删除失败');closeCardModal();renderCards();alert('功能牌已删除')}
-function openFateModal(idx=-1){state.selectedFateIndex=idx;const c=idx>=0?clone(state.fateCards[idx]):{filename:'',text:'',value:0};qs('#fate-modal-title').textContent=idx>=0?'编辑命运牌':'新增命运牌';qs('#fate-filename').value=c.filename||'';qs('#fate-text').value=c.text||'';qs('#fate-value').value=c.value??0;renderFatePreview();qs('#fate-modal').classList.add('show')} function closeFateModal(){qs('#fate-modal').classList.remove('show')} window.closeFateModal=closeFateModal;
-function renderFatePreview(){const fn=qs('#fate-filename').value.trim(),txt=qs('#fate-text').value.trim(),val=Number(qs('#fate-value').value||0);qs('#fate-preview-box').innerHTML=`<div class="card-image" style="height:220px;border-radius:16px;overflow:hidden">${fateImage(fn)}</div><div style="height:12px"></div><h3 class="sub-title">${esc(txt||'待填写命运牌文案')}</h3><div class="meta"><span class="pill">value ${val}</span></div><div class="card-desc">图片：${esc(fn||'无')}</div>`}
-async function saveFate(){const c={filename:qs('#fate-filename').value.trim(),text:qs('#fate-text').value.trim(),value:Number(qs('#fate-value').value||0)};if(state.selectedFateIndex>=0)state.fateCards[state.selectedFateIndex]=c;else state.fateCards.unshift(c);const ret=await apiPost('/api/fate_cards',{cards:state.fateCards});if(!ret.ok)return alert(ret.error||'保存失败');closeFateModal();renderFateCards();alert('命运牌已保存')}
-async function deleteFate(){if(state.selectedFateIndex<0)return alert('当前是新建状态，无法删除');if(!confirm('确定删除当前命运牌吗？'))return;state.fateCards.splice(state.selectedFateIndex,1);const ret=await apiPost('/api/fate_cards',{cards:state.fateCards});if(!ret.ok)return alert(ret.error||'删除失败');closeFateModal();renderFateCards();alert('命运牌已删除')}
+    function renderProfileBoard() {
+      const root = qs('#profile-board');
+      if (!state.profiles.length) {
+        root.innerHTML = '<div class="empty">当前还没有配置方案。</div>';
+        return;
+      }
+      root.innerHTML = state.profiles.map((p) => `
+        <div class="profile-card corner ${p.profile_id === state.currentProfile ? 'active' : ''}">
+          <div class="card-body">
+            <div class="profile-head">
+              <div class="profile-cover">PRF</div>
+              <div>
+                <h3 class="profile-name">${esc(p.display_name || p.profile_id)}</h3>
+                <div class="profile-sub">${p.is_default ? '[ DEFAULT TEMPLATE ]' : '[ CUSTOM PROFILE ]'}<br>ID: ${esc(p.profile_id)}</div>
+              </div>
+            </div>
+            <div class="profile-badges">
+              <span class="profile-badge">群 ${p.group_count || 0}</span>
+              <span class="profile-badge">用户 ${p.user_count || 0}</span>
+              <span class="profile-badge">命运牌 ${p.fate_card_count || 0}</span>
+              <span class="profile-badge">功能牌 ${p.func_card_count || 0}</span>
+            </div>
+            <div class="group-strip" style="margin-top:10px">${(p.groups || []).slice(0, 6).map((g) => `<span class="group-chip">群 ${mask(g)}</span>`).join('') || '<span class="inline-note">当前还没有绑定群。</span>'}</div>
+            <div class="profile-form-row">
+              <input data-pname="${esc(p.profile_id)}" value="${esc(p.display_name || p.profile_id)}" />
+              <button class="small-btn" type="button" onclick="renameProfile('${esc(p.profile_id)}')">[ RENAME ]</button>
+            </div>
+            <div class="profile-form-row">
+              <input data-pbind="${esc(p.profile_id)}" placeholder="输入群号后绑定到此方案" />
+              <button class="small-btn" type="button" onclick="bindGroup('${esc(p.profile_id)}')">[ BIND ]</button>
+            </div>
+            <div class="profile-actions" style="margin-top:10px">
+              <button class="small-btn" type="button" onclick="useProfile('${esc(p.profile_id)}')">[ ENTER ]</button>
+              ${(p.groups || []).slice(0, 3).map((g) => `<button class="small-btn" type="button" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">[ UNBIND ${mask(g)} ]</button>`).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
 
-function renderTextList(rootId,arr){qs(rootId).innerHTML=(arr||[]).map((v,i)=>`<div style="display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:8px"><input type="text" value="${esc(v)}" data-root="${rootId}" data-idx="${i}"><button class="small-btn" onclick="removeText('${rootId}',${i})">删除</button></div>`).join('')||'<div class="empty">暂无内容</div>'} window.removeText=(rootId,i)=>{const map={'#good-list':state.signTexts.good_things,'#bad-list':state.signTexts.bad_things};map[rootId].splice(i,1);renderTexts()};
-function renderLuckRanges(){qs('#luck-ranges-editor').innerHTML=(state.signTexts.luck_ranges||[]).map((r,i)=>`<div class="panel" style="margin-bottom:12px"><div class="form-grid"><div class="field"><label>名称</label><input value="${esc(r.label||'')}" onchange="state.signTexts.luck_ranges[${i}].label=this.value"></div><div class="field"><label>金币增减</label><input type="number" value="${Number(r.gold_delta||0)}" onchange="state.signTexts.luck_ranges[${i}].gold_delta=Number(this.value||0)"></div><div class="field"><label>最小值</label><input type="number" value="${Number(r.min||1)}" onchange="state.signTexts.luck_ranges[${i}].min=Number(this.value||1)"></div><div class="field"><label>最大值</label><input type="number" value="${Number(r.max||100)}" onchange="state.signTexts.luck_ranges[${i}].max=Number(this.value||100)"></div></div><div style="height:8px"></div>${(r.comments||[]).map((c,j)=>`<div style="display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:8px"><input value="${esc(c)}" onchange="state.signTexts.luck_ranges[${i}].comments[${j}]=this.value"><button class="small-btn" onclick="removeComment(${i},${j})">删除</button></div>`).join('')}<div class="toolbar"><button class="btn-ghost" onclick="addComment(${i})">新增评语</button><button class="btn-danger" onclick="removeRange(${i})">删除区间</button></div></div>`).join('')||'<div class="empty">还没有配置运势区间。</div>'} window.addComment=i=>{state.signTexts.luck_ranges[i].comments.push('');renderLuckRanges()}; window.removeComment=(i,j)=>{state.signTexts.luck_ranges[i].comments.splice(j,1);renderLuckRanges()}; window.removeRange=i=>{state.signTexts.luck_ranges.splice(i,1);renderTexts()};
-function renderTexts(){renderTextList('#good-list',state.signTexts.good_things);renderTextList('#bad-list',state.signTexts.bad_things);renderLuckRanges()}
-function syncTexts(){state.signTexts.good_things=[...document.querySelectorAll('#good-list input[type="text"]')].map(x=>x.value.trim()).filter(Boolean);state.signTexts.bad_things=[...document.querySelectorAll('#bad-list input[type="text"]')].map(x=>x.value.trim()).filter(Boolean)}
-function previewSign(){syncTexts();const luck=Math.floor(Math.random()*100)+1;const hit=(state.signTexts.luck_ranges||[]).find(r=>luck>=Number(r.min||0)&&luck<=Number(r.max||0));const good=state.signTexts.good_things.filter(Boolean),bad=state.signTexts.bad_things.filter(Boolean),comments=(hit?.comments||[]).filter(Boolean);qs('#signin-preview-box').innerHTML=`<b>签到效果预览</b><br>运势：${luck}/100<br>金币变动：${Number(hit?.gold_delta||0)>=0?'+':''}${Number(hit?.gold_delta||0)}<br>宜：${esc(good[Math.floor(Math.random()*good.length)]||'暂无')}<br>忌：${esc(bad[Math.floor(Math.random()*bad.length)]||'暂无')}<br>启示：${esc(comments[Math.floor(Math.random()*comments.length)]||'暂无评语')}`}
+    async function loadProfiles() {
+      const ret = await apiGet('/api/profile_overview', { withProfile: false });
+      state.profiles = ret.profiles || [];
+      const current = state.profiles.find((x) => x.profile_id === state.currentProfile) || state.profiles[0];
+      if (current) state.currentProfile = current.profile_id;
+      qs('#current-profile-label').textContent = current?.display_name || state.currentProfile;
+      renderProfileBoard();
+    }
 
-async function loadCards(){const ret=await apiGet('/api/func_cards');state.cards=ret.cards||[];renderCards()} async function loadImages(){const ret=await apiGet('/api/images');state.images=ret.files||[];renderCards()} async function loadFates(){const ret=await apiGet('/api/fate_cards');state.fateCards=ret.cards||[];const imgs=await apiGet('/api/fate_images');state.fateImages=imgs.images||[];renderFateCards()} async function loadTexts(){const ret=await apiGet('/api/sign_in_texts');state.signTexts=ret.texts||state.signTexts;if(!Array.isArray(state.signTexts.luck_ranges))state.signTexts.luck_ranges=[];renderTexts()} async function saveTexts(){syncTexts();const msg=validateRanges(state.signTexts.luck_ranges);if(msg)return alert('签到区间配置有问题：\n'+msg);const ret=await apiPost('/api/sign_in_texts',{texts:state.signTexts});alert(ret.ok?'签到配置已保存':(ret.error||'保存失败'))}
-async function loadCfg(){const ret=await apiGet('/api/runtime_config');const cfg=ret.config||{},f=cfg.fate_cards_settings||{},fc=cfg.func_cards_settings||{},eco=fc.economy_settings||{},w=fc.custom_rarity_weights||{};qs('#cfg-fate-daily').value=f.daily_draw_limit??3;qs('#cfg-duel-limit').value=fc.public_duel_daily_limit??3;qs('#cfg-duel-min').value=fc.public_duel_min_stake??10;qs('#cfg-duel-max').value=fc.public_duel_max_stake??200;qs('#cfg-rarity-dedup').value=String(Boolean(fc.enable_rarity_dedup));qs('#cfg-rarity-mode').value=fc.rarity_mode||'default';qs('#cfg-r1').value=w.rarity_1??30;qs('#cfg-r2').value=w.rarity_2??30;qs('#cfg-r3').value=w.rarity_3??28;qs('#cfg-r4').value=w.rarity_4??11;qs('#cfg-r5').value=w.rarity_5??1;qs('#cfg-draw-prob').value=eco.draw_probability??5;qs('#cfg-free-draw').value=eco.free_daily_draw??1;qs('#cfg-draw-cost').value=eco.draw_cost??20;qs('#cfg-pity').value=eco.pity_threshold??10}
-async function saveCfg(){const config={fate_cards_settings:{daily_draw_limit:Number(qs('#cfg-fate-daily').value||3)},func_cards_settings:{public_duel_daily_limit:Number(qs('#cfg-duel-limit').value||3),public_duel_min_stake:Number(qs('#cfg-duel-min').value||10),public_duel_max_stake:Number(qs('#cfg-duel-max').value||200),enable_rarity_dedup:qs('#cfg-rarity-dedup').value==='true',rarity_mode:qs('#cfg-rarity-mode').value||'default',custom_rarity_weights:{rarity_1:Number(qs('#cfg-r1').value||30),rarity_2:Number(qs('#cfg-r2').value||30),rarity_3:Number(qs('#cfg-r3').value||28),rarity_4:Number(qs('#cfg-r4').value||11),rarity_5:Number(qs('#cfg-r5').value||1)},economy_settings:{draw_probability:Number(qs('#cfg-draw-prob').value||5),free_daily_draw:Number(qs('#cfg-free-draw').value||1),draw_cost:Number(qs('#cfg-draw-cost').value||20),pity_threshold:Number(qs('#cfg-pity').value||10)}}};const ret=await apiPost('/api/runtime_config',{config});alert(ret.ok?'运行配置已保存':(ret.error||'保存失败'))}
-async function loadStats(){const st=await apiGet('/api/user_stats');state.stats=st.stats||{card_holders:{},total_users:0};const miss=await apiGet('/api/check_missing_images');qs('#stat-total-users').textContent=state.stats.total_users||0;qs('#stat-total-cards').textContent=state.cards.length;qs('#stat-total-fate').textContent=state.fateCards.length;qs('#stat-missing').textContent=(miss.missing||[]).length;const rarity=[0,0,0,0,0];state.cards.forEach(c=>{const r=Number(c.rarity)||1;if(r>=1&&r<=5)rarity[r-1]++});if(window._r)window._r.destroy();window._r=new Chart(qs('#chart-rarity'),{type:'bar',data:{labels:['普通','稀有','史诗','传说','神话'],datasets:[{data:rarity,backgroundColor:['#cbd5e1','#93c5fd','#c084fc','#fcd34d','#fb7185'],borderRadius:8}]},options:{plugins:{legend:{display:false}},maintainAspectRatio:false}});const t={attack:0,heal:0,defense:0,other:0};state.cards.forEach(c=>t[t[c.type]!==undefined?c.type:'other']++);if(window._t)window._t.destroy();window._t=new Chart(qs('#chart-type'),{type:'doughnut',data:{labels:['攻击','治疗','防御','其他'],datasets:[{data:[t.attack,t.heal,t.defense,t.other],backgroundColor:['#fca5a5','#86efac','#7dd3fc','#c4b5fd'],borderWidth:0}]},options:{plugins:{legend:{labels:{color:'#9fb0cc'}}},maintainAspectRatio:false,cutout:'60%'}});const incompleteFunc=state.cards.filter(isCardIncomplete).length,completeFunc=state.cards.length-incompleteFunc,incompleteFate=state.fateCards.filter(isFateIncomplete).length,completeFate=state.fateCards.length-incompleteFate;if(window._i)window._i.destroy();window._i=new Chart(qs('#chart-incomplete'),{type:'doughnut',data:{labels:['功能牌待补全','功能牌已完成','命运牌待补全','命运牌已完成'],datasets:[{data:[incompleteFunc,completeFunc,incompleteFate,completeFate],backgroundColor:['#f59e0b','#10b981','#fb7185','#60a5fa'],borderWidth:0}]},options:{plugins:{legend:{labels:{color:'#9fb0cc'}}},maintainAspectRatio:false,cutout:'58%'}});const top=Object.entries(state.stats.card_holders||{}).sort((a,b)=>b[1]-a[1]).slice(0,20);if(window._h)window._h.destroy();window._h=new Chart(qs('#chart-holders'),{type:'bar',data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:'rgba(167,139,250,.66)',borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false,scales:{x:{ticks:{color:'#9fb0cc'},grid:{color:'rgba(255,255,255,.08)'},beginAtZero:true},y:{ticks:{color:'#9fb0cc'},grid:{display:false}}}})} }
-async function saveCardsRemote(){return apiPost('/api/func_cards',{cards:state.cards})} async function saveFatesRemote(){return apiPost('/api/fate_cards',{cards:state.fateCards})}
-async function upload(endpoint,fileList,cb){const fd=new FormData();[...fileList].forEach(f=>fd.append('files',f));const res=await fetch(purl(endpoint),{method:'POST',body:fd});const ret=await res.json();if(!ret.ok)return alert(ret.error||'上传失败');await cb(ret.uploaded||[])}
-function bindEvents(){bindNav();qsa('[data-access-mode]').forEach(x=>x.onclick=()=>{qsa('[data-access-mode]').forEach(y=>y.classList.remove('active'));x.classList.add('active')});qs('#btn-refresh').onclick=boot;qs('#btn-refresh-profiles').onclick=loadProfiles;qs('#btn-create-profile').onclick=async()=>{const name=prompt('请输入新配置方案名称');if(!name)return;const ret=await apiPost('/api/profiles',{name,copy_from:state.currentProfile},{withProfile:false});if(!ret.ok)return alert(ret.error||'新建失败');await loadProfiles()};qs('#btn-save-group-access').onclick=saveGroupAccess;qs('#btn-save-current').onclick=async()=>{const id=document.querySelector('.page.active').id;if(id==='profile-page')await saveGroupAccess();else if(id==='texts-page')await saveTexts();else if(id==='config-page')await saveCfg();else alert('当前页面请用模块按钮保存。')};qs('#card-search').oninput=renderCards;qs('#card-filter-type').onchange=renderCards;qs('#card-filter-rarity').onchange=renderCards;qs('#fate-search').oninput=renderFateCards;qs('#btn-toggle-card-batch').onclick=()=>{state.cardBatchMode=true;state.selectedCardNames.clear();renderCards()};qs('#btn-card-cancel-batch').onclick=()=>{state.cardBatchMode=false;state.selectedCardNames.clear();renderCards()};qs('#btn-card-delete-selected').onclick=async()=>{if(!state.selectedCardNames.size)return alert('请先选择功能牌');if(!confirm(`确定删除 ${state.selectedCardNames.size} 张功能牌吗？`))return;state.cards=state.cards.filter(c=>!state.selectedCardNames.has(c.card_name||''));const ret=await saveCardsRemote();if(!ret.ok)return alert(ret.error||'删除失败');state.cardBatchMode=false;state.selectedCardNames.clear();renderCards()};qs('#btn-card-copy-selected').onclick=async()=>{if(!state.selectedCardNames.size)return alert('请先选择功能牌');const copies=state.cards.filter(c=>state.selectedCardNames.has(c.card_name||'')).map(c=>{const x=clone(c);x.card_name=(x.card_name||'未命名功能牌')+' 的副本';return x});state.cards.unshift(...copies);const ret=await saveCardsRemote();if(!ret.ok)return alert(ret.error||'复制失败');state.cardBatchMode=false;state.selectedCardNames.clear();renderCards()};qs('#btn-toggle-fate-batch').onclick=()=>{state.fateBatchMode=true;state.selectedFateIndices.clear();renderFateCards()};qs('#btn-fate-cancel-batch').onclick=()=>{state.fateBatchMode=false;state.selectedFateIndices.clear();renderFateCards()};qs('#btn-fate-delete-selected').onclick=async()=>{if(!state.selectedFateIndices.size)return alert('请先选择命运牌');if(!confirm(`确定删除 ${state.selectedFateIndices.size} 张命运牌吗？`))return;state.fateCards=state.fateCards.filter((_,i)=>!state.selectedFateIndices.has(i));const ret=await saveFatesRemote();if(!ret.ok)return alert(ret.error||'删除失败');state.fateBatchMode=false;state.selectedFateIndices.clear();renderFateCards()};qs('#btn-fate-copy-selected').onclick=async()=>{if(!state.selectedFateIndices.size)return alert('请先选择命运牌');const copies=[...state.selectedFateIndices].sort((a,b)=>a-b).map(i=>clone(state.fateCards[i]));state.fateCards.unshift(...copies);const ret=await saveFatesRemote();if(!ret.ok)return alert(ret.error||'复制失败');state.fateBatchMode=false;state.selectedFateIndices.clear();renderFateCards()};qs('#btn-new-card').onclick=()=>openCardModal(-1);qs('#btn-new-fate').onclick=()=>openFateModal(-1);['#edit-card-name','#edit-card-type','#edit-card-rarity','#edit-card-filename','#edit-card-desc','#edit-card-tags'].forEach(s=>qs(s).oninput=renderCardPreview);['#fate-filename','#fate-text','#fate-value'].forEach(s=>qs(s).oninput=renderFatePreview);qs('#btn-save-card').onclick=saveCard;qs('#btn-delete-card').onclick=deleteCard;qs('#btn-save-fate').onclick=saveFate;qs('#btn-delete-fate').onclick=deleteFate;qs('#tag-category').onchange=onTagCategoryChange;qs('#tag-template').onchange=onTagTemplateChange;qs('#btn-add-tag').onclick=addTagFromBuilder;qs('#btn-upload-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>upload('/api/upload_image',i.files,async uploaded=>{await loadImages();uploaded.forEach(fn=>state.cards.unshift({card_name:'',type:'attack',rarity:1,filename:fn,description:'',tags:[]}));await saveCardsRemote();renderCards();alert('图片上传成功，并自动创建了待补全功能牌。')});i.click()};qs('#btn-upload-current-card-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>upload('/api/upload_image',i.files,async uploaded=>{await loadImages();qs('#edit-card-filename').value=uploaded[0]||'';renderCardPreview()});i.click()};qs('#btn-upload-fate-images').onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>upload('/api/upload_fate_image',i.files,async uploaded=>{await loadFates();uploaded.forEach(fn=>state.fateCards.unshift({filename:fn,text:'',value:0}));await saveFatesRemote();renderFateCards();alert('图片上传成功，并自动创建了待补全命运牌。')});i.click()};qs('#btn-upload-current-fate-image').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>upload('/api/upload_fate_image',i.files,async uploaded=>{await loadFates();qs('#fate-filename').value=uploaded[0]||'';renderFatePreview()});i.click()};qs('#btn-check-missing-cards').onclick=()=>alert(`待补全功能牌：${state.cards.filter(isCardIncomplete).length} 张`);qs('#btn-check-missing-fate').onclick=()=>alert(`待补全命运牌：${state.fateCards.filter(isFateIncomplete).length} 张`);qs('#btn-add-good').onclick=()=>{state.signTexts.good_things.push('');renderTexts()};qs('#btn-add-bad').onclick=()=>{state.signTexts.bad_things.push('');renderTexts()};qs('#btn-batch-good').onclick=()=>{const raw=prompt('每行一条');if(!raw)return;state.signTexts.good_things.push(...raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean));renderTexts()};qs('#btn-batch-bad').onclick=()=>{const raw=prompt('每行一条');if(!raw)return;state.signTexts.bad_things.push(...raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean));renderTexts()};qs('#btn-add-range').onclick=()=>{state.signTexts.luck_ranges.push({label:'新气运',min:1,max:100,gold_delta:0,comments:['']});renderTexts()};qs('#btn-preview-signin').onclick=previewSign;qs('#btn-save-texts').onclick=saveTexts;qs('#btn-save-config').onclick=saveCfg;qs('#btn-load-config').onclick=loadCfg}
-async function bootProfileData(){await Promise.all([loadCards(),loadImages(),loadFates(),loadTexts(),loadCfg()])}
-async function boot(){await Promise.all([loadProfiles(),loadGroupAccess()]);await bootProfileData()}
-bindEvents();boot();
-</script>
+    async function renameProfile(id) {
+      const input = qs(`[data-pname="${CSS.escape(id)}"]`);
+      const display_name = (input?.value || '').trim();
+      if (!display_name) return alert('请输入方案名称');
+      const ret = await apiPost('/api/profile_meta', { profile_id: id, display_name }, { withProfile: false });
+      if (!ret.ok) return alert(ret.error || '改名失败');
+      await loadProfiles();
+    }
+
+    async function bindGroup(id) {
+      const input = qs(`[data-pbind="${CSS.escape(id)}"]`);
+      const group_id = (input?.value || '').trim();
+      if (!/^\d+$/.test(group_id)) return alert('请输入合法群号');
+      const ret = await apiPost('/api/profile_bind_group', { profile_id: id, group_id }, { withProfile: false });
+      if (!ret.ok) return alert(ret.error || '绑定失败');
+      await loadProfiles();
+    }
+
+    async function unbindGroup(id, group_id) {
+      const ret = await apiPost('/api/profile_unbind_group', { profile_id: id, group_id }, { withProfile: false });
+      if (!ret.ok) return alert(ret.error || '解绑失败');
+      await loadProfiles();
+    }
+
+    async function useProfile(id) {
+      state.currentProfile = id;
+      state.selectedCardNames.clear();
+      state.selectedFateIndices.clear();
+      await loadProfiles();
+      await bootProfileData();
+      switchPage('config-page');
+    }
+
+    window.renameProfile = renameProfile;
+    window.bindGroup = bindGroup;
+    window.unbindGroup = unbindGroup;
+    window.useProfile = useProfile;
+
+    function renderGroupAccess() {
+      qsa('[data-access-mode]').forEach((btn) => btn.classList.toggle('active', btn.dataset.accessMode === state.groupAccess.mode));
+      qs('#group-blacklist').value = (state.groupAccess.blacklist || []).join('\n');
+      qs('#group-whitelist').value = (state.groupAccess.whitelist || []).join('\n');
+    }
+
+    async function loadGroupAccess() {
+      const ret = await apiGet('/api/group_access', { withProfile: false });
+      state.groupAccess = ret.config || state.groupAccess;
+      renderGroupAccess();
+    }
+
+    async function saveGroupAccess() {
+      const mode = qsa('[data-access-mode]').find((x) => x.classList.contains('active'))?.dataset.accessMode || 'off';
+      const config = {
+        mode,
+        blacklist: qs('#group-blacklist').value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean),
+        whitelist: qs('#group-whitelist').value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
+      };
+      const ret = await apiPost('/api/group_access', { config }, { withProfile: false });
+      alert(ret.ok ? '群接入规则已保存' : (ret.error || '保存失败'));
+    }
+
+    function cardImage(filename) {
+      return filename && state.images.includes(filename)
+        ? `<img src="${purl('/assets/' + encodeURIComponent(filename))}" alt="card" />`
+        : `<div class="image-missing">${filename ? `图片缺失<br><small>${esc(filename)}</small>` : '未设置图片'}</div>`;
+    }
+
+    function fateImage(filename) {
+      return filename && state.fateImages.includes(filename)
+        ? `<img src="${purl('/fate_assets/' + encodeURIComponent(filename))}" alt="fate" />`
+        : `<div class="image-missing">${filename ? `图片缺失<br><small>${esc(filename)}</small>` : '未设置图片'}</div>`;
+    }
+
+    function renderCards() {
+      const kw = qs('#card-search').value.trim().toLowerCase();
+      const ft = qs('#card-filter-type').value;
+      const fr = qs('#card-filter-rarity').value;
+      const list = state.cards.filter((c) => (!kw || JSON.stringify(c).toLowerCase().includes(kw)) && (!ft || c.type === ft) && (!fr || String(c.rarity) === fr));
+
+      qs('#btn-card-delete-selected').style.display = state.cardBatchMode ? '' : 'none';
+      qs('#btn-card-copy-selected').style.display = state.cardBatchMode ? '' : 'none';
+      qs('#btn-card-cancel-batch').style.display = state.cardBatchMode ? '' : 'none';
+
+      qs('#cards-grid').innerHTML = list.length ? list.map((c) => `
+        <div class="card-item corner ${state.selectedCardNames.has(c.card_name || '') ? 'selected' : ''}" onclick="handleCardClick('${esc(c.card_name || '')}')">
+          <div class="rarity-bar ${rarityClass(c.rarity)}"></div>
+          <div class="card-image">${cardImage(c.filename)}</div>
+          <div class="card-body">
+            <h3 class="card-title">${esc(c.card_name || '未命名功能牌')}</h3>
+            <div class="meta">
+              <span class="pill">${typeLabel(c.type)}</span>
+              <span class="pill">稀有度 ${Number(c.rarity) || 1}</span>
+              ${isCardIncomplete(c) ? '<span class="status-badge">待补全</span>' : ''}
+            </div>
+            <div class="card-desc">${esc(c.description || '暂无描述')}</div>
+            <div class="meta">${(c.tags || []).slice(0, 3).map((t) => `<span class="tag-chip">${esc(parseTagLabel(t))}</span>`).join('')}</div>
+          </div>
+        </div>
+      `).join('') : '<div class="empty">当前没有功能牌。</div>';
+
+      const count = { attack: 0, heal: 0, defense: 0, other: 0 };
+      state.cards.forEach((c) => count[count[c.type] !== undefined ? c.type : 'other']++);
+      qs('#cards-overview-legend').innerHTML = `
+        <span><i style="background:#ff5f57"></i>攻击 ${count.attack}</span>
+        <span><i style="background:#8de25d"></i>治疗 ${count.heal}</span>
+        <span><i style="background:#66c7ff"></i>防御 ${count.defense}</span>
+        <span><i style="background:#ff7a00"></i>其他 ${count.other}</span>
+      `;
+
+      if (window._cardsTypeChart) window._cardsTypeChart.destroy();
+      window._cardsTypeChart = new Chart(qs('#chart-cards-type'), {
+        type: 'doughnut',
+        data: {
+          labels: ['攻击', '治疗', '防御', '其他'],
+          datasets: [{ data: [count.attack, count.heal, count.defense, count.other], backgroundColor: ['#ff5f57','#8de25d','#66c7ff','#ff7a00'], borderWidth: 0 }]
+        },
+        options: { plugins: { legend: { display: false } }, cutout: '68%' }
+      });
+    }
+
+    function handleCardClick(name) {
+      if (state.cardBatchMode) {
+        state.selectedCardNames.has(name) ? state.selectedCardNames.delete(name) : state.selectedCardNames.add(name);
+        renderCards();
+        return;
+      }
+      openCardModal(state.cards.findIndex((c) => (c.card_name || '') === name));
+    }
+    window.handleCardClick = handleCardClick;
+
+    function renderFateCards() {
+      const kw = qs('#fate-search').value.trim().toLowerCase();
+      const indexed = state.fateCards.map((c, i) => ({ c, i })).filter(({ c }) => !kw || JSON.stringify(c).toLowerCase().includes(kw));
+
+      qs('#btn-fate-delete-selected').style.display = state.fateBatchMode ? '' : 'none';
+      qs('#btn-fate-copy-selected').style.display = state.fateBatchMode ? '' : 'none';
+      qs('#btn-fate-cancel-batch').style.display = state.fateBatchMode ? '' : 'none';
+
+      qs('#fate-grid').innerHTML = indexed.length ? indexed.map(({ c, i }) => `
+        <div class="card-item corner ${state.selectedFateIndices.has(i) ? 'selected' : ''}" onclick="handleFateClick(${i})">
+          <div class="rarity-bar rarity-3"></div>
+          <div class="card-image">${fateImage(c.filename)}</div>
+          <div class="card-body">
+            <h3 class="card-title">${esc(c.text || '待填写命运牌文案')}</h3>
+            <div class="meta"><span class="pill">value ${c.value ?? 0}</span>${isFateIncomplete(c) ? '<span class="status-badge">待补全</span>' : ''}</div>
+            <div class="card-desc">文件：${esc(c.filename || '无')}</div>
+          </div>
+        </div>
+      `).join('') : '<div class="empty">当前没有命运牌。</div>';
+    }
+
+    function handleFateClick(i) {
+      if (state.fateBatchMode) {
+        state.selectedFateIndices.has(i) ? state.selectedFateIndices.delete(i) : state.selectedFateIndices.add(i);
+        renderFateCards();
+        return;
+      }
+      openFateModal(i);
+    }
+    window.handleFateClick = handleFateClick;
+
+    function initTagBuilder() {
+      qs('#tag-category').innerHTML = '<option value="">选择分类</option>' + Object.keys(tagDefs).map((k) => `<option value="${k}">${k}</option>`).join('');
+      qs('#tag-template').innerHTML = '<option value="">先选分类</option>';
+      qs('#tag-help').textContent = '先选择分类与词条。';
+      qs('#tag-params').innerHTML = '';
+    }
+
+    function onTagCategoryChange() {
+      const cat = qs('#tag-category').value;
+      qs('#tag-template').innerHTML = '<option value="">选择词条</option>' + (tagDefs[cat] || []).map((x) => `<option value="${x.value}">${x.label}</option>`).join('');
+      qs('#tag-help').textContent = '选择词条后可填写参数。';
+      qs('#tag-params').innerHTML = '';
+    }
+
+    function onTagTemplateChange() {
+      const cat = qs('#tag-category').value;
+      const val = qs('#tag-template').value;
+      const def = (tagDefs[cat] || []).find((x) => x.value === val);
+      if (!def) {
+        qs('#tag-help').textContent = '选择词条后可填写参数。';
+        qs('#tag-params').innerHTML = '';
+        return;
+      }
+      qs('#tag-help').innerHTML = `<b>${def.label}</b><br>${def.desc}`;
+      qs('#tag-params').innerHTML = def.params.map((p, i) => `<div class="field"><label>参数 ${i + 1}</label><input data-tag-param="${i}" placeholder="${p}" /></div>`).join('');
+    }
+
+    function addTagFromBuilder() {
+      const cat = qs('#tag-category').value;
+      const val = qs('#tag-template').value;
+      const def = (tagDefs[cat] || []).find((x) => x.value === val);
+      if (!def) return alert('请先选择词条');
+      const params = def.params.map((_, i) => (document.querySelector(`[data-tag-param="${i}"]`)?.value || '').trim());
+      if (params.some((x, i) => !x && def.params[i])) return alert('请把参数填完整');
+      const line = [val, ...params].join(':');
+      const box = qs('#edit-card-tags');
+      box.value = box.value.trim() ? `${box.value.trim()}\n${line}` : line;
+      renderCardPreview();
+    }
+
+    function openCardModal(idx = -1) {
+      state.selectedCardIndex = idx;
+      const c = idx >= 0 ? clone(state.cards[idx]) : { card_name: '', type: 'attack', rarity: 1, filename: '', description: '', tags: [] };
+      qs('#card-modal-title').textContent = idx >= 0 ? '编辑功能牌' : '新增功能牌';
+      qs('#edit-card-name').value = c.card_name || '';
+      qs('#edit-card-type').value = c.type || 'attack';
+      qs('#edit-card-rarity').value = String(c.rarity || 1);
+      qs('#edit-card-filename').value = c.filename || '';
+      qs('#edit-card-desc').value = c.description || '';
+      qs('#edit-card-tags').value = (c.tags || []).join('\n');
+      initTagBuilder();
+      renderCardPreview();
+      qs('#card-modal').classList.add('show');
+    }
+
+    function closeCardModal() { qs('#card-modal').classList.remove('show'); }
+    window.closeCardModal = closeCardModal;
+
+    function renderCardPreview() {
+      const c = {
+        card_name: qs('#edit-card-name').value.trim(),
+        type: qs('#edit-card-type').value,
+        rarity: Number(qs('#edit-card-rarity').value || 1),
+        filename: qs('#edit-card-filename').value.trim(),
+        description: qs('#edit-card-desc').value.trim(),
+        tags: qs('#edit-card-tags').value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
+      };
+      qs('#card-preview-box').innerHTML = `
+        <div class="rarity-bar ${rarityClass(c.rarity)}"></div>
+        <div style="height:12px"></div>
+        <div class="card-image" style="height:220px">${cardImage(c.filename)}</div>
+        <div style="height:12px"></div>
+        <h3 class="card-title">${esc(c.card_name || '未命名功能牌')}</h3>
+        <div class="meta"><span class="pill">${typeLabel(c.type)}</span><span class="pill">稀有度 ${c.rarity}</span></div>
+        <div class="card-desc">${esc(c.description || '暂无描述')}</div>
+        <div class="meta">${c.tags.map((t) => `<span class="tag-chip">${esc(parseTagLabel(t))}</span>`).join('') || '<span class="muted">暂无 tag</span>'}</div>
+      `;
+    }
+
+    async function saveCard() {
+      const c = {
+        card_name: qs('#edit-card-name').value.trim(),
+        type: qs('#edit-card-type').value,
+        rarity: Number(qs('#edit-card-rarity').value || 1),
+        filename: qs('#edit-card-filename').value.trim(),
+        description: qs('#edit-card-desc').value.trim(),
+        tags: qs('#edit-card-tags').value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
+      };
+      if (!c.card_name) return alert('卡牌名称不能为空');
+      if (state.selectedCardIndex >= 0) state.cards[state.selectedCardIndex] = c;
+      else state.cards.unshift(c);
+      const ret = await apiPost('/api/func_cards', { cards: state.cards });
+      if (!ret.ok) return alert(ret.error || '保存失败');
+      closeCardModal();
+      renderCards();
+      alert('功能牌已保存');
+    }
+
+    async function deleteCard() {
+      if (state.selectedCardIndex < 0) return alert('当前是新建状态，无法删除');
+      if (!confirm('确定删除当前功能牌吗？')) return;
+      state.cards.splice(state.selectedCardIndex, 1);
+      const ret = await apiPost('/api/func_cards', { cards: state.cards });
+      if (!ret.ok) return alert(ret.error || '删除失败');
+      closeCardModal();
+      renderCards();
+      alert('功能牌已删除');
+    }
+
+    function openFateModal(idx = -1) {
+      state.selectedFateIndex = idx;
+      const c = idx >= 0 ? clone(state.fateCards[idx]) : { filename: '', text: '', value: 0 };
+      qs('#fate-modal-title').textContent = idx >= 0 ? '编辑命运牌' : '新增命运牌';
+      qs('#fate-filename').value = c.filename || '';
+      qs('#fate-text').value = c.text || '';
+      qs('#fate-value').value = c.value ?? 0;
+      renderFatePreview();
+      qs('#fate-modal').classList.add('show');
+    }
+
+    function closeFateModal() { qs('#fate-modal').classList.remove('show'); }
+    window.closeFateModal = closeFateModal;
+
+    function renderFatePreview() {
+      const fn = qs('#fate-filename').value.trim();
+      const txt = qs('#fate-text').value.trim();
+      const val = Number(qs('#fate-value').value || 0);
+      qs('#fate-preview-box').innerHTML = `
+        <div class="card-image" style="height:220px">${fateImage(fn)}</div>
+        <div style="height:12px"></div>
+        <h3 class="card-title">${esc(txt || '待填写命运牌文案')}</h3>
+        <div class="meta"><span class="pill">value ${val}</span></div>
+        <div class="card-desc">图片：${esc(fn || '无')}</div>
+      `;
+    }
+
+    async function saveFate() {
+      const c = { filename: qs('#fate-filename').value.trim(), text: qs('#fate-text').value.trim(), value: Number(qs('#fate-value').value || 0) };
+      if (state.selectedFateIndex >= 0) state.fateCards[state.selectedFateIndex] = c;
+      else state.fateCards.unshift(c);
+      const ret = await apiPost('/api/fate_cards', { cards: state.fateCards });
+      if (!ret.ok) return alert(ret.error || '保存失败');
+      closeFateModal();
+      renderFateCards();
+      alert('命运牌已保存');
+    }
+
+    async function deleteFate() {
+      if (state.selectedFateIndex < 0) return alert('当前是新建状态，无法删除');
+      if (!confirm('确定删除当前命运牌吗？')) return;
+      state.fateCards.splice(state.selectedFateIndex, 1);
+      const ret = await apiPost('/api/fate_cards', { cards: state.fateCards });
+      if (!ret.ok) return alert(ret.error || '删除失败');
+      closeFateModal();
+      renderFateCards();
+      alert('命运牌已删除');
+    }
+
+    function renderTextList(rootId, arr) {
+      qs(rootId).innerHTML = (arr || []).length
+        ? arr.map((v, i) => `
+            <div style="display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:8px">
+              <input type="text" value="${esc(v)}" data-root="${rootId}" data-idx="${i}" />
+              <button class="small-btn" type="button" onclick="removeText('${rootId}', ${i})">[ DEL ]</button>
+            </div>`).join('')
+        : '<div class="empty">暂无内容</div>';
+    }
+
+    window.removeText = (rootId, i) => {
+      const map = { '#good-list': state.signTexts.good_things, '#bad-list': state.signTexts.bad_things };
+      map[rootId].splice(i, 1);
+      renderTexts();
+    };
+
+    function renderLuckRanges() {
+      const list = state.signTexts.luck_ranges || [];
+      qs('#luck-ranges-editor').innerHTML = list.length ? list.map((r, i) => `
+        <div class="panel corner" style="margin-bottom:12px">
+          <div class="form-grid">
+            <div class="field"><label>名称</label><input value="${esc(r.label || '')}" onchange="state.signTexts.luck_ranges[${i}].label=this.value" /></div>
+            <div class="field"><label>金币增减</label><input type="number" value="${Number(r.gold_delta || 0)}" onchange="state.signTexts.luck_ranges[${i}].gold_delta=Number(this.value||0)" /></div>
+            <div class="field"><label>最小值</label><input type="number" value="${Number(r.min || 1)}" onchange="state.signTexts.luck_ranges[${i}].min=Number(this.value||1)" /></div>
+            <div class="field"><label>最大值</label><input type="number" value="${Number(r.max || 100)}" onchange="state.signTexts.luck_ranges[${i}].max=Number(this.value||100)" /></div>
+          </div>
+          <div style="height:8px"></div>
+          ${(r.comments || []).map((c, j) => `
+            <div style="display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:8px">
+              <input value="${esc(c)}" onchange="state.signTexts.luck_ranges[${i}].comments[${j}]=this.value" />
+              <button class="small-btn" type="button" onclick="removeComment(${i},${j})">[ DEL ]</button>
+            </div>`).join('')}
+          <div class="toolbar">
+            <button class="btn-ghost" type="button" onclick="addComment(${i})">[ ADD COMMENT ]</button>
+            <button class="btn-danger" type="button" onclick="removeRange(${i})">[ DELETE RANGE ]</button>
+          </div>
+        </div>`).join('') : '<div class="empty">还没有配置运势区间。</div>';
+    }
+
+    window.addComment = (i) => { state.signTexts.luck_ranges[i].comments.push(''); renderLuckRanges(); };
+    window.removeComment = (i, j) => { state.signTexts.luck_ranges[i].comments.splice(j, 1); renderLuckRanges(); };
+    window.removeRange = (i) => { state.signTexts.luck_ranges.splice(i, 1); renderTexts(); };
+
+    function renderTexts() {
+      renderTextList('#good-list', state.signTexts.good_things);
+      renderTextList('#bad-list', state.signTexts.bad_things);
+      renderLuckRanges();
+    }
+
+    function syncTexts() {
+      state.signTexts.good_things = [...document.querySelectorAll('#good-list input[type="text"]')].map((x) => x.value.trim()).filter(Boolean);
+      state.signTexts.bad_things = [...document.querySelectorAll('#bad-list input[type="text"]')].map((x) => x.value.trim()).filter(Boolean);
+    }
+
+    function validateRanges(list) {
+      const ranges = (list || []).map((r) => ({
+        label: String(r.label || ''),
+        min: Number(r.min),
+        max: Number(r.max),
+        comments: (r.comments || []).map((x) => String(x || '').trim()).filter(Boolean)
+      })).sort((a, b) => a.min - b.min);
+
+      if (!ranges.length) return '至少需要一个运势区间';
+      for (let i = 0; i < ranges.length; i++) {
+        const r = ranges[i];
+        if (!r.label) return `第 ${i + 1} 个区间名称不能为空`;
+        if (!Number.isInteger(r.min) || !Number.isInteger(r.max) || r.min < 1 || r.max > 100 || r.min > r.max) return `区间 ${r.label} 范围非法`;
+        if (!r.comments.length) return `区间 ${r.label} 至少需要一条评语`;
+        if (i === 0 && r.min !== 1) return '运势区间必须从 1 开始';
+        if (i > 0) {
+          const prev = ranges[i - 1];
+          if (r.min <= prev.max) return `区间 ${prev.label} 与 ${r.label} 重叠`;
+          if (r.min !== prev.max + 1) return `区间 ${prev.label} 与 ${r.label} 之间存在断档`;
+        }
+      }
+      if (ranges[ranges.length - 1].max !== 100) return '运势区间必须覆盖到 100';
+      return '';
+    }
+
+    function previewSign() {
+      syncTexts();
+      const luck = Math.floor(Math.random() * 100) + 1;
+      const hit = (state.signTexts.luck_ranges || []).find((r) => luck >= Number(r.min || 0) && luck <= Number(r.max || 0));
+      const good = state.signTexts.good_things.filter(Boolean);
+      const bad = state.signTexts.bad_things.filter(Boolean);
+      const comments = (hit?.comments || []).filter(Boolean);
+      qs('#signin-preview-box').innerHTML = `
+        <b>[ SIGN-IN PREVIEW ]</b><br>
+        运势：${luck}/100<br>
+        金币变动：${Number(hit?.gold_delta || 0) >= 0 ? '+' : ''}${Number(hit?.gold_delta || 0)}<br>
+        宜：${esc(good[Math.floor(Math.random() * good.length)] || '暂无')}<br>
+        忌：${esc(bad[Math.floor(Math.random() * bad.length)] || '暂无')}<br>
+        启示：${esc(comments[Math.floor(Math.random() * comments.length)] || '暂无评语')}
+      `;
+    }
+
+    async function loadCards() {
+      const ret = await apiGet('/api/func_cards');
+      state.cards = ret.cards || [];
+      renderCards();
+    }
+
+    async function loadImages() {
+      const ret = await apiGet('/api/images');
+      state.images = ret.files || [];
+      renderCards();
+    }
+
+    async function loadFates() {
+      const ret = await apiGet('/api/fate_cards');
+      state.fateCards = ret.cards || [];
+      const imgs = await apiGet('/api/fate_images');
+      state.fateImages = imgs.images || [];
+      renderFateCards();
+    }
+
+    async function loadTexts() {
+      const ret = await apiGet('/api/sign_in_texts');
+      state.signTexts = ret.texts || state.signTexts;
+      if (!Array.isArray(state.signTexts.luck_ranges)) state.signTexts.luck_ranges = [];
+      renderTexts();
+    }
+
+    async function saveTexts() {
+      syncTexts();
+      const msg = validateRanges(state.signTexts.luck_ranges);
+      if (msg) return alert('签到区间配置有问题：\n' + msg);
+      const ret = await apiPost('/api/sign_in_texts', { texts: state.signTexts });
+      alert(ret.ok ? '签到配置已保存' : (ret.error || '保存失败'));
+    }
+
+    async function loadCfg() {
+      const ret = await apiGet('/api/runtime_config');
+      const cfg = ret.config || {};
+      const fate = cfg.fate_cards_settings || {};
+      const func = cfg.func_cards_settings || {};
+      const eco = func.economy_settings || {};
+      const weights = func.custom_rarity_weights || {};
+      qs('#cfg-fate-daily').value = fate.daily_draw_limit ?? 3;
+      qs('#cfg-duel-limit').value = func.public_duel_daily_limit ?? 3;
+      qs('#cfg-duel-min').value = func.public_duel_min_stake ?? 10;
+      qs('#cfg-duel-max').value = func.public_duel_max_stake ?? 200;
+      qs('#cfg-rarity-dedup').value = String(Boolean(func.enable_rarity_dedup));
+      qs('#cfg-rarity-mode').value = func.rarity_mode || 'default';
+      qs('#cfg-r1').value = weights.rarity_1 ?? 30;
+      qs('#cfg-r2').value = weights.rarity_2 ?? 30;
+      qs('#cfg-r3').value = weights.rarity_3 ?? 28;
+      qs('#cfg-r4').value = weights.rarity_4 ?? 11;
+      qs('#cfg-r5').value = weights.rarity_5 ?? 1;
+      qs('#cfg-draw-prob').value = eco.draw_probability ?? 5;
+      qs('#cfg-free-draw').value = eco.free_daily_draw ?? 1;
+      qs('#cfg-draw-cost').value = eco.draw_cost ?? 20;
+      qs('#cfg-pity').value = eco.pity_threshold ?? 10;
+    }
+
+    async function saveCfg() {
+      const config = {
+        fate_cards_settings: { daily_draw_limit: Number(qs('#cfg-fate-daily').value || 3) },
+        func_cards_settings: {
+          public_duel_daily_limit: Number(qs('#cfg-duel-limit').value || 3),
+          public_duel_min_stake: Number(qs('#cfg-duel-min').value || 10),
+          public_duel_max_stake: Number(qs('#cfg-duel-max').value || 200),
+          enable_rarity_dedup: qs('#cfg-rarity-dedup').value === 'true',
+          rarity_mode: qs('#cfg-rarity-mode').value || 'default',
+          custom_rarity_weights: {
+            rarity_1: Number(qs('#cfg-r1').value || 30),
+            rarity_2: Number(qs('#cfg-r2').value || 30),
+            rarity_3: Number(qs('#cfg-r3').value || 28),
+            rarity_4: Number(qs('#cfg-r4').value || 11),
+            rarity_5: Number(qs('#cfg-r5').value || 1)
+          },
+          economy_settings: {
+            draw_probability: Number(qs('#cfg-draw-prob').value || 5),
+            free_daily_draw: Number(qs('#cfg-free-draw').value || 1),
+            draw_cost: Number(qs('#cfg-draw-cost').value || 20),
+            pity_threshold: Number(qs('#cfg-pity').value || 10)
+          }
+        }
+      };
+      const ret = await apiPost('/api/runtime_config', { config });
+      alert(ret.ok ? '运行配置已保存' : (ret.error || '保存失败'));
+    }
+
+    async function loadStats() {
+      const st = await apiGet('/api/user_stats');
+      state.stats = st.stats || { total_users: 0, card_holders: {} };
+      const miss = await apiGet('/api/check_missing_images');
+      qs('#stat-total-users').textContent = state.stats.total_users || 0;
+      qs('#stat-total-cards').textContent = state.cards.length;
+      qs('#stat-total-fate').textContent = state.fateCards.length;
+      qs('#stat-missing').textContent = (miss.missing || []).length;
+
+      const rarity = [0,0,0,0,0];
+      state.cards.forEach((c) => {
+        const r = Number(c.rarity) || 1;
+        if (r >= 1 && r <= 5) rarity[r - 1]++;
+      });
+      if (window._rarity) window._rarity.destroy();
+      window._rarity = new Chart(qs('#chart-rarity'), {
+        type: 'bar',
+        data: { labels: ['普通','稀有','史诗','传说','神话'], datasets: [{ data: rarity, backgroundColor: ['#d0d0d0','#66c7ff','#b888ff','#ffc14d','#ff6d9b'] }] },
+        options: chartOptions(false)
+      });
+
+      const t = { attack: 0, heal: 0, defense: 0, other: 0 };
+      state.cards.forEach((c) => t[t[c.type] !== undefined ? c.type : 'other']++);
+      if (window._type) window._type.destroy();
+      window._type = new Chart(qs('#chart-type'), {
+        type: 'doughnut',
+        data: { labels: ['攻击','治疗','防御','其他'], datasets: [{ data: [t.attack,t.heal,t.defense,t.other], backgroundColor: ['#ff5f57','#8de25d','#66c7ff','#ff7a00'], borderWidth: 0 }] },
+        options: { ...chartOptions(true), cutout: '62%' }
+      });
+
+      const incompleteFunc = state.cards.filter(isCardIncomplete).length;
+      const completeFunc = state.cards.length - incompleteFunc;
+      const incompleteFate = state.fateCards.filter(isFateIncomplete).length;
+      const completeFate = state.fateCards.length - incompleteFate;
+      if (window._incomplete) window._incomplete.destroy();
+      window._incomplete = new Chart(qs('#chart-incomplete'), {
+        type: 'doughnut',
+        data: {
+          labels: ['功能牌待补全','功能牌已完成','命运牌待补全','命运牌已完成'],
+          datasets: [{ data: [incompleteFunc, completeFunc, incompleteFate, completeFate], backgroundColor: ['#ffc14d','#8de25d','#ff5f57','#66c7ff'], borderWidth: 0 }]
+        },
+        options: { ...chartOptions(true), cutout: '58%' }
+      });
+
+      const top = Object.entries(state.stats.card_holders || {}).sort((a, b) => b[1] - a[1]).slice(0, 20);
+      if (window._holders) window._holders.destroy();
+      window._holders = new Chart(qs('#chart-holders'), {
+        type: 'bar',
+        data: { labels: top.map((x) => x[0]), datasets: [{ data: top.map((x) => x[1]), backgroundColor: 'rgba(255,122,0,.72)' }] },
+        options: {
+          ...chartOptions(false),
+          indexAxis: 'y',
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function chartOptions(doughnut) {
+      return {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: doughnut,
+            labels: { color: '#bdbdbd', boxWidth: 12 }
+          }
+        },
+        scales: doughnut ? {} : {
+          x: { ticks: { color: '#bdbdbd' }, grid: { color: 'rgba(255,255,255,.08)' }, beginAtZero: true },
+          y: { ticks: { color: '#bdbdbd' }, grid: { color: 'rgba(255,255,255,.08)' }, beginAtZero: true }
+        }
+      };
+    }
+
+    async function saveCardsRemote() { return apiPost('/api/func_cards', { cards: state.cards }); }
+    async function saveFatesRemote() { return apiPost('/api/fate_cards', { cards: state.fateCards }); }
+
+    async function upload(endpoint, fileList, callback) {
+      const fd = new FormData();
+      [...fileList].forEach((f) => fd.append('files', f));
+      const res = await fetch(purl(endpoint), { method: 'POST', body: fd });
+      const ret = await res.json();
+      if (!ret.ok) return alert(ret.error || '上传失败');
+      await callback(ret.uploaded || []);
+    }
+
+    function bindEvents() {
+      bindNav();
+
+      qsa('[data-access-mode]').forEach((btn) => btn.addEventListener('click', () => {
+        qsa('[data-access-mode]').forEach((x) => x.classList.remove('active'));
+        btn.classList.add('active');
+      }));
+
+      qs('#btn-refresh').addEventListener('click', boot);
+      qs('#btn-refresh-profiles').addEventListener('click', loadProfiles);
+      qs('#btn-create-profile').addEventListener('click', async () => {
+        const name = prompt('请输入新配置方案名称');
+        if (!name) return;
+        const ret = await apiPost('/api/profiles', { name, copy_from: state.currentProfile }, { withProfile: false });
+        if (!ret.ok) return alert(ret.error || '新建失败');
+        await loadProfiles();
+      });
+      qs('#btn-save-group-access').addEventListener('click', saveGroupAccess);
+      qs('#btn-save-current').addEventListener('click', async () => {
+        const id = document.querySelector('.page.active')?.id;
+        if (id === 'profile-page') await saveGroupAccess();
+        else if (id === 'texts-page') await saveTexts();
+        else if (id === 'config-page') await saveCfg();
+        else alert('当前页面请使用模块内操作按钮保存。');
+      });
+
+      qs('#card-search').addEventListener('input', renderCards);
+      qs('#card-filter-type').addEventListener('change', renderCards);
+      qs('#card-filter-rarity').addEventListener('change', renderCards);
+      qs('#fate-search').addEventListener('input', renderFateCards);
+
+      qs('#btn-toggle-card-batch').addEventListener('click', () => {
+        state.cardBatchMode = true;
+        state.selectedCardNames.clear();
+        renderCards();
+      });
+      qs('#btn-card-cancel-batch').addEventListener('click', () => {
+        state.cardBatchMode = false;
+        state.selectedCardNames.clear();
+        renderCards();
+      });
+      qs('#btn-card-delete-selected').addEventListener('click', async () => {
+        if (!state.selectedCardNames.size) return alert('请先选择功能牌');
+        if (!confirm(`确定删除 ${state.selectedCardNames.size} 张功能牌吗？`)) return;
+        state.cards = state.cards.filter((c) => !state.selectedCardNames.has(c.card_name || ''));
+        const ret = await saveCardsRemote();
+        if (!ret.ok) return alert(ret.error || '删除失败');
+        state.cardBatchMode = false;
+        state.selectedCardNames.clear();
+        renderCards();
+      });
+      qs('#btn-card-copy-selected').addEventListener('click', async () => {
+        if (!state.selectedCardNames.size) return alert('请先选择功能牌');
+        const copies = state.cards.filter((c) => state.selectedCardNames.has(c.card_name || '')).map((c) => {
+          const x = clone(c);
+          x.card_name = `${x.card_name || '未命名功能牌'} 的副本`;
+          return x;
+        });
+        state.cards.unshift(...copies);
+        const ret = await saveCardsRemote();
+        if (!ret.ok) return alert(ret.error || '复制失败');
+        state.cardBatchMode = false;
+        state.selectedCardNames.clear();
+        renderCards();
+      });
+
+      qs('#btn-toggle-fate-batch').addEventListener('click', () => {
+        state.fateBatchMode = true;
+        state.selectedFateIndices.clear();
+        renderFateCards();
+      });
+      qs('#btn-fate-cancel-batch').addEventListener('click', () => {
+        state.fateBatchMode = false;
+        state.selectedFateIndices.clear();
+        renderFateCards();
+      });
+      qs('#btn-fate-delete-selected').addEventListener('click', async () => {
+        if (!state.selectedFateIndices.size) return alert('请先选择命运牌');
+        if (!confirm(`确定删除 ${state.selectedFateIndices.size} 张命运牌吗？`)) return;
+        state.fateCards = state.fateCards.filter((_, i) => !state.selectedFateIndices.has(i));
+        const ret = await saveFatesRemote();
+        if (!ret.ok) return alert(ret.error || '删除失败');
+        state.fateBatchMode = false;
+        state.selectedFateIndices.clear();
+        renderFateCards();
+      });
+      qs('#btn-fate-copy-selected').addEventListener('click', async () => {
+        if (!state.selectedFateIndices.size) return alert('请先选择命运牌');
+        const copies = [...state.selectedFateIndices].sort((a, b) => a - b).map((i) => clone(state.fateCards[i]));
+        state.fateCards.unshift(...copies);
+        const ret = await saveFatesRemote();
+        if (!ret.ok) return alert(ret.error || '复制失败');
+        state.fateBatchMode = false;
+        state.selectedFateIndices.clear();
+        renderFateCards();
+      });
+
+      qs('#btn-new-card').addEventListener('click', () => openCardModal(-1));
+      qs('#btn-new-fate').addEventListener('click', () => openFateModal(-1));
+      ['#edit-card-name','#edit-card-type','#edit-card-rarity','#edit-card-filename','#edit-card-desc','#edit-card-tags'].forEach((s) => qs(s).addEventListener('input', renderCardPreview));
+      ['#fate-filename','#fate-text','#fate-value'].forEach((s) => qs(s).addEventListener('input', renderFatePreview));
+      qs('#btn-save-card').addEventListener('click', saveCard);
+      qs('#btn-delete-card').addEventListener('click', deleteCard);
+      qs('#btn-save-fate').addEventListener('click', saveFate);
+      qs('#btn-delete-fate').addEventListener('click', deleteFate);
+
+      qs('#tag-category').addEventListener('change', onTagCategoryChange);
+      qs('#tag-template').addEventListener('change', onTagTemplateChange);
+      qs('#btn-add-tag').addEventListener('click', addTagFromBuilder);
+
+      qs('#btn-upload-images').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = 'image/*';
+        input.onchange = () => upload('/api/upload_image', input.files, async (uploaded) => {
+          await loadImages();
+          uploaded.forEach((fn) => state.cards.unshift({ card_name: '', type: 'attack', rarity: 1, filename: fn, description: '', tags: [] }));
+          await saveCardsRemote();
+          renderCards();
+          alert('图片上传成功，并自动创建了待补全功能牌。');
+        });
+        input.click();
+      });
+
+      qs('#btn-upload-current-card-image').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = () => upload('/api/upload_image', input.files, async (uploaded) => {
+          await loadImages();
+          qs('#edit-card-filename').value = uploaded[0] || '';
+          renderCardPreview();
+        });
+        input.click();
+      });
+
+      qs('#btn-upload-fate-images').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = 'image/*';
+        input.onchange = () => upload('/api/upload_fate_image', input.files, async (uploaded) => {
+          await loadFates();
+          uploaded.forEach((fn) => state.fateCards.unshift({ filename: fn, text: '', value: 0 }));
+          await saveFatesRemote();
+          renderFateCards();
+          alert('图片上传成功，并自动创建了待补全命运牌。');
+        });
+        input.click();
+      });
+
+      qs('#btn-upload-current-fate-image').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = () => upload('/api/upload_fate_image', input.files, async (uploaded) => {
+          await loadFates();
+          qs('#fate-filename').value = uploaded[0] || '';
+          renderFatePreview();
+        });
+        input.click();
+      });
+
+      qs('#btn-check-missing-cards').addEventListener('click', () => alert(`待补全功能牌：${state.cards.filter(isCardIncomplete).length} 张`));
+      qs('#btn-check-missing-fate').addEventListener('click', () => alert(`待补全命运牌：${state.fateCards.filter(isFateIncomplete).length} 张`));
+
+      qs('#btn-add-good').addEventListener('click', () => { state.signTexts.good_things.push(''); renderTexts(); });
+      qs('#btn-add-bad').addEventListener('click', () => { state.signTexts.bad_things.push(''); renderTexts(); });
+      qs('#btn-batch-good').addEventListener('click', () => {
+        const raw = prompt('每行一条');
+        if (!raw) return;
+        state.signTexts.good_things.push(...raw.split(/\r?\n/).map((x) => x.trim()).filter(Boolean));
+        renderTexts();
+      });
+      qs('#btn-batch-bad').addEventListener('click', () => {
+        const raw = prompt('每行一条');
+        if (!raw) return;
+        state.signTexts.bad_things.push(...raw.split(/\r?\n/).map((x) => x.trim()).filter(Boolean));
+        renderTexts();
+      });
+      qs('#btn-add-range').addEventListener('click', () => {
+        state.signTexts.luck_ranges.push({ label: '新气运', min: 1, max: 100, gold_delta: 0, comments: [''] });
+        renderTexts();
+      });
+      qs('#btn-preview-signin').addEventListener('click', previewSign);
+      qs('#btn-save-texts').addEventListener('click', saveTexts);
+      qs('#btn-save-config').addEventListener('click', saveCfg);
+      qs('#btn-load-config').addEventListener('click', loadCfg);
+    }
+
+    async function bootProfileData() {
+      await Promise.all([loadCards(), loadImages(), loadFates(), loadTexts(), loadCfg()]);
+    }
+
+    async function boot() {
+      await Promise.all([loadProfiles(), loadGroupAccess()]);
+      await bootProfileData();
+    }
+
+    bindEvents();
+    boot().catch((err) => {
+      console.error(err);
+      alert('前端初始化失败，请打开浏览器控制台查看错误。');
+    });
+  </script>
 </body>
 </html>

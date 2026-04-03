@@ -39,6 +39,9 @@ RUNTIME_CONFIG_FILE = STORAGE_PATHS["runtime_config_file"]
 FATE_ASSETS_DIR = STORAGE_PATHS["fate_assets_dir"]
 WEBUI_DIR = Path(__file__).parent
 STATIC_DIR = WEBUI_DIR / "static"
+DEFAULT_FUNC_CARDS_FILE = CONFIG_DIR / "func_cards.json"
+DEFAULT_FATE_CARDS_FILE = CONFIG_DIR / "cards_config.json"
+DEFAULT_RUNTIME_CONFIG_FILE = CONFIG_DIR / "webui_runtime_config.json"
 
 # 默认签到文案（fallback）
 DEFAULT_SIGN_IN_TEXTS = {
@@ -102,6 +105,34 @@ def _deep_merge_dict(base: dict, override: dict) -> dict:
     return result
 
 
+def _load_json_template(path: Path, default):
+    data = _read_json(path, default)
+    if isinstance(default, list):
+        return data if isinstance(data, list) else list(default)
+    if isinstance(default, dict):
+        return data if isinstance(data, dict) else dict(default)
+    return data
+
+
+def _ensure_profile_seed_data(profile_id: str):
+    paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+    ensure_profile_dirs(profile_id, PLUGIN_NAME)
+
+    if not paths["func_cards_file"].exists() or not isinstance(_read_json(paths["func_cards_file"], []), list) or not _read_json(paths["func_cards_file"], []):
+        _atomic_write(paths["func_cards_file"], _load_json_template(DEFAULT_FUNC_CARDS_FILE, []))
+
+    if not paths["fate_cards_file"].exists() or not isinstance(_read_json(paths["fate_cards_file"], []), list) or not _read_json(paths["fate_cards_file"], []):
+        _atomic_write(paths["fate_cards_file"], _load_json_template(DEFAULT_FATE_CARDS_FILE, []))
+
+    if not paths["runtime_config_file"].exists() or not isinstance(_read_json(paths["runtime_config_file"], {}), dict) or not _read_json(paths["runtime_config_file"], {}):
+        runtime_seed = _load_json_template(DEFAULT_RUNTIME_CONFIG_FILE, {})
+        merged_runtime = _deep_merge_dict(_default_runtime_config(), runtime_seed if isinstance(runtime_seed, dict) else {})
+        _atomic_write(paths["runtime_config_file"], merged_runtime)
+
+    if not paths["sign_in_texts_file"].exists() or not isinstance(_read_json(paths["sign_in_texts_file"], {}), dict) or not _read_json(paths["sign_in_texts_file"], {}):
+        _atomic_write(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
+
+
 def _ensure_private_dirs():
     """确保官方隔离数据目录存在，避免 WebUI 因目录缺失读取异常。"""
     for directory in (BASE_PATHS["plugin_data_dir"], BASE_PATHS["profiles_dir"], GROUP_DATA_DIR, FATE_ASSETS_DIR, ASSETS_DIR):
@@ -156,7 +187,7 @@ def _save_profile_meta(profile_id: str, meta: dict):
 
 def _get_request_profile_id(request) -> str:
     profile_id = _sanitize_profile_id(request.query.get("profile") or request.headers.get("X-Luck-Profile") or DEFAULT_PROFILE_NAME)
-    ensure_profile_dirs(profile_id, PLUGIN_NAME)
+    _ensure_profile_seed_data(profile_id)
     return profile_id
 
 
@@ -167,6 +198,7 @@ def _get_request_profile_paths(request) -> dict:
 
 def _list_profile_ids() -> list[str]:
     ensure_default_profile(PLUGIN_NAME)
+    _ensure_profile_seed_data(DEFAULT_PROFILE_NAME)
     profiles_dir = BASE_PATHS["profiles_dir"]
     result = []
     for item in profiles_dir.iterdir():
@@ -178,6 +210,7 @@ def _list_profile_ids() -> list[str]:
 
 
 def _collect_profile_stats(profile_id: str) -> dict:
+    _ensure_profile_seed_data(profile_id)
     paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
     meta = _get_profile_meta(profile_id)
     func_cards = _read_json(paths["func_cards_file"], [])
@@ -244,10 +277,13 @@ def _default_runtime_config() -> dict:
 # ==============================================================================
 
 async def api_get_runtime_config(request):
-    paths = _get_request_profile_paths(request)
-    current = _read_json(paths["runtime_config_file"], {})
-    merged = _deep_merge_dict(_default_runtime_config(), current)
-    return web.json_response({"ok": True, "config": merged})
+    try:
+        paths = _get_request_profile_paths(request)
+        current = _read_json(paths["runtime_config_file"], {})
+        merged = _deep_merge_dict(_default_runtime_config(), current)
+        return web.json_response({"ok": True, "config": merged})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "config": _default_runtime_config()}, status=500)
 
 
 async def api_save_runtime_config(request):
@@ -265,9 +301,12 @@ async def api_save_runtime_config(request):
 
 
 async def api_get_fate_cards(request):
-    paths = _get_request_profile_paths(request)
-    cards = _read_json(paths["fate_cards_file"], [])
-    return web.json_response({"ok": True, "cards": cards})
+    try:
+        paths = _get_request_profile_paths(request)
+        cards = _read_json(paths["fate_cards_file"], [])
+        return web.json_response({"ok": True, "cards": cards if isinstance(cards, list) else []})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "cards": []}, status=500)
 
 
 async def api_save_fate_cards(request):
@@ -310,19 +349,25 @@ async def api_upload_fate_image(request):
 
 async def api_list_fate_images(request):
     """列出 assets/cards/ 下所有图片"""
-    paths = _get_request_profile_paths(request)
-    fate_assets_dir = paths["fate_assets_dir"]
-    if not fate_assets_dir.exists():
-        return web.json_response({"ok": True, "images": []})
-    exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
-    images = [f.name for f in fate_assets_dir.iterdir() if f.suffix.lower() in exts]
-    return web.json_response({"ok": True, "images": sorted(images)})
+    try:
+        paths = _get_request_profile_paths(request)
+        fate_assets_dir = paths["fate_assets_dir"]
+        if not fate_assets_dir.exists():
+            return web.json_response({"ok": True, "images": []})
+        exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+        images = [f.name for f in fate_assets_dir.iterdir() if f.suffix.lower() in exts]
+        return web.json_response({"ok": True, "images": sorted(images)})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "images": []}, status=500)
 
 
 async def api_get_func_cards(request):
-    paths = _get_request_profile_paths(request)
-    cards = _read_json(paths["func_cards_file"], [])
-    return web.json_response({"ok": True, "cards": cards})
+    try:
+        paths = _get_request_profile_paths(request)
+        cards = _read_json(paths["func_cards_file"], [])
+        return web.json_response({"ok": True, "cards": cards if isinstance(cards, list) else []})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "cards": []}, status=500)
 
 
 async def api_save_func_cards(request):
@@ -337,20 +382,23 @@ async def api_save_func_cards(request):
 
 
 async def api_get_sign_in_texts(request):
-    paths = _get_request_profile_paths(request)
-    texts = _read_json(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
-    for key in DEFAULT_SIGN_IN_TEXTS:
-        if key not in texts:
-            texts[key] = DEFAULT_SIGN_IN_TEXTS[key]
-    if not texts.get("luck_ranges"):
-        legacy = texts.get("luck_comments", {})
-        texts["luck_ranges"] = [
-            {"label": "平运", "min": 1, "max": 50, "gold_delta": 0, "comments": legacy.get("1_50", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["1_50"])},
-            {"label": "小吉", "min": 51, "max": 70, "gold_delta": 0, "comments": legacy.get("51_70", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["51_70"])},
-            {"label": "大吉", "min": 71, "max": 90, "gold_delta": 0, "comments": legacy.get("71_90", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["71_90"])},
-            {"label": "天命", "min": 91, "max": 100, "gold_delta": 0, "comments": legacy.get("91_100", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["91_100"])},
-        ]
-    return web.json_response({"ok": True, "texts": texts})
+    try:
+        paths = _get_request_profile_paths(request)
+        texts = _read_json(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
+        for key in DEFAULT_SIGN_IN_TEXTS:
+            if key not in texts:
+                texts[key] = DEFAULT_SIGN_IN_TEXTS[key]
+        if not texts.get("luck_ranges"):
+            legacy = texts.get("luck_comments", {})
+            texts["luck_ranges"] = [
+                {"label": "平运", "min": 1, "max": 50, "gold_delta": 0, "comments": legacy.get("1_50", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["1_50"])},
+                {"label": "小吉", "min": 51, "max": 70, "gold_delta": 0, "comments": legacy.get("51_70", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["51_70"])},
+                {"label": "大吉", "min": 71, "max": 90, "gold_delta": 0, "comments": legacy.get("71_90", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["71_90"])},
+                {"label": "天命", "min": 91, "max": 100, "gold_delta": 0, "comments": legacy.get("91_100", DEFAULT_SIGN_IN_TEXTS["luck_comments"]["91_100"])},
+            ]
+        return web.json_response({"ok": True, "texts": texts})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "texts": DEFAULT_SIGN_IN_TEXTS}, status=500)
 
 
 async def api_save_sign_in_texts(request):
@@ -366,35 +414,38 @@ async def api_save_sign_in_texts(request):
 
 async def api_get_user_stats(request):
     """按方案汇总只读用户数据，供概率分析和持牌检测用"""
-    profile_id = _get_request_profile_id(request)
-    stats = {
-        "total_groups": 0,
-        "total_users": 0,
-        "card_holders": {},
-        "groups": [],
-        "profile_id": profile_id,
-    }
-    if not GROUP_DATA_DIR.exists():
-        return web.json_response({"ok": True, "stats": stats})
+    try:
+        profile_id = _get_request_profile_id(request)
+        stats = {
+            "total_groups": 0,
+            "total_users": 0,
+            "card_holders": {},
+            "groups": [],
+            "profile_id": profile_id,
+        }
+        if not GROUP_DATA_DIR.exists():
+            return web.json_response({"ok": True, "stats": stats})
 
-    mapping = get_group_profile_map(PLUGIN_NAME)
-    for group_dir in GROUP_DATA_DIR.iterdir():
-        if not group_dir.is_dir():
-            continue
-        if mapping.get(group_dir.name, DEFAULT_PROFILE_NAME) != profile_id:
-            continue
-        data = _read_json(group_dir / "luck_data.json", {})
-        if not isinstance(data, dict):
-            continue
-        stats["total_groups"] += 1
-        stats["groups"].append({"group_id": group_dir.name, "user_count": len(data)})
-        stats["total_users"] += len(data)
-        for _, info in data.items():
-            for card in info.get("inventory", []):
-                name = card.get("card_name", "")
-                if name:
-                    stats["card_holders"][name] = stats["card_holders"].get(name, 0) + 1
-    return web.json_response({"ok": True, "stats": stats})
+        mapping = get_group_profile_map(PLUGIN_NAME)
+        for group_dir in GROUP_DATA_DIR.iterdir():
+            if not group_dir.is_dir():
+                continue
+            if mapping.get(group_dir.name, DEFAULT_PROFILE_NAME) != profile_id:
+                continue
+            data = _read_json(group_dir / "luck_data.json", {})
+            if not isinstance(data, dict):
+                continue
+            stats["total_groups"] += 1
+            stats["groups"].append({"group_id": group_dir.name, "user_count": len(data)})
+            stats["total_users"] += len(data)
+            for _, info in data.items():
+                for card in info.get("inventory", []):
+                    name = card.get("card_name", "")
+                    if name:
+                        stats["card_holders"][name] = stats["card_holders"].get(name, 0) + 1
+        return web.json_response({"ok": True, "stats": stats})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "stats": {"total_groups": 0, "total_users": 0, "card_holders": {}, "groups": [], "profile_id": DEFAULT_PROFILE_NAME}}, status=500)
 
 
 async def api_upload_image(request):
@@ -426,13 +477,16 @@ async def api_upload_image(request):
 
 async def api_list_images(request):
     """列出 assets/func_cards/ 下所有图片文件"""
-    paths = _get_request_profile_paths(request)
-    assets_dir = paths["func_assets_dir"]
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    exts = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-    files = [f.name for f in assets_dir.iterdir() if f.suffix.lower() in exts]
-    files.sort()
-    return web.json_response({"ok": True, "files": files})
+    try:
+        paths = _get_request_profile_paths(request)
+        assets_dir = paths["func_assets_dir"]
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        exts = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+        files = [f.name for f in assets_dir.iterdir() if f.suffix.lower() in exts]
+        files.sort()
+        return web.json_response({"ok": True, "files": files})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "files": []}, status=500)
 
 
 async def api_delete_image(request):
@@ -448,19 +502,25 @@ async def api_delete_image(request):
 
 async def api_check_missing_images(request):
     """检查所有卡牌中引用了但实际不存在的图片"""
-    paths = _get_request_profile_paths(request)
-    cards = _read_json(paths["func_cards_file"], [])
-    missing = []
-    for card in cards:
-        fn = str(card.get("filename", "")).strip()
-        if fn and not (paths["func_assets_dir"] / fn).exists():
-            missing.append({"card_name": card.get("card_name"), "filename": fn})
-    return web.json_response({"ok": True, "missing": missing})
+    try:
+        paths = _get_request_profile_paths(request)
+        cards = _read_json(paths["func_cards_file"], [])
+        missing = []
+        for card in cards:
+            fn = str(card.get("filename", "")).strip()
+            if fn and not (paths["func_assets_dir"] / fn).exists():
+                missing.append({"card_name": card.get("card_name"), "filename": fn})
+        return web.json_response({"ok": True, "missing": missing})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "missing": []}, status=500)
 
 
 async def api_profile_overview(request):
-    profiles = [_collect_profile_stats(pid) for pid in _list_profile_ids()]
-    return web.json_response({"ok": True, "profiles": profiles, "default_profile": DEFAULT_PROFILE_NAME})
+    try:
+        profiles = [_collect_profile_stats(pid) for pid in _list_profile_ids()]
+        return web.json_response({"ok": True, "profiles": profiles, "default_profile": DEFAULT_PROFILE_NAME})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "profiles": [], "default_profile": DEFAULT_PROFILE_NAME}, status=500)
 
 
 async def api_create_profile(request):
@@ -544,13 +604,16 @@ async def api_unbind_group_profile(request):
 
 
 async def api_get_group_access(request):
-    cfg = _read_json(GROUP_ACCESS_FILE, _default_group_access_config())
-    if not isinstance(cfg, dict):
-        cfg = _default_group_access_config()
-    cfg.setdefault("mode", "off")
-    cfg.setdefault("blacklist", [])
-    cfg.setdefault("whitelist", [])
-    return web.json_response({"ok": True, "config": cfg})
+    try:
+        cfg = _read_json(GROUP_ACCESS_FILE, _default_group_access_config())
+        if not isinstance(cfg, dict):
+            cfg = _default_group_access_config()
+        cfg.setdefault("mode", "off")
+        cfg.setdefault("blacklist", [])
+        cfg.setdefault("whitelist", [])
+        return web.json_response({"ok": True, "config": cfg})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "config": _default_group_access_config()}, status=500)
 
 
 async def api_save_group_access(request):
@@ -624,6 +687,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
 
     _ensure_private_dirs()
     migrate_legacy_storage(PLUGIN_NAME)
+    _ensure_profile_seed_data(DEFAULT_PROFILE_NAME)
     app = web.Application()
 
     # API 路由

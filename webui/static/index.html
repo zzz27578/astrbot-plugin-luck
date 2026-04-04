@@ -236,8 +236,7 @@
     .stack, .profile-list, .card-list, .asset-list, .event-list, .stats-list { display: grid; gap: 10px; }
     .profile-list { grid-template-columns: 1fr; align-items: start; justify-items: stretch; }
     .profile-card {
-      display: grid;
-      grid-template-columns: minmax(0,1fr) 16px;
+      display: block;
       align-items: start;
       gap: 8px;
       overflow: visible;
@@ -245,7 +244,7 @@
       transition: .24s var(--ease);
       width: 100%;
       max-width: 100%;
-      padding: 6px 10px;
+      padding: 6px 34px 6px 10px;
     }
     .profile-main {
       position: relative;
@@ -266,7 +265,10 @@
       opacity: .35;
     }
     .profile-switch-slot {
-      position: relative;
+      position: absolute;
+      right: 10px;
+      top: 6px;
+      bottom: 6px;
       border: 1px solid rgba(194,86,86,.34);
       background: linear-gradient(180deg, rgba(194,86,86,.08), rgba(194,86,86,.02));
       display: flex;
@@ -274,7 +276,6 @@
       justify-content: center;
       width: 16px;
       min-height: 0;
-      align-self: stretch;
       overflow: hidden;
       transition: .24s var(--ease);
     }
@@ -327,6 +328,7 @@
     }
     .profile-card.active .profile-switch-slot {
       width: 4px;
+      right: 10px;
       border-color: rgba(140,255,160,.42);
       background: linear-gradient(180deg, rgba(140,255,160,.12), rgba(140,255,160,.03));
       box-shadow: inset 4px 0 10px rgba(110,255,160,.16);

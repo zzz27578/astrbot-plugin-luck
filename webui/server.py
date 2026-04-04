@@ -603,6 +603,33 @@ async def api_unbind_group_profile(request):
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
+async def api_delete_profile(request):
+    try:
+        body = await request.json()
+        profile_id = _sanitize_profile_id(body.get("profile_id") or DEFAULT_PROFILE_NAME)
+        if profile_id == DEFAULT_PROFILE_NAME:
+            return web.json_response({"ok": False, "error": "default profile cannot be deleted"}, status=400)
+
+        paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+        profile_dir = paths["profile_dir"]
+        if not profile_dir.exists():
+            return web.json_response({"ok": False, "error": "profile not found"}, status=404)
+
+        mapping = get_group_profile_map(PLUGIN_NAME)
+        changed = False
+        for gid, pid in list(mapping.items()):
+            if pid == profile_id:
+                mapping[gid] = DEFAULT_PROFILE_NAME
+                changed = True
+        if changed:
+            save_group_profile_map(mapping, PLUGIN_NAME)
+
+        shutil.rmtree(profile_dir, ignore_errors=True)
+        return web.json_response({"ok": True, "deleted_profile": profile_id, "fallback_profile": DEFAULT_PROFILE_NAME})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
 async def api_get_group_access(request):
     try:
         cfg = _read_json(GROUP_ACCESS_FILE, _default_group_access_config())
@@ -696,6 +723,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/profile_meta", api_update_profile_meta)
     app.router.add_post("/api/profile_bind_group", api_bind_group_profile)
     app.router.add_post("/api/profile_unbind_group", api_unbind_group_profile)
+    app.router.add_delete("/api/profiles", api_delete_profile)
     app.router.add_get("/api/group_access", api_get_group_access)
     app.router.add_post("/api/group_access", api_save_group_access)
     app.router.add_get("/api/runtime_config", api_get_runtime_config)

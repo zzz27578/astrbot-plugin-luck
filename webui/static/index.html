@@ -81,13 +81,14 @@
       background: #060606;
     }
     .brand { padding: 16px; }
-    .brand .mini { font-size: 10px; letter-spacing: 2px; color: var(--dim); margin-bottom: 8px; }
+    .brand .mini { font-size: 9px; letter-spacing: 1.4px; color: var(--dim); margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .brand .big {
-      font-size: 44px;
-      line-height: .95;
+      font-size: 52px;
+      line-height: 1.02;
       font-weight: 900;
-      letter-spacing: 1px;
+      letter-spacing: 6px;
       margin-bottom: 14px;
+      text-align: center;
     }
     .brand .row { display: flex; flex-wrap: wrap; gap: 6px; }
     .chip {
@@ -129,9 +130,15 @@
     .hero {
       padding: 18px;
       display: grid;
-      grid-template-columns: minmax(0,1fr) 320px;
+      grid-template-columns: minmax(0,1fr) 420px;
       gap: 16px;
-      align-items: end;
+      align-items: stretch;
+    }
+    .hero-side {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) 64px;
+      gap: 10px;
+      align-items: stretch;
     }
     .hero .kicker { font-size: 10px; letter-spacing: 2px; color: rgba(201,138,84,.9); margin-bottom: 8px; }
     .hero h1 {
@@ -141,18 +148,36 @@
       letter-spacing: 1px;
       text-align: left;
     }
-    .hero p { margin-top: 10px; font-size: 12px; color: var(--muted); max-width: 760px; line-height: 1.8; }
+    .hero p { margin-top: 4px; font-size: 12px; color: var(--muted); max-width: 760px; line-height: 1.8; }
     .quick-box {
       border: 1px solid var(--line-strong);
-      padding: 10px;
+      padding: 16px 14px;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      gap: 10px;
       background: rgba(255,255,255,.02);
+      min-height: 116px;
+      align-content: center;
     }
-    .quick-box b { display: block; font-size: 24px; color: #fff; }
-    .quick-box span { font-size: 10px; color: var(--dim); }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+    .quick-box b { display: block; font-size: 32px; color: #fff; }
+    .quick-box span { font-size: 11px; color: var(--dim); }
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 0;
+      justify-content: stretch;
+    }
+    .reload-tower {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 116px;
+      letter-spacing: 2px;
+      font-size: 12px;
+    }
     .btn, .btn-strong, .btn-danger, .btn-mini, .mode-btn {
       border: 1px solid var(--line-strong);
       background: rgba(255,255,255,.025);
@@ -202,6 +227,96 @@
     .panel-title { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
     .panel-note { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
     .stack, .profile-list, .card-list, .asset-list, .event-list, .stats-list { display: grid; gap: 10px; }
+    .profile-card {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) 180px 58px;
+      gap: 12px;
+      align-items: stretch;
+      overflow: hidden;
+    }
+    .profile-main { position: relative; z-index: 2; }
+    .profile-cover {
+      position: relative;
+      min-height: 168px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+    }
+    .profile-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: right center;
+      opacity: .48;
+      display: block;
+      filter: saturate(.9);
+    }
+    .profile-cover::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(9,9,9,.88) 0%, rgba(9,9,9,.34) 58%, rgba(9,9,9,.08) 100%);
+    }
+    .profile-chart {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      width: 144px;
+      display: grid;
+      gap: 8px;
+      z-index: 2;
+    }
+    .chart-row { display: grid; gap: 4px; }
+    .chart-row span { font-size: 10px; color: rgba(220,255,220,.8); letter-spacing: 1px; }
+    .chart-bar {
+      height: 8px;
+      border: 1px solid rgba(142,255,163,.28);
+      background: rgba(0,0,0,.25);
+      overflow: hidden;
+    }
+    .chart-fill {
+      height: 100%;
+      background: linear-gradient(90deg, rgba(110,255,160,.22), rgba(130,255,214,.72));
+      box-shadow: 0 0 12px rgba(110,255,160,.2);
+    }
+    .profile-switch-slot {
+      position: relative;
+      border: 1px solid rgba(194,86,86,.34);
+      background: linear-gradient(180deg, rgba(194,86,86,.08), rgba(194,86,86,.02));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 168px;
+    }
+    .profile-switch-btn {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      color: rgba(255,210,210,.9);
+      font-weight: 900;
+      letter-spacing: 2px;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      cursor: pointer;
+      transition: .22s var(--ease);
+    }
+    .profile-switch-btn:hover { color: #fff; background: rgba(255,255,255,.03); }
+    .profile-card.active {
+      border-color: rgba(140,255,160,.36);
+      box-shadow: inset 0 0 0 1px rgba(140,255,160,.08), 0 0 18px rgba(110,255,160,.08);
+      transform: translateX(6px);
+    }
+    .profile-card.active .profile-switch-slot {
+      border-color: rgba(140,255,160,.44);
+      background: linear-gradient(180deg, rgba(140,255,160,.10), rgba(140,255,160,.03));
+      box-shadow: inset 14px 0 28px rgba(110,255,160,.12);
+    }
+    .profile-card.active .profile-switch-btn { color: rgba(210,255,220,.96); }
+    .profile-card.leave { transform: translateX(0); }
     .input, .textarea, .select {
       width: 100%;
       border: 1px solid var(--line-strong);
@@ -349,9 +464,15 @@
     .dialog-card {
       width: min(1100px, 100%);
       max-height: 90vh;
-      overflow: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
       background: #090909;
       padding: 14px;
+    }
+    .dialog-card.create-mode {
+      width: min(860px, 100%);
+      max-height: none;
+      overflow: hidden;
     }
     .dialog-head {
       display: flex;
@@ -364,6 +485,8 @@
     }
     .dialog-title { font-size: 22px; font-weight: 900; }
     .split { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 14px; }
+    .create-split { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 14px; }
+    .select, select option { background: #101010; color: #f2f2f2; }
     @media (max-width: 1260px) {
       .hero { grid-template-columns: 1fr; }
       .col-8, .col-7, .col-6, .col-5, .col-4 { grid-column: span 12; }
@@ -390,7 +513,6 @@
         <div class="row">
           <span class="chip">Ver. 5.4.0</span>
           <span class="chip">[ 插件核心 ]</span>
-          <span class="chip">ARC-07 / C-91</span>
         </div>
       </section>
 
@@ -418,17 +540,16 @@
         <div>
           <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
           <h1 id="heroTitle">总览与方案</h1>
-          <p id="heroDesc">把方案管理、访问控制与主要操作直接压进主界面，不做无意义留白，不做软绵绵的按钮。</p>
+          <p id="heroDesc">把方案管理、访问控制与主要操作直接压进主界面，不做无意义留白，不做软绵绵的按钮</p>
         </div>
-        <div>
+        <div class="hero-side">
           <div class="quick-box">
             <div><b id="quickProfileCount">0</b><span>方案数量</span></div>
             <div><b id="quickGroupCount">0</b><span>群组总量</span></div>
             <div><b id="quickUserCount">0</b><span>用户总量</span></div>
           </div>
           <div class="toolbar">
-            <button class="btn-strong" id="reloadBtn">[ 重新载入 ]</button>
-            <button class="btn" id="openCreateBtn">[ 新建方案 ]</button>
+            <button class="btn-strong reload-tower" id="reloadBtn">载入 / 刷新</button>
           </div>
         </div>
       </section>
@@ -698,11 +819,12 @@
     }
     async function loadStats() { const res = await apiGet('/api/user_stats'); if (res.ok) state.stats = res.stats || { total_groups:0, total_users:0, card_holders:{}, groups:[] }; }
 
-    async function loadAll() {
+    async function loadAll(showMessage = false) {
       try {
         await loadProfiles();
         await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
         renderAll();
+        if (showMessage) showToast('载入成功');
       } catch (e) {
         console.error(e);
         showToast('载入失败，请检查后端接口。', true);
@@ -729,24 +851,41 @@
               <button class="btn-strong" onclick="openCreateProfileDialog()">[ 新建方案 ]</button>
             </div>
             <div class="profile-list">
-              ${state.profiles.map(p => `
+              ${state.profiles.map(p => {
+                const maxValue = Math.max(1, ...state.profiles.map(x => Math.max(x.user_count || 0, x.func_card_count || 0, x.fate_card_count || 0)));
+                const cover = p.cover_image ? `<img src="${esc(p.cover_image)}" alt="${esc(p.display_name || p.profile_id)}">` : '';
+                const chartBar = (label, value) => `<div class="chart-row"><span>${label} ${value || 0}</span><div class="chart-bar"><div class="chart-fill" style="width:${Math.max(8, Math.round(((value || 0) / maxValue) * 100))}%"></div></div></div>`;
+                return `
                 <article class="profile-card ${p.profile_id === state.currentProfile ? 'active' : ''}">
-                  <h3>${esc(p.display_name || p.profile_id)}</h3>
-                  <div class="row" style="margin-bottom:8px;">
-                    ${p.is_default ? '<span class="badge light">默认方案</span>' : ''}
-                    <span class="badge">方案标识：<span class="mono">${esc(p.profile_id)}</span></span>
+                  <div class="profile-main">
+                    <h3>${esc(p.display_name || p.profile_id)}</h3>
+                    <div class="row" style="margin-bottom:8px;">
+                      ${p.is_default ? '<span class="badge light">默认方案</span>' : ''}
+                      <span class="badge">绑定群组 ${(p.group_count || 0)}</span>
+                    </div>
+                    <div class="meta">用户 ${p.user_count || 0} ｜ 功能牌 ${p.func_card_count || 0} ｜ 命运牌 ${p.fate_card_count || 0}</div>
+                    <div class="row" style="margin:10px 0;">
+                      ${(p.groups || []).map(g => `<span class="badge">群 ${esc(g)}</span>`).join('') || '<span class="helper">暂无绑定群组</span>'}
+                    </div>
+                    <div class="row">
+                      <button class="btn" onclick="renameProfile('${esc(p.profile_id)}')">[ 重命名 ]</button>
+                      <button class="btn" onclick="bindGroupPrompt('${esc(p.profile_id)}')">[ 绑定群号 ]</button>
+                      ${(p.groups || []).slice(0,6).map(g => `<button class="btn-mini" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('')}
+                    </div>
                   </div>
-                  <div class="meta">绑定群组 ${p.group_count || 0} ｜ 用户 ${p.user_count || 0} ｜ 功能牌 ${p.func_card_count || 0} ｜ 命运牌 ${p.fate_card_count || 0}</div>
-                  <div class="row" style="margin:10px 0;">
-                    ${(p.groups || []).map(g => `<span class="badge">群 ${esc(g)}</span>`).join('') || '<span class="helper">暂无绑定群组</span>'}
+                  <div class="profile-cover">
+                    ${cover}
+                    <div class="profile-chart">
+                      ${chartBar('用户', p.user_count || 0)}
+                      ${chartBar('功能牌', p.func_card_count || 0)}
+                      ${chartBar('命运牌', p.fate_card_count || 0)}
+                    </div>
                   </div>
-                  <div class="row">
-                    <button class="btn-strong" onclick="useProfile('${esc(p.profile_id)}')">[ 切换 ]</button>
-                    <button class="btn" onclick="renameProfile('${esc(p.profile_id)}')">[ 重命名 ]</button>
-                    <button class="btn" onclick="bindGroupPrompt('${esc(p.profile_id)}')">[ 绑定群号 ]</button>
-                    ${(p.groups || []).slice(0,6).map(g => `<button class="btn-mini" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('')}
+                  <div class="profile-switch-slot">
+                    <button class="profile-switch-btn" onclick="useProfile('${esc(p.profile_id)}')">切换</button>
                   </div>
-                </article>`).join('')}
+                </article>`;
+              }).join('')}
             </div>
           </section>
 
@@ -762,14 +901,16 @@
               <button class="mode-btn black ${state.groupAccess.mode === 'blacklist' ? 'active' : ''}" onclick="setAccessMode('blacklist')">黑名单模式</button>
               <button class="mode-btn white ${state.groupAccess.mode === 'whitelist' ? 'active' : ''}" onclick="setAccessMode('whitelist')">白名单模式</button>
             </div>
+            ${state.groupAccess.mode === 'blacklist' ? `
             <div class="field" style="margin-bottom:10px;">
               <label>黑名单群号（每行一个）</label>
               <textarea class="textarea" id="blacklistInput">${esc((state.groupAccess.blacklist || []).join('\n'))}</textarea>
-            </div>
+            </div>` : ''}
+            ${state.groupAccess.mode === 'whitelist' ? `
             <div class="field">
               <label>白名单群号（每行一个）</label>
               <textarea class="textarea" id="whitelistInput">${esc((state.groupAccess.whitelist || []).join('\n'))}</textarea>
-            </div>
+            </div>` : ''}
             <div class="row" style="margin-top:10px;">
               <button class="btn-strong" onclick="saveGroupAccess()">[ 保存访问控制 ]</button>
             </div>
@@ -1112,35 +1253,63 @@
       else showToast(res.error || '解绑失败。', true);
     }
 
-    function openDialog(title, html) {
+    function openDialog(title, html, mode = '') {
       $('#dialogTitle').textContent = title;
       $('#dialogBody').innerHTML = html;
       $('#dialog').classList.add('show');
+      $('#dialog .dialog-card').classList.toggle('create-mode', mode === 'create');
     }
-    function closeDialog() { $('#dialog').classList.remove('show'); }
+    function closeDialog() {
+      $('#dialog').classList.remove('show');
+      $('#dialog .dialog-card').classList.remove('create-mode');
+    }
 
     function openCreateProfileDialog() {
+      state.newProfileCover = '';
       openDialog('新建方案', `
-        <div class="split">
+        <div class="create-split">
           <div>
             <div class="field-grid">
               <div class="field"><label>方案名称</label><input class="input" id="newProfileName"></div>
-              <div class="field"><label>方案标识（可留空）</label><input class="input" id="newProfileId"></div>
+              <div class="field"><label>上传图片</label><input class="input" type="file" accept="image/*" id="newProfileCoverFile" onchange="handleNewProfileCover(this)"></div>
             </div>
             <div class="field" style="margin-top:12px;"><label>复制来源</label><select class="select" id="copyFrom">${state.profiles.map(p => `<option value="${esc(p.profile_id)}">${esc(p.display_name)}</option>`).join('')}</select></div>
             <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="createProfileConfirm()">[ 确认创建 ]</button></div>
           </div>
-          <div class="helper">新方案会复制来源方案的功能牌、命运牌、签到配置、运行配置和资源文件。</div>
-        </div>`);
+          <div>
+            <div class="helper" style="margin-bottom:10px;">图片会以内嵌方式保存到方案封面里，作为方案卡片背景使用。</div>
+            <div class="profile-cover" style="min-height:180px;"><img id="newProfileCoverPreview" style="display:none;opacity:.52;"></div>
+          </div>
+        </div>`, 'create');
+    }
+
+    function handleNewProfileCover(input) {
+      const file = input?.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.newProfileCover = String(reader.result || '');
+        const img = $('#newProfileCoverPreview');
+        if (img) { img.src = state.newProfileCover; img.style.display = 'block'; }
+      };
+      reader.readAsDataURL(file);
     }
 
     async function createProfileConfirm() {
       const name = $('#newProfileName')?.value?.trim();
-      const profile_id = $('#newProfileId')?.value?.trim();
       const copy_from = $('#copyFrom')?.value || 'default';
       if (!name) return showToast('方案名称不能为空。', true);
-      const res = await apiPost('/api/profiles', { name, profile_id, copy_from });
-      if (res.ok) { closeDialog(); await loadProfiles(); renderAll(); showToast('新方案已创建。'); }
+      const res = await apiPost('/api/profiles', { name, copy_from });
+      if (res.ok) {
+        const profileId = res.profile?.profile_id;
+        if (profileId && state.newProfileCover) {
+          await apiPost('/api/profile_meta', { profile_id: profileId, display_name: name, cover_image: state.newProfileCover });
+        }
+        closeDialog();
+        await loadProfiles();
+        renderAll();
+        showToast('新方案已创建。');
+      }
       else showToast(res.error || '创建失败。', true);
     }
 
@@ -1150,8 +1319,12 @@
     }
 
     async function saveGroupAccess() {
-      state.groupAccess.blacklist = ($('#blacklistInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
-      state.groupAccess.whitelist = ($('#whitelistInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+      state.groupAccess.blacklist = state.groupAccess.mode === 'blacklist'
+        ? ($('#blacklistInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean)
+        : [];
+      state.groupAccess.whitelist = state.groupAccess.mode === 'whitelist'
+        ? ($('#whitelistInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean)
+        : [];
       const res = await apiPost('/api/group_access', { config: state.groupAccess });
       if (res.ok) showToast('访问控制已保存。');
       else showToast(res.error || '保存失败。', true);
@@ -1450,8 +1623,7 @@
 
     function bindEvents() {
       $$('.nav-btn').forEach(btn => btn.addEventListener('click', () => setPage(btn.dataset.page)));
-      $('#reloadBtn').addEventListener('click', loadAll);
-      $('#openCreateBtn').addEventListener('click', openCreateProfileDialog);
+      $('#reloadBtn').addEventListener('click', () => loadAll(true));
       $('#closeDialogBtn').addEventListener('click', closeDialog);
       $('#dialog').addEventListener('click', (e) => { if (e.target.id === 'dialog') closeDialog(); });
     }
@@ -1497,6 +1669,8 @@
     window.uploadFuncImages = uploadFuncImages;
     window.deleteFuncImage = deleteFuncImage;
     window.refreshCardAssets = refreshCardAssets;
+
+    window.handleNewProfileCover = handleNewProfileCover;
 
     document.addEventListener('DOMContentLoaded', async () => {
       bindEvents();

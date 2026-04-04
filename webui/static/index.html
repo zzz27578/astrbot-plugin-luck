@@ -766,27 +766,7 @@
       return await (await fetch(apiUrl(path), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json();
     }
     async function apiDeleteProfileById(profileId) {
-      const attempts = [
-        { url: apiUrl(`/api/profile_delete?profile_id=${encodeURIComponent(profileId)}`), options: { method:'GET' } },
-        { url: apiUrl('/api/profile_delete'), options: { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ profile_id: profileId }) } },
-        { url: apiUrl(`/api/profiles?profile_id=${encodeURIComponent(profileId)}`), options: { method:'DELETE' } },
-      ];
-      for (const attempt of attempts) {
-        try {
-          const res = await fetch(attempt.url, attempt.options);
-          const text = await res.text();
-          try {
-            const data = JSON.parse(text);
-            if (data?.ok) return data;
-            if (res.ok && data) return data;
-          } catch {
-            if (res.ok && text.trim().startsWith('{')) return JSON.parse(text.trim());
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      return { ok:false, error:'所有删除接口都失败了，请重启 WebUI 后重试。' };
+      return await apiPost('/api/profile_meta', { action:'delete', profile_id: profileId });
     }
 
     function setPage(page) {

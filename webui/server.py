@@ -560,6 +560,14 @@ async def api_update_profile_meta(request):
     try:
         body = await request.json()
         profile_id = _sanitize_profile_id(body.get("profile_id") or DEFAULT_PROFILE_NAME)
+        action = str(body.get("action", "")).strip().lower()
+        if action == "delete":
+            ok, error = _delete_profile_storage(profile_id)
+            if not ok:
+                status = 404 if error == "profile not found" else 400 if error == "default profile cannot be deleted" else 500
+                return web.json_response({"ok": False, "error": error}, status=status)
+            return web.json_response({"ok": True, "deleted_profile": profile_id, "fallback_profile": DEFAULT_PROFILE_NAME})
+
         name = str(body.get("display_name", "")).strip()
         cover_image = str(body.get("cover_image", "")).strip()
         if not name:

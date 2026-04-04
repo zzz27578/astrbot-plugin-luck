@@ -234,16 +234,16 @@
     .panel-title { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
     .panel-note { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
     .stack, .profile-list, .card-list, .asset-list, .event-list, .stats-list { display: grid; gap: 10px; }
-    .profile-list { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    .profile-list { grid-template-columns: 1fr; align-items: start; }
     .profile-card {
-        display: grid;
-        grid-template-columns: minmax(0,1fr) 40px;
-        gap: 10px;
-        align-items: stretch;
-        overflow: visible;
-        position: relative;
-        transition: .24s var(--ease);
-      }
+      display: grid;
+      grid-template-columns: minmax(0,1fr) 28px;
+      gap: 8px;
+      align-items: start;
+      overflow: visible;
+      position: relative;
+      transition: .24s var(--ease);
+    }
     .profile-main { position: relative; z-index: 2; }
     .profile-main::after {
       content: "";
@@ -262,8 +262,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 168px;
-      width: 40px;
+      width: 28px;
+      min-height: 0;
+      align-self: stretch;
       overflow: hidden;
       transition: .24s var(--ease);
     }
@@ -279,7 +280,8 @@
       text-orientation: mixed;
       cursor: pointer;
       transition: .22s var(--ease);
-      font-size: 10px;
+      font-size: 9px;
+      padding: 8px 0;
     }
     .profile-switch-btn:hover { color: #fff; background: rgba(255,255,255,.03); }
     .profile-card.active {
@@ -313,10 +315,10 @@
       pointer-events: none;
     }
     .profile-card.active .profile-switch-slot {
-      width: 12px;
+      width: 8px;
       border-color: rgba(140,255,160,.42);
       background: linear-gradient(180deg, rgba(140,255,160,.12), rgba(140,255,160,.03));
-      box-shadow: inset 12px 0 22px rgba(110,255,160,.16);
+      box-shadow: inset 8px 0 16px rgba(110,255,160,.16);
     }
     .profile-card.active .profile-switch-btn { opacity: 0; pointer-events: none; }
     .profile-card.leave { transform: translateX(0); }
@@ -492,14 +494,14 @@
     @media (max-width: 1260px) {
       .hero { grid-template-columns: 1fr; }
       .col-8, .col-7, .col-6, .col-5, .col-4 { grid-column: span 12; }
-      .asset-grid, .field-grid.four, .stat-grid, .profile-list { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .asset-grid, .field-grid.four, .stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .split { grid-template-columns: 1fr; }
       .effect-row { grid-template-columns: 1fr; }
     }
     @media (max-width: 860px) {
       .app { grid-template-columns: 1fr; }
       .side { border-right: none; border-bottom: 1px solid var(--line); }
-      .field-grid, .field-grid.three, .field-grid.four, .asset-grid, .stat-grid, .profile-list { grid-template-columns: 1fr; }
+      .field-grid, .field-grid.three, .field-grid.four, .asset-grid, .stat-grid { grid-template-columns: 1fr; }
       .card-layout { grid-template-columns: 1fr; }
       .event-item { grid-template-columns: 24px minmax(0,1fr); }
       .event-item .btn-danger { grid-column: 2; }
@@ -1271,10 +1273,10 @@
       if (!id) return;
       if (current?.is_default) return showToast('默认方案不能删除。', true);
       if (!confirm(`确认删除方案「${current?.display_name || id}」吗？\n绑定到该方案的群组会自动切回默认方案。`)) return;
-      const res = await apiDelete(`/api/profiles?profile_id=${encodeURIComponent(id)}`);
+      const res = await apiPost('/api/profile_delete', { profile_id: id });
       if (!res.ok) return showToast(res.error || '删除失败。', true);
       closeDialog();
-      state.currentProfile = res.fallback_profile || (state.currentProfile === id ? 'default' : state.currentProfile);
+      state.currentProfile = res.fallback_profile || 'default';
       await loadProfiles();
       await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
       renderAll();

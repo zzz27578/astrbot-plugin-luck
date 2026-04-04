@@ -6,20 +6,20 @@
   <title>罗德岛档案中枢</title>
   <style>
     :root {
-      --bg: #0d1014;
-      --bg2: #141920;
-      --panel: #171c22;
-      --panel2: #1d232b;
-      --line: rgba(154,172,184,.18);
-      --line-strong: rgba(154,172,184,.34);
-      --text: #eef2f5;
-      --muted: rgba(238,242,245,.72);
-      --dim: rgba(238,242,245,.42);
-      --cold: #93aebb;
-      --steel: #6f8795;
-      --orange: #d69057;
-      --red: #d86f72;
-      --green: #8ebd8a;
+      --bg: #090909;
+      --bg2: #111111;
+      --panel: #151515;
+      --panel2: #1a1a1a;
+      --line: rgba(255,255,255,.12);
+      --line-strong: rgba(255,255,255,.24);
+      --text: #efefef;
+      --muted: rgba(255,255,255,.68);
+      --dim: rgba(255,255,255,.38);
+      --cold: #d8d8d8;
+      --steel: #9a9a9a;
+      --orange: #c98a54;
+      --red: #cf6e6e;
+      --green: #90b07f;
       --ease: cubic-bezier(.25,1,.5,1);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,12 +27,10 @@
     body {
       font-family: "Microsoft YaHei", "PingFang SC", "Source Han Sans SC", sans-serif;
       background:
-        radial-gradient(circle at 12% 16%, rgba(147,174,187,.10), transparent 26%),
-        radial-gradient(circle at 88% 14%, rgba(214,144,87,.08), transparent 22%),
-        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
         linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
-      background-size: auto, auto, 24px 24px, 24px 24px, auto;
+      background-size: 24px 24px, 24px 24px, auto;
       color: var(--text);
       overflow-x: hidden;
     }
@@ -51,7 +49,7 @@
     .app { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0,1fr); }
     .side {
       border-right: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(147,174,187,.08), rgba(255,255,255,.02));
+      background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.008));
       padding: 14px;
       display: grid;
       grid-template-rows: auto auto 1fr auto;
@@ -60,7 +58,7 @@
     .block, .hero, .panel, .dialog-card {
       position: relative;
       border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(147,174,187,.06), rgba(255,255,255,.02));
+      background: linear-gradient(180deg, rgba(255,255,255,.022), rgba(255,255,255,.01));
     }
     .block::before, .panel::before, .hero::before, .dialog-card::before {
       content: "";
@@ -109,7 +107,7 @@
     .nav-list { display: grid; gap: 8px; }
     .nav-btn {
       border: 1px solid var(--line);
-      background: rgba(13,16,20,.88);
+      background: rgba(255,255,255,.02);
       color: var(--cold);
       text-align: left;
       padding: 11px 12px;
@@ -120,13 +118,13 @@
     }
     .nav-btn small { display: block; font-size: 9px; color: var(--dim); margin-top: 3px; }
     .nav-btn:hover, .nav-btn.active {
-      background: linear-gradient(90deg, rgba(147,174,187,.92), rgba(183,203,214,.92));
-      color: #0d1116;
-      border-color: rgba(183,203,214,.92);
+      background: rgba(255,255,255,.10);
+      color: #f6f6f6;
+      border-color: rgba(255,255,255,.28);
       transform: translateX(4px);
     }
     .current { padding: 14px; align-self: end; }
-    .current .name { font-size: 18px; font-weight: 900; color: var(--cold); margin: 6px 0; }
+    .current .name { font-size: 18px; font-weight: 900; color: #f2f2f2; margin: 6px 0; }
     .main { padding: 14px; display: grid; gap: 14px; }
     .hero {
       padding: 18px;
@@ -135,7 +133,7 @@
       gap: 16px;
       align-items: end;
     }
-    .hero .kicker { font-size: 10px; letter-spacing: 2px; color: var(--orange); margin-bottom: 8px; text-shadow: 0 0 12px rgba(214,144,87,.16); }
+    .hero .kicker { font-size: 10px; letter-spacing: 2px; color: rgba(201,138,84,.9); margin-bottom: 8px; }
     .hero h1 {
       font-size: clamp(46px, 8vw, 92px);
       line-height: .88;
@@ -150,14 +148,14 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      background: linear-gradient(180deg, rgba(147,174,187,.06), rgba(13,16,20,.72));
+      background: rgba(255,255,255,.02);
     }
     .quick-box b { display: block; font-size: 24px; color: #fff; }
     .quick-box span { font-size: 10px; color: var(--dim); }
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; justify-content: flex-end; }
     .btn, .btn-strong, .btn-danger, .btn-mini, .mode-btn {
       border: 1px solid var(--line-strong);
-      background: rgba(18,22,27,.88);
+      background: rgba(255,255,255,.025);
       color: var(--text);
       padding: 9px 12px;
       cursor: pointer;
@@ -166,18 +164,18 @@
       font-size: 11px;
     }
     .btn:hover, .btn-mini:hover, .mode-btn:hover {
-      background: rgba(147,174,187,.18);
-      color: #f7fbff;
-      border-color: rgba(183,203,214,.58);
+      background: rgba(255,255,255,.11);
+      color: #fafafa;
+      border-color: rgba(255,255,255,.3);
       transform: translateY(-2px);
     }
     .btn-strong {
-      background: linear-gradient(90deg, rgba(147,174,187,.92), rgba(183,203,214,.92));
-      color: #0d1116;
-      border-color: rgba(183,203,214,.92);
+      background: rgba(255,255,255,.13);
+      color: #f6f6f6;
+      border-color: rgba(255,255,255,.3);
       font-weight: 800;
     }
-    .btn-strong:hover { background: linear-gradient(90deg, rgba(214,144,87,.95), rgba(229,173,116,.95)); border-color: rgba(229,173,116,.95); color: #0f1114; }
+    .btn-strong:hover { background: rgba(201,138,84,.22); border-color: rgba(201,138,84,.45); color: #fff; }
     .btn-danger { color: var(--red); border-color: rgba(255,102,102,.5); }
     .btn-danger:hover { background: var(--red); color: #050505; border-color: var(--red); }
     .btn-mini { padding: 6px 8px; font-size: 10px; }
@@ -207,13 +205,13 @@
     .input, .textarea, .select {
       width: 100%;
       border: 1px solid var(--line-strong);
-      background: rgba(14,18,23,.86);
+      background: rgba(255,255,255,.02);
       color: #fff;
       padding: 10px 12px;
       outline: none;
     }
     .textarea { min-height: 100px; resize: vertical; }
-    .input:focus, .textarea:focus, .select:focus { border-color: rgba(183,203,214,.78); box-shadow: inset 0 0 0 1px rgba(147,174,187,.18); }
+    .input:focus, .textarea:focus, .select:focus { border-color: rgba(255,255,255,.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
     .field { display: grid; gap: 6px; }
     .field label { font-size: 10px; letter-spacing: 1px; color: var(--dim); }
     .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
@@ -221,10 +219,10 @@
     .field-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
     .profile-card, .card-item, .asset-item, .event-item, .stat-item, .effect-row {
       border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(147,174,187,.045), rgba(13,16,20,.78));
+      background: rgba(255,255,255,.018);
       padding: 12px;
     }
-    .profile-card.active { border-color: rgba(183,203,214,.7); box-shadow: inset 0 0 0 1px rgba(147,174,187,.22); }
+    .profile-card.active { border-color: rgba(255,255,255,.3); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
     .profile-card h3, .card-item h3 { font-size: 20px; line-height: 1.1; margin-bottom: 8px; }
     .meta, .helper, .card-desc { font-size: 11px; color: var(--muted); line-height: 1.8; }
     .row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -238,20 +236,20 @@
       padding: 4px 8px;
       font-size: 10px;
     }
-    .badge.light { background: rgba(183,203,214,.88); color: #0d1116; border-color: rgba(183,203,214,.88); }
-    .badge.orange { background: rgba(214,144,87,.92); color: #111417; border-color: rgba(214,144,87,.92); }
+    .badge.light { background: rgba(255,255,255,.16); color: #f2f2f2; border-color: rgba(255,255,255,.22); }
+    .badge.orange { background: rgba(201,138,84,.18); color: #f3d5bc; border-color: rgba(201,138,84,.32); }
     .switch-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .mode-btn { min-width: 108px; text-align: center; }
-    .mode-btn.active { background: rgba(147,174,187,.88); color: #0d1116; border-color: rgba(183,203,214,.88); }
-    .mode-btn.black.active { background: rgba(184,120,120,.88); color: #121214; border-color: rgba(184,120,120,.88); }
-    .mode-btn.white.active { background: rgba(214,144,87,.92); color: #111417; border-color: rgba(214,144,87,.92); }
+    .mode-btn.active { background: rgba(255,255,255,.12); color: #f3f3f3; border-color: rgba(255,255,255,.28); }
+    .mode-btn.black.active { background: rgba(207,110,110,.16); color: #ffd8d8; border-color: rgba(207,110,110,.36); }
+    .mode-btn.white.active { background: rgba(201,138,84,.18); color: #f7dbc3; border-color: rgba(201,138,84,.34); }
     .toggle-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
       border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(147,174,187,.035), rgba(13,16,20,.76));
+      background: rgba(255,255,255,.018);
       padding: 10px 12px;
       margin-bottom: 8px;
     }
@@ -259,7 +257,7 @@
       width: 52px;
       height: 22px;
       border: 1px solid var(--line-strong);
-      background: rgba(13,16,20,.92);
+      background: rgba(255,255,255,.03);
       position: relative;
       cursor: pointer;
     }
@@ -270,11 +268,11 @@
       top: 2px;
       width: 16px;
       height: 16px;
-      background: rgba(223,232,238,.9);
+      background: rgba(255,255,255,.78);
       transition: transform .16s steps(2);
     }
-    .toggle-box.on { background: rgba(147,174,187,.78); }
-    .toggle-box.on::before { transform: translateX(30px); background: #0f1419; }
+    .toggle-box.on { background: rgba(255,255,255,.14); }
+    .toggle-box.on::before { transform: translateX(30px); background: #0e0e0e; }
     .thumb {
       width: 88px;
       height: 88px;
@@ -305,7 +303,7 @@
     .effect-row { display: grid; grid-template-columns: 160px 180px minmax(0,1fr) auto; gap: 10px; align-items: end; }
     .tag-preview {
       border: 1px solid var(--line-strong);
-      background: linear-gradient(180deg, rgba(147,174,187,.05), rgba(14,18,23,.82));
+      background: rgba(255,255,255,.018);
       padding: 10px 12px;
       min-height: 42px;
       font-size: 11px;

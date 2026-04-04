@@ -244,7 +244,7 @@
       transition: .24s var(--ease);
       width: 100%;
       max-width: 100%;
-      padding: 6px 22px 6px 10px;
+      padding: 8px 28px 8px 12px;
     }
     .profile-main {
       position: relative;
@@ -267,14 +267,14 @@
     .profile-switch-slot {
       position: absolute;
       right: 0;
-      top: 6px;
-      bottom: 6px;
+      top: 4px;
+      bottom: 4px;
       border: 1px solid rgba(194,86,86,.34);
       background: linear-gradient(180deg, rgba(194,86,86,.08), rgba(194,86,86,.02));
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
+      width: 20px;
       min-height: 0;
       overflow: hidden;
       transition: .24s var(--ease);
@@ -294,8 +294,8 @@
       text-orientation: mixed;
       cursor: pointer;
       transition: .22s var(--ease);
-      font-size: 8px;
-      padding: 2px 0;
+      font-size: 9px;
+      padding: 4px 0;
       pointer-events: auto;
     }
     .profile-switch-btn:hover { color: #fff; background: rgba(255,255,255,.03); }
@@ -305,17 +305,7 @@
       transform: translateX(5px);
     }
     .profile-card.active::before {
-      content: "当前使用";
-      position: absolute;
-      left: -14px;
-      top: 16px;
-      padding: 6px 10px;
-      font-size: 10px;
-      letter-spacing: 2px;
-      color: rgba(220,255,226,.92);
-      background: linear-gradient(90deg, rgba(80,255,150,.22), rgba(80,255,150,.04));
-      box-shadow: 0 0 18px rgba(80,255,150,.14);
-      z-index: 3;
+      content: none;
     }
     .profile-card.active::after {
       content: "";
@@ -330,11 +320,11 @@
       pointer-events: none;
     }
     .profile-card.active .profile-switch-slot {
-      width: 4px;
+      width: 6px;
       right: 0;
       border-color: rgba(140,255,160,.42);
       background: linear-gradient(180deg, rgba(140,255,160,.12), rgba(140,255,160,.03));
-      box-shadow: inset 4px 0 10px rgba(110,255,160,.16);
+      box-shadow: inset 6px 0 10px rgba(110,255,160,.16);
     }
     .profile-card.active .profile-switch-btn { opacity: 0; pointer-events: none; }
     .profile-card.leave { transform: translateX(0); }
@@ -776,10 +766,27 @@
       return await (await fetch(apiUrl(path), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json();
     }
     async function apiDeleteProfileById(profileId) {
-      const res = await fetch(apiUrl(`/api/profile_delete?profile_id=${encodeURIComponent(profileId)}`));
-      const text = await res.text();
-      try { return JSON.parse(text); }
-      catch { return { ok:false, error:`HTTP ${res.status}: ${text.slice(0,120)}` }; }
+      const attempts = [
+        { url: apiUrl(`/api/profile_delete?profile_id=${encodeURIComponent(profileId)}`), options: { method:'GET' } },
+        { url: apiUrl('/api/profile_delete'), options: { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ profile_id: profileId }) } },
+        { url: apiUrl(`/api/profiles?profile_id=${encodeURIComponent(profileId)}`), options: { method:'DELETE' } },
+      ];
+      for (const attempt of attempts) {
+        try {
+          const res = await fetch(attempt.url, attempt.options);
+          const text = await res.text();
+          try {
+            const data = JSON.parse(text);
+            if (data?.ok) return data;
+            if (res.ok && data) return data;
+          } catch {
+            if (res.ok && text.trim().startsWith('{')) return JSON.parse(text.trim());
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return { ok:false, error:'所有删除接口都失败了，请重启 WebUI 后重试。' };
     }
 
     function setPage(page) {

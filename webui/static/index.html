@@ -121,9 +121,9 @@ html+="</div></div>";
 el.innerHTML=html;
 }
 async function useProfile(id){state.currentProfile=id;$("#current-profile-name").textContent="[ "+(state.profiles.find(p=>p.profile_id===id)?.display_name||id)+" ]";await loadAll();}
-async function loadProfiles(){try{const r=await apiGet("/api/profile_overview");if(r.ok){state.profiles=r.profiles||[];renderProfilePage();}}catch(e){console.error(e);}}
+async function loadProfiles(){try{const r=await apiGet("/api/profile_overview");if(r.ok){state.profiles=r.profiles||[];renderProfilePageFull();}}catch(e){console.error(e);}}
 async function loadAll(){await Promise.all([loadProfiles()]);}
-function init(){$$(".nav-btn").forEach(b=>b.addEventListener("click",()=>switchPage(b.dataset.page)));loadAll();}
+function init(){$$(".nav-btn").forEach(b=>b.addEventListener("click",()=>switchPage(b.dataset.page)));loadAll().then(()=>renderProfilePageFull());}
 window.useProfile=useProfile;
 document.addEventListener("DOMContentLoaded",init);
 // 运行配置页面

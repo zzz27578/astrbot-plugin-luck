@@ -244,7 +244,7 @@
       transition: .24s var(--ease);
       width: 100%;
       max-width: 100%;
-      padding: 6px 34px 6px 10px;
+      padding: 6px 22px 6px 10px;
     }
     .profile-main {
       position: relative;
@@ -266,7 +266,7 @@
     }
     .profile-switch-slot {
       position: absolute;
-      right: 10px;
+      right: 0;
       top: 6px;
       bottom: 6px;
       border: 1px solid rgba(194,86,86,.34);
@@ -278,6 +278,8 @@
       min-height: 0;
       overflow: hidden;
       transition: .24s var(--ease);
+      z-index: 4;
+      pointer-events: auto;
     }
     .profile-switch-btn {
       width: 100%;
@@ -294,6 +296,7 @@
       transition: .22s var(--ease);
       font-size: 8px;
       padding: 2px 0;
+      pointer-events: auto;
     }
     .profile-switch-btn:hover { color: #fff; background: rgba(255,255,255,.03); }
     .profile-card.active {
@@ -328,7 +331,7 @@
     }
     .profile-card.active .profile-switch-slot {
       width: 4px;
-      right: 10px;
+      right: 0;
       border-color: rgba(140,255,160,.42);
       background: linear-gradient(180deg, rgba(140,255,160,.12), rgba(140,255,160,.03));
       box-shadow: inset 4px 0 10px rgba(110,255,160,.16);
@@ -773,11 +776,7 @@
       return await (await fetch(apiUrl(path), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json();
     }
     async function apiDeleteProfileById(profileId) {
-      const res = await fetch(apiUrl('/api/profile_delete'), {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ profile_id: profileId })
-      });
+      const res = await fetch(apiUrl(`/api/profile_delete?profile_id=${encodeURIComponent(profileId)}`));
       const text = await res.text();
       try { return JSON.parse(text); }
       catch { return { ok:false, error:`HTTP ${res.status}: ${text.slice(0,120)}` }; }

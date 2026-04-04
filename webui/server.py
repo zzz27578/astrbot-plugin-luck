@@ -605,8 +605,11 @@ async def api_unbind_group_profile(request):
 
 async def api_delete_profile(request):
     try:
-        body = await request.json()
-        profile_id = _sanitize_profile_id(body.get("profile_id") or DEFAULT_PROFILE_NAME)
+        profile_id = _sanitize_profile_id(
+            request.query.get("profile_id")
+            or request.headers.get("X-Delete-Profile")
+            or DEFAULT_PROFILE_NAME
+        )
         if profile_id == DEFAULT_PROFILE_NAME:
             return web.json_response({"ok": False, "error": "default profile cannot be deleted"}, status=400)
 

@@ -82,8 +82,8 @@
     }
     .brand { padding: 16px 12px 16px 18px; }
     .brand .mini { font-size: 9px; letter-spacing: 1.2px; color: var(--dim); margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .brand .big-wrap { display: grid; grid-template-columns: 4px minmax(0,1fr); gap: 12px; align-items: start; margin-bottom: 14px; }
-    .brand .bar { width: 2px; height: 100%; min-height: 112px; background: rgba(255,255,255,.84); }
+    .brand .big-wrap { display: grid; grid-template-columns: 6px minmax(0,1fr); gap: 12px; align-items: start; margin-bottom: 14px; }
+    .brand .bar { width: 4px; height: 100%; min-height: 112px; background: rgba(255,255,255,.84); }
     .brand .big {
       font-size: 52px;
       line-height: 1.02;
@@ -235,14 +235,14 @@
     .panel-note { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
     .stack, .profile-list, .card-list, .asset-list, .event-list, .stats-list { display: grid; gap: 10px; }
     .profile-card {
-      display: grid;
-      grid-template-columns: minmax(0,1fr) 196px 40px;
-      gap: 10px;
-      align-items: stretch;
-      overflow: visible;
-      position: relative;
-      transition: .24s var(--ease);
-    }
+        display: grid;
+        grid-template-columns: minmax(0,1fr) 40px;
+        gap: 10px;
+        align-items: stretch;
+        overflow: visible;
+        position: relative;
+        transition: .24s var(--ease);
+      }
     .profile-main { position: relative; z-index: 2; }
     .profile-main::after {
       content: "";
@@ -918,9 +918,6 @@
             </div>
             <div class="profile-list">
               ${state.profiles.map(p => {
-                const maxValue = Math.max(1, ...state.profiles.map(x => Math.max(x.user_count || 0, x.func_card_count || 0, x.fate_card_count || 0)));
-                const cover = p.cover_image ? `<img src="${esc(p.cover_image)}" alt="${esc(p.display_name || p.profile_id)}">` : '';
-                const chartBar = (label, value, cls) => `<div class="chart-row"><span>${label} ${value || 0}</span><div class="chart-bar"><div class="chart-fill ${cls}" style="width:${Math.max(8, Math.round(((value || 0) / maxValue) * 100))}%"></div></div></div>`;
                 return `
                 <article class="profile-card ${p.profile_id === state.currentProfile ? 'active' : ''}">
                   <div class="profile-main">
@@ -937,14 +934,6 @@
                       <button class="btn" onclick="editProfile('${esc(p.profile_id)}')">[ 编辑 ]</button>
                       <button class="btn" onclick="bindGroupPrompt('${esc(p.profile_id)}')">[ 绑定群号 ]</button>
                       ${(p.groups || []).slice(0,6).map(g => `<button class="btn-mini" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('')}
-                    </div>
-                  </div>
-                  <div class="profile-cover">
-                    ${cover}
-                    <div class="profile-chart">
-                      ${chartBar('用户', p.user_count || 0, 'users')}
-                      ${chartBar('功能牌', p.func_card_count || 0, 'func')}
-                      ${chartBar('命运牌', p.fate_card_count || 0, 'fate')}
                     </div>
                   </div>
                   <div class="profile-switch-slot">
@@ -1299,18 +1288,13 @@
       state.newProfileCover = current?.cover_image || '';
       state.editingProfileId = id;
       openDialog('编辑方案', `
-        <div class="create-split">
+        <div>
           <div>
-            <div class="field-grid">
-              <div class="field"><label>方案名称</label><input class="input" id="newProfileName" value="${esc(current?.display_name || '')}"></div>
-              <div class="field"><label>上传图片</label><input class="input" type="file" accept="image/*" id="newProfileCoverFile" onchange="handleNewProfileCover(this)"></div>
+            <div class="field">
+              <label>方案名称</label><input class="input" id="newProfileName" value="${esc(current?.display_name || '')}">
             </div>
             <div class="field" style="margin-top:12px;"><label>绑定群号（每行一个）</label><textarea class="textarea" id="editProfileGroups">${esc((current?.groups || []).join('\n'))}</textarea></div>
             <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveProfileEdit()">[ 保存方案 ]</button><button class="btn-danger" onclick="deleteProfileConfirm()">[ 删除方案 ]</button></div>
-          </div>
-          <div>
-            <div class="helper" style="margin-bottom:10px;">可修改方案名称、封面图片，并统一调整当前方案绑定群号。</div>
-            <div class="profile-cover" style="min-height:180px;"><img id="newProfileCoverPreview" src="${esc(current?.cover_image || '')}" style="${current?.cover_image ? 'display:block;opacity:.56;' : 'display:none;opacity:.56;'}"></div>
           </div>
         </div>`, 'create');
     }
@@ -1325,7 +1309,7 @@
       const name = $('#newProfileName')?.value?.trim();
       const groupLines = ($('#editProfileGroups')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
       if (!id || !name) return showToast('方案名称不能为空。', true);
-      const res = await apiPost('/api/profile_meta', { profile_id:id, display_name:name, cover_image: state.newProfileCover || '' });
+      const res = await apiPost('/api/profile_meta', { profile_id:id, display_name:name, cover_image: '' });
       if (!res.ok) return showToast(res.error || '保存失败。', true);
       const before = new Set(current?.groups || []);
       const after = new Set(groupLines);
@@ -1388,18 +1372,11 @@
     function openCreateProfileDialog() {
       state.newProfileCover = '';
       openDialog('新建方案', `
-        <div class="create-split">
+        <div>
           <div>
-            <div class="field-grid">
-              <div class="field"><label>方案名称</label><input class="input" id="newProfileName"></div>
-              <div class="field"><label>上传图片</label><input class="input" type="file" accept="image/*" id="newProfileCoverFile" onchange="handleNewProfileCover(this)"></div>
-            </div>
+            <div class="field"><label>方案名称</label><input class="input" id="newProfileName"></div>
             <div class="field" style="margin-top:12px;"><label>复制来源</label><select class="select" id="copyFrom">${state.profiles.map(p => `<option value="${esc(p.profile_id)}">${esc(p.display_name)}</option>`).join('')}</select></div>
             <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="createProfileConfirm()">[ 确认创建 ]</button></div>
-          </div>
-          <div>
-            <div class="helper" style="margin-bottom:10px;">图片会以内嵌方式保存到方案封面里，作为方案卡片背景使用。</div>
-            <div class="profile-cover" style="min-height:180px;"><img id="newProfileCoverPreview" style="display:none;opacity:.52;"></div>
           </div>
         </div>`, 'create');
     }
@@ -1422,10 +1399,6 @@
       if (!name) return showToast('方案名称不能为空。', true);
       const res = await apiPost('/api/profiles', { name, copy_from });
       if (res.ok) {
-        const profileId = res.profile?.profile_id;
-        if (profileId && state.newProfileCover) {
-          await apiPost('/api/profile_meta', { profile_id: profileId, display_name: name, cover_image: state.newProfileCover });
-        }
         closeDialog();
         await loadProfiles();
         renderAll();

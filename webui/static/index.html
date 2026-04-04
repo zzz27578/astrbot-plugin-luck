@@ -3,40 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>罗德岛协议中枢</title>
+  <title>罗德岛档案中枢</title>
   <style>
     :root {
-      --bg: #0a0a0a;
-      --bg-soft: #111111;
-      --bg-deep: #070707;
-      --panel: rgba(255,255,255,0.03);
-      --panel-strong: rgba(255,255,255,0.05);
-      --line: rgba(196, 205, 214, 0.18);
-      --line-strong: rgba(196, 205, 214, 0.34);
-      --text: #f5f7fa;
-      --muted: rgba(245,247,250,0.58);
-      --dim: rgba(245,247,250,0.34);
-      --accent: #8fb9c7;
-      --accent-2: #6f8790;
-      --orange: #d07a3f;
-      --danger: #d26464;
-      --good: #9bc88a;
-      --shadow: 0 0 0 1px rgba(255,255,255,0.02) inset;
-      --ease: cubic-bezier(0.25, 1, 0.5, 1);
+      --bg: #050505;
+      --bg2: #0b0b0b;
+      --panel: #111111;
+      --panel2: #151515;
+      --line: rgba(255,255,255,.18);
+      --line-strong: rgba(255,255,255,.42);
+      --text: #f5f5f5;
+      --muted: rgba(255,255,255,.62);
+      --dim: rgba(255,255,255,.34);
+      --cold: #d7e3ea;
+      --steel: #98aab5;
+      --orange: #ff8a3d;
+      --red: #ff6666;
+      --green: #9fe870;
+      --ease: cubic-bezier(.25,1,.5,1);
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { min-height: 100%; }
     body {
-      background:
-        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px),
-        radial-gradient(circle at 20% 20%, rgba(143,185,199,0.06), transparent 28%),
-        radial-gradient(circle at 82% 18%, rgba(208,122,63,0.04), transparent 24%),
-        linear-gradient(180deg, #0d0d0d 0%, #090909 100%);
-      background-size: 24px 24px, 24px 24px, auto, auto, auto;
-      color: var(--text);
       font-family: "Microsoft YaHei", "PingFang SC", "Source Han Sans SC", sans-serif;
+      background:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+      background-size: 24px 24px, 24px 24px, auto;
+      color: var(--text);
       overflow-x: hidden;
     }
     body::before {
@@ -44,556 +39,402 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      opacity: 0.08;
-      background-image:
-        radial-gradient(rgba(255,255,255,0.9) 0.45px, transparent 0.65px);
+      opacity: .06;
+      background-image: radial-gradient(rgba(255,255,255,.8) .5px, transparent .7px);
       background-size: 5px 5px;
       mix-blend-mode: screen;
     }
-    button, input, textarea, select {
-      font: inherit;
-      color: inherit;
-      border-radius: 0;
-    }
-    input::placeholder, textarea::placeholder { color: rgba(245,247,250,0.25); }
-    .shell {
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 272px minmax(0, 1fr);
-    }
+    button, input, textarea, select { font: inherit; color: inherit; border-radius: 0; }
+    ::placeholder { color: rgba(255,255,255,.22); }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0,1fr); }
     .side {
-      position: relative;
       border-right: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      padding: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+      padding: 14px;
       display: grid;
       grid-template-rows: auto auto 1fr auto;
       gap: 14px;
     }
-    .cross::before, .cross::after, .panel::before, .panel::after {
+    .block, .hero, .panel, .dialog-card {
+      position: relative;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+    }
+    .block::before, .panel::before, .hero::before, .dialog-card::before {
       content: "";
       position: absolute;
+      left: -4px;
+      top: -4px;
       width: 7px;
       height: 7px;
       border: 1px solid var(--line-strong);
-      background: var(--bg-deep);
+      background: #060606;
     }
-    .cross::before, .panel::before { left: -4px; top: -4px; }
-    .cross::after, .panel::after { right: -4px; bottom: -4px; }
-    .brand, .nav-block, .profile-brief, .topbar, .panel, .dialog-card {
-      position: relative;
-      border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      box-shadow: var(--shadow);
-    }
-    .brand {
-      padding: 18px 16px 14px;
-      overflow: hidden;
-    }
-    .brand::before {
-      content: "[ ROD ISLAND PROTOCOL ]";
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      font-size: 9px;
-      letter-spacing: 1.8px;
-      color: var(--dim);
-    }
-    .brand-big {
-      font-size: 54px;
-      line-height: 0.95;
-      font-weight: 900;
-      letter-spacing: 2px;
-      margin-bottom: 18px;
-      text-transform: uppercase;
-    }
-    .brand-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 10px;
-      color: var(--muted);
-    }
-    .meta-chip {
-      border: 1px solid var(--line);
-      padding: 3px 6px;
-      background: rgba(255,255,255,0.02);
-    }
-    .nav-block { padding: 12px; }
-    .nav-title, .section-kicker, .tiny-label {
-      font-size: 10px;
-      letter-spacing: 2px;
-      color: var(--dim);
-      margin-bottom: 10px;
-    }
-    .nav-list { display: grid; gap: 8px; }
-    .nav-btn, .ghost-btn, .solid-btn, .danger-btn, .mini-btn {
-      appearance: none;
-      border: 1px solid var(--line);
-      background: transparent;
-      cursor: pointer;
-      transition: transform 0.18s var(--ease), background 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease);
-      text-align: left;
-    }
-    .nav-btn {
-      position: relative;
-      padding: 12px 14px;
-      font-size: 12px;
-      letter-spacing: 1px;
-      background: rgba(255,255,255,0.015);
-      overflow: hidden;
-    }
-    .nav-btn::before {
+    .block::after, .panel::after, .hero::after, .dialog-card::after {
       content: "";
       position: absolute;
-      inset: 0 auto 0 0;
-      width: 0;
-      background: linear-gradient(90deg, rgba(143,185,199,0.18), transparent);
-      transition: width 0.18s var(--ease);
+      right: -4px;
+      bottom: -4px;
+      width: 7px;
+      height: 7px;
+      border: 1px solid var(--line-strong);
+      background: #060606;
     }
-    .nav-btn:hover::before, .nav-btn.active::before { width: 100%; }
-    .nav-btn:hover, .nav-btn.active {
-      color: #0a0a0a;
-      background: var(--accent);
-      border-color: var(--accent);
-      transform: translateX(4px);
-    }
-    .nav-btn small {
-      display: block;
-      margin-top: 4px;
-      opacity: 0.72;
-      font-size: 9px;
-      letter-spacing: 1px;
-    }
-    .profile-brief {
-      align-self: end;
-      padding: 14px;
-      display: grid;
-      gap: 8px;
-    }
-    .profile-name {
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--accent);
-    }
-    .main {
-      padding: 16px;
-      display: grid;
-      gap: 16px;
-    }
-    .topbar {
-      padding: 18px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 340px;
-      gap: 18px;
-      align-items: end;
-    }
-    .headline {
-      font-size: clamp(52px, 9vw, 108px);
-      line-height: 0.9;
+    .brand { padding: 16px; }
+    .brand .mini { font-size: 10px; letter-spacing: 2px; color: var(--dim); margin-bottom: 8px; }
+    .brand .big {
+      font-size: 44px;
+      line-height: .95;
       font-weight: 900;
-      letter-spacing: 2px;
-      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
     }
-    .headline-sub {
-      margin-top: 10px;
+    .brand .row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      border: 1px solid var(--line);
+      padding: 3px 6px;
+      font-size: 10px;
       color: var(--muted);
+      background: rgba(255,255,255,.02);
+    }
+    .nav { padding: 10px; }
+    .nav-title, .tiny, .subtle-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--dim);
+      margin-bottom: 8px;
+    }
+    .nav-list { display: grid; gap: 8px; }
+    .nav-btn {
+      border: 1px solid var(--line);
+      background: #0d0d0d;
+      color: var(--cold);
+      text-align: left;
+      padding: 11px 12px;
+      cursor: pointer;
+      transition: .18s var(--ease);
       font-size: 12px;
       letter-spacing: 1px;
-      max-width: 760px;
     }
-    .topbar-right {
+    .nav-btn small { display: block; font-size: 9px; color: var(--dim); margin-top: 3px; }
+    .nav-btn:hover, .nav-btn.active {
+      background: var(--cold);
+      color: #050505;
+      border-color: var(--cold);
+      transform: translateX(4px);
+    }
+    .current { padding: 14px; align-self: end; }
+    .current .name { font-size: 18px; font-weight: 900; color: #fff; margin: 6px 0; }
+    .main { padding: 14px; display: grid; gap: 14px; }
+    .hero {
+      padding: 18px;
       display: grid;
-      gap: 10px;
-      justify-items: end;
+      grid-template-columns: minmax(0,1fr) 320px;
+      gap: 16px;
+      align-items: end;
     }
-    .status-box {
-      width: 100%;
-      border: 1px solid var(--line);
-      padding: 10px 12px;
+    .hero .kicker { font-size: 10px; letter-spacing: 2px; color: var(--orange); margin-bottom: 8px; }
+    .hero h1 {
+      font-size: clamp(46px, 8vw, 92px);
+      line-height: .88;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-align: left;
+    }
+    .hero p { margin-top: 10px; font-size: 12px; color: var(--muted); max-width: 760px; line-height: 1.8; }
+    .quick-box {
+      border: 1px solid var(--line-strong);
+      padding: 10px;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+      background: #0b0b0b;
     }
-    .status-item b { display: block; font-size: 18px; color: var(--accent); }
-    .status-item span { font-size: 10px; letter-spacing: 1px; color: var(--dim); }
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 16px;
+    .quick-box b { display: block; font-size: 24px; color: #fff; }
+    .quick-box span { font-size: 10px; color: var(--dim); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+    .btn, .btn-strong, .btn-danger, .btn-mini, .mode-btn {
+      border: 1px solid var(--line-strong);
+      background: #111;
+      color: var(--text);
+      padding: 9px 12px;
+      cursor: pointer;
+      transition: .18s var(--ease);
+      letter-spacing: 1px;
+      font-size: 11px;
     }
-    .page { display: none; }
-    .page.active { display: grid; gap: 16px; }
-    .page-grid {
-      display: grid;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: 16px;
+    .btn:hover, .btn-mini:hover, .mode-btn:hover {
+      background: #fff;
+      color: #050505;
+      border-color: #fff;
+      transform: translateY(-2px);
     }
-    .span-12 { grid-column: span 12; }
-    .span-8 { grid-column: span 8; }
-    .span-7 { grid-column: span 7; }
-    .span-6 { grid-column: span 6; }
-    .span-5 { grid-column: span 5; }
-    .span-4 { grid-column: span 4; }
-    .span-3 { grid-column: span 3; }
-    .panel {
-      padding: 14px;
-      overflow: hidden;
+    .btn-strong {
+      background: #fff;
+      color: #050505;
+      border-color: #fff;
+      font-weight: 800;
     }
-    .panel.breakout { transform: translateX(10px); }
+    .btn-strong:hover { background: var(--orange); border-color: var(--orange); color: #050505; }
+    .btn-danger { color: var(--red); border-color: rgba(255,102,102,.5); }
+    .btn-danger:hover { background: var(--red); color: #050505; border-color: var(--red); }
+    .btn-mini { padding: 6px 8px; font-size: 10px; }
+    .pages { display: grid; gap: 14px; }
+    .page { display: none; gap: 14px; }
+    .page.active { display: grid; }
+    .grid { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); gap: 14px; }
+    .col-12 { grid-column: span 12; }
+    .col-8 { grid-column: span 8; }
+    .col-7 { grid-column: span 7; }
+    .col-6 { grid-column: span 6; }
+    .col-5 { grid-column: span 5; }
+    .col-4 { grid-column: span 4; }
+    .panel { padding: 14px; }
     .panel-head {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 14px;
+      gap: 10px;
       padding-bottom: 10px;
+      margin-bottom: 12px;
       border-bottom: 1px solid var(--line);
     }
-    .panel-title {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: 1px;
-    }
-    .panel-note {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 4px;
-      line-height: 1.7;
-    }
-    .tool-row, .button-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .ghost-btn, .solid-btn, .danger-btn, .mini-btn {
-      padding: 9px 12px;
-      font-size: 11px;
-      letter-spacing: 1px;
-      background: rgba(255,255,255,0.015);
-    }
-    .solid-btn {
-      background: var(--accent);
-      color: #060606;
-      border-color: var(--accent);
-      font-weight: 800;
-    }
-    .danger-btn {
-      color: var(--danger);
-      border-color: rgba(210,100,100,0.5);
-    }
-    .ghost-btn:hover, .solid-btn:hover, .danger-btn:hover, .mini-btn:hover {
-      transform: translateY(-2px);
-      background: var(--text);
-      color: #090909;
-      border-color: var(--text);
-    }
-    .mini-btn {
-      padding: 6px 8px;
-      font-size: 10px;
-    }
-    .kpi-grid, .stat-grid, .profile-grid, .card-grid, .image-grid, .range-grid, .group-grid {
-      display: grid;
-      gap: 12px;
-    }
-    .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .image-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .range-grid, .group-grid { grid-template-columns: 1fr; }
-    .metric, .stat-card, .profile-card, .archive-card, .image-card, .range-card, .group-card, .holder-card {
-      position: relative;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.015);
-      padding: 12px;
-    }
-    .metric-value {
-      font-size: 34px;
-      line-height: 1;
-      font-weight: 900;
-      color: var(--accent);
-      margin-bottom: 8px;
-    }
-    .metric-label, .stat-card p, .profile-card p, .archive-meta, .group-card p, .holder-card p {
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.7;
-    }
-    .field-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .field-grid.triple { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .field-grid.quad { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .field {
-      display: grid;
-      gap: 6px;
-    }
-    .field label {
-      font-size: 10px;
-      letter-spacing: 1px;
-      color: var(--dim);
-    }
+    .panel-title { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
+    .panel-note { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
+    .stack, .profile-list, .card-list, .asset-list, .event-list, .stats-list { display: grid; gap: 10px; }
     .input, .textarea, .select {
       width: 100%;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-      color: var(--text);
+      border: 1px solid var(--line-strong);
+      background: #0c0c0c;
+      color: #fff;
       padding: 10px 12px;
       outline: none;
     }
-    .textarea { min-height: 96px; resize: vertical; }
-    .input:focus, .textarea:focus, .select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(143,185,199,0.16) inset;
+    .textarea { min-height: 100px; resize: vertical; }
+    .input:focus, .textarea:focus, .select:focus { border-color: #fff; }
+    .field { display: grid; gap: 6px; }
+    .field label { font-size: 10px; letter-spacing: 1px; color: var(--dim); }
+    .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    .field-grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .field-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .profile-card, .card-item, .asset-item, .event-item, .stat-item, .effect-row {
+      border: 1px solid var(--line);
+      background: #0d0d0d;
+      padding: 12px;
     }
+    .profile-card.active { border-color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.15); }
+    .profile-card h3, .card-item h3 { font-size: 20px; line-height: 1.1; margin-bottom: 8px; }
+    .meta, .helper, .card-desc { font-size: 11px; color: var(--muted); line-height: 1.8; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line-strong);
+      background: #101010;
+      color: #fff;
+      padding: 4px 8px;
+      font-size: 10px;
+    }
+    .badge.light { background: #fff; color: #050505; border-color: #fff; }
+    .badge.orange { background: var(--orange); color: #050505; border-color: var(--orange); }
+    .switch-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mode-btn { min-width: 108px; text-align: center; }
+    .mode-btn.active { background: #fff; color: #050505; border-color: #fff; }
+    .mode-btn.black.active { background: #fff; color: #050505; }
+    .mode-btn.white.active { background: var(--orange); color: #050505; border-color: var(--orange); }
     .toggle-row {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      gap: 10px;
       border: 1px solid var(--line);
+      background: #0e0e0e;
       padding: 10px 12px;
-      background: rgba(255,255,255,0.015);
-      gap: 12px;
+      margin-bottom: 8px;
     }
-    .toggle {
+    .toggle-box {
       width: 52px;
       height: 22px;
       border: 1px solid var(--line-strong);
+      background: #0a0a0a;
       position: relative;
       cursor: pointer;
-      background: #0f0f0f;
     }
-    .toggle::before {
+    .toggle-box::before {
       content: "";
       position: absolute;
-      top: 2px;
       left: 2px;
+      top: 2px;
       width: 16px;
       height: 16px;
-      background: var(--text);
-      transition: transform 0.16s steps(2);
+      background: #fff;
+      transition: transform .16s steps(2);
     }
-    .toggle.on { background: var(--accent); border-color: var(--accent); }
-    .toggle.on::before { transform: translateX(30px); background: #080808; }
-    .pill-list, .tag-list, .bound-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-    .pill, .tag, .bound-item {
-      border: 1px solid var(--line);
-      padding: 3px 6px;
-      font-size: 10px;
-      color: var(--muted);
-      background: rgba(255,255,255,0.02);
-    }
-    .profile-card.active, .archive-card.active {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(143,185,199,0.15) inset;
-    }
-    .profile-card h3, .archive-title {
-      font-size: 20px;
-      font-weight: 900;
-      margin-bottom: 10px;
-      line-height: 1.1;
-    }
-    .archive-card {
-      display: grid;
-      grid-template-columns: 96px minmax(0, 1fr);
-      gap: 12px;
-      align-items: start;
-    }
-    .archive-thumb {
-      width: 96px;
-      height: 96px;
-      border: 1px solid var(--line);
-      background: linear-gradient(135deg, rgba(143,185,199,0.08), rgba(255,255,255,0.02));
+    .toggle-box.on { background: #fff; }
+    .toggle-box.on::before { transform: translateX(30px); background: #050505; }
+    .thumb {
+      width: 88px;
+      height: 88px;
+      border: 1px solid var(--line-strong);
+      background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.02));
+      flex: 0 0 88px;
       overflow: hidden;
-      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
       display: grid;
       place-items: center;
       color: var(--dim);
-      font-size: 11px;
+      font-size: 10px;
     }
-    .archive-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .archive-tools {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .rank-list {
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card-layout { display: grid; grid-template-columns: 88px minmax(0,1fr); gap: 12px; }
+    .asset-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+    .asset-item .thumb { width: 100%; height: 120px; }
+    .event-item {
       display: grid;
-      gap: 8px;
-    }
-    .rank-item {
-      border: 1px solid var(--line);
-      padding: 10px 12px;
-      display: grid;
-      grid-template-columns: 44px minmax(0, 1fr) auto;
+      grid-template-columns: 28px minmax(0,1fr) auto;
       gap: 10px;
       align-items: center;
-      background: rgba(255,255,255,0.015);
     }
-    .rank-no {
-      font-size: 18px;
-      font-weight: 900;
-      color: var(--accent);
-      text-align: center;
+    .event-check { width: 18px; height: 18px; accent-color: #fff; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+    .stat-item b { display: block; font-size: 30px; color: #fff; margin-bottom: 8px; }
+    .effect-builder { display: grid; gap: 10px; }
+    .effect-row { display: grid; grid-template-columns: 160px 180px minmax(0,1fr) auto; gap: 10px; align-items: end; }
+    .tag-preview {
+      border: 1px solid var(--line-strong);
+      background: #0c0c0c;
+      padding: 10px 12px;
+      min-height: 42px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.8;
     }
     .empty {
       border: 1px dashed var(--line-strong);
       padding: 18px;
+      text-align: center;
       color: var(--muted);
       font-size: 12px;
-      text-align: center;
     }
+    .mono { font-family: Consolas, monospace; }
     .toast {
       position: fixed;
-      right: 20px;
-      bottom: 20px;
-      min-width: 280px;
+      right: 18px;
+      bottom: 18px;
+      min-width: 260px;
       max-width: 420px;
       padding: 12px 14px;
       border: 1px solid var(--line-strong);
-      background: rgba(10,10,10,0.96);
-      color: var(--text);
+      background: rgba(0,0,0,.96);
+      color: #fff;
       opacity: 0;
       transform: translateY(12px);
       pointer-events: none;
-      transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
-      z-index: 40;
+      transition: .18s var(--ease);
+      z-index: 20;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.good { border-color: rgba(155,200,138,0.45); }
-    .toast.bad { border-color: rgba(210,100,100,0.45); }
     .dialog {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.65);
+      background: rgba(0,0,0,.72);
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      z-index: 50;
+      padding: 18px;
+      z-index: 30;
     }
     .dialog.show { display: flex; }
     .dialog-card {
-      width: min(920px, 100%);
-      max-height: 88vh;
+      width: min(1100px, 100%);
+      max-height: 90vh;
       overflow: auto;
+      background: #090909;
       padding: 14px;
-      background: #0d0d0d;
     }
     .dialog-head {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       gap: 12px;
       padding-bottom: 10px;
       margin-bottom: 12px;
       border-bottom: 1px solid var(--line);
     }
-    .dialog-title {
-      font-size: 22px;
-      font-weight: 900;
-      letter-spacing: 1px;
-    }
-    .split {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 320px;
-      gap: 14px;
-    }
-    .helper {
-      font-size: 10px;
-      color: var(--dim);
-      line-height: 1.8;
-    }
-    .mono { font-family: Consolas, monospace; }
-    .hidden { display: none !important; }
-
-    @media (max-width: 1280px) {
-      .topbar { grid-template-columns: 1fr; }
-      .kpi-grid, .profile-grid, .card-grid, .image-grid, .field-grid.triple, .field-grid.quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .span-8, .span-7, .span-6, .span-5, .span-4, .span-3 { grid-column: span 12; }
+    .dialog-title { font-size: 22px; font-weight: 900; }
+    .split { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 14px; }
+    @media (max-width: 1260px) {
+      .hero { grid-template-columns: 1fr; }
+      .col-8, .col-7, .col-6, .col-5, .col-4 { grid-column: span 12; }
+      .asset-grid, .field-grid.four, .stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .split { grid-template-columns: 1fr; }
+      .effect-row { grid-template-columns: 1fr; }
     }
     @media (max-width: 860px) {
-      .shell { grid-template-columns: 1fr; }
+      .app { grid-template-columns: 1fr; }
       .side { border-right: none; border-bottom: 1px solid var(--line); }
-      .kpi-grid, .stat-grid, .profile-grid, .card-grid, .image-grid, .field-grid, .field-grid.triple, .field-grid.quad { grid-template-columns: 1fr; }
-      .archive-card { grid-template-columns: 1fr; }
-      .archive-thumb { width: 100%; height: 180px; }
+      .field-grid, .field-grid.three, .field-grid.four, .asset-grid, .stat-grid { grid-template-columns: 1fr; }
+      .card-layout { grid-template-columns: 1fr; }
+      .event-item { grid-template-columns: 24px minmax(0,1fr); }
+      .event-item .btn-danger { grid-column: 2; }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <aside class="side cross">
-      <section class="brand cross">
-        <div class="brand-big">罗德岛<br>协议中枢</div>
-        <div class="brand-meta">
-          <span class="meta-chip">Ver. 5.4.0</span>
-          <span class="meta-chip">[ 插件核心 ]</span>
-          <span class="meta-chip">ARC-09 / 7F-A1</span>
+  <div class="app">
+    <aside class="side">
+      <section class="block brand">
+        <div class="mini">[ ROD ISLAND INTERNAL FILE ]</div>
+        <div class="big">档案<br>中枢</div>
+        <div class="row">
+          <span class="chip">Ver. 5.4.0</span>
+          <span class="chip">[ 插件核心 ]</span>
+          <span class="chip">ARC-07 / C-91</span>
         </div>
       </section>
 
-      <section class="nav-block">
-        <div class="nav-title">[ 导航矩阵 ]</div>
+      <section class="block nav">
+        <div class="nav-title">[ 页面索引 ]</div>
         <div class="nav-list">
-          <button class="nav-btn active" data-page="overview">总览档案<small>核心状态 / 快捷调度</small></button>
-          <button class="nav-btn" data-page="profiles">方案管理<small>方案切换 / 群绑定</small></button>
-          <button class="nav-btn" data-page="access">访问控制<small>黑白名单 / 群准入</small></button>
-          <button class="nav-btn" data-page="runtime">运行配置<small>系统开关 / 权重参数</small></button>
-          <button class="nav-btn" data-page="signin">签到配置<small>运势区间 / 文本池</small></button>
-          <button class="nav-btn" data-page="fate">命运牌档案<small>命运池 / 图像绑定</small></button>
-          <button class="nav-btn" data-page="cards">功能牌档案<small>功能池 / 缺图检测</small></button>
-          <button class="nav-btn" data-page="stats">数据统计<small>用户 / 群组 / 持牌排行</small></button>
+          <button class="nav-btn active" data-page="overview">总览与方案<small>方案管理 / 访问控制</small></button>
+          <button class="nav-btn" data-page="runtime">运行配置<small>系统开关 / 概率 / 稀有度</small></button>
+          <button class="nav-btn" data-page="signin">签到配置<small>事件池 / 运势区间 / 预览</small></button>
+          <button class="nav-btn" data-page="fate">命运牌档案<small>命运池 / 图像库</small></button>
+          <button class="nav-btn" data-page="cards">功能牌档案<small>引导式标签编辑</small></button>
+          <button class="nav-btn" data-page="stats">数据统计<small>方案切换 / 群组 / 持牌排行</small></button>
         </div>
       </section>
 
-      <section class="profile-brief">
-        <div class="tiny-label">[ 当前方案 ]</div>
-        <div class="profile-name" id="currentProfileName">默认配置</div>
-        <div class="helper">绑定方案切换后，所有接口请求都将自动附带当前方案参数。</div>
+      <section class="block current">
+        <div class="subtle-label">[ 当前方案 ]</div>
+        <div class="name" id="currentProfileName">默认配置</div>
+        <div class="helper">所有数据请求都会自动跟随当前方案。切换后会同步刷新牌池、签到配置、资源目录与统计。</div>
       </section>
     </aside>
 
     <main class="main">
-      <section class="topbar cross">
+      <section class="hero">
         <div>
-          <div class="section-kicker">[ TERRA INTERNAL ARCHIVE / WEB UI ]</div>
-          <div class="headline" id="headline">总览档案</div>
-          <div class="headline-sub" id="headlineSub">深色工业档案式插件控制台。所有功能围绕当前方案展开，包括配置调度、牌池管理、签到文本、群访问控制与统计。</div>
+          <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
+          <h1 id="heroTitle">总览与方案</h1>
+          <p id="heroDesc">把方案管理、访问控制与主要操作直接压进主界面，不做无意义留白，不做软绵绵的按钮。</p>
         </div>
-        <div class="topbar-right">
-          <div class="status-box">
-            <div class="status-item"><b id="quickProfiles">0</b><span>方案数量</span></div>
-            <div class="status-item"><b id="quickGroups">0</b><span>群组数量</span></div>
-            <div class="status-item"><b id="quickUsers">0</b><span>用户数量</span></div>
+        <div>
+          <div class="quick-box">
+            <div><b id="quickProfileCount">0</b><span>方案数量</span></div>
+            <div><b id="quickGroupCount">0</b><span>群组总量</span></div>
+            <div><b id="quickUserCount">0</b><span>用户总量</span></div>
           </div>
-          <div class="tool-row">
-            <button class="solid-btn" id="reloadAllBtn">[ 重新载入 ]</button>
-            <button class="ghost-btn" id="openCreateProfileBtn">[ 新建方案 ]</button>
+          <div class="toolbar">
+            <button class="btn-strong" id="reloadBtn">[ 重新载入 ]</button>
+            <button class="btn" id="openCreateBtn">[ 新建方案 ]</button>
           </div>
         </div>
       </section>
 
-      <section class="layout">
+      <section class="pages">
         <div class="page active" id="page-overview"></div>
-        <div class="page" id="page-profiles"></div>
-        <div class="page" id="page-access"></div>
         <div class="page" id="page-runtime"></div>
         <div class="page" id="page-signin"></div>
         <div class="page" id="page-fate"></div>
@@ -603,14 +444,14 @@
     </main>
   </div>
 
-  <div class="dialog" id="editorDialog">
-    <div class="dialog-card cross">
+  <div class="dialog" id="dialog">
+    <div class="dialog-card">
       <div class="dialog-head">
         <div>
-          <div class="tiny-label">[ 档案编辑器 ]</div>
+          <div class="tiny">[ 档案编辑器 ]</div>
           <div class="dialog-title" id="dialogTitle">编辑器</div>
         </div>
-        <button class="ghost-btn" id="dialogCloseBtn">[ 关闭 ]</button>
+        <button class="btn" id="closeDialogBtn">[ 关闭 ]</button>
       </div>
       <div id="dialogBody"></div>
     </div>
@@ -621,1043 +462,1045 @@
   <script>
     const state = {
       currentProfile: 'default',
+      activePage: 'overview',
       profiles: [],
       runtimeConfig: {},
       groupAccess: { mode: 'off', blacklist: [], whitelist: [] },
       signInTexts: { good_things: [], bad_things: [], luck_ranges: [] },
       fateCards: [],
-      funcCards: [],
       fateImages: [],
+      funcCards: [],
       images: [],
-      stats: { total_groups: 0, total_users: 0, card_holders: {}, groups: [] },
       missingImages: [],
-      activePage: 'overview',
-      dialogMode: '',
-      dialogIndex: -1,
+      stats: { total_groups: 0, total_users: 0, card_holders: {}, groups: [] },
+      goodSelected: [],
+      badSelected: [],
+      editingFuncIndex: -1,
+      editingFuncEffects: [],
+      editingFateIndex: -1,
     };
 
     const $ = (s, root = document) => root.querySelector(s);
     const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
-    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
     const pageMeta = {
-      overview: ['总览档案', '当前方案的核心态势、资源异常、快捷操作与全局概览。'],
-      profiles: ['方案管理', '管理配置方案、绑定群组、切换工作上下文。'],
-      access: ['访问控制', '对群聊准入模式执行黑名单或白名单级别管制。'],
-      runtime: ['运行配置', '调整系统总开关、抽取参数、稀有度权重与决斗逻辑。'],
-      signin: ['签到配置', '编辑运势区间、好坏事件文本池及签到文案。'],
-      fate: ['命运牌档案', '维护命运牌池、金币影响值与图像资源绑定。'],
-      cards: ['功能牌档案', '维护功能牌池、图像库、标签与缺图监控。'],
-      stats: ['数据统计', '查看群组分布、用户规模与持牌排行。'],
+      overview: ['总览与方案', '方案管理和访问控制直接放在主界面里，减少无效跳转。'],
+      runtime: ['运行配置', '高对比参数面板，稀有度统一使用 普通 / 稀有 / 史诗 / 传说 / 神话。'],
+      signin: ['签到配置', '事件池逐条编辑、批量删除、批量增加，并提供签到预览。'],
+      fate: ['命运牌档案', '命运牌列表、图像库与编辑器。'],
+      cards: ['功能牌档案', '用中文引导生成效果标签，让人看得懂、配得出来。'],
+      stats: ['数据统计', '支持直接切换不同方案查看统计。'],
     };
 
-    function toast(message, type = 'good') {
+    const rarityLabelMap = {1:'普通',2:'稀有',3:'史诗',4:'传说',5:'神话'};
+    const typeLabelMap = {attack:'攻击',heal:'辅助',defense:'防御'};
+    const effectCatalog = {
+      attack: [
+        { key:'steal', name:'偷取金币', params:['数值'] },
+        { key:'freeze', name:'冻结', params:['小时'] },
+        { key:'silence', name:'沉默', params:['小时'] },
+        { key:'seal_draw_all', name:'封锁抽牌', params:['小时'] },
+        { key:'luck_drain', name:'抽取爆率', params:['小时','百分比'] },
+        { key:'steal_fate', name:'偷取命运收益', params:[] },
+        { key:'borrow_blade', name:'借刀伤害', params:['最小值','最大值'] },
+        { key:'bounty_mark', name:'悬赏印记', params:['小时','追加金币'] },
+        { key:'strip_buff_gain', name:'夺取增益并加爆率', params:['百分比','小时'] },
+        { key:'aoe_damage', name:'群体攻击', params:['最小值','最大值','人数'] },
+        { key:'dice_rule', name:'骰子规则', params:['规则键'] },
+        { key:'dice_duel', name:'对赌', params:['底注'] }
+      ],
+      heal: [
+        { key:'cleanse', name:'净化', params:[] },
+        { key:'aoe_heal', name:'群体回复', params:['最小值','最大值','人数'] },
+        { key:'luck_bless', name:'好运加护', params:['小时','百分比'] },
+        { key:'fate_roulette', name:'命运转盘', params:[] },
+        { key:'dice_reroll_lowest_once', name:'最低点重投一次', params:[] }
+      ],
+      defense: [
+        { key:'add_shield', name:'护盾', params:[] },
+        { key:'thorn_armor', name:'反甲', params:['小时','反伤比例'] },
+        { key:'cleanse', name:'净化', params:[] }
+      ]
+    };
+
+    function effectToTag(effect) {
+      const p = effect.params || [];
+      switch (effect.key) {
+        case 'steal': return `steal:${p[0] || 0}`;
+        case 'freeze': return `freeze:${p[0] || 0}`;
+        case 'silence': return `silence:${p[0] || 0}`;
+        case 'seal_draw_all': return `seal_draw_all:${p[0] || 0}`;
+        case 'luck_drain': return `luck_drain:${p[0] || 0}:${p[1] || 0}`;
+        case 'steal_fate': return 'steal_fate';
+        case 'borrow_blade': return `borrow_blade:${p[0] || 0}:${p[1] || 0}`;
+        case 'bounty_mark': return `bounty_mark:${p[0] || 0}:${p[1] || 0}`;
+        case 'strip_buff_gain': return `strip_buff_gain:${p[0] || 0}:${p[1] || 0}`;
+        case 'aoe_damage': return `aoe_damage:${p[0] || 0}:${p[1] || 0}:${p[2] || 0}`;
+        case 'dice_rule': return `dice_rule:${p[0] || 'all_in_raid_v1'}`;
+        case 'dice_duel': return `dice_duel:${p[0] || 20}`;
+        case 'cleanse': return 'cleanse';
+        case 'aoe_heal': return `aoe_heal:${p[0] || 0}:${p[1] || 0}:${p[2] || 0}`;
+        case 'luck_bless': return `luck_bless:${p[0] || 0}:${p[1] || 0}`;
+        case 'fate_roulette': return 'fate_roulette';
+        case 'dice_reroll_lowest_once': return 'dice_reroll_lowest_once';
+        case 'add_shield': return 'add_shield';
+        case 'thorn_armor': return `thorn_armor:${p[0] || 0}:${p[1] || 0}`;
+        default: return '';
+      }
+    }
+
+    function tagToEffect(tag) {
+      const raw = String(tag || '');
+      if (!raw) return null;
+      const [key, ...rest] = raw.split(':');
+      if (key === 'steal') return { key, params:[rest[0] || ''] };
+      if (key === 'freeze') return { key, params:[rest[0] || ''] };
+      if (key === 'silence') return { key, params:[rest[0] || ''] };
+      if (key === 'seal_draw_all') return { key, params:[rest[0] || ''] };
+      if (key === 'luck_drain') return { key, params:[rest[0] || '', rest[1] || ''] };
+      if (key === 'steal_fate') return { key, params:[] };
+      if (key === 'borrow_blade') return { key, params:[rest[0] || '', rest[1] || ''] };
+      if (key === 'bounty_mark') return { key, params:[rest[0] || '', rest[1] || ''] };
+      if (key === 'strip_buff_gain') return { key, params:[rest[0] || '', rest[1] || ''] };
+      if (key === 'aoe_damage') return { key, params:[rest[0] || '', rest[1] || '', rest[2] || ''] };
+      if (key === 'dice_rule') return { key, params:[rest.join(':') || 'all_in_raid_v1'] };
+      if (key === 'dice_duel') return { key, params:[rest[0] || '20'] };
+      if (key === 'cleanse') return { key, params:[] };
+      if (key === 'aoe_heal') return { key, params:[rest[0] || '', rest[1] || '', rest[2] || ''] };
+      if (key === 'luck_bless') return { key, params:[rest[0] || '', rest[1] || ''] };
+      if (key === 'fate_roulette') return { key, params:[] };
+      if (key === 'dice_reroll_lowest_once') return { key, params:[] };
+      if (key === 'add_shield') return { key, params:[] };
+      if (key === 'thorn_armor') return { key, params:[rest[0] || '', rest[1] || ''] };
+      return { key: 'raw', raw };
+    }
+
+    function effectLabel(effect) {
+      if (!effect) return '未识别效果';
+      if (effect.key === 'raw') return `原始标签：${effect.raw}`;
+      const dict = [...effectCatalog.attack, ...effectCatalog.heal, ...effectCatalog.defense].find(x => x.key === effect.key);
+      return dict?.name || effect.key;
+    }
+
+    function humanizeTag(tag) {
+      const effect = tagToEffect(tag);
+      if (!effect) return '未设定';
+      const p = effect.params || [];
+      switch (effect.key) {
+        case 'steal': return `偷取目标 ${p[0]} 金币`;
+        case 'freeze': return `冻结 ${p[0]} 小时`;
+        case 'silence': return `沉默 ${p[0]} 小时`;
+        case 'seal_draw_all': return `封锁抽牌 ${p[0]} 小时`;
+        case 'luck_drain': return `抽取 ${p[1]}% 爆率，持续 ${p[0]} 小时`;
+        case 'steal_fate': return '偷取命运收益';
+        case 'borrow_blade': return `借刀造成 ${p[0]}-${p[1]} 伤害`;
+        case 'bounty_mark': return `悬赏 ${p[0]} 小时，每次追加 ${p[1]} 金币`;
+        case 'strip_buff_gain': return `夺取增益并获得 ${p[0]}% 爆率 ${p[1]} 小时`;
+        case 'aoe_damage': return `群攻 ${p[0]}-${p[1]}，最多 ${p[2]} 人`;
+        case 'dice_rule': return `骰子规则 ${p[0]}`;
+        case 'dice_duel': return `对赌底注 ${p[0]}`;
+        case 'cleanse': return '净化负面状态';
+        case 'aoe_heal': return `群体回复 ${p[0]}-${p[1]}，最多 ${p[2]} 人`;
+        case 'luck_bless': return `${p[0]} 小时内爆率 +${p[1]}%`;
+        case 'fate_roulette': return '命运转盘';
+        case 'dice_reroll_lowest_once': return '最低点自动重投一次';
+        case 'add_shield': return '挂载护盾';
+        case 'thorn_armor': return `反甲 ${p[0]} 小时，反伤 ${p[1]}%`;
+        case 'raw': return `原始标签：${effect.raw}`;
+        default: return tag;
+      }
+    }
+
+    function showToast(text, bad = false) {
       const el = $('#toast');
-      el.className = `toast show ${type}`;
-      el.textContent = message;
-      clearTimeout(toast._timer);
-      toast._timer = setTimeout(() => el.className = 'toast', 2400);
+      el.textContent = text;
+      el.className = `toast show${bad ? ' bad' : ''}`;
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => el.className = 'toast', 2200);
     }
 
     function apiUrl(path) {
-      const divider = path.includes('?') ? '&' : '?';
-      return `${path}${divider}profile=${encodeURIComponent(state.currentProfile || 'default')}`;
+      return `${path}${path.includes('?') ? '&' : '?'}profile=${encodeURIComponent(state.currentProfile || 'default')}`;
     }
-
-    async function apiGet(path) {
-      const res = await fetch(apiUrl(path));
-      return await res.json();
-    }
-
+    async function apiGet(path) { return await (await fetch(apiUrl(path))).json(); }
     async function apiPost(path, body) {
-      const res = await fetch(apiUrl(path), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      return await res.json();
+      return await (await fetch(apiUrl(path), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json();
     }
+    async function apiDelete(path) { return await (await fetch(apiUrl(path), { method:'DELETE' })).json(); }
 
-    async function apiDelete(path) {
-      const res = await fetch(apiUrl(path), { method: 'DELETE' });
-      return await res.json();
-    }
-
-    function setHeadline(page) {
+    function setPage(page) {
       state.activePage = page;
-      const meta = pageMeta[page] || pageMeta.overview;
-      $('#headline').textContent = meta[0];
-      $('#headlineSub').textContent = meta[1];
+      const meta = pageMeta[page];
+      $('#heroTitle').textContent = meta[0];
+      $('#heroDesc').textContent = meta[1];
       $$('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
-      $$('.page').forEach(pageEl => pageEl.classList.toggle('active', pageEl.id === `page-${page}`));
+      $$('.page').forEach(el => el.classList.toggle('active', el.id === `page-${page}`));
     }
 
-    function getProfileName(profileId = state.currentProfile) {
-      return state.profiles.find(item => item.profile_id === profileId)?.display_name || profileId || '默认配置';
+    function getProfileName(id = state.currentProfile) {
+      return state.profiles.find(p => p.profile_id === id)?.display_name || id;
     }
 
-    function updateCurrentProfileUI() {
-      $('#currentProfileName').textContent = getProfileName();
-      $('#quickProfiles').textContent = String(state.profiles.length || 0);
-      $('#quickGroups').textContent = String(state.stats.total_groups || 0);
-      $('#quickUsers').textContent = String(state.stats.total_users || 0);
-    }
-
-    function ensureRuntimeShape() {
-      const cfg = state.runtimeConfig || {};
-      cfg.webui_settings ||= { enable: true, port: 4399 };
-      cfg.fate_cards_settings ||= { enable: true, daily_draw_limit: 3 };
-      cfg.func_cards_settings ||= {
-        enable: true,
-        enable_dice_cards: true,
-        enable_public_duel_mode: false,
-        public_duel_daily_limit: 3,
-        public_duel_min_stake: 10,
-        public_duel_max_stake: 200,
-        enable_rarity_dedup: true,
-        rarity_mode: 'default',
-        custom_rarity_weights: { rarity_1: 30, rarity_2: 30, rarity_3: 28, rarity_4: 11, rarity_5: 1 },
-        economy_settings: { draw_probability: 5, free_daily_draw: 1, draw_cost: 20, pity_threshold: 10 },
+    function ensureRuntime() {
+      const c = state.runtimeConfig || {};
+      c.webui_settings ||= { enable:true, port:4399 };
+      c.fate_cards_settings ||= { enable:true, daily_draw_limit:3 };
+      c.func_cards_settings ||= {
+        enable:true,
+        enable_dice_cards:true,
+        enable_public_duel_mode:false,
+        public_duel_daily_limit:3,
+        public_duel_min_stake:10,
+        public_duel_max_stake:200,
+        enable_rarity_dedup:true,
+        rarity_mode:'default',
+        custom_rarity_weights:{ rarity_1:30, rarity_2:30, rarity_3:28, rarity_4:11, rarity_5:1 },
+        economy_settings:{ draw_probability:5, free_daily_draw:1, draw_cost:20, pity_threshold:10 }
       };
-      cfg.func_cards_settings.custom_rarity_weights ||= { rarity_1: 30, rarity_2: 30, rarity_3: 28, rarity_4: 11, rarity_5: 1 };
-      cfg.func_cards_settings.economy_settings ||= { draw_probability: 5, free_daily_draw: 1, draw_cost: 20, pity_threshold: 10 };
-      state.runtimeConfig = cfg;
+      c.func_cards_settings.custom_rarity_weights ||= { rarity_1:30, rarity_2:30, rarity_3:28, rarity_4:11, rarity_5:1 };
+      c.func_cards_settings.economy_settings ||= { draw_probability:5, free_daily_draw:1, draw_cost:20, pity_threshold:10 };
+      state.runtimeConfig = c;
     }
 
-    function setDeepValue(obj, path, value) {
+    function setDeep(obj, path, value) {
       const keys = path.split('.');
-      let cursor = obj;
-      for (let i = 0; i < keys.length - 1; i++) {
-        cursor[keys[i]] ||= {};
-        cursor = cursor[keys[i]];
-      }
-      cursor[keys[keys.length - 1]] = value;
+      let t = obj;
+      for (let i = 0; i < keys.length - 1; i++) { t[keys[i]] ||= {}; t = t[keys[i]]; }
+      t[keys[keys.length - 1]] = value;
     }
-
-    function getDeepValue(obj, path) {
-      return path.split('.').reduce((acc, key) => acc?.[key], obj);
-    }
+    function getDeep(obj, path) { return path.split('.').reduce((a, k) => a?.[k], obj); }
 
     async function loadProfiles() {
       const res = await apiGet('/api/profile_overview');
       if (res.ok) state.profiles = res.profiles || [];
-      if (!state.profiles.some(item => item.profile_id === state.currentProfile) && state.profiles[0]) {
-        state.currentProfile = state.profiles[0].profile_id;
-      }
+      if (!state.profiles.some(p => p.profile_id === state.currentProfile) && state.profiles[0]) state.currentProfile = state.profiles[0].profile_id;
     }
-
-    async function loadRuntime() {
-      const res = await apiGet('/api/runtime_config');
-      if (res.ok) state.runtimeConfig = res.config || {};
-      ensureRuntimeShape();
-    }
-
-    async function loadGroupAccess() {
-      const res = await apiGet('/api/group_access');
-      if (res.ok) state.groupAccess = res.config || { mode: 'off', blacklist: [], whitelist: [] };
-    }
-
-    async function loadSignInTexts() {
+    async function loadRuntime() { const res = await apiGet('/api/runtime_config'); if (res.ok) state.runtimeConfig = res.config || {}; ensureRuntime(); }
+    async function loadGroupAccess() { const res = await apiGet('/api/group_access'); if (res.ok) state.groupAccess = res.config || { mode:'off', blacklist:[], whitelist:[] }; }
+    async function loadSignin() {
       const res = await apiGet('/api/sign_in_texts');
-      if (res.ok) state.signInTexts = res.texts || { good_things: [], bad_things: [], luck_ranges: [] };
+      if (res.ok) state.signInTexts = res.texts || {};
       state.signInTexts.good_things ||= [];
       state.signInTexts.bad_things ||= [];
       state.signInTexts.luck_ranges ||= [];
     }
-
-    async function loadFateCards() {
-      const [cardsRes, imagesRes] = await Promise.all([apiGet('/api/fate_cards'), apiGet('/api/fate_images')]);
-      if (cardsRes.ok) state.fateCards = cardsRes.cards || [];
-      if (imagesRes.ok) state.fateImages = imagesRes.images || [];
+    async function loadFate() {
+      const [a,b] = await Promise.all([apiGet('/api/fate_cards'), apiGet('/api/fate_images')]);
+      if (a.ok) state.fateCards = a.cards || [];
+      if (b.ok) state.fateImages = b.images || [];
     }
-
-    async function loadFuncCards() {
-      const [cardsRes, imagesRes, missingRes] = await Promise.all([apiGet('/api/func_cards'), apiGet('/api/images'), apiGet('/api/check_missing_images')]);
-      if (cardsRes.ok) state.funcCards = cardsRes.cards || [];
-      if (imagesRes.ok) state.images = imagesRes.files || [];
-      if (missingRes.ok) state.missingImages = missingRes.missing || [];
+    async function loadCards() {
+      const [a,b,c] = await Promise.all([apiGet('/api/func_cards'), apiGet('/api/images'), apiGet('/api/check_missing_images')]);
+      if (a.ok) state.funcCards = a.cards || [];
+      if (b.ok) state.images = b.files || [];
+      if (c.ok) state.missingImages = c.missing || [];
     }
+    async function loadStats() { const res = await apiGet('/api/user_stats'); if (res.ok) state.stats = res.stats || { total_groups:0, total_users:0, card_holders:{}, groups:[] }; }
 
-    async function loadStats() {
-      const res = await apiGet('/api/user_stats');
-      if (res.ok) state.stats = res.stats || { total_groups: 0, total_users: 0, card_holders: {}, groups: [] };
-    }
-
-    async function loadEverything() {
+    async function loadAll() {
       try {
         await loadProfiles();
-        await Promise.all([loadRuntime(), loadGroupAccess(), loadSignInTexts(), loadFateCards(), loadFuncCards(), loadStats()]);
-        updateCurrentProfileUI();
+        await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
         renderAll();
-      } catch (error) {
-        console.error(error);
-        toast('载入数据失败，请检查后端接口状态。', 'bad');
+      } catch (e) {
+        console.error(e);
+        showToast('载入失败，请检查后端接口。', true);
       }
+    }
+
+    function updateTop() {
+      $('#currentProfileName').textContent = getProfileName();
+      $('#quickProfileCount').textContent = String(state.profiles.length || 0);
+      $('#quickGroupCount').textContent = String(state.stats.total_groups || 0);
+      $('#quickUserCount').textContent = String(state.stats.total_users || 0);
     }
 
     function renderOverview() {
       const page = $('#page-overview');
-      const current = state.profiles.find(item => item.profile_id === state.currentProfile);
-      const holderEntries = Object.entries(state.stats.card_holders || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
-      const groups = state.stats.groups || [];
       page.innerHTML = `
-        <div class="page-grid">
-          <section class="panel span-12 breakout">
+        <div class="grid">
+          <section class="panel col-8">
             <div class="panel-head">
               <div>
-                <div class="section-kicker">[ CORE SNAPSHOT ]</div>
-                <div class="panel-title">当前方案快照</div>
-                <div class="panel-note">方案切换将影响牌池、签到文本、资源目录与统计范围。当前正在操作的工作档案为 <span class="mono">${esc(state.currentProfile)}</span>。</div>
+                <div class="panel-title">方案管理</div>
+                <div class="panel-note">直接放在主界面。切换、重命名、绑定群号都在这里完成。</div>
               </div>
-              <div class="button-row">
-                <button class="solid-btn" onclick="switchPage('profiles')">[ 进入方案管理 ]</button>
-                <button class="ghost-btn" onclick="switchPage('runtime')">[ 进入运行配置 ]</button>
-              </div>
+              <button class="btn-strong" onclick="openCreateProfileDialog()">[ 新建方案 ]</button>
             </div>
-            <div class="kpi-grid">
-              <div class="metric"><div class="metric-value">${esc(getProfileName())}</div><div class="metric-label">当前方案显示名</div></div>
-              <div class="metric"><div class="metric-value">${current?.group_count || 0}</div><div class="metric-label">已绑定群组</div></div>
-              <div class="metric"><div class="metric-value">${state.funcCards.length}</div><div class="metric-label">功能牌总数</div></div>
-              <div class="metric"><div class="metric-value">${state.fateCards.length}</div><div class="metric-label">命运牌总数</div></div>
-            </div>
-          </section>
-
-          <section class="panel span-7">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">资源异常扫描</div>
-                <div class="panel-note">针对功能牌资源目录执行引用与实际文件对照，快速定位缺图。</div>
-              </div>
-              <button class="ghost-btn" onclick="refreshCardsAndOverview()">[ 重新检测 ]</button>
-            </div>
-            ${state.missingImages.length ? `<div class="rank-list">${state.missingImages.map((item, index) => `
-              <div class="rank-item">
-                <div class="rank-no">${index + 1}</div>
-                <div><div>${esc(item.card_name || '未命名卡牌')}</div><div class="helper">缺失文件：${esc(item.filename || '未记录')}</div></div>
-                <div class="tag">资源异常</div>
-              </div>`).join('')}</div>` : '<div class="empty">当前方案未检测到功能牌缺图引用。</div>'}
-          </section>
-
-          <section class="panel span-5">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">统计摘要</div>
-                <div class="panel-note">当前方案作用域内的用户数据快照。</div>
-              </div>
-            </div>
-            <div class="stat-grid">
-              <div class="stat-card"><h3>群组总量</h3><p style="font-size:32px;color:var(--accent);font-weight:900;">${state.stats.total_groups || 0}</p></div>
-              <div class="stat-card"><h3>用户总量</h3><p style="font-size:32px;color:var(--accent);font-weight:900;">${state.stats.total_users || 0}</p></div>
-              <div class="stat-card"><h3>图片资源</h3><p style="font-size:32px;color:var(--accent);font-weight:900;">${state.images.length + state.fateImages.length}</p></div>
-              <div class="stat-card"><h3>访问模式</h3><p style="font-size:20px;color:var(--text);font-weight:900;">${esc(modeLabel(state.groupAccess.mode))}</p></div>
-            </div>
-          </section>
-
-          <section class="panel span-6">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">群组分布</div>
-                <div class="panel-note">来自用户统计接口的群级数据聚合。</div>
-              </div>
-            </div>
-            ${groups.length ? `<div class="group-grid">${groups.slice(0, 8).map(group => `<div class="group-card"><div>${esc(group.group_id)}</div><p>用户数量：${group.user_count || 0}</p></div>`).join('')}</div>` : '<div class="empty">当前方案还没有群组统计数据。</div>'}
-          </section>
-
-          <section class="panel span-6">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">持牌排行</div>
-                <div class="panel-note">按当前方案内用户持有卡牌人数降序排列。</div>
-              </div>
-              <button class="ghost-btn" onclick="switchPage('stats')">[ 查看完整统计 ]</button>
-            </div>
-            ${holderEntries.length ? `<div class="rank-list">${holderEntries.map((entry, index) => `<div class="rank-item"><div class="rank-no">${index + 1}</div><div>${esc(entry[0])}</div><div>${entry[1]} 人</div></div>`).join('')}</div>` : '<div class="empty">暂无持牌排行数据。</div>'}
-          </section>
-        </div>`;
-    }
-
-    function renderProfiles() {
-      const page = $('#page-profiles');
-      page.innerHTML = `
-        <div class="page-grid">
-          <section class="panel span-12">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">方案库</div>
-                <div class="panel-note">支持新建方案、重命名、切换上下文及群组绑定。默认方案保留为基础工作档案。</div>
-              </div>
-              <div class="button-row">
-                <button class="solid-btn" onclick="openCreateProfileDialog()">[ 新建方案 ]</button>
-                <button class="ghost-btn" onclick="loadEverything()">[ 刷新方案库 ]</button>
-              </div>
-            </div>
-            <div class="profile-grid">
-              ${state.profiles.map(profile => `
-                <article class="profile-card ${profile.profile_id === state.currentProfile ? 'active' : ''}">
-                  <div class="tiny-label">[ ${profile.is_default ? '默认工作档案' : '扩展工作档案'} ]</div>
-                  <h3>${esc(profile.display_name || profile.profile_id)}</h3>
-                  <p>方案标识：<span class="mono">${esc(profile.profile_id)}</span></p>
-                  <p>绑定群组：${profile.group_count || 0} / 用户总数：${profile.user_count || 0}</p>
-                  <p>功能牌：${profile.func_card_count || 0} / 命运牌：${profile.fate_card_count || 0}</p>
-                  ${profile.groups?.length ? `<div class="bound-list">${profile.groups.map(group => `<span class="bound-item">${esc(group)}</span>`).join('')}</div>` : '<div class="helper">暂无绑定群组。</div>'}
-                  <div class="archive-tools">
-                    <button class="solid-btn" onclick="useProfile('${esc(profile.profile_id)}')">[ 切换方案 ]</button>
-                    <button class="ghost-btn" onclick="renameProfile('${esc(profile.profile_id)}')">[ 重命名 ]</button>
-                    <button class="ghost-btn" onclick="promptBindGroup('${esc(profile.profile_id)}')">[ 绑定群号 ]</button>
+            <div class="profile-list">
+              ${state.profiles.map(p => `
+                <article class="profile-card ${p.profile_id === state.currentProfile ? 'active' : ''}">
+                  <h3>${esc(p.display_name || p.profile_id)}</h3>
+                  <div class="row" style="margin-bottom:8px;">
+                    ${p.is_default ? '<span class="badge light">默认方案</span>' : ''}
+                    <span class="badge">方案标识：<span class="mono">${esc(p.profile_id)}</span></span>
                   </div>
-                  ${profile.groups?.length ? `<div class="archive-tools">${profile.groups.map(group => `<button class="mini-btn" onclick="unbindGroup('${esc(profile.profile_id)}','${esc(group)}')">解绑 ${esc(group)}</button>`).join('')}</div>` : ''}
+                  <div class="meta">绑定群组 ${p.group_count || 0} ｜ 用户 ${p.user_count || 0} ｜ 功能牌 ${p.func_card_count || 0} ｜ 命运牌 ${p.fate_card_count || 0}</div>
+                  <div class="row" style="margin:10px 0;">
+                    ${(p.groups || []).map(g => `<span class="badge">群 ${esc(g)}</span>`).join('') || '<span class="helper">暂无绑定群组</span>'}
+                  </div>
+                  <div class="row">
+                    <button class="btn-strong" onclick="useProfile('${esc(p.profile_id)}')">[ 切换 ]</button>
+                    <button class="btn" onclick="renameProfile('${esc(p.profile_id)}')">[ 重命名 ]</button>
+                    <button class="btn" onclick="bindGroupPrompt('${esc(p.profile_id)}')">[ 绑定群号 ]</button>
+                    ${(p.groups || []).slice(0,6).map(g => `<button class="btn-mini" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('')}
+                  </div>
                 </article>`).join('')}
             </div>
           </section>
-        </div>`;
-    }
 
-    function modeLabel(mode) {
-      return ({ off: '关闭', blacklist: '黑名单', whitelist: '白名单' }[mode] || '关闭');
-    }
-
-    function renderAccess() {
-      const page = $('#page-access');
-      page.innerHTML = `
-        <div class="page-grid">
-          <section class="panel span-5 breakout">
+          <section class="panel col-4">
             <div class="panel-head">
               <div>
-                <div class="panel-title">准入模式</div>
-                <div class="panel-note">关闭模式下不进行限制；黑名单与白名单按群号列表执行。</div>
+                <div class="panel-title">访问控制</div>
+                <div class="panel-note">黑名单与白名单互斥，只能有一种模式处于启用状态。</div>
               </div>
             </div>
-            <div class="field-grid">
-              <div class="field">
-                <label>控制模式</label>
-                <select class="select" id="accessMode">
-                  <option value="off" ${state.groupAccess.mode === 'off' ? 'selected' : ''}>关闭</option>
-                  <option value="blacklist" ${state.groupAccess.mode === 'blacklist' ? 'selected' : ''}>黑名单</option>
-                  <option value="whitelist" ${state.groupAccess.mode === 'whitelist' ? 'selected' : ''}>白名单</option>
-                </select>
-              </div>
+            <div class="switch-group" style="margin-bottom:12px;">
+              <button class="mode-btn ${state.groupAccess.mode === 'off' ? 'active' : ''}" onclick="setAccessMode('off')">关闭限制</button>
+              <button class="mode-btn black ${state.groupAccess.mode === 'blacklist' ? 'active' : ''}" onclick="setAccessMode('blacklist')">黑名单模式</button>
+              <button class="mode-btn white ${state.groupAccess.mode === 'whitelist' ? 'active' : ''}" onclick="setAccessMode('whitelist')">白名单模式</button>
             </div>
-            <div class="button-row" style="margin-top:12px;">
-              <button class="solid-btn" onclick="saveGroupAccess()">[ 保存访问控制 ]</button>
+            <div class="field" style="margin-bottom:10px;">
+              <label>黑名单群号（每行一个）</label>
+              <textarea class="textarea" id="blacklistInput">${esc((state.groupAccess.blacklist || []).join('\n'))}</textarea>
             </div>
-          </section>
-
-          <section class="panel span-7">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">群号列表</div>
-                <div class="panel-note">每行一个群号。黑名单与白名单会原样写回后端配置。</div>
-              </div>
+            <div class="field">
+              <label>白名单群号（每行一个）</label>
+              <textarea class="textarea" id="whitelistInput">${esc((state.groupAccess.whitelist || []).join('\n'))}</textarea>
             </div>
-            <div class="field-grid">
-              <div class="field">
-                <label>黑名单</label>
-                <textarea class="textarea" id="blacklistInput">${esc((state.groupAccess.blacklist || []).join('\n'))}</textarea>
-              </div>
-              <div class="field">
-                <label>白名单</label>
-                <textarea class="textarea" id="whitelistInput">${esc((state.groupAccess.whitelist || []).join('\n'))}</textarea>
-              </div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn-strong" onclick="saveGroupAccess()">[ 保存访问控制 ]</button>
             </div>
           </section>
         </div>`;
     }
 
     function renderRuntime() {
-      ensureRuntimeShape();
-      const cfg = state.runtimeConfig;
-      const func = cfg.func_cards_settings;
-      const fate = cfg.fate_cards_settings;
-      const webui = cfg.webui_settings;
-      const eco = func.economy_settings;
-      const weights = func.custom_rarity_weights;
-      const page = $('#page-runtime');
-      page.innerHTML = `
-        <div class="page-grid">
-          <section class="panel span-4 breakout">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">总开关</div>
-                <div class="panel-note">以机械式开关统一调度模块启闭。</div>
-              </div>
-            </div>
-            ${toggleTemplate('WebUI 服务', 'webui_settings.enable', webui.enable)}
-            ${toggleTemplate('命运牌系统', 'fate_cards_settings.enable', fate.enable)}
-            ${toggleTemplate('功能牌系统', 'func_cards_settings.enable', func.enable)}
-            ${toggleTemplate('骰子卡功能', 'func_cards_settings.enable_dice_cards', func.enable_dice_cards)}
-            ${toggleTemplate('公开决斗模式', 'func_cards_settings.enable_public_duel_mode', func.enable_public_duel_mode)}
-            ${toggleTemplate('稀有度去重', 'func_cards_settings.enable_rarity_dedup', func.enable_rarity_dedup)}
+      ensureRuntime();
+      const c = state.runtimeConfig;
+      const f = c.func_cards_settings;
+      const e = f.economy_settings;
+      const w = f.custom_rarity_weights;
+      $('#page-runtime').innerHTML = `
+        <div class="grid">
+          <section class="panel col-4">
+            <div class="panel-head"><div><div class="panel-title">模块开关</div><div class="panel-note">按钮和边框全部强化对比。</div></div></div>
+            ${toggleBox('网页控制台', 'webui_settings.enable', c.webui_settings.enable)}
+            ${toggleBox('命运牌系统', 'fate_cards_settings.enable', c.fate_cards_settings.enable)}
+            ${toggleBox('功能牌系统', 'func_cards_settings.enable', f.enable)}
+            ${toggleBox('骰子牌系统', 'func_cards_settings.enable_dice_cards', f.enable_dice_cards)}
+            ${toggleBox('公开对赌模式', 'func_cards_settings.enable_public_duel_mode', f.enable_public_duel_mode)}
+            ${toggleBox('同档去重', 'func_cards_settings.enable_rarity_dedup', f.enable_rarity_dedup)}
           </section>
 
-          <section class="panel span-8">
+          <section class="panel col-8">
             <div class="panel-head">
               <div>
-                <div class="panel-title">参数矩阵</div>
-                <div class="panel-note">包含端口、每日上限、决斗限制、抽卡经济模型与稀有度权重。</div>
+                <div class="panel-title">参数配置</div>
+                <div class="panel-note">稀有度名称已改为：普通 / 稀有 / 史诗 / 传说 / 神话。</div>
               </div>
-              <button class="solid-btn" onclick="saveRuntimeConfig()">[ 保存运行配置 ]</button>
+              <button class="btn-strong" onclick="saveRuntime()">[ 保存运行配置 ]</button>
             </div>
-
-            <div class="field-grid triple">
-              ${numberField('WebUI 端口', 'webui_settings.port', webui.port)}
-              ${numberField('命运牌每日上限', 'fate_cards_settings.daily_draw_limit', fate.daily_draw_limit)}
-              ${numberField('公开决斗每日次数', 'func_cards_settings.public_duel_daily_limit', func.public_duel_daily_limit)}
-              ${numberField('公开决斗最小赌注', 'func_cards_settings.public_duel_min_stake', func.public_duel_min_stake)}
-              ${numberField('公开决斗最大赌注', 'func_cards_settings.public_duel_max_stake', func.public_duel_max_stake)}
-              ${selectField('稀有度模式', 'func_cards_settings.rarity_mode', func.rarity_mode, [['default','默认'],['custom','自定义']])}
+            <div class="field-grid three">
+              ${numField('网页端口','webui_settings.port',c.webui_settings.port)}
+              ${numField('命运牌每日上限','fate_cards_settings.daily_draw_limit',c.fate_cards_settings.daily_draw_limit)}
+              ${selectField('稀有度模式','func_cards_settings.rarity_mode',f.rarity_mode,[['default','默认'],['custom','自定义']])}
+              ${numField('对赌每日次数','func_cards_settings.public_duel_daily_limit',f.public_duel_daily_limit)}
+              ${numField('最小赌注','func_cards_settings.public_duel_min_stake',f.public_duel_min_stake)}
+              ${numField('最大赌注','func_cards_settings.public_duel_max_stake',f.public_duel_max_stake)}
             </div>
-
-            <div class="panel-head" style="margin-top:16px;">
-              <div>
-                <div class="panel-title">经济参数</div>
-                <div class="panel-note">功能牌抽取经济模型。</div>
-              </div>
+            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">抽卡经济</div></div></div>
+            <div class="field-grid four">
+              ${numField('基础掉率','func_cards_settings.economy_settings.draw_probability',e.draw_probability)}
+              ${numField('每日免费抽取','func_cards_settings.economy_settings.free_daily_draw',e.free_daily_draw)}
+              ${numField('额外抽取消耗','func_cards_settings.economy_settings.draw_cost',e.draw_cost)}
+              ${numField('保底次数','func_cards_settings.economy_settings.pity_threshold',e.pity_threshold)}
             </div>
-            <div class="field-grid quad">
-              ${numberField('抽取概率', 'func_cards_settings.economy_settings.draw_probability', eco.draw_probability)}
-              ${numberField('每日免费抽取', 'func_cards_settings.economy_settings.free_daily_draw', eco.free_daily_draw)}
-              ${numberField('抽取消耗', 'func_cards_settings.economy_settings.draw_cost', eco.draw_cost)}
-              ${numberField('保底次数', 'func_cards_settings.economy_settings.pity_threshold', eco.pity_threshold)}
-            </div>
-
-            <div class="panel-head" style="margin-top:16px;">
-              <div>
-                <div class="panel-title">自定义稀有度权重</div>
-                <div class="panel-note">仅在自定义模式下生效。</div>
-              </div>
-            </div>
-            <div class="field-grid quad">
-              ${numberField('一星', 'func_cards_settings.custom_rarity_weights.rarity_1', weights.rarity_1)}
-              ${numberField('二星', 'func_cards_settings.custom_rarity_weights.rarity_2', weights.rarity_2)}
-              ${numberField('三星', 'func_cards_settings.custom_rarity_weights.rarity_3', weights.rarity_3)}
-              ${numberField('四星', 'func_cards_settings.custom_rarity_weights.rarity_4', weights.rarity_4)}
-            </div>
-            <div class="field-grid" style="margin-top:12px;">
-              ${numberField('五星', 'func_cards_settings.custom_rarity_weights.rarity_5', weights.rarity_5)}
+            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">稀有度权重</div></div></div>
+            <div class="field-grid five">
+              ${numField('普通','func_cards_settings.custom_rarity_weights.rarity_1',w.rarity_1)}
+              ${numField('稀有','func_cards_settings.custom_rarity_weights.rarity_2',w.rarity_2)}
+              ${numField('史诗','func_cards_settings.custom_rarity_weights.rarity_3',w.rarity_3)}
+              ${numField('传说','func_cards_settings.custom_rarity_weights.rarity_4',w.rarity_4)}
+              ${numField('神话','func_cards_settings.custom_rarity_weights.rarity_5',w.rarity_5)}
             </div>
           </section>
         </div>`;
     }
 
-    function toggleTemplate(title, path, value) {
-      return `<div class="toggle-row"><div><div>${title}</div><div class="helper mono">${path}</div></div><div class="toggle ${value ? 'on' : ''}" onclick="toggleRuntime('${path}', this)"></div></div>`;
+    function toggleBox(label, path, on) {
+      return `<div class="toggle-row"><div><div>${label}</div><div class="helper mono">${path}</div></div><div class="toggle-box ${on ? 'on' : ''}" onclick="toggleRuntime('${path}', this)"></div></div>`;
     }
-
-    function numberField(label, path, value) {
+    function numField(label, path, value) {
       return `<div class="field"><label>${label}</label><input class="input" type="number" value="${esc(value ?? 0)}" onchange="setRuntimeValue('${path}', this.value)"></div>`;
     }
-
     function selectField(label, path, value, options) {
-      return `<div class="field"><label>${label}</label><select class="select" onchange="setRuntimeValue('${path}', this.value)">${options.map(([v, t]) => `<option value="${esc(v)}" ${String(value) === String(v) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
+      return `<div class="field"><label>${label}</label><select class="select" onchange="setRuntimeValue('${path}', this.value)">${options.map(([v,t]) => `<option value="${esc(v)}" ${String(v)===String(value)?'selected':''}>${esc(t)}</option>`).join('')}</select></div>`;
     }
 
     function renderSignin() {
-      const page = $('#page-signin');
       const ranges = state.signInTexts.luck_ranges || [];
-      page.innerHTML = `
-        <div class="page-grid">
-          <section class="panel span-7 breakout">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">运势区间</div>
-                <div class="panel-note">区间、金币修正与评论文本均可编辑。评论每行一条。</div>
-              </div>
-              <button class="ghost-btn" onclick="addLuckRange()">[ 新增区间 ]</button>
-            </div>
-            <div class="range-grid">
-              ${ranges.length ? ranges.map((range, index) => `
-                <article class="range-card">
-                  <div class="field-grid quad">
-                    <div class="field"><label>标签</label><input class="input" value="${esc(range.label || '')}" onchange="setRangeField(${index}, 'label', this.value)"></div>
-                    <div class="field"><label>最小值</label><input class="input" type="number" value="${esc(range.min ?? 0)}" onchange="setRangeField(${index}, 'min', Number(this.value))"></div>
-                    <div class="field"><label>最大值</label><input class="input" type="number" value="${esc(range.max ?? 0)}" onchange="setRangeField(${index}, 'max', Number(this.value))"></div>
-                    <div class="field"><label>金币修正</label><input class="input" type="number" value="${esc(range.gold_delta ?? 0)}" onchange="setRangeField(${index}, 'gold_delta', Number(this.value))"></div>
-                  </div>
-                  <div class="field" style="margin-top:10px;"><label>评论列表</label><textarea class="textarea" onchange="setRangeComments(${index}, this.value)">${esc((range.comments || []).join('\n'))}</textarea></div>
-                  <div class="archive-tools"><button class="danger-btn" onclick="removeLuckRange(${index})">[ 删除区间 ]</button></div>
-                </article>`).join('') : '<div class="empty">尚未配置任何运势区间。</div>'}
-            </div>
-          </section>
-
-          <section class="panel span-5">
+      $('#page-signin').innerHTML = `
+        <div class="grid">
+          <section class="panel col-7">
             <div class="panel-head">
               <div>
                 <div class="panel-title">事件文本池</div>
-                <div class="panel-note">每行一条事件文本，保存时将直接覆盖对应数组。</div>
+                <div class="panel-note">逐条列出，可勾选批量删除，也可批量增加。</div>
               </div>
-              <button class="solid-btn" onclick="saveSignInTexts()">[ 保存签到配置 ]</button>
+              <div class="row">
+                <button class="btn" onclick="batchAddEvents('good')">[ 批量增加好事 ]</button>
+                <button class="btn" onclick="batchAddEvents('bad')">[ 批量增加坏事 ]</button>
+              </div>
             </div>
             <div class="field-grid">
-              <div class="field">
-                <label>好事列表</label>
-                <textarea class="textarea" id="goodThingsInput">${esc((state.signInTexts.good_things || []).join('\n'))}</textarea>
+              <div>
+                <div class="panel-title" style="font-size:14px;margin-bottom:10px;">好事列表</div>
+                <div class="event-list">
+                  ${(state.signInTexts.good_things || []).map((item, i) => eventItem('good', item, i)).join('') || '<div class="empty">暂无好事文本</div>'}
+                </div>
+                <div class="row" style="margin-top:10px;">
+                  <button class="btn-danger" onclick="deleteSelectedEvents('good')">[ 批量删除 ]</button>
+                  <button class="btn" onclick="addSingleEvent('good')">[ 增加一条 ]</button>
+                </div>
               </div>
-              <div class="field">
-                <label>坏事列表</label>
-                <textarea class="textarea" id="badThingsInput">${esc((state.signInTexts.bad_things || []).join('\n'))}</textarea>
+              <div>
+                <div class="panel-title" style="font-size:14px;margin-bottom:10px;">坏事列表</div>
+                <div class="event-list">
+                  ${(state.signInTexts.bad_things || []).map((item, i) => eventItem('bad', item, i)).join('') || '<div class="empty">暂无坏事文本</div>'}
+                </div>
+                <div class="row" style="margin-top:10px;">
+                  <button class="btn-danger" onclick="deleteSelectedEvents('bad')">[ 批量删除 ]</button>
+                  <button class="btn" onclick="addSingleEvent('bad')">[ 增加一条 ]</button>
+                </div>
               </div>
             </div>
           </section>
+
+          <section class="panel col-5">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title">签到预览与运势区间</div>
+                <div class="panel-note">点击预览按钮，随机生成一条模拟签到结果。</div>
+              </div>
+              <button class="btn-strong" onclick="saveSignin()">[ 保存签到配置 ]</button>
+            </div>
+            <div class="row" style="margin-bottom:12px;">
+              <button class="btn-strong" onclick="previewSignin()">[ 生成签到预览 ]</button>
+            </div>
+            <div class="tag-preview" id="signinPreview">尚未生成预览。</div>
+            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">运势区间</div></div><button class="btn" onclick="addRange()">[ 新增区间 ]</button></div>
+            <div class="stack">
+              ${ranges.map((r, i) => `
+                <div class="profile-card">
+                  <div class="field-grid four">
+                    <div class="field"><label>标签</label><input class="input" value="${esc(r.label || '')}" onchange="setRange(${i}, 'label', this.value)"></div>
+                    <div class="field"><label>最小值</label><input class="input" type="number" value="${esc(r.min ?? 0)}" onchange="setRange(${i}, 'min', Number(this.value))"></div>
+                    <div class="field"><label>最大值</label><input class="input" type="number" value="${esc(r.max ?? 0)}" onchange="setRange(${i}, 'max', Number(this.value))"></div>
+                    <div class="field"><label>金币修正</label><input class="input" type="number" value="${esc(r.gold_delta ?? 0)}" onchange="setRange(${i}, 'gold_delta', Number(this.value))"></div>
+                  </div>
+                  <div class="field" style="margin-top:10px;"><label>评论（每行一条）</label><textarea class="textarea" onchange="setRangeComments(${i}, this.value)">${esc((r.comments || []).join('\n'))}</textarea></div>
+                  <div class="row" style="margin-top:10px;"><button class="btn-danger" onclick="removeRange(${i})">[ 删除区间 ]</button></div>
+                </div>`).join('') || '<div class="empty">暂无运势区间</div>'}
+            </div>
+          </section>
         </div>`;
+    }
+
+    function eventItem(kind, item, i) {
+      const checked = (kind === 'good' ? state.goodSelected : state.badSelected).includes(i) ? 'checked' : '';
+      return `<div class="event-item"><input class="event-check" type="checkbox" ${checked} onchange="toggleEventSelect('${kind}', ${i}, this.checked)"><div>${esc(item)}</div><button class="btn-danger" onclick="removeEvent('${kind}', ${i})">[ 删除 ]</button></div>`;
     }
 
     function renderFate() {
-      const page = $('#page-fate');
-      page.innerHTML = `
-        <div class="page-grid">
-          <section class="panel span-8 breakout">
+      $('#page-fate').innerHTML = `
+        <div class="grid">
+          <section class="panel col-8">
             <div class="panel-head">
               <div>
-                <div class="panel-title">命运牌池</div>
-                <div class="panel-note">编辑命运牌文本、金币值与图片文件名。支持上传图片资源。</div>
+                <div class="panel-title">命运牌列表</div>
+                <div class="panel-note">保留简洁列表和图片绑定，减少无效视觉噪音。</div>
               </div>
-              <div class="button-row">
-                <button class="solid-btn" onclick="openFateEditor(-1)">[ 新增命运牌 ]</button>
-                <button class="ghost-btn" onclick="uploadFateImages()">[ 上传图片 ]</button>
-                <button class="ghost-btn" onclick="saveFateCards()">[ 保存全部 ]</button>
+              <div class="row">
+                <button class="btn-strong" onclick="openFateEditor(-1)">[ 新增命运牌 ]</button>
+                <button class="btn" onclick="uploadFateImages()">[ 上传图片 ]</button>
+                <button class="btn" onclick="saveFateCards()">[ 保存全部 ]</button>
               </div>
             </div>
-            <div class="card-grid">
-              ${state.fateCards.length ? state.fateCards.map((card, index) => fateCardTemplate(card, index)).join('') : '<div class="empty">命运牌池为空。</div>'}
+            <div class="card-list">
+              ${state.fateCards.map((card, i) => fateItem(card, i)).join('') || '<div class="empty">暂无命运牌</div>'}
             </div>
           </section>
-          <section class="panel span-4">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">命运图像库</div>
-                <div class="panel-note">当前方案命运牌可用资源文件。</div>
-              </div>
-            </div>
-            <div class="image-grid">
-              ${state.fateImages.length ? state.fateImages.map(file => imageTemplate(file, 'fate')).join('') : '<div class="empty">暂无命运牌图片。</div>'}
+          <section class="panel col-4">
+            <div class="panel-head"><div><div class="panel-title">命运图像库</div></div></div>
+            <div class="asset-grid">
+              ${state.fateImages.map(file => assetItem(file, 'fate')).join('') || '<div class="empty">暂无图片</div>'}
             </div>
           </section>
         </div>`;
     }
 
-    function fateCardTemplate(card, index) {
-      const hasImage = card.filename && state.fateImages.includes(card.filename);
-      const src = hasImage ? `/fate_assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
+    function fateItem(card, i) {
+      const has = card.filename && state.fateImages.includes(card.filename);
+      const src = has ? `/fate_assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
       return `
-        <article class="archive-card">
-          <div class="archive-thumb">${hasImage ? `<img src="${src}" alt="命运牌图片">` : '无图像'}</div>
-          <div>
-            <div class="archive-title">${esc(card.text || '未命名命运牌')}</div>
-            <div class="archive-meta">金币影响：${card.gold ?? 0}</div>
-            <div class="archive-meta">图片文件：${esc(card.filename || '未绑定')}</div>
-            <div class="archive-tools">
-              <button class="solid-btn" onclick="openFateEditor(${index})">[ 编辑 ]</button>
-              <button class="danger-btn" onclick="deleteFateCard(${index})">[ 删除 ]</button>
+        <article class="card-item">
+          <div class="card-layout">
+            <div class="thumb">${has ? `<img src="${src}" alt="命运牌图片">` : '无图像'}</div>
+            <div>
+              <h3>${esc(card.text || '未命名命运牌')}</h3>
+              <div class="row" style="margin-bottom:8px;">
+                <span class="badge orange">金币 ${esc(card.gold ?? card.value ?? 0)}</span>
+                <span class="badge">文件 ${esc(card.filename || '未绑定')}</span>
+              </div>
+              <div class="row">
+                <button class="btn-strong" onclick="openFateEditor(${i})">[ 编辑 ]</button>
+                <button class="btn-danger" onclick="deleteFateCard(${i})">[ 删除 ]</button>
+              </div>
             </div>
           </div>
         </article>`;
     }
 
-    function imageTemplate(file, kind) {
-      const src = kind === 'fate'
-        ? `/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}`
-        : `/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}`;
-      return `<div class="image-card"><div class="archive-thumb" style="width:100%;height:120px;"><img src="${src}" alt="${esc(file)}"></div><div class="helper" style="margin-top:8px;word-break:break-all;">${esc(file)}</div>${kind === 'func' ? `<div class="archive-tools"><button class="danger-btn" onclick="deleteFuncImage('${esc(file)}')">[ 删除 ]</button></div>` : ''}</div>`;
+    function assetItem(file, kind) {
+      const src = kind === 'fate' ? `/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}` : `/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}`;
+      return `<div class="asset-item"><div class="thumb"><img src="${src}" alt="${esc(file)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div>${kind === 'func' ? `<button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')">[ 删除 ]</button>` : ''}</div>`;
     }
 
     function renderCards() {
-      const page = $('#page-cards');
-      page.innerHTML = `
-        <div class="page-grid">
-          <section class="panel span-8 breakout">
+      $('#page-cards').innerHTML = `
+        <div class="grid">
+          <section class="panel col-8">
             <div class="panel-head">
               <div>
-                <div class="panel-title">功能牌池</div>
-                <div class="panel-note">支持新增、批量添加、编辑、删除与总量保存。</div>
+                <div class="panel-title">功能牌列表</div>
+                <div class="panel-note">中文标签直显，编辑器改成引导式效果生成，不再让用户直接猜标签含义。</div>
               </div>
-              <div class="button-row">
-                <button class="solid-btn" onclick="openFuncEditor(-1)">[ 新增功能牌 ]</button>
-                <button class="ghost-btn" onclick="batchAddCards()">[ 批量添加 ]</button>
-                <button class="ghost-btn" onclick="uploadFuncImages()">[ 上传图片 ]</button>
-                <button class="ghost-btn" onclick="saveFuncCards()">[ 保存全部 ]</button>
+              <div class="row">
+                <button class="btn-strong" onclick="openFuncEditor(-1)">[ 新增功能牌 ]</button>
+                <button class="btn" onclick="batchAddCards()">[ 批量添加 ]</button>
+                <button class="btn" onclick="uploadFuncImages()">[ 上传图片 ]</button>
+                <button class="btn" onclick="saveFuncCards()">[ 保存全部 ]</button>
               </div>
             </div>
-            <div class="card-grid">
-              ${state.funcCards.length ? state.funcCards.map((card, index) => funcCardTemplate(card, index)).join('') : '<div class="empty">功能牌池为空。</div>'}
+            <div class="card-list">
+              ${state.funcCards.map((card, i) => funcItem(card, i)).join('') || '<div class="empty">暂无功能牌</div>'}
             </div>
           </section>
-
-          <section class="panel span-4">
+          <section class="panel col-4">
             <div class="panel-head">
               <div>
-                <div class="panel-title">图像库 / 缺图检测</div>
-                <div class="panel-note">删除图片资源后请及时同步卡牌引用。</div>
+                <div class="panel-title">功能牌图像库</div>
+                <div class="panel-note">缺图会直接列出来，便于追踪。</div>
               </div>
-              <button class="ghost-btn" onclick="refreshCardsAndOverview()">[ 重新扫描 ]</button>
+              <button class="btn" onclick="refreshCardAssets()">[ 重扫资源 ]</button>
             </div>
-            ${state.missingImages.length ? `<div class="rank-list" style="margin-bottom:12px;">${state.missingImages.map(item => `<div class="holder-card"><div>${esc(item.card_name || '未命名')}</div><p>缺失文件：${esc(item.filename || '未记录')}</p></div>`).join('')}</div>` : '<div class="helper" style="margin-bottom:12px;">当前未发现缺图引用。</div>'}
-            <div class="image-grid">
-              ${state.images.length ? state.images.map(file => imageTemplate(file, 'func')).join('') : '<div class="empty">暂无功能牌图片。</div>'}
+            <div class="stack" style="margin-bottom:12px;">
+              ${state.missingImages.map(item => `<div class="profile-card"><div>${esc(item.card_name || '未命名')}</div><div class="meta">缺失文件：${esc(item.filename || '未记录')}</div></div>`).join('') || '<div class="empty">当前没有缺图记录</div>'}
+            </div>
+            <div class="asset-grid">
+              ${state.images.map(file => assetItem(file, 'func')).join('') || '<div class="empty">暂无图片</div>'}
             </div>
           </section>
         </div>`;
     }
 
-    function funcCardTemplate(card, index) {
-      const hasImage = card.filename && state.images.includes(card.filename);
-      const src = hasImage ? `/assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
+    function funcItem(card, i) {
+      const has = card.filename && state.images.includes(card.filename);
+      const src = has ? `/assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
+      const tags = (card.tags || []).map(tag => `<span class="badge">${esc(humanizeTag(tag))}</span>`).join('') || '<span class="helper">未设定效果</span>';
       return `
-        <article class="archive-card ${state.missingImages.some(item => item.filename === card.filename && item.card_name === card.card_name) ? 'active' : ''}">
-          <div class="archive-thumb">${hasImage ? `<img src="${src}" alt="功能牌图片">` : '无图像'}</div>
-          <div>
-            <div class="archive-title">${esc(card.card_name || '未命名功能牌')}</div>
-            <div class="archive-meta">稀有度：${card.rarity ?? 1}</div>
-            <div class="archive-meta">标签：${esc((card.tags || []).join(' / ') || '未设定')}</div>
-            <div class="archive-meta">图片文件：${esc(card.filename || '未绑定')}</div>
-            <div class="archive-meta">描述：${esc(card.description || '无')}</div>
-            <div class="archive-tools">
-              <button class="solid-btn" onclick="openFuncEditor(${index})">[ 编辑 ]</button>
-              <button class="danger-btn" onclick="deleteFuncCard(${index})">[ 删除 ]</button>
+        <article class="card-item">
+          <div class="card-layout">
+            <div class="thumb">${has ? `<img src="${src}" alt="功能牌图片">` : '无图像'}</div>
+            <div>
+              <h3>${esc(card.card_name || '未命名功能牌')}</h3>
+              <div class="row" style="margin-bottom:8px;">
+                <span class="badge light">${esc(rarityLabelMap[Number(card.rarity) || 1] || '普通')}</span>
+                <span class="badge">${esc(typeLabelMap[card.type] || '未分类')}</span>
+                <span class="badge">文件 ${esc(card.filename || '未绑定')}</span>
+              </div>
+              <div class="row" style="margin-bottom:8px;">${tags}</div>
+              <div class="card-desc">${esc(card.description || '无描述')}</div>
+              <div class="row" style="margin-top:10px;">
+                <button class="btn-strong" onclick="openFuncEditor(${i})">[ 编辑 ]</button>
+                <button class="btn-danger" onclick="deleteFuncCard(${i})">[ 删除 ]</button>
+              </div>
             </div>
           </div>
         </article>`;
     }
 
     function renderStats() {
-      const page = $('#page-stats');
-      const holders = Object.entries(state.stats.card_holders || {}).sort((a, b) => b[1] - a[1]);
-      page.innerHTML = `
-        <div class="page-grid">
-          <section class="panel span-4 breakout">
-            <div class="panel-head"><div><div class="panel-title">规模统计</div><div class="panel-note">当前方案数据边界内的总体量。</div></div></div>
-            <div class="kpi-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
-              <div class="metric"><div class="metric-value">${state.stats.total_groups || 0}</div><div class="metric-label">群组数量</div></div>
-              <div class="metric"><div class="metric-value">${state.stats.total_users || 0}</div><div class="metric-label">用户数量</div></div>
-              <div class="metric"><div class="metric-value">${holders.length}</div><div class="metric-label">持牌种类</div></div>
-              <div class="metric"><div class="metric-value mono" style="font-size:18px;">${esc(state.currentProfile)}</div><div class="metric-label">方案标识</div></div>
+      const holders = Object.entries(state.stats.card_holders || {}).sort((a,b) => b[1] - a[1]);
+      $('#page-stats').innerHTML = `
+        <div class="grid">
+          <section class="panel col-12">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title">方案切换与总体统计</div>
+                <div class="panel-note">可以直接切换不同方案后查看统计。</div>
+              </div>
+              <div class="row">
+                <select class="select" style="width:220px;" onchange="useProfile(this.value)">${state.profiles.map(p => `<option value="${esc(p.profile_id)}" ${p.profile_id === state.currentProfile ? 'selected' : ''}>${esc(p.display_name)}</option>`).join('')}</select>
+              </div>
+            </div>
+            <div class="stat-grid">
+              <div class="stat-item"><b>${state.stats.total_groups || 0}</b><span>群组数量</span></div>
+              <div class="stat-item"><b>${state.stats.total_users || 0}</b><span>用户数量</span></div>
+              <div class="stat-item"><b>${state.funcCards.length}</b><span>功能牌总量</span></div>
+              <div class="stat-item"><b>${state.fateCards.length}</b><span>命运牌总量</span></div>
             </div>
           </section>
-
-          <section class="panel span-4">
-            <div class="panel-head"><div><div class="panel-title">群组明细</div><div class="panel-note">每个群对应的用户量。</div></div></div>
-            ${state.stats.groups?.length ? `<div class="group-grid">${state.stats.groups.map(group => `<div class="group-card"><div>${esc(group.group_id)}</div><p>用户数量：${group.user_count || 0}</p></div>`).join('')}</div>` : '<div class="empty">暂无群组数据。</div>'}
+          <section class="panel col-6">
+            <div class="panel-head"><div><div class="panel-title">群组明细</div></div></div>
+            <div class="stats-list">
+              ${(state.stats.groups || []).map(g => `<div class="stat-item"><b style="font-size:18px;">${esc(g.group_id)}</b><span>用户数量 ${g.user_count || 0}</span></div>`).join('') || '<div class="empty">暂无群组数据</div>'}
+            </div>
           </section>
-
-          <section class="panel span-4">
-            <div class="panel-head"><div><div class="panel-title">持牌排行</div><div class="panel-note">按人数由高到低排序。</div></div></div>
-            ${holders.length ? `<div class="rank-list">${holders.slice(0, 16).map((entry, index) => `<div class="rank-item"><div class="rank-no">${index + 1}</div><div>${esc(entry[0])}</div><div>${entry[1]} 人</div></div>`).join('')}</div>` : '<div class="empty">暂无持牌排行。</div>'}
+          <section class="panel col-6">
+            <div class="panel-head"><div><div class="panel-title">持牌排行</div></div></div>
+            <div class="stats-list">
+              ${holders.map((item, idx) => `<div class="stat-item"><b style="font-size:18px;">#${idx + 1} ${esc(item[0])}</b><span>${item[1]} 人持有</span></div>`).join('') || '<div class="empty">暂无持牌排行</div>'}
+            </div>
           </section>
         </div>`;
     }
 
     function renderAll() {
+      updateTop();
       renderOverview();
-      renderProfiles();
-      renderAccess();
       renderRuntime();
       renderSignin();
       renderFate();
       renderCards();
       renderStats();
-      setHeadline(state.activePage || 'overview');
+      setPage(state.activePage);
     }
 
-    async function useProfile(profileId) {
-      state.currentProfile = profileId;
-      updateCurrentProfileUI();
-      await Promise.all([loadRuntime(), loadGroupAccess(), loadSignInTexts(), loadFateCards(), loadFuncCards(), loadStats()]);
-      updateCurrentProfileUI();
+    async function useProfile(id) {
+      state.currentProfile = id;
+      await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
       renderAll();
-      toast(`已切换到方案：${getProfileName(profileId)}`);
+      showToast(`已切换到方案：${getProfileName(id)}`);
     }
 
-    async function renameProfile(profileId) {
-      const current = state.profiles.find(item => item.profile_id === profileId);
-      const name = window.prompt('请输入新的方案名称', current?.display_name || profileId);
+    async function renameProfile(id) {
+      const current = state.profiles.find(p => p.profile_id === id);
+      const name = prompt('请输入新的方案名称', current?.display_name || id);
       if (!name) return;
-      const res = await apiPost('/api/profile_meta', { profile_id: profileId, display_name: name, cover_image: '' });
-      if (res.ok) {
-        await loadProfiles();
-        updateCurrentProfileUI();
-        renderProfiles();
-        renderOverview();
-        toast('方案名称已更新。');
-      } else {
-        toast(res.error || '重命名失败。', 'bad');
-      }
+      const res = await apiPost('/api/profile_meta', { profile_id:id, display_name:name, cover_image:'' });
+      if (res.ok) { await loadProfiles(); renderAll(); showToast('方案名称已更新。'); }
+      else showToast(res.error || '重命名失败。', true);
     }
 
-    async function promptBindGroup(profileId) {
-      const gid = window.prompt('请输入要绑定的群号');
+    async function bindGroupPrompt(id) {
+      const gid = prompt('请输入群号');
       if (!gid) return;
-      if (!/^\d+$/.test(gid)) return toast('群号格式无效。', 'bad');
-      const res = await apiPost('/api/profile_bind_group', { profile_id: profileId, group_id: gid });
-      if (res.ok) {
-        await loadProfiles();
-        await loadStats();
-        updateCurrentProfileUI();
-        renderProfiles();
-        renderOverview();
-        renderStats();
-        toast('群号绑定完成。');
-      } else {
-        toast(res.error || '绑定失败。', 'bad');
-      }
+      if (!/^\d+$/.test(gid)) return showToast('群号格式无效。', true);
+      const res = await apiPost('/api/profile_bind_group', { profile_id:id, group_id:gid });
+      if (res.ok) { await loadProfiles(); await loadStats(); renderAll(); showToast('群号绑定成功。'); }
+      else showToast(res.error || '绑定失败。', true);
     }
 
-    async function unbindGroup(profileId, gid) {
-      if (!window.confirm(`确认解绑群号 ${gid} 吗？`)) return;
-      const res = await apiPost('/api/profile_unbind_group', { profile_id: profileId, group_id: gid });
-      if (res.ok) {
-        await loadProfiles();
-        await loadStats();
-        updateCurrentProfileUI();
-        renderProfiles();
-        renderOverview();
-        renderStats();
-        toast('群号已解绑。');
-      } else {
-        toast(res.error || '解绑失败。', 'bad');
-      }
+    async function unbindGroup(id, gid) {
+      if (!confirm(`确认解绑群号 ${gid} 吗？`)) return;
+      const res = await apiPost('/api/profile_unbind_group', { profile_id:id, group_id:gid });
+      if (res.ok) { await loadProfiles(); await loadStats(); renderAll(); showToast('群号已解绑。'); }
+      else showToast(res.error || '解绑失败。', true);
     }
+
+    function openDialog(title, html) {
+      $('#dialogTitle').textContent = title;
+      $('#dialogBody').innerHTML = html;
+      $('#dialog').classList.add('show');
+    }
+    function closeDialog() { $('#dialog').classList.remove('show'); }
 
     function openCreateProfileDialog() {
-      $('#dialogTitle').textContent = '新建方案';
-      $('#dialogBody').innerHTML = `
+      openDialog('新建方案', `
         <div class="split">
           <div>
             <div class="field-grid">
-              <div class="field"><label>方案名称</label><input class="input" id="newProfileName" placeholder="例如：主线活动组"></div>
-              <div class="field"><label>方案标识</label><input class="input" id="newProfileId" placeholder="留空则自动生成"></div>
+              <div class="field"><label>方案名称</label><input class="input" id="newProfileName"></div>
+              <div class="field"><label>方案标识（可留空）</label><input class="input" id="newProfileId"></div>
             </div>
-            <div class="field" style="margin-top:12px;"><label>复制来源</label><select class="select" id="copyFromSelect">${state.profiles.map(item => `<option value="${esc(item.profile_id)}">${esc(item.display_name)}</option>`).join('')}</select></div>
-            <div class="archive-tools" style="margin-top:14px;"><button class="solid-btn" onclick="createProfileConfirm()">[ 确认创建 ]</button></div>
+            <div class="field" style="margin-top:12px;"><label>复制来源</label><select class="select" id="copyFrom">${state.profiles.map(p => `<option value="${esc(p.profile_id)}">${esc(p.display_name)}</option>`).join('')}</select></div>
+            <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="createProfileConfirm()">[ 确认创建 ]</button></div>
           </div>
-          <div class="helper">
-            新建方案时会复制来源方案的功能牌、命运牌、签到配置、运行配置与资源文件。
-            <br><br>
-            方案标识若留空，则会基于方案名称自动生成。
-          </div>
-        </div>`;
-      $('#editorDialog').classList.add('show');
+          <div class="helper">新方案会复制来源方案的功能牌、命运牌、签到配置、运行配置和资源文件。</div>
+        </div>`);
     }
 
     async function createProfileConfirm() {
       const name = $('#newProfileName')?.value?.trim();
-      const profileId = $('#newProfileId')?.value?.trim();
-      const copyFrom = $('#copyFromSelect')?.value || 'default';
-      if (!name) return toast('方案名称不能为空。', 'bad');
-      const res = await apiPost('/api/profiles', { name, profile_id: profileId, copy_from: copyFrom });
-      if (res.ok) {
-        closeDialog();
-        await loadProfiles();
-        renderProfiles();
-        renderOverview();
-        updateCurrentProfileUI();
-        toast('新方案已创建。');
-      } else {
-        toast(res.error || '创建失败。', 'bad');
-      }
+      const profile_id = $('#newProfileId')?.value?.trim();
+      const copy_from = $('#copyFrom')?.value || 'default';
+      if (!name) return showToast('方案名称不能为空。', true);
+      const res = await apiPost('/api/profiles', { name, profile_id, copy_from });
+      if (res.ok) { closeDialog(); await loadProfiles(); renderAll(); showToast('新方案已创建。'); }
+      else showToast(res.error || '创建失败。', true);
     }
 
-    function closeDialog() { $('#editorDialog').classList.remove('show'); }
+    function setAccessMode(mode) {
+      state.groupAccess.mode = mode;
+      renderOverview();
+    }
 
     async function saveGroupAccess() {
-      state.groupAccess.mode = $('#accessMode')?.value || 'off';
       state.groupAccess.blacklist = ($('#blacklistInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
       state.groupAccess.whitelist = ($('#whitelistInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
       const res = await apiPost('/api/group_access', { config: state.groupAccess });
-      if (res.ok) {
-        toast('访问控制已保存。');
-        renderOverview();
-      } else {
-        toast(res.error || '保存失败。', 'bad');
-      }
+      if (res.ok) showToast('访问控制已保存。');
+      else showToast(res.error || '保存失败。', true);
     }
 
     function toggleRuntime(path, el) {
-      ensureRuntimeShape();
-      const next = !getDeepValue(state.runtimeConfig, path);
-      setDeepValue(state.runtimeConfig, path, next);
+      const next = !getDeep(state.runtimeConfig, path);
+      setDeep(state.runtimeConfig, path, next);
       el.classList.toggle('on', next);
     }
-
     function setRuntimeValue(path, value) {
-      ensureRuntimeShape();
-      const finalValue = value === '' ? '' : (isNaN(value) || String(value).trim() === '' ? value : Number(value));
-      setDeepValue(state.runtimeConfig, path, finalValue);
+      const finalVal = value === '' ? '' : (isNaN(value) ? value : Number(value));
+      setDeep(state.runtimeConfig, path, finalVal);
     }
-
-    async function saveRuntimeConfig() {
+    async function saveRuntime() {
       const res = await apiPost('/api/runtime_config', { config: state.runtimeConfig });
-      if (res.ok) toast('运行配置已保存。');
-      else toast(res.error || '保存失败。', 'bad');
+      if (res.ok) showToast('运行配置已保存。');
+      else showToast(res.error || '保存失败。', true);
     }
 
-    function setRangeField(index, key, value) {
-      state.signInTexts.luck_ranges[index][key] = value;
+    function toggleEventSelect(kind, idx, checked) {
+      const target = kind === 'good' ? state.goodSelected : state.badSelected;
+      if (checked && !target.includes(idx)) target.push(idx);
+      if (!checked) {
+        const pos = target.indexOf(idx);
+        if (pos >= 0) target.splice(pos, 1);
+      }
     }
-
-    function setRangeComments(index, value) {
-      state.signInTexts.luck_ranges[index].comments = value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
-    }
-
-    function addLuckRange() {
-      state.signInTexts.luck_ranges.push({ label: '新区间', min: 1, max: 100, gold_delta: 0, comments: [] });
+    function removeEvent(kind, idx) {
+      const arr = kind === 'good' ? state.signInTexts.good_things : state.signInTexts.bad_things;
+      arr.splice(idx, 1);
+      if (kind === 'good') state.goodSelected = []; else state.badSelected = [];
       renderSignin();
     }
-
-    function removeLuckRange(index) {
-      state.signInTexts.luck_ranges.splice(index, 1);
+    function deleteSelectedEvents(kind) {
+      const arr = kind === 'good' ? state.signInTexts.good_things : state.signInTexts.bad_things;
+      const selected = new Set(kind === 'good' ? state.goodSelected : state.badSelected);
+      if (!selected.size) return showToast('请先勾选要删除的条目。', true);
+      const remain = arr.filter((_, i) => !selected.has(i));
+      if (kind === 'good') { state.signInTexts.good_things = remain; state.goodSelected = []; }
+      else { state.signInTexts.bad_things = remain; state.badSelected = []; }
       renderSignin();
     }
-
-    async function saveSignInTexts() {
-      state.signInTexts.good_things = ($('#goodThingsInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
-      state.signInTexts.bad_things = ($('#badThingsInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+    function addSingleEvent(kind) {
+      const val = prompt(`请输入要加入${kind === 'good' ? '好事' : '坏事'}列表的文案`);
+      if (!val) return;
+      (kind === 'good' ? state.signInTexts.good_things : state.signInTexts.bad_things).push(val);
+      renderSignin();
+    }
+    function batchAddEvents(kind) {
+      const raw = prompt(`每行一条，批量增加${kind === 'good' ? '好事' : '坏事'}文案`);
+      if (!raw) return;
+      raw.split(/\r?\n/).map(v => v.trim()).filter(Boolean).forEach(v => (kind === 'good' ? state.signInTexts.good_things : state.signInTexts.bad_things).push(v));
+      renderSignin();
+    }
+    function addRange() {
+      state.signInTexts.luck_ranges.push({ label:'新区间', min:1, max:100, gold_delta:0, comments:[] });
+      renderSignin();
+    }
+    function removeRange(i) {
+      state.signInTexts.luck_ranges.splice(i, 1);
+      renderSignin();
+    }
+    function setRange(i, key, value) { state.signInTexts.luck_ranges[i][key] = value; }
+    function setRangeComments(i, value) { state.signInTexts.luck_ranges[i].comments = value.split(/\r?\n/).map(v => v.trim()).filter(Boolean); }
+    function previewSignin() {
+      const ranges = state.signInTexts.luck_ranges || [];
+      if (!ranges.length) return showToast('请先配置运势区间。', true);
+      const range = ranges[Math.floor(Math.random() * ranges.length)];
+      const comment = (range.comments || [])[Math.floor(Math.random() * (range.comments?.length || 1))] || '今日无额外批注。';
+      const good = (state.signInTexts.good_things || [])[Math.floor(Math.random() * Math.max(1, state.signInTexts.good_things.length))] || '暂无好事';
+      const bad = (state.signInTexts.bad_things || [])[Math.floor(Math.random() * Math.max(1, state.signInTexts.bad_things.length))] || '暂无坏事';
+      const score = Math.floor(Math.random() * Math.max(1, (range.max ?? 100) - (range.min ?? 1) + 1)) + (range.min ?? 1);
+      $('#signinPreview').textContent = `今日运势【${range.label || '未知'}】｜数值 ${score}｜金币修正 ${range.gold_delta || 0}｜点评：${comment}｜宜：${good}｜忌：${bad}`;
+    }
+    async function saveSignin() {
       const res = await apiPost('/api/sign_in_texts', { texts: state.signInTexts });
-      if (res.ok) toast('签到配置已保存。');
-      else toast(res.error || '保存失败。', 'bad');
+      if (res.ok) showToast('签到配置已保存。');
+      else showToast(res.error || '保存失败。', true);
     }
 
     function openFateEditor(index) {
-      const card = index >= 0 ? JSON.parse(JSON.stringify(state.fateCards[index])) : { text: '', gold: 0, filename: '' };
-      state.dialogMode = 'fate';
-      state.dialogIndex = index;
-      $('#dialogTitle').textContent = index >= 0 ? '编辑命运牌' : '新增命运牌';
-      $('#dialogBody').innerHTML = `
+      state.editingFateIndex = index;
+      const card = index >= 0 ? JSON.parse(JSON.stringify(state.fateCards[index])) : { text:'', gold:0, filename:'' };
+      openDialog(index >= 0 ? '编辑命运牌' : '新增命运牌', `
         <div class="split">
           <div>
             <div class="field-grid">
-              <div class="field"><label>命运文案</label><input class="input" id="fateText" value="${esc(card.text || '')}"></div>
-              <div class="field"><label>金币影响</label><input class="input" type="number" id="fateGold" value="${esc(card.gold ?? 0)}"></div>
+              <div class="field"><label>文案</label><input class="input" id="fateText" value="${esc(card.text || '')}"></div>
+              <div class="field"><label>金币值</label><input class="input" type="number" id="fateGold" value="${esc(card.gold ?? card.value ?? 0)}"></div>
             </div>
-            <div class="field" style="margin-top:12px;"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}" placeholder="从右侧图像库选择或手动输入"></div>
-            <div class="archive-tools" style="margin-top:14px;"><button class="solid-btn" onclick="saveFateEditor()">[ 写入命运牌 ]</button></div>
+            <div class="field" style="margin-top:12px;"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}"></div>
+            <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFateEditor()">[ 写入命运牌 ]</button></div>
           </div>
           <div>
-            <div class="tiny-label">[ 命运图像库 ]</div>
-            <div class="image-grid">${state.fateImages.length ? state.fateImages.map(file => `<div class="image-card"><div class="archive-thumb" style="width:100%;height:110px;"><img src="/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}" alt="${esc(file)}"></div><div class="helper" style="margin-top:8px;word-break:break-all;">${esc(file)}</div><div class="archive-tools"><button class="mini-btn" onclick="pickDialogImage('${esc(file)}','fateFilename')">选用</button></div></div>`).join('') : '<div class="empty">暂无图片。</div>'}</div>
+            <div class="panel-title" style="font-size:14px;margin-bottom:10px;">可用图片</div>
+            <div class="asset-grid">${state.fateImages.map(file => `<div class="asset-item"><div class="thumb"><img src="/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('fateFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
           </div>
-        </div>`;
-      $('#editorDialog').classList.add('show');
+        </div>`);
     }
-
+    function pickFile(id, value) { const el = document.getElementById(id); if (el) el.value = value; }
     async function saveFateEditor() {
-      const payload = {
-        text: $('#fateText')?.value?.trim() || '未命名命运牌',
-        gold: Number($('#fateGold')?.value || 0),
-        filename: $('#fateFilename')?.value?.trim() || '',
-      };
-      if (state.dialogIndex >= 0) state.fateCards[state.dialogIndex] = payload;
-      else state.fateCards.push(payload);
+      const payload = { text: $('#fateText')?.value?.trim() || '未命名命运牌', gold: Number($('#fateGold')?.value || 0), filename: $('#fateFilename')?.value?.trim() || '' };
+      if (state.editingFateIndex >= 0) state.fateCards[state.editingFateIndex] = payload; else state.fateCards.push(payload);
       closeDialog();
       renderFate();
       await saveFateCards(false);
     }
-
-    async function saveFateCards(showToast = true) {
+    async function saveFateCards(show = true) {
       const res = await apiPost('/api/fate_cards', { cards: state.fateCards });
-      if (res.ok) { if (showToast) toast('命运牌池已保存。'); }
-      else toast(res.error || '保存失败。', 'bad');
+      if (res.ok) { if (show) showToast('命运牌已保存。'); }
+      else showToast(res.error || '保存失败。', true);
     }
-
-    async function deleteFateCard(index) {
-      if (!window.confirm('确认删除该命运牌吗？')) return;
-      state.fateCards.splice(index, 1);
+    async function deleteFateCard(i) {
+      if (!confirm('确认删除该命运牌吗？')) return;
+      state.fateCards.splice(i, 1);
       renderFate();
       await saveFateCards(false);
-      toast('命运牌已删除。');
+      showToast('命运牌已删除。');
+    }
+    async function uploadFateImages() {
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+      input.onchange = async () => {
+        const fd = new FormData(); [...input.files].forEach(f => fd.append('files', f));
+        const res = await fetch(`/api/upload_fate_image?profile=${encodeURIComponent(state.currentProfile)}`, { method:'POST', body:fd });
+        const data = await res.json();
+        if (data.ok) { await loadFate(); renderFate(); showToast('命运牌图片上传完成。'); }
+        else showToast(data.error || '上传失败。', true);
+      };
+      input.click();
+    }
+
+    function normalizeEffectsForCard(card) {
+      const tags = card?.tags || [];
+      const parsed = tags.map(tagToEffect).filter(Boolean);
+      return parsed.length ? parsed : [{ key: card?.type === 'defense' ? 'add_shield' : card?.type === 'heal' ? 'cleanse' : 'steal', params:[] }];
+    }
+
+    function renderEffectRows(type) {
+      const list = state.editingFuncEffects || [];
+      return list.map((effect, idx) => {
+        const options = effectCatalog[type] || [];
+        const chosen = options.find(o => o.key === effect.key) || options[0] || { key:'', params:[] };
+        const params = chosen.params || [];
+        return `
+          <div class="effect-row">
+            <div class="field"><label>效果类别</label><select class="select" onchange="setEffectKey(${idx}, this.value)">${options.map(o => `<option value="${esc(o.key)}" ${o.key === effect.key ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></div>
+            <div class="field"><label>效果摘要</label><div class="tag-preview">${esc(effectLabel(effect))}</div></div>
+            <div class="field"><label>参数</label><div class="field-grid ${params.length >= 3 ? 'three' : params.length === 2 ? '' : ''}">${params.map((name, pi) => `<input class="input" placeholder="${esc(name)}" value="${esc(effect.params?.[pi] || '')}" onchange="setEffectParam(${idx}, ${pi}, this.value)">`).join('') || '<div class="helper">此效果无额外参数</div>'}</div></div>
+            <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})">[ 删除效果 ]</button></div>
+          </div>`;
+      }).join('');
+    }
+
+    function effectPreviewHtml() {
+      const tags = state.editingFuncEffects.map(effectToTag).filter(Boolean);
+      return tags.length ? tags.map(tag => `<span class="badge">${esc(humanizeTag(tag))}</span>`).join('') : '<span class="helper">尚未生成任何效果。</span>';
     }
 
     function openFuncEditor(index) {
-      const card = index >= 0 ? JSON.parse(JSON.stringify(state.funcCards[index])) : { card_name: '', rarity: 1, tags: [], filename: '', description: '' };
-      state.dialogMode = 'func';
-      state.dialogIndex = index;
-      $('#dialogTitle').textContent = index >= 0 ? '编辑功能牌' : '新增功能牌';
-      $('#dialogBody').innerHTML = `
+      state.editingFuncIndex = index;
+      const card = index >= 0 ? JSON.parse(JSON.stringify(state.funcCards[index])) : { card_name:'', type:'attack', rarity:1, filename:'', description:'', tags:[] };
+      state.editingFuncEffects = normalizeEffectsForCard(card);
+      const type = card.type || 'attack';
+      openDialog(index >= 0 ? '编辑功能牌' : '新增功能牌', funcEditorHtml(card, type));
+    }
+
+    function funcEditorHtml(card, type) {
+      return `
         <div class="split">
           <div>
             <div class="field-grid">
               <div class="field"><label>卡牌名称</label><input class="input" id="funcName" value="${esc(card.card_name || '')}"></div>
-              <div class="field"><label>稀有度</label><input class="input" type="number" id="funcRarity" value="${esc(card.rarity ?? 1)}"></div>
+              <div class="field"><label>稀有度</label><select class="select" id="funcRarity">${Object.entries(rarityLabelMap).map(([v,t]) => `<option value="${v}" ${Number(card.rarity) === Number(v) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
             </div>
-            <div class="field" style="margin-top:12px;"><label>标签（使用逗号分隔）</label><input class="input" id="funcTags" value="${esc((card.tags || []).join(','))}"></div>
-            <div class="field" style="margin-top:12px;"><label>图片文件名</label><input class="input" id="funcFilename" value="${esc(card.filename || '')}" placeholder="从右侧图像库选择或手动输入"></div>
+            <div class="field-grid" style="margin-top:12px;">
+              <div class="field"><label>大类</label><select class="select" id="funcType" onchange="changeFuncType(this.value)">${Object.entries(typeLabelMap).map(([v,t]) => `<option value="${v}" ${type === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+              <div class="field"><label>图片文件名</label><input class="input" id="funcFilename" value="${esc(card.filename || '')}"></div>
+            </div>
             <div class="field" style="margin-top:12px;"><label>描述</label><textarea class="textarea" id="funcDesc">${esc(card.description || '')}</textarea></div>
-            <div class="archive-tools" style="margin-top:14px;"><button class="solid-btn" onclick="saveFuncEditor()">[ 写入功能牌 ]</button></div>
+            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">效果引导</div><div class="panel-note">先选大类，再选效果，再填参数。会自动转成标签，但展示给你的都是中文。</div></div><button class="btn" onclick="addEffectRow()">[ 新增效果 ]</button></div>
+            <div class="effect-builder" id="effectBuilder">${renderEffectRows(type)}</div>
+            <div class="field" style="margin-top:12px;"><label>标签预览</label><div class="tag-preview" id="effectPreview">${effectPreviewHtml()}</div></div>
+            <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFuncEditor()">[ 写入功能牌 ]</button></div>
           </div>
           <div>
-            <div class="tiny-label">[ 功能牌图像库 ]</div>
-            <div class="image-grid">${state.images.length ? state.images.map(file => `<div class="image-card"><div class="archive-thumb" style="width:100%;height:110px;"><img src="/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}" alt="${esc(file)}"></div><div class="helper" style="margin-top:8px;word-break:break-all;">${esc(file)}</div><div class="archive-tools"><button class="mini-btn" onclick="pickDialogImage('${esc(file)}','funcFilename')">选用</button></div></div>`).join('') : '<div class="empty">暂无图片。</div>'}</div>
+            <div class="panel-title" style="font-size:14px;margin-bottom:10px;">图像库</div>
+            <div class="asset-grid">${state.images.map(file => `<div class="asset-item"><div class="thumb"><img src="/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('funcFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
           </div>
         </div>`;
-      $('#editorDialog').classList.add('show');
     }
 
-    function pickDialogImage(file, targetId) {
-      const target = document.getElementById(targetId);
-      if (target) target.value = file;
+    function changeFuncType(type) {
+      const options = effectCatalog[type] || [];
+      state.editingFuncEffects = [{ key: options[0]?.key || '', params: [] }];
+      const name = $('#funcName')?.value || '';
+      const rarity = $('#funcRarity')?.value || 1;
+      const filename = $('#funcFilename')?.value || '';
+      const description = $('#funcDesc')?.value || '';
+      $('#dialogBody').innerHTML = funcEditorHtml({ card_name:name, rarity:Number(rarity), filename, description }, type);
     }
-
+    function addEffectRow() {
+      const type = $('#funcType')?.value || 'attack';
+      const key = effectCatalog[type]?.[0]?.key || '';
+      state.editingFuncEffects.push({ key, params: [] });
+      changeFuncType(type);
+      state.editingFuncEffects[state.editingFuncEffects.length - 1] = { key, params: [] };
+      $('#effectBuilder').innerHTML = renderEffectRows(type);
+      $('#effectPreview').innerHTML = effectPreviewHtml();
+    }
+    function removeEffectRow(idx) {
+      state.editingFuncEffects.splice(idx, 1);
+      const type = $('#funcType')?.value || 'attack';
+      if (!state.editingFuncEffects.length) state.editingFuncEffects.push({ key: effectCatalog[type][0].key, params: [] });
+      $('#effectBuilder').innerHTML = renderEffectRows(type);
+      $('#effectPreview').innerHTML = effectPreviewHtml();
+    }
+    function setEffectKey(idx, key) {
+      state.editingFuncEffects[idx] = { key, params: [] };
+      const type = $('#funcType')?.value || 'attack';
+      $('#effectBuilder').innerHTML = renderEffectRows(type);
+      $('#effectPreview').innerHTML = effectPreviewHtml();
+    }
+    function setEffectParam(idx, pidx, val) {
+      state.editingFuncEffects[idx].params ||= [];
+      state.editingFuncEffects[idx].params[pidx] = val;
+      $('#effectPreview').innerHTML = effectPreviewHtml();
+    }
     async function saveFuncEditor() {
       const payload = {
         card_name: $('#funcName')?.value?.trim() || '未命名功能牌',
+        type: $('#funcType')?.value || 'attack',
         rarity: Number($('#funcRarity')?.value || 1),
-        tags: ($('#funcTags')?.value || '').split(',').map(v => v.trim()).filter(Boolean),
         filename: $('#funcFilename')?.value?.trim() || '',
         description: $('#funcDesc')?.value?.trim() || '',
+        tags: state.editingFuncEffects.map(effectToTag).filter(Boolean)
       };
-      if (state.dialogIndex >= 0) state.funcCards[state.dialogIndex] = payload;
+      if (state.editingFuncIndex >= 0) state.funcCards[state.editingFuncIndex] = payload;
       else state.funcCards.push(payload);
       closeDialog();
       renderCards();
       await saveFuncCards(false);
-      await refreshMissingImages(false);
-      renderOverview();
+      await refreshCardAssets(false);
+      renderCards();
+      showToast('功能牌已写入。');
     }
-
-    async function saveFuncCards(showToast = true) {
+    async function saveFuncCards(show = true) {
       const res = await apiPost('/api/func_cards', { cards: state.funcCards });
-      if (res.ok) { if (showToast) toast('功能牌池已保存。'); }
-      else toast(res.error || '保存失败。', 'bad');
+      if (res.ok) { if (show) showToast('功能牌已保存。'); }
+      else showToast(res.error || '保存失败。', true);
     }
-
-    async function deleteFuncCard(index) {
-      if (!window.confirm('确认删除该功能牌吗？')) return;
-      state.funcCards.splice(index, 1);
+    async function deleteFuncCard(i) {
+      if (!confirm('确认删除该功能牌吗？')) return;
+      state.funcCards.splice(i, 1);
       renderCards();
       await saveFuncCards(false);
-      await refreshMissingImages(false);
-      renderOverview();
-      toast('功能牌已删除。');
+      await refreshCardAssets(false);
+      renderCards();
+      showToast('功能牌已删除。');
     }
-
     async function batchAddCards() {
-      const raw = window.prompt('按每行一张的格式输入：卡牌名,稀有度,标签1|标签2');
+      const raw = prompt('每行格式：卡牌名,大类(attack/heal/defense),稀有度');
       if (!raw) return;
-      raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean).forEach(line => {
-        const [name, rarity, tags] = line.split(',').map(item => item?.trim() || '');
+      raw.split(/\r?\n/).map(v => v.trim()).filter(Boolean).forEach(line => {
+        const [name, type, rarity] = line.split(',').map(s => s?.trim() || '');
         if (!name) return;
-        state.funcCards.push({
-          card_name: name,
-          rarity: Number(rarity || 1),
-          tags: (tags || '').split('|').map(v => v.trim()).filter(Boolean),
-          filename: '',
-          description: '',
-        });
+        state.funcCards.push({ card_name:name, type:type || 'attack', rarity:Number(rarity || 1), filename:'', description:'', tags:[] });
       });
       renderCards();
       await saveFuncCards(false);
-      toast('批量添加完成。');
+      showToast('批量添加完成。');
     }
-
     async function uploadFuncImages() {
       const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.multiple = true;
+      input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
       input.onchange = async () => {
-        const form = new FormData();
-        [...input.files].forEach(file => form.append('files', file));
-        const res = await fetch(`/api/upload_image?profile=${encodeURIComponent(state.currentProfile)}`, { method: 'POST', body: form });
+        const fd = new FormData(); [...input.files].forEach(f => fd.append('files', f));
+        const res = await fetch(`/api/upload_image?profile=${encodeURIComponent(state.currentProfile)}`, { method:'POST', body:fd });
         const data = await res.json();
-        if (data.ok) {
-          toast(`功能牌图片上传成功：${(data.uploaded || []).join(' / ') || '完成'}`);
-          await loadFuncCards();
-          renderCards();
-          renderOverview();
-        } else toast(data.error || '上传失败。', 'bad');
+        if (data.ok) { await loadCards(); renderCards(); showToast('功能牌图片上传完成。'); }
+        else showToast(data.error || '上传失败。', true);
       };
       input.click();
     }
-
-    async function uploadFateImages() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.multiple = true;
-      input.onchange = async () => {
-        const form = new FormData();
-        [...input.files].forEach(file => form.append('files', file));
-        const res = await fetch(`/api/upload_fate_image?profile=${encodeURIComponent(state.currentProfile)}`, { method: 'POST', body: form });
-        const data = await res.json();
-        if (data.ok) {
-          toast(`命运牌图片上传成功：${(data.uploaded || []).join(' / ') || '完成'}`);
-          await loadFateCards();
-          renderFate();
-          renderOverview();
-        } else toast(data.error || '上传失败。', 'bad');
-      };
-      input.click();
-    }
-
     async function deleteFuncImage(file) {
-      if (!window.confirm(`确认删除图片 ${file} 吗？`)) return;
+      if (!confirm(`确认删除图片 ${file} 吗？`)) return;
       const res = await apiDelete(`/api/images/${encodeURIComponent(file)}`);
-      if (res.ok) {
-        await loadFuncCards();
-        renderCards();
-        renderOverview();
-        toast('图片资源已删除。');
-      } else toast(res.error || '删除失败。', 'bad');
+      if (res.ok) { await loadCards(); renderCards(); showToast('图片已删除。'); }
+      else showToast(res.error || '删除失败。', true);
+    }
+    async function refreshCardAssets(show = true) {
+      await loadCards();
+      if (show) showToast('资源扫描完成。');
     }
 
-    async function refreshMissingImages(showToast = true) {
-      const res = await apiGet('/api/check_missing_images');
-      if (res.ok) state.missingImages = res.missing || [];
-      if (showToast) toast('缺图扫描已完成。');
+    function bindEvents() {
+      $$('.nav-btn').forEach(btn => btn.addEventListener('click', () => setPage(btn.dataset.page)));
+      $('#reloadBtn').addEventListener('click', loadAll);
+      $('#openCreateBtn').addEventListener('click', openCreateProfileDialog);
+      $('#closeDialogBtn').addEventListener('click', closeDialog);
+      $('#dialog').addEventListener('click', (e) => { if (e.target.id === 'dialog') closeDialog(); });
     }
 
-    async function refreshCardsAndOverview() {
-      await loadFuncCards();
-      renderCards();
-      renderOverview();
-      toast('功能牌与资源状态已刷新。');
-    }
-
-    function switchPage(page) {
-      setHeadline(page);
-    }
-
-    function bindStaticEvents() {
-      $$('.nav-btn').forEach(btn => btn.addEventListener('click', () => switchPage(btn.dataset.page)));
-      $('#reloadAllBtn').addEventListener('click', loadEverything);
-      $('#openCreateProfileBtn').addEventListener('click', openCreateProfileDialog);
-      $('#dialogCloseBtn').addEventListener('click', closeDialog);
-      $('#editorDialog').addEventListener('click', (event) => {
-        if (event.target.id === 'editorDialog') closeDialog();
-      });
-    }
-
-    window.switchPage = switchPage;
     window.useProfile = useProfile;
     window.renameProfile = renameProfile;
-    window.promptBindGroup = promptBindGroup;
+    window.bindGroupPrompt = bindGroupPrompt;
     window.unbindGroup = unbindGroup;
     window.openCreateProfileDialog = openCreateProfileDialog;
     window.createProfileConfirm = createProfileConfirm;
+    window.setAccessMode = setAccessMode;
     window.saveGroupAccess = saveGroupAccess;
     window.toggleRuntime = toggleRuntime;
     window.setRuntimeValue = setRuntimeValue;
-    window.saveRuntimeConfig = saveRuntimeConfig;
-    window.addLuckRange = addLuckRange;
-    window.removeLuckRange = removeLuckRange;
-    window.setRangeField = setRangeField;
+    window.saveRuntime = saveRuntime;
+    window.toggleEventSelect = toggleEventSelect;
+    window.removeEvent = removeEvent;
+    window.deleteSelectedEvents = deleteSelectedEvents;
+    window.addSingleEvent = addSingleEvent;
+    window.batchAddEvents = batchAddEvents;
+    window.addRange = addRange;
+    window.removeRange = removeRange;
+    window.setRange = setRange;
     window.setRangeComments = setRangeComments;
-    window.saveSignInTexts = saveSignInTexts;
+    window.previewSignin = previewSignin;
+    window.saveSignin = saveSignin;
     window.openFateEditor = openFateEditor;
     window.saveFateEditor = saveFateEditor;
-    window.deleteFateCard = deleteFateCard;
     window.saveFateCards = saveFateCards;
+    window.deleteFateCard = deleteFateCard;
+    window.uploadFateImages = uploadFateImages;
+    window.pickFile = pickFile;
     window.openFuncEditor = openFuncEditor;
+    window.changeFuncType = changeFuncType;
+    window.addEffectRow = addEffectRow;
+    window.removeEffectRow = removeEffectRow;
+    window.setEffectKey = setEffectKey;
+    window.setEffectParam = setEffectParam;
     window.saveFuncEditor = saveFuncEditor;
-    window.deleteFuncCard = deleteFuncCard;
     window.saveFuncCards = saveFuncCards;
+    window.deleteFuncCard = deleteFuncCard;
     window.batchAddCards = batchAddCards;
     window.uploadFuncImages = uploadFuncImages;
-    window.uploadFateImages = uploadFateImages;
     window.deleteFuncImage = deleteFuncImage;
-    window.refreshCardsAndOverview = refreshCardsAndOverview;
-    window.pickDialogImage = pickDialogImage;
+    window.refreshCardAssets = refreshCardAssets;
 
     document.addEventListener('DOMContentLoaded', async () => {
-      bindStaticEvents();
-      await loadEverything();
+      bindEvents();
+      await loadAll();
     });
   </script>
 </body>

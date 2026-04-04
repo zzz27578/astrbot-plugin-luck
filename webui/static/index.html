@@ -766,7 +766,7 @@
       return await (await fetch(apiUrl(path), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json();
     }
     async function apiDeleteProfileById(profileId) {
-      return await apiPost('/api/profile_meta', { action:'delete', profile_id: profileId });
+      return await apiPost('/api/profile_remove', { profile_id: profileId });
     }
 
     function setPage(page) {

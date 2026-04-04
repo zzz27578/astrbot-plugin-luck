@@ -647,6 +647,19 @@ def _delete_profile_storage(profile_id: str) -> tuple[bool, str]:
     return True, ""
 
 
+async def api_remove_profile(request):
+    try:
+        body = await request.json()
+        profile_id = _resolve_delete_profile_id(request, body if isinstance(body, dict) else None)
+        ok, error = _delete_profile_storage(profile_id)
+        if not ok:
+            status = 404 if error == "profile not found" else 400 if error == "default profile cannot be deleted" else 500
+            return web.json_response({"ok": False, "error": error}, status=status)
+        return web.json_response({"ok": True, "deleted_profile": profile_id, "fallback_profile": DEFAULT_PROFILE_NAME})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
 async def api_delete_profile(request):
     try:
         body = None
@@ -770,6 +783,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/profile_meta", api_update_profile_meta)
     app.router.add_post("/api/profile_bind_group", api_bind_group_profile)
     app.router.add_post("/api/profile_unbind_group", api_unbind_group_profile)
+    app.router.add_post("/api/profile_remove", api_remove_profile)
     app.router.add_post("/api/profile_delete", api_profile_delete_post)
     app.router.add_get("/api/profile_delete", api_profile_delete_get)
     app.router.add_delete("/api/profiles/{profile_id}", api_delete_profile_by_path)

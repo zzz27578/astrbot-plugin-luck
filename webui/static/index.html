@@ -234,23 +234,26 @@
     .panel-title { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
     .panel-note { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
     .stack, .profile-list, .card-list, .asset-list, .event-list, .stats-list { display: grid; gap: 10px; }
-    .profile-list { grid-template-columns: 1fr; align-items: start; justify-items: start; }
+    .profile-list { grid-template-columns: 1fr; align-items: start; justify-items: stretch; }
     .profile-card {
-      display: inline-flex;
-      align-items: stretch;
-      gap: 6px;
+      display: grid;
+      grid-template-columns: minmax(0,1fr) 16px;
+      align-items: start;
+      gap: 8px;
       overflow: visible;
       position: relative;
       transition: .24s var(--ease);
-      width: auto;
+      width: 100%;
       max-width: 100%;
       padding: 8px 10px;
     }
     .profile-main {
       position: relative;
       z-index: 2;
-      width: auto;
-      max-width: 100%;
+      min-width: 0;
+      width: 100%;
+      display: grid;
+      gap: 6px;
     }
     .profile-main::after {
       content: "";
@@ -881,19 +884,20 @@
                 return `
                 <article class="profile-card ${p.profile_id === state.currentProfile ? 'active' : ''}">
                   <div class="profile-main">
-                    <div class="row profile-inline">
                       <h3>${esc(p.display_name || p.profile_id)}</h3>
+                    <div class="row" style="margin-bottom:6px;">
                       ${p.is_default ? '<span class="badge light">默认方案</span>' : ''}
-                      <span class="badge">群组 ${(p.group_count || 0)}</span>
-                      <span class="badge">用户 ${p.user_count || 0}</span>
-                      <span class="badge">功能牌 ${p.func_card_count || 0}</span>
-                      <span class="badge">命运牌 ${p.fate_card_count || 0}</span>
-                      ${(p.groups || []).slice(0,2).map(g => `<span class="badge">群 ${esc(g)}</span>`).join('')}
-                      ${(p.groups || []).length > 2 ? `<span class="badge">+${(p.groups || []).length - 2}</span>` : ''}
+                      <span class="badge">绑定群组 ${(p.group_count || 0)}</span>
+                    </div>
+                    <div class="meta">用户 ${p.user_count || 0} ｜ 功能牌 ${p.func_card_count || 0} ｜ 命运牌 ${p.fate_card_count || 0}</div>
+                    <div class="row" style="margin:6px 0;">
+                      ${(p.groups || []).slice(0,3).map(g => `<span class="badge">群 ${esc(g)}</span>`).join('') || '<span class="helper">暂无绑定群组</span>'}
+                    </div>
+                    <div class="row">
                       <button class="btn" onclick="editProfile('${esc(p.profile_id)}')">[ 编辑 ]</button>
                       <button class="btn" onclick="bindGroupPrompt('${esc(p.profile_id)}')">[ 绑定群号 ]</button>
-                      ${(p.groups || []).slice(0,2).map(g => `<button class="btn-mini" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('')}
                     </div>
+                    ${(p.groups || []).slice(0,3).length ? `<div class="row" style="margin-top:6px;">${(p.groups || []).slice(0,3).map(g => `<button class="btn-mini" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('')}</div>` : ''}
                   </div>
                   <div class="profile-switch-slot">
                     <button class="profile-switch-btn" onclick="useProfile('${esc(p.profile_id)}')">切换</button>

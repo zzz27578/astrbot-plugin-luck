@@ -646,6 +646,10 @@ async def api_profile_delete_post(request):
     return await api_delete_profile(request)
 
 
+async def api_profile_delete_get(request):
+    return await api_delete_profile(request)
+
+
 async def api_get_group_access(request):
     try:
         cfg = _read_json(GROUP_ACCESS_FILE, _default_group_access_config())
@@ -740,6 +744,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/profile_bind_group", api_bind_group_profile)
     app.router.add_post("/api/profile_unbind_group", api_unbind_group_profile)
     app.router.add_post("/api/profile_delete", api_profile_delete_post)
+    app.router.add_get("/api/profile_delete", api_profile_delete_get)
     app.router.add_delete("/api/profiles", api_delete_profile)
     app.router.add_get("/api/group_access", api_get_group_access)
     app.router.add_post("/api/group_access", api_save_group_access)

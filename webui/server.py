@@ -856,10 +856,10 @@ async def serve_image(request):
 
 
 async def serve_index(request):
-    index = STATIC_DIR / "index.html"
-    if not index.exists():
-        return web.Response(text="WebUI not found", status=404)
-    return web.FileResponse(index)
+    for entry in (STATIC_DIR / "app.html", STATIC_DIR / "index.html"):
+        if entry.exists():
+            return web.FileResponse(entry)
+    return web.Response(text="WebUI not found", status=404)
 
 
 # ==============================================================================

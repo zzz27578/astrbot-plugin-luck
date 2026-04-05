@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>罗德岛档案中枢</title>
-  <style>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script type="text/plain" data-legacy-inline-css>
     :root {
       --bg: #06080c;
       --bg-2: #0b0e14;
@@ -251,10 +252,10 @@
     }
 
     .hero {
-      padding: 14px 86px 10px 20px;
+      padding: 18px 20px 16px;
       display: grid;
-      grid-template-columns: minmax(0,1fr);
-      gap: 0;
+      grid-template-columns: minmax(0,1fr) auto;
+      gap: 18px;
       align-items: start;
       background:
         linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
@@ -263,26 +264,26 @@
       background-color: var(--surface-2);
     }
     .hero.with-aux {
-      padding-right: 270px;
+      grid-template-columns: minmax(0,1fr) 220px;
+      padding-right: 20px;
     }
     .hero > div:first-child {
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
       min-height: 0;
+      padding-top: 2px;
     }
     .hero-side {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
+      position: static;
       display: grid;
-      grid-template-columns: auto 64px;
-      gap: 10px;
-      align-items: stretch;
-      justify-content: end;
-      height: 100%;
-      pointer-events: none;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      justify-items: end;
+      align-content: start;
+      min-width: 148px;
+      height: auto;
+      pointer-events: auto;
     }
     .hero-side > * {
       pointer-events: auto;
@@ -291,8 +292,9 @@
       display: none;
     }
     .hero-aux {
-      width: 184px;
-      margin-top: 10px;
+      width: min(220px, 100%);
+      max-width: 220px;
+      margin-top: 0;
       align-self: start;
     }
     .hero .kicker {
@@ -315,9 +317,6 @@
       font-size: 13px;
       line-height: 1.7;
       color: var(--muted);
-    }
-    .quick-box {
-      display: none;
     }
     .overview-stats {
       display: grid;
@@ -360,26 +359,40 @@
       letter-spacing: .08em;
     }
     .toolbar {
-      display: grid;
-      gap: 0;
-      align-items: stretch;
-      justify-items: stretch;
-      align-self: stretch;
-      height: 100%;
+      order: -1;
+      display: flex;
+      justify-content: flex-end;
+      align-self: start;
+      width: 100%;
+      height: auto;
     }
     .reload-tower {
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 64px;
-      min-height: 100%;
-      height: 100%;
-      padding: 16px 0;
-      letter-spacing: .14em;
-      font-size: 12px;
+      gap: 8px;
+      min-width: 138px;
+      min-height: 42px;
+      height: 42px;
+      padding: 0 16px;
+      writing-mode: horizontal-tb;
+      text-orientation: initial;
+      letter-spacing: .12em;
+      font-size: 11px;
       justify-self: end;
+      background: linear-gradient(135deg, rgba(66,94,255,.3), rgba(118,255,194,.12) 58%, rgba(255,255,255,.03));
+      border-color: rgba(118,138,255,.32);
+      box-shadow: 0 14px 28px rgba(9,14,24,.3), inset 0 1px 0 rgba(255,255,255,.14);
+    }
+    .reload-tower::before {
+      content: '↻';
+      font-size: 14px;
+      line-height: 1;
+      opacity: .88;
+    }
+    .reload-tower:hover {
+      border-color: rgba(132,150,255,.44);
+      box-shadow: 0 18px 34px rgba(12,20,34,.34), 0 0 0 1px rgba(118,138,255,.12);
     }
     .hero-pie {
       height: 100%;
@@ -555,12 +568,12 @@
       line-height: 1.7;
     }
 
-    .stack, .profile-list, .card-list, .asset-list, .event-list, .stats-list {
+    .stack, .profile-list, .event-list {
       display: grid;
       gap: 12px;
     }
     .profile-list { grid-template-columns: 1fr; align-items: start; justify-items: stretch; }
-    .profile-card, .card-item, .asset-item, .event-item, .stat-item, .effect-row {
+    .profile-card, .asset-item, .event-item, .effect-row {
       position: relative;
       border: 1px solid rgba(255,255,255,.06);
       background:
@@ -570,7 +583,7 @@
       padding: 14px;
       border-radius: 2px;
     }
-    .profile-card:hover, .card-item:hover, .asset-item:hover, .stat-item:hover, .effect-row:hover {
+    .profile-card:hover, .asset-item:hover, .effect-row:hover {
       border-color: rgba(255,255,255,.12);
       transform: translateY(-1px);
     }
@@ -732,15 +745,14 @@
     .field-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
     .field-grid.five { grid-template-columns: repeat(5, minmax(0,1fr)); }
 
-    .profile-card h3, .card-item h3 {
+    .profile-card h3 {
       font-size: 18px;
       line-height: 1.08;
       margin-bottom: 2px;
       letter-spacing: -.06em;
       font-weight: 900;
     }
-    .profile-inline { gap: 6px; align-items: center; }
-    .meta, .helper, .card-desc {
+    .meta, .helper {
       font-size: 12px;
       color: var(--muted);
       line-height: 1.68;
@@ -957,11 +969,6 @@
       background: linear-gradient(90deg, rgba(78,245,176,.24), rgba(255,255,255,.05) 72%);
       color: #fff;
     }
-    .archive-index {
-      display: grid;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
     .archive-index-group {
       border: 1px solid rgba(255,255,255,.06);
       background: rgba(255,255,255,.02);
@@ -975,28 +982,6 @@
       color: #fff;
       letter-spacing: .06em;
     }
-    .index-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .index-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 28px;
-      padding: 0 10px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.03);
-      color: var(--text);
-      font-size: 10px;
-      letter-spacing: .08em;
-      border-radius: 2px;
-      cursor: pointer;
-    }
-    .index-pill.static {
-      cursor: default;
-    }
     .pending-grid,
     .archive-grid {
       display: grid;
@@ -1004,66 +989,117 @@
       gap: 14px;
     }
     .archive-card {
+      --card-accent: rgba(145,160,182,.32);
+      --card-glow: rgba(145,160,182,.12);
       position: relative;
-      border: 1px solid rgba(255,255,255,.16);
+      border: 1px solid var(--card-accent);
       background:
-        linear-gradient(180deg, rgba(22,27,35,.98), rgba(10,13,19,.98)),
-        linear-gradient(90deg, rgba(255,255,255,.02), rgba(255,255,255,0));
-      border-radius: 4px;
+        linear-gradient(180deg, rgba(29,35,47,.98), rgba(12,16,24,.98)),
+        linear-gradient(140deg, rgba(255,255,255,.035), rgba(255,255,255,0) 42%);
+      border-radius: 10px;
       overflow: hidden;
       display: grid;
-      box-shadow: 0 16px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.05);
+      box-shadow: 0 22px 38px rgba(0,0,0,.32), 0 0 0 1px rgba(255,255,255,.025), inset 0 1px 0 rgba(255,255,255,.05);
+      transition: transform .22s var(--ease), box-shadow .22s var(--ease), border-color .22s var(--ease);
+      isolation: isolate;
+    }
+    .archive-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.07), transparent 22%),
+        radial-gradient(circle at top right, var(--card-glow), transparent 36%);
+      pointer-events: none;
+      opacity: .88;
+    }
+    .archive-card::after {
+      content: '';
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      top: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--card-accent), rgba(255,255,255,.04) 72%, transparent);
+      pointer-events: none;
+      opacity: .9;
+    }
+    .archive-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 28px 46px rgba(0,0,0,.36), 0 0 0 1px var(--card-accent), 0 10px 26px var(--card-glow);
     }
     .archive-card.rarity-1 {
-      border-color: rgba(111,125,142,.38);
-      box-shadow: 0 0 0 1px rgba(111,125,142,.12), 0 0 18px rgba(111,125,142,.16), 0 0 34px rgba(111,125,142,.08);
+      --card-accent: rgba(148,160,176,.36);
+      --card-glow: rgba(148,160,176,.14);
     }
     .archive-card.rarity-2 {
-      border-color: rgba(88,167,255,.42);
-      box-shadow: 0 0 0 1px rgba(88,167,255,.14), 0 0 22px rgba(88,167,255,.24), 0 0 42px rgba(88,167,255,.12);
+      --card-accent: rgba(107,164,223,.38);
+      --card-glow: rgba(107,164,223,.16);
     }
     .archive-card.rarity-3 {
-      border-color: rgba(159,108,255,.44);
-      box-shadow: 0 0 0 1px rgba(159,108,255,.14), 0 0 24px rgba(159,108,255,.26), 0 0 46px rgba(159,108,255,.13);
+      --card-accent: rgba(155,128,220,.4);
+      --card-glow: rgba(155,128,220,.17);
     }
     .archive-card.rarity-4 {
-      border-color: rgba(255,191,95,.44);
-      box-shadow: 0 0 0 1px rgba(255,191,95,.14), 0 0 24px rgba(255,191,95,.24), 0 0 46px rgba(255,191,95,.12);
+      --card-accent: rgba(219,176,108,.42);
+      --card-glow: rgba(219,176,108,.18);
     }
     .archive-card.rarity-5,
     .archive-card.incomplete {
-      border-color: rgba(255,112,120,.48);
-      box-shadow: 0 0 0 1px rgba(255,112,120,.16), 0 0 26px rgba(255,112,120,.28), 0 0 48px rgba(255,112,120,.14);
+      --card-accent: rgba(223,128,145,.42);
+      --card-glow: rgba(223,128,145,.18);
+    }
+    .archive-card.rarity-1,
+    .archive-card.rarity-2,
+    .archive-card.rarity-3,
+    .archive-card.rarity-4,
+    .archive-card.rarity-5,
+    .archive-card.incomplete {
+      border-color: var(--card-accent);
+      box-shadow: 0 22px 38px rgba(0,0,0,.32), 0 0 0 1px rgba(255,255,255,.025), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .archive-card.rarity-1:hover,
+    .archive-card.rarity-2:hover,
+    .archive-card.rarity-3:hover,
+    .archive-card.rarity-4:hover,
+    .archive-card.rarity-5:hover,
+    .archive-card.incomplete:hover {
+      box-shadow: 0 28px 46px rgba(0,0,0,.36), 0 0 0 1px var(--card-accent), 0 10px 26px var(--card-glow);
     }
     .archive-cover {
       aspect-ratio: 3 / 4;
-      padding: 10px 10px 0;
-      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+      padding: 12px 12px 0;
+      background:
+        linear-gradient(180deg, rgba(183,201,234,.08), rgba(255,255,255,.015)),
+        linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
       overflow: hidden;
       display: grid;
       place-items: center;
       color: var(--dim);
       font-size: 11px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
     }
     .archive-cover img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 2px;
-      box-shadow: 0 10px 22px rgba(0,0,0,.18);
+      border: 1px solid rgba(190,206,234,.14);
+      border-radius: 7px;
+      box-shadow: 0 16px 28px rgba(0,0,0,.24), 0 0 0 1px rgba(255,255,255,.02);
     }
     .archive-body {
       display: grid;
-      gap: 10px;
-      padding: 12px 14px 14px;
-      background: linear-gradient(180deg, rgba(0,0,0,.1), rgba(255,255,255,0));
+      gap: 12px;
+      padding: 14px 16px 16px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0) 22%),
+        linear-gradient(180deg, rgba(10,14,20,.18), rgba(255,255,255,0));
       border-top: 1px solid rgba(255,255,255,.06);
     }
     .archive-title {
-      font-size: 16px;
-      line-height: 1.14;
+      font-size: 17px;
+      line-height: 1.12;
       font-weight: 900;
       letter-spacing: -.05em;
     }
@@ -1073,7 +1109,11 @@
       gap: 6px;
     }
     .archive-desc {
-      min-height: 40px;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.05);
+      background: rgba(255,255,255,.026);
+      border-radius: 6px;
       font-size: 12px;
       line-height: 1.68;
       color: var(--muted);
@@ -1082,11 +1122,15 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      min-height: 24px;
+      align-items: flex-start;
     }
     .archive-actions {
       display: grid;
       grid-template-columns: repeat(3, minmax(0,1fr));
       gap: 8px;
+      padding-top: 4px;
+      border-top: 1px solid rgba(255,255,255,.06);
     }
     .archive-actions .btn,
     .archive-actions .btn-danger,
@@ -1184,11 +1228,6 @@
       height: 100%;
       object-fit: cover;
       display: block;
-    }
-    .card-layout {
-      display: grid;
-      grid-template-columns: 92px minmax(0,1fr);
-      gap: 14px;
     }
     .asset-grid {
       display: grid;
@@ -1293,19 +1332,6 @@
       font-weight: 700;
       color: #fff;
       letter-spacing: .04em;
-    }
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-      gap: 12px;
-    }
-    .stat-item b {
-      display: block;
-      margin-bottom: 10px;
-      font-size: 26px;
-      color: #fff;
-      font-weight: 900;
-      letter-spacing: -.04em;
     }
 
     .effect-builder {
@@ -1500,7 +1526,8 @@
         grid-template-columns: 1fr;
         padding: 14px;
       }
-      .hero {
+      .hero,
+      .hero.with-aux {
         grid-template-columns: 1fr;
       }
       .col-8, .col-7, .col-6, .col-5, .col-4 {
@@ -1520,7 +1547,6 @@
       .asset-grid,
       .field-grid.four,
       .field-grid.five,
-      .stat-grid,
       .runtime-three {
         grid-template-columns: repeat(2, minmax(0,1fr));
       }
@@ -1533,9 +1559,6 @@
       .hero {
         grid-template-columns: 1fr;
         padding: 14px;
-      }
-      .hero.with-aux {
-        padding-right: 14px;
       }
       .hero-side {
         position: static;
@@ -1561,14 +1584,10 @@
       .field-grid.four,
       .field-grid.five,
       .asset-grid,
-      .stat-grid,
       .runtime-split,
       .runtime-three,
       .archive-grid,
       .pending-grid {
-        grid-template-columns: 1fr;
-      }
-      .card-layout {
         grid-template-columns: 1fr;
       }
       .profile-switch-slot {
@@ -1601,6 +1620,348 @@
         grid-column: 2;
       }
     }
+    .stats-profile-bar {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      gap: 16px;
+      align-items: end;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      position: relative;
+    }
+    .stats-profile-bar::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -1px;
+      width: 128px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(86,174,255,.92), transparent);
+    }
+    .stats-profile-title {
+      font-size: 30px;
+      line-height: .96;
+      font-weight: 900;
+      letter-spacing: -.05em;
+    }
+    .stats-profile-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .stats-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 12px;
+    }
+    .stats-kpi {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.036), rgba(255,255,255,.012));
+      padding: 15px 16px 14px;
+      border-radius: 8px;
+    }
+    .stats-kpi::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 14px;
+      bottom: 14px;
+      width: 3px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--stats-accent), rgba(255,255,255,0));
+    }
+    .stats-kpi span {
+      display: block;
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: rgba(228,236,245,.76);
+    }
+    .stats-kpi b {
+      display: block;
+      margin: 10px 0 6px;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -.05em;
+      color: #fff;
+    }
+    .stats-kpi small {
+      display: block;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--dim);
+    }
+    .stats-group-list,
+    .leaderboard-list,
+    .stats-distribution-list {
+      display: grid;
+      gap: 10px;
+    }
+    .group-entry {
+      position: relative;
+      display: grid;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,.07);
+      background: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.012));
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .group-entry::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(102,167,214,.72), transparent 70%);
+      opacity: .62;
+    }
+    .group-entry-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .group-entry-id {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      color: #fff;
+    }
+    .group-entry-meta {
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing: .08em;
+    }
+    .group-bar {
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.045);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+    .group-bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(102,167,214,.94), rgba(118,255,194,.82));
+      box-shadow: 0 0 12px rgba(118,255,194,.12);
+    }
+    .leaderboard-item {
+      display: grid;
+      grid-template-columns: 40px minmax(0,1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,.07);
+      background: linear-gradient(90deg, rgba(255,255,255,.03), rgba(255,255,255,.012));
+      border-radius: 8px;
+    }
+    .rank-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.04);
+      color: #fff;
+    }
+    .rank-badge.rank-top-1 {
+      border-color: rgba(255,205,116,.38);
+      background: linear-gradient(180deg, rgba(255,205,116,.26), rgba(255,255,255,.05));
+      color: #fff3d3;
+    }
+    .rank-badge.rank-top-2 {
+      border-color: rgba(189,203,223,.34);
+      background: linear-gradient(180deg, rgba(189,203,223,.22), rgba(255,255,255,.05));
+      color: #eef5ff;
+    }
+    .rank-badge.rank-top-3 {
+      border-color: rgba(205,156,116,.34);
+      background: linear-gradient(180deg, rgba(205,156,116,.22), rgba(255,255,255,.05));
+      color: #ffe8d6;
+    }
+    .leaderboard-name {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      color: #fff;
+    }
+    .leaderboard-count {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .pool-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px;
+    }
+    .pool-card {
+      --pool-accent: rgba(86,174,255,.82);
+      --pool-glow: rgba(86,174,255,.16);
+      position: relative;
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.032), rgba(255,255,255,.012));
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .pool-card::before {
+      content: '';
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      top: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--pool-accent), transparent 78%);
+      opacity: .9;
+    }
+    .pool-card::after {
+      content: '';
+      position: absolute;
+      right: -24px;
+      top: -24px;
+      width: 96px;
+      height: 96px;
+      background: radial-gradient(circle, var(--pool-glow), transparent 70%);
+      pointer-events: none;
+      opacity: .7;
+    }
+    .pool-card.fate {
+      --pool-accent: rgba(255,178,140,.9);
+      --pool-glow: rgba(255,146,112,.18);
+      border-color: rgba(255,178,140,.16);
+    }
+    .pool-card.func {
+      --pool-accent: rgba(123,144,255,.92);
+      --pool-glow: rgba(94,138,255,.18);
+      border-color: rgba(123,144,255,.16);
+    }
+    .pool-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .pool-card-title {
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: .04em;
+    }
+    .pool-card-value {
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -.05em;
+      color: #fff;
+    }
+    .pool-card-meta {
+      position: relative;
+      z-index: 1;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .mini-list {
+      display: grid;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .mini-metric {
+      display: grid;
+      gap: 6px;
+    }
+    .mini-metric-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .mini-bar {
+      height: 6px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.05);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+    .mini-bar-fill {
+      --metric-start: #6f96ff;
+      --metric-end: #69dec1;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--metric-start), var(--metric-end));
+    }
+    .dist-item {
+      display: grid;
+      gap: 8px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,.07);
+      background: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.012));
+      border-radius: 8px;
+    }
+    .dist-item-head {
+      display: grid;
+      grid-template-columns: auto minmax(0,1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .dist-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--dot-color);
+      box-shadow: 0 0 12px var(--dot-color);
+    }
+    .dist-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .dist-count {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1260px) {
+      .stats-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+      }
+      .pool-summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .stats-profile-bar,
+      .stats-kpi-grid,
+      .pool-summary-grid {
+        grid-template-columns: 1fr;
+      }
+      .leaderboard-item {
+        grid-template-columns: 40px minmax(0,1fr);
+      }
+      .leaderboard-count {
+        grid-column: 2;
+        justify-self: start;
+      }
+    }
+
     @keyframes currentProfileSwap {
       0% { opacity: .3; transform: translateY(4px); filter: blur(4px); }
       100% { opacity: 1; transform: translateY(0); filter: blur(0); }
@@ -1622,7 +1983,7 @@
       60% { opacity: .72; }
       100% { opacity: 0; filter: drop-shadow(0 0 8px rgba(118,255,194,.14)); }
     }
-  </style>
+  </script>
 </head>
 <body>
   <div class="app">
@@ -1700,7 +2061,8 @@
 
   <div class="toast" id="toast"></div>
 
-  <script>
+  <script src="/static/js/main.js"></script>
+  <script type="text/plain" data-legacy-inline-js>
     const state = {
       currentProfile: 'default',
       activePage: 'overview',
@@ -1712,7 +2074,6 @@
       fateImages: [],
       funcCards: [],
       images: [],
-      missingImages: [],
       stats: { total_groups: 0, total_users: 0, card_holders: {}, groups: [] },
       goodSelected: [],
       badSelected: [],
@@ -1866,16 +2227,11 @@
     function apiUrl(path) {
       return `${path}${path.includes('?') ? '&' : '?'}profile=${encodeURIComponent(state.currentProfile || 'default')}`;
     }
-    async function apiGet(path) { return await (await fetch(apiUrl(path))).json(); }
-    async function apiPost(path, body) {
-      return await (await fetch(apiUrl(path), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json();
-    }
-    async function apiDelete(path) {
-      return await (await fetch(apiUrl(path), { method:'DELETE' })).json();
-    }
-    async function apiDeleteProfileById(profileId) {
-      return await apiPost('/api/profile_remove', { profile_id: profileId });
-    }
+    const requestJson = async (path, options = {}) => (await fetch(apiUrl(path), options)).json();
+    const apiGet = (path) => requestJson(path);
+    const apiPost = (path, body) => requestJson(path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const apiDelete = (path) => requestJson(path, { method:'DELETE' });
+    const apiDeleteProfileById = (profileId) => apiPost('/api/profile_remove', { profile_id: profileId });
 
     function setPage(page) {
       state.activePage = page;
@@ -1940,17 +2296,22 @@
       if (b.ok) state.fateImages = b.images || [];
     }
     async function loadCards() {
-      const [a,b,c] = await Promise.all([apiGet('/api/func_cards'), apiGet('/api/images'), apiGet('/api/check_missing_images')]);
+      const [a, b] = await Promise.all([apiGet('/api/func_cards'), apiGet('/api/images')]);
       if (a.ok) state.funcCards = a.cards || [];
       if (b.ok) state.images = b.files || [];
-      if (c.ok) state.missingImages = c.missing || [];
     }
     async function loadStats() { const res = await apiGet('/api/user_stats'); if (res.ok) state.stats = res.stats || { total_groups:0, total_users:0, card_holders:{}, groups:[] }; }
+    async function refreshActiveProfileData() {
+      await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
+    }
+    async function refreshProfilesAndStats() {
+      await Promise.all([loadProfiles(), loadStats()]);
+    }
 
     async function loadAll(showMessage = false) {
       try {
         await loadProfiles();
-        await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
+        await refreshActiveProfileData();
         renderAll();
         if (showMessage) showToast('载入成功');
       } catch (e) {
@@ -2110,19 +2471,18 @@
       const target = kind === 'good' ? state.signInTexts.good_things : state.signInTexts.bad_things;
       target[idx] = value;
     }
-    function openFateEditorFromImage(file) {
-      openFateEditor(-1);
+    function openEditorFromImage(openEditor, inputId, file) {
+      openEditor(-1);
       setTimeout(() => {
-        const el = document.getElementById('fateFilename');
+        const el = document.getElementById(inputId);
         if (el) el.value = file;
       }, 0);
     }
+    function openFateEditorFromImage(file) {
+      openEditorFromImage(openFateEditor, 'fateFilename', file);
+    }
     function openFuncEditorFromImage(file) {
-      openFuncEditor(-1);
-      setTimeout(() => {
-        const el = document.getElementById('funcFilename');
-        if (el) el.value = file;
-      }, 0);
+      openEditorFromImage(openFuncEditor, 'funcFilename', file);
     }
     async function duplicateFateCard(i) {
       const original = state.fateCards[i];
@@ -2466,11 +2826,6 @@
         </article>`;
     }
 
-    function assetItem(file, kind) {
-      const src = kind === 'fate' ? `/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}` : `/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}`;
-      return `<div class="asset-item"><div class="thumb"><img src="${src}" alt="${esc(file)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div>${kind === 'func' ? `<button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')">[ 删除 ]</button>` : `<button class="btn-danger" onclick="deleteFateImage('${esc(file)}')">[ 删除 ]</button>`}</div>`;
-    }
-
     function renderCards() {
       const filter = state.funcFilter || 'all';
       const incompleteCount = state.funcCards.filter(isFuncCardIncomplete).length;
@@ -2557,37 +2912,184 @@
         </article>`;
     }
 
+    function buildFuncRarityDistribution() {
+      const total = state.funcCards.length || 0;
+      return Object.entries(rarityLabelMap).map(([level, label]) => {
+        const rarity = Number(level);
+        const count = state.funcCards.filter(card => Number(card.rarity || 1) === rarity).length;
+        const palette = rarityWeightPalette.find(item => item.key === `rarity_${rarity}`);
+        return {
+          rarity,
+          label,
+          count,
+          percent: total ? (count / total) * 100 : 0,
+          color: palette?.color || '#6f7d8e',
+        };
+      });
+    }
+
     function renderStats() {
-      const holders = Object.entries(state.stats.card_holders || {}).sort((a,b) => b[1] - a[1]);
+      const holders = Object.entries(state.stats.card_holders || {}).sort((a, b) => b[1] - a[1]);
+      const groups = [...(state.stats.groups || [])].sort((a, b) => (b.user_count || 0) - (a.user_count || 0));
+      const groupMax = Math.max(1, ...groups.map(group => Number(group.user_count || 0)));
+      const fateCompleted = state.fateCards.filter(card => !isFateCardIncomplete(card)).length;
+      const fateBound = state.fateCards.filter(card => card.filename && state.fateImages.includes(card.filename)).length;
+      const funcCompleted = state.funcCards.filter(card => !isFuncCardIncomplete(card)).length;
+      const funcTypeDistribution = buildFuncTypeDistribution().items;
+      const funcRarityDistribution = buildFuncRarityDistribution();
+      const fateAvgGold = state.fateCards.length
+        ? (state.fateCards.reduce((sum, card) => sum + Number(card.gold || 0), 0) / state.fateCards.length).toFixed(1)
+        : '0.0';
+      const fateCompletionPercent = state.fateCards.length ? (fateCompleted / state.fateCards.length) * 100 : 0;
+      const fateBoundPercent = state.fateCards.length ? (fateBound / state.fateCards.length) * 100 : 0;
+      const profileOptions = state.profiles.map(p => `<option value='${esc(p.profile_id)}' ${p.profile_id === state.currentProfile ? 'selected' : ''}>${esc(p.display_name)}</option>`).join('');
+      const kpis = [
+        { label: '群组数量', value: state.stats.total_groups || 0, note: '已接入当前方案的群组', accent: '#6f96ff' },
+        { label: '用户数量', value: state.stats.total_users || 0, note: '方案下被统计到的用户', accent: '#69dec1' },
+        { label: '功能牌卡池', value: state.funcCards.length, note: `已完善 ${funcCompleted} / ${state.funcCards.length || 0}`, accent: '#9f6cff' },
+        { label: '命运牌卡池', value: state.fateCards.length, note: `已完善 ${fateCompleted} / ${state.fateCards.length || 0}`, accent: '#ff9a7c' },
+      ];
+
       $('#page-stats').innerHTML = `
-        <div class="grid">
-          <section class="panel col-12 stats-main">
-            <div class="panel-head">
+        <div class='grid'>
+          <section class='panel col-12 stats-main'>
+            <div class='stats-profile-bar'>
               <div>
-                <div class="panel-title">方案切换与总体统计</div>
-                <div class="panel-note">可以直接切换不同方案后查看统计。</div>
+                <div class='tiny'>[ PROFILE / ANALYTICS ]</div>
+                <div class='stats-profile-title'>${esc(getProfileName())}</div>
+                <div class='panel-note'>把方案概览、群组热度、持牌排行和卡池完成度压成一屏，切换方案后会同步更新所有统计。</div>
+                <div class='stats-profile-meta'>
+                  <span class='badge light'>群组 ${state.stats.total_groups || 0}</span>
+                  <span class='badge'>用户 ${state.stats.total_users || 0}</span>
+                  <span class='badge orange'>排行条目 ${holders.length}</span>
+                </div>
               </div>
-              <div class="row">
-                <select class="select" style="width:220px;" onchange="useProfile(this.value)">${state.profiles.map(p => `<option value="${esc(p.profile_id)}" ${p.profile_id === state.currentProfile ? 'selected' : ''}>${esc(p.display_name)}</option>`).join('')}</select>
+              <div class='row'>
+                <select class='select' style='width:220px;' onchange='useProfile(this.value)'>${profileOptions}</select>
               </div>
             </div>
-            <div class="stat-grid">
-              <div class="stat-item"><b>${state.stats.total_groups || 0}</b><span>群组数量</span></div>
-              <div class="stat-item"><b>${state.stats.total_users || 0}</b><span>用户数量</span></div>
-              <div class="stat-item"><b>${state.funcCards.length}</b><span>功能牌总量</span></div>
-              <div class="stat-item"><b>${state.fateCards.length}</b><span>命运牌总量</span></div>
+            <div class='stats-kpi-grid'>
+              ${kpis.map(item => `
+                <article class='stats-kpi' style='--stats-accent:${item.accent};'>
+                  <span>${item.label}</span>
+                  <b>${item.value}</b>
+                  <small>${item.note}</small>
+                </article>`).join('')}
             </div>
           </section>
-          <section class="panel col-6">
-            <div class="panel-head"><div><div class="panel-title">群组明细</div></div></div>
-            <div class="stats-list">
-              ${(state.stats.groups || []).map(g => `<div class="stat-item"><b style="font-size:18px;">${esc(g.group_id)}</b><span>用户数量 ${g.user_count || 0}</span></div>`).join('') || '<div class="empty">暂无群组数据</div>'}
+
+          <section class='panel col-7'>
+            <div class='panel-head'>
+              <div>
+                <div class='panel-title'>群组热度分布</div>
+                <div class='panel-note'>按用户数量排序，用进度条快速看出当前方案下哪些群体量更高。</div>
+              </div>
+            </div>
+            <div class='stats-group-list'>
+              ${groups.map(group => {
+                const count = Number(group.user_count || 0);
+                const width = count ? Math.max(12, (count / groupMax) * 100) : 0;
+                return `
+                  <article class='group-entry'>
+                    <div class='group-entry-head'>
+                      <div>
+                        <div class='group-entry-id'>${esc(group.group_id)}</div>
+                        <div class='group-entry-meta'>群组成员统计</div>
+                      </div>
+                      <span class='badge'>${count} 用户</span>
+                    </div>
+                    <div class='group-bar'><div class='group-bar-fill' style='width:${width}%;'></div></div>
+                  </article>`;
+              }).join('') || `<div class='empty'>暂无群组数据</div>`}
             </div>
           </section>
-          <section class="panel col-6">
-            <div class="panel-head"><div><div class="panel-title">持牌排行</div></div></div>
-            <div class="stats-list">
-              ${holders.map((item, idx) => `<div class="stat-item"><b style="font-size:18px;">#${idx + 1} ${esc(item[0])}</b><span>${item[1]} 人持有</span></div>`).join('') || '<div class="empty">暂无持牌排行</div>'}
+
+          <section class='panel col-5'>
+            <div class='panel-head'>
+              <div>
+                <div class='panel-title'>持牌排行</div>
+                <div class='panel-note'>榜单改成独立名次卡片，层级更清楚，不会像一列流水账。</div>
+              </div>
+            </div>
+            <div class='leaderboard-list'>
+              ${holders.slice(0, 10).map((item, idx) => `
+                <article class='leaderboard-item'>
+                  <span class='rank-badge ${idx < 3 ? `rank-top-${idx + 1}` : ''}'>#${idx + 1}</span>
+                  <div>
+                    <div class='leaderboard-name'>${esc(item[0])}</div>
+                    <div class='group-entry-meta'>当前方案持牌人数排行</div>
+                  </div>
+                  <div class='leaderboard-count'>${item[1]} 人持有</div>
+                </article>`).join('') || `<div class='empty'>暂无持牌排行</div>`}
+            </div>
+          </section>
+
+          <section class='panel col-6'>
+            <div class='panel-head'>
+              <div>
+                <div class='panel-title'>卡池概览</div>
+                <div class='panel-note'>把命运牌和功能牌拆成两张统计卡，信息更完整，也更有真正的卡片感。</div>
+              </div>
+            </div>
+            <div class='pool-summary-grid'>
+              <article class='pool-card fate'>
+                <div class='pool-card-head'>
+                  <div>
+                    <div class='tiny'>[ FATE DECK ]</div>
+                    <div class='pool-card-title'>命运牌</div>
+                  </div>
+                  <div class='pool-card-value'>${state.fateCards.length}</div>
+                </div>
+                <div class='pool-card-meta'>已完善 ${fateCompleted} 张 ｜ 平均金币值 ${fateAvgGold}</div>
+                <div class='mini-list'>
+                  <div class='mini-metric'>
+                    <div class='mini-metric-row'><span>建档完成度</span><span>${fateCompletionPercent.toFixed(1)}%</span></div>
+                    <div class='mini-bar'><div class='mini-bar-fill' style='width:${fateCompletionPercent}%; --metric-start:#ffb08c; --metric-end:#ff7f8d;'></div></div>
+                  </div>
+                  <div class='mini-metric'>
+                    <div class='mini-metric-row'><span>图片绑定率</span><span>${fateBoundPercent.toFixed(1)}%</span></div>
+                    <div class='mini-bar'><div class='mini-bar-fill' style='width:${fateBoundPercent}%; --metric-start:#ffc46d; --metric-end:#ff8a72;'></div></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class='pool-card func'>
+                <div class='pool-card-head'>
+                  <div>
+                    <div class='tiny'>[ FUNCTION DECK ]</div>
+                    <div class='pool-card-title'>功能牌</div>
+                  </div>
+                  <div class='pool-card-value'>${state.funcCards.length}</div>
+                </div>
+                <div class='pool-card-meta'>已完善 ${funcCompleted} 张 ｜ 未完成 ${Math.max(0, state.funcCards.length - funcCompleted)} 张</div>
+                <div class='mini-list'>
+                  ${funcTypeDistribution.map(item => `
+                    <div class='mini-metric'>
+                      <div class='mini-metric-row'><span>${item.label}</span><span>${item.count} / ${item.percent.toFixed(1)}%</span></div>
+                      <div class='mini-bar'><div class='mini-bar-fill' style='width:${item.percent}%; --metric-start:${item.color}; --metric-end:${item.color};'></div></div>
+                    </div>`).join('')}
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class='panel col-6'>
+            <div class='panel-head'>
+              <div>
+                <div class='panel-title'>功能牌稀有度分布</div>
+                <div class='panel-note'>用更柔和但更分明的颜色显示稀有度占比，方便快速判断当前牌池结构。</div>
+              </div>
+            </div>
+            <div class='stats-distribution-list'>
+              ${funcRarityDistribution.map(item => `
+                <article class='dist-item'>
+                  <div class='dist-item-head'>
+                    <span class='dist-dot' style='--dot-color:${item.color};'></span>
+                    <div class='dist-label'>${item.label}</div>
+                    <div class='dist-count'>${item.count} 张 / ${item.percent.toFixed(1)}%</div>
+                  </div>
+                  <div class='mini-bar'><div class='mini-bar-fill' style='width:${item.percent}%; --metric-start:${item.color}; --metric-end:${item.color};'></div></div>
+                </article>`).join('')}
             </div>
           </section>
         </div>`;
@@ -2607,7 +3109,7 @@
     async function useProfile(id) {
       state.currentProfile = id;
       state.justActivatedProfile = id;
-      await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
+      await refreshActiveProfileData();
       renderAll();
       clearTimeout(useProfile.fxTimer);
       useProfile.fxTimer = setTimeout(() => {
@@ -2623,7 +3125,6 @@
 
     async function editProfile(id) {
       const current = state.profiles.find(p => p.profile_id === id);
-      state.newProfileCover = current?.cover_image || '';
       state.editingProfileId = id;
       openDialog('编辑方案', `
         <div>
@@ -2635,10 +3136,6 @@
             <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveProfileEdit()">[ 保存方案 ]</button><button class="btn-danger" onclick="deleteProfileConfirm()">[ 删除方案 ]</button></div>
           </div>
         </div>`, 'create');
-    }
-
-    async function renameProfile(id) {
-      return editProfile(id);
     }
 
     async function saveProfileEdit() {
@@ -2658,8 +3155,7 @@
         if (!before.has(gid)) await apiPost('/api/profile_bind_group', { profile_id:id, group_id:gid });
       }
       closeDialog();
-      await loadProfiles();
-      await loadStats();
+      await refreshProfilesAndStats();
       renderAll();
       showToast('方案编辑已保存。');
     }
@@ -2677,7 +3173,7 @@
         state.currentProfile = res.fallback_profile || 'default';
         state.profiles = state.profiles.filter(p => p.profile_id !== id);
         await loadProfiles();
-        await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
+        await refreshActiveProfileData();
         renderAll();
         showToast('方案已删除。');
       } catch (e) {
@@ -2691,14 +3187,14 @@
       if (!gid) return;
       if (!/^\d+$/.test(gid)) return showToast('群号格式无效。', true);
       const res = await apiPost('/api/profile_bind_group', { profile_id:id, group_id:gid });
-      if (res.ok) { await loadProfiles(); await loadStats(); renderAll(); showToast('群号绑定成功。'); }
+      if (res.ok) { await refreshProfilesAndStats(); renderAll(); showToast('群号绑定成功。'); }
       else showToast(res.error || '绑定失败。', true);
     }
 
     async function unbindGroup(id, gid) {
       if (!confirm(`确认解绑群号 ${gid} 吗？`)) return;
       const res = await apiPost('/api/profile_unbind_group', { profile_id:id, group_id:gid });
-      if (res.ok) { await loadProfiles(); await loadStats(); renderAll(); showToast('群号已解绑。'); }
+      if (res.ok) { await refreshProfilesAndStats(); renderAll(); showToast('群号已解绑。'); }
       else showToast(res.error || '解绑失败。', true);
     }
 
@@ -2751,7 +3247,6 @@
       root.classList.remove('open');
     }
     function openCreateProfileDialog() {
-      state.newProfileCover = '';
       const selectedCopyFrom = state.currentProfile || state.profiles[0]?.profile_id || '__builtin_default__';
       openDialog('新建方案', `
         <div>
@@ -2764,18 +3259,6 @@
             <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="createProfileConfirm()">[ 确认创建 ]</button></div>
           </div>
         </div>`, 'create');
-    }
-
-    function handleNewProfileCover(input) {
-      const file = input?.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        state.newProfileCover = String(reader.result || '');
-        const img = $('#newProfileCoverPreview');
-        if (img) { img.src = state.newProfileCover; img.style.display = 'block'; }
-      };
-      reader.readAsDataURL(file);
     }
 
     async function createProfileConfirm() {
@@ -2868,9 +3351,6 @@
       renderSignin();
       setTimeout(() => document.getElementById(`eventInput-${kind}-${focusIndex}`)?.focus(), 0);
     }
-    function batchAddEvents(kind) {
-      openBatchEventDialog(kind);
-    }
     function addRange() {
       state.signInTexts.luck_ranges.push({ label:'新区间', min:1, max:100, gold_delta:0, comments:[] });
       renderSignin();
@@ -2943,17 +3423,40 @@
       await saveFateCards(false);
       showToast('命运牌已删除。');
     }
-    async function uploadFateImages() {
+    async function uploadImages(endpoint, onReload, onRender, successText) {
       const input = document.createElement('input');
-      input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.multiple = true;
       input.onchange = async () => {
-        const fd = new FormData(); [...input.files].forEach(f => fd.append('files', f));
-        const res = await fetch(`/api/upload_fate_image?profile=${encodeURIComponent(state.currentProfile)}`, { method:'POST', body:fd });
+        if (!input.files?.length) return;
+        const fd = new FormData();
+        [...input.files].forEach(file => fd.append('files', file));
+        const res = await fetch(`${endpoint}?profile=${encodeURIComponent(state.currentProfile)}`, { method:'POST', body:fd });
         const data = await res.json();
-        if (data.ok) { await loadFate(); renderFate(); showToast('命运牌图片批量上传完成。'); }
-        else showToast(data.error || '上传失败。', true);
+        if (data.ok) {
+          await onReload();
+          onRender();
+          showToast(successText);
+        } else {
+          showToast(data.error || '上传失败。', true);
+        }
       };
       input.click();
+    }
+    async function deleteAsset(apiBase, file, onReload, onRender) {
+      if (!confirm(`确认删除图片 ${file} 吗？`)) return;
+      const res = await apiDelete(`${apiBase}/${encodeURIComponent(file)}`);
+      if (res.ok) {
+        await onReload();
+        onRender();
+        showToast('图片已删除。');
+      } else {
+        showToast(res.error || '删除失败。', true);
+      }
+    }
+    async function uploadFateImages() {
+      return uploadImages('/api/upload_fate_image', loadFate, renderFate, '命运牌图片批量上传完成。');
     }
 
     function normalizeEffectsForCard(card) {
@@ -3095,28 +3598,13 @@
       showToast('批量添加完成。');
     }
     async function uploadFuncImages() {
-      const input = document.createElement('input');
-      input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
-      input.onchange = async () => {
-        const fd = new FormData(); [...input.files].forEach(f => fd.append('files', f));
-        const res = await fetch(`/api/upload_image?profile=${encodeURIComponent(state.currentProfile)}`, { method:'POST', body:fd });
-        const data = await res.json();
-        if (data.ok) { await loadCards(); renderCards(); showToast('功能牌图片批量上传完成。'); }
-        else showToast(data.error || '上传失败。', true);
-      };
-      input.click();
+      return uploadImages('/api/upload_image', loadCards, renderCards, '功能牌图片批量上传完成。');
     }
     async function deleteFuncImage(file) {
-      if (!confirm(`确认删除图片 ${file} 吗？`)) return;
-      const res = await apiDelete(`/api/images/${encodeURIComponent(file)}`);
-      if (res.ok) { await loadCards(); renderCards(); showToast('图片已删除。'); }
-      else showToast(res.error || '删除失败。', true);
+      return deleteAsset('/api/images', file, loadCards, renderCards);
     }
     async function deleteFateImage(file) {
-      if (!confirm(`确认删除图片 ${file} 吗？`)) return;
-      const res = await apiDelete(`/api/fate_images/${encodeURIComponent(file)}`);
-      if (res.ok) { await loadFate(); renderFate(); showToast('图片已删除。'); }
-      else showToast(res.error || '删除失败。', true);
+      return deleteAsset('/api/fate_images', file, loadFate, renderFate);
     }
     async function refreshCardAssets(show = true) {
       await loadCards();
@@ -3133,65 +3621,63 @@
       });
     }
 
-    window.useProfile = useProfile;
-    window.renameProfile = renameProfile;
-    window.bindGroupPrompt = bindGroupPrompt;
-    window.unbindGroup = unbindGroup;
-    window.openCreateProfileDialog = openCreateProfileDialog;
-    window.createProfileConfirm = createProfileConfirm;
-    window.createBuiltinDefaultProfile = createBuiltinDefaultProfile;
-    window.setAccessMode = setAccessMode;
-    window.saveGroupAccess = saveGroupAccess;
-    window.toggleRuntime = toggleRuntime;
-    window.setRuntimeValue = setRuntimeValue;
-    window.saveRuntime = saveRuntime;
-    window.toggleEventSelect = toggleEventSelect;
-    window.removeEvent = removeEvent;
-    window.deleteSelectedEvents = deleteSelectedEvents;
-    window.addSingleEvent = addSingleEvent;
-    window.batchAddEvents = batchAddEvents;
-    window.addRange = addRange;
-    window.removeRange = removeRange;
-    window.setRange = setRange;
-    window.setRangeComments = setRangeComments;
-    window.previewSignin = previewSignin;
-    window.saveSignin = saveSignin;
-    window.openFateEditor = openFateEditor;
-    window.saveFateEditor = saveFateEditor;
-    window.saveFateCards = saveFateCards;
-    window.deleteFateCard = deleteFateCard;
-    window.uploadFateImages = uploadFateImages;
-    window.pickFile = pickFile;
-    window.openFuncEditor = openFuncEditor;
-    window.changeFuncType = changeFuncType;
-    window.addEffectRow = addEffectRow;
-    window.removeEffectRow = removeEffectRow;
-    window.setEffectKey = setEffectKey;
-    window.setEffectParam = setEffectParam;
-    window.saveFuncEditor = saveFuncEditor;
-    window.saveFuncCards = saveFuncCards;
-    window.deleteFuncCard = deleteFuncCard;
-    window.batchAddCards = batchAddCards;
-    window.uploadFuncImages = uploadFuncImages;
-    window.deleteFuncImage = deleteFuncImage;
-    window.deleteFateImage = deleteFateImage;
-    window.refreshCardAssets = refreshCardAssets;
-    window.toggleCustomSelect = toggleCustomSelect;
-    window.selectCustomOption = selectCustomOption;
-    window.openBatchEventDialog = openBatchEventDialog;
-    window.confirmBatchEventAdd = confirmBatchEventAdd;
-    window.setEventText = setEventText;
-    window.openFateEditorFromImage = openFateEditorFromImage;
-    window.openFuncEditorFromImage = openFuncEditorFromImage;
-    window.duplicateFateCard = duplicateFateCard;
-    window.duplicateFuncCard = duplicateFuncCard;
-    window.detectIncompleteFateCards = detectIncompleteFateCards;
-    window.setFuncFilter = setFuncFilter;
-
-    window.editProfile = editProfile;
-    window.saveProfileEdit = saveProfileEdit;
-    window.deleteProfileConfirm = deleteProfileConfirm;
-    window.handleNewProfileCover = handleNewProfileCover;
+    Object.assign(window, {
+      useProfile,
+      bindGroupPrompt,
+      unbindGroup,
+      openCreateProfileDialog,
+      createProfileConfirm,
+      createBuiltinDefaultProfile,
+      setAccessMode,
+      saveGroupAccess,
+      toggleRuntime,
+      setRuntimeValue,
+      saveRuntime,
+      toggleEventSelect,
+      removeEvent,
+      deleteSelectedEvents,
+      addSingleEvent,
+      addRange,
+      removeRange,
+      setRange,
+      setRangeComments,
+      previewSignin,
+      saveSignin,
+      openFateEditor,
+      saveFateEditor,
+      saveFateCards,
+      deleteFateCard,
+      uploadFateImages,
+      pickFile,
+      openFuncEditor,
+      changeFuncType,
+      addEffectRow,
+      removeEffectRow,
+      setEffectKey,
+      setEffectParam,
+      saveFuncEditor,
+      saveFuncCards,
+      deleteFuncCard,
+      batchAddCards,
+      uploadFuncImages,
+      deleteFuncImage,
+      deleteFateImage,
+      refreshCardAssets,
+      toggleCustomSelect,
+      selectCustomOption,
+      openBatchEventDialog,
+      confirmBatchEventAdd,
+      setEventText,
+      openFateEditorFromImage,
+      openFuncEditorFromImage,
+      duplicateFateCard,
+      duplicateFuncCard,
+      detectIncompleteFateCards,
+      setFuncFilter,
+      editProfile,
+      saveProfileEdit,
+      deleteProfileConfirm,
+    });
 
     document.addEventListener('DOMContentLoaded', async () => {
       bindEvents();

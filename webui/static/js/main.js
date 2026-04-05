@@ -375,29 +375,8 @@ function renderHeroAux() {
   const el = $('#heroAux');
   const hero = $('.hero');
   if (!el || !hero) return;
-  if (state.activePage !== 'cards') {
-    el.innerHTML = '';
-    hero.classList.remove('with-aux');
-    return;
-  }
-  hero.classList.add('with-aux');
-  const preview = buildFuncTypeDistribution();
-  el.innerHTML = `
-    <div class="hero-pie">
-      <div class="hero-pie-chart" style="background:${preview.ringBackground};"></div>
-      <div class="hero-pie-meta">
-        <b>${preview.total}</b>
-        <span>功能类型分布</span>
-        <div class="hero-pie-legend">
-          ${preview.items.map(item => `
-            <div class="hero-pie-item">
-              <span class="hero-pie-dot" style="--dot-color:${item.color}"></span>
-              <span>${item.label}</span>
-              <span>${item.count}</span>
-            </div>`).join('')}
-        </div>
-      </div>
-    </div>`;
+  el.innerHTML = '';
+  hero.classList.remove('with-aux');
 }
 function openBatchEventDialog(kind) {
   const label = kind === 'good' ? '宜项' : '忌项';
@@ -820,7 +799,7 @@ function renderCards() {
         ${filter === 'all' ? `
         <div class="archive-index-group" style="margin-bottom:14px;">
           <div class="archive-index-title">待建档图片</div>
-          <div class="pending-grid">
+          <div class="pending-grid func-pending-grid">
             ${unusedImages.map(file => `
               <article class="archive-card">
                 <div class="archive-cover"><img src="/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}" alt="${esc(file)}"></div>
@@ -835,7 +814,7 @@ function renderCards() {
               </article>`).join('') || '<div class="empty">当前没有待建档图片</div>'}
           </div>
         </div>` : ''}
-        <div class="archive-grid">
+        <div class="archive-grid func-archive-grid">
           ${filteredEntries.map(entry => funcItem(entry.card, entry.index)).join('') || '<div class="empty">当前筛选下没有功能牌</div>'}
         </div>
       </section>
@@ -848,7 +827,7 @@ function funcItem(card, i) {
   const src = has ? `/assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
   const tags = (card.tags || []).slice(0, 4).map(tag => `<span class="badge">${esc(humanizeTag(tag))}</span>`).join('') || '<span class="helper">未设定效果</span>';
   return `
-    <article class="archive-card rarity-${Number(card.rarity) || 1}">
+    <article class="archive-card func-card rarity-${Number(card.rarity) || 1}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="功能牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
         <div class="archive-title">${esc(card.card_name || '未命名功能牌')}</div>
@@ -1262,7 +1241,7 @@ function setAccessMode(mode) {
   updateTop();
 }
 
-async function saveGroupAccess() {
+async function saveGroupAccess(show = true) {
   state.groupAccess.blacklist = state.groupAccess.mode === 'blacklist'
     ? ($('#blacklistInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean)
     : [];
@@ -1270,8 +1249,12 @@ async function saveGroupAccess() {
     ? ($('#whitelistInput')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean)
     : [];
   const res = await apiPost('/api/group_access', { config: state.groupAccess });
-  if (res.ok) showToast('访问控制已保存。');
-  else showToast(res.error || '保存失败。', true);
+  if (res.ok) {
+    if (show) showToast('访问控制已保存。');
+  } else if (show) {
+    showToast(res.error || '保存失败。', true);
+  }
+  return res;
 }
 
 function toggleRuntime(path) {
@@ -1284,10 +1267,14 @@ function setRuntimeValue(path, value) {
   setDeep(state.runtimeConfig, path, finalVal);
   if (path.includes('custom_rarity_weights')) updateRarityChart();
 }
-async function saveRuntime() {
+async function saveRuntime(show = true) {
   const res = await apiPost('/api/runtime_config', { config: state.runtimeConfig });
-  if (res.ok) showToast('运行配置已保存。');
-  else showToast(res.error || '保存失败。', true);
+  if (res.ok) {
+    if (show) showToast('运行配置已保存。');
+  } else if (show) {
+    showToast(res.error || '保存失败。', true);
+  }
+  return res;
 }
 
 function toggleEventSelect(kind, idx, checked) {
@@ -1353,10 +1340,14 @@ function previewSignin() {
     `忌｜${bad}`,
   ].join('\n');
 }
-async function saveSignin() {
+async function saveSignin(show = true) {
   const res = await apiPost('/api/sign_in_texts', { texts: state.signInTexts });
-  if (res.ok) showToast('签到配置已保存。');
-  else showToast(res.error || '保存失败。', true);
+  if (res.ok) {
+    if (show) showToast('签到配置已保存。');
+  } else if (show) {
+    showToast(res.error || '保存失败。', true);
+  }
+  return res;
 }
 
 function openFateEditor(index) {
@@ -1394,9 +1385,10 @@ async function saveFateCards(show = true) {
   const res = await apiPost('/api/fate_cards', { cards: state.fateCards });
   if (res.ok) {
     if (show) showToast('命运牌已保存。');
-  } else {
+  } else if (show) {
     showToast(res.error || '保存失败。', true);
   }
+  return res;
 }
 async function deleteFateCard(i) {
   if (!confirm('确认删除该命运牌吗？')) return;
@@ -1557,9 +1549,10 @@ async function saveFuncCards(show = true) {
   const res = await apiPost('/api/func_cards', { cards: state.funcCards });
   if (res.ok) {
     if (show) showToast('功能牌已保存。');
-  } else {
+  } else if (show) {
     showToast(res.error || '保存失败。', true);
   }
+  return res;
 }
 async function deleteFuncCard(i) {
   if (!confirm('确认删除该功能牌吗？')) return;
@@ -1596,10 +1589,42 @@ async function refreshCardAssets(show = true) {
   if (show) showToast('资源扫描完成。');
 }
 
+async function saveAllData() {
+  const btn = $('#saveAllBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('busy');
+  }
+  try {
+    const results = await Promise.all([
+      saveRuntime(false),
+      saveGroupAccess(false),
+      saveSignin(false),
+      saveFateCards(false),
+      saveFuncCards(false),
+    ]);
+    const failed = results.find(res => !res?.ok);
+    if (failed) {
+      showToast(failed.error || '部分内容保存失败。', true);
+      return;
+    }
+    showToast('当前方案已全部保存。');
+  } catch (e) {
+    console.error(e);
+    showToast('全局保存失败，请检查接口。', true);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('busy');
+    }
+  }
+}
+
 // ===== [ boot / event binding ] ============================================
 function bindEvents() {
   $$('.nav-btn').forEach(btn => btn.addEventListener('click', () => setPage(btn.dataset.page)));
   $('#reloadBtn').addEventListener('click', () => loadAll(true));
+  $('#saveAllBtn')?.addEventListener('click', saveAllData);
   $('#closeDialogBtn').addEventListener('click', closeDialog);
   $('#dialog').addEventListener('click', (e) => { if (e.target.id === 'dialog') closeDialog(); });
   document.addEventListener('click', (e) => {

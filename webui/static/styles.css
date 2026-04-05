@@ -357,34 +357,62 @@
       align-self: start;
       width: 100%;
       height: auto;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .reload-tower {
+    .toolbar-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      min-width: 138px;
+      min-width: 124px;
       min-height: 42px;
       height: 42px;
       padding: 0 16px;
-      writing-mode: horizontal-tb;
-      text-orientation: initial;
-      letter-spacing: .12em;
-      font-size: 11px;
-      justify-self: end;
-      background: linear-gradient(135deg, rgba(66,94,255,.3), rgba(118,255,194,.12) 58%, rgba(255,255,255,.03));
-      border-color: rgba(118,138,255,.32);
-      box-shadow: 0 14px 28px rgba(9,14,24,.3), inset 0 1px 0 rgba(255,255,255,.14);
+      letter-spacing: .08em;
+      font-size: 12px;
+      font-weight: 800;
+      border-radius: 6px;
+      clip-path: none;
+      box-shadow: 0 14px 28px rgba(9,14,24,.28), inset 0 1px 0 rgba(255,255,255,.14);
     }
-    .reload-tower::before {
-      content: '鈫?;
-      font-size: 14px;
-      line-height: 1;
-      opacity: .88;
+    .toolbar-btn::before {
+      content: "";
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 16px 16px;
+      opacity: .94;
     }
-    .reload-tower:hover {
-      border-color: rgba(132,150,255,.44);
-      box-shadow: 0 18px 34px rgba(12,20,34,.34), 0 0 0 1px rgba(118,138,255,.12);
+    .refresh-btn {
+      color: #eef4ff;
+      border-color: rgba(118,138,255,.34);
+      background: linear-gradient(135deg, rgba(66,94,255,.32), rgba(118,255,194,.1) 58%, rgba(255,255,255,.03));
+    }
+    .refresh-btn::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23eef4ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 2v6h-6'/%3E%3Cpath d='M3 12a9 9 0 0 1 15.55-6.36L21 8'/%3E%3Cpath d='M3 22v-6h6'/%3E%3Cpath d='M21 12a9 9 0 0 1-15.55 6.36L3 16'/%3E%3C/svg%3E");
+    }
+    .save-btn {
+      color: #effff5;
+      border-color: rgba(96,255,188,.34);
+      background: linear-gradient(135deg, rgba(56,184,128,.44), rgba(98,255,189,.16) 58%, rgba(255,255,255,.03));
+      box-shadow: 0 14px 28px rgba(8,24,18,.28), inset 0 1px 0 rgba(255,255,255,.16);
+    }
+    .save-btn::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23effff5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z'/%3E%3Cpath d='M17 21v-8H7v8'/%3E%3Cpath d='M7 3v5h8'/%3E%3C/svg%3E");
+    }
+    .toolbar-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 34px rgba(12,20,34,.32), 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .toolbar-btn:disabled,
+    .toolbar-btn.busy {
+      opacity: .72;
+      cursor: wait;
+      transform: none;
+      filter: saturate(.86);
     }
     .hero-pie {
       height: 100%;
@@ -1142,6 +1170,98 @@
       line-height: 1.55;
       word-break: break-all;
     }
+    .func-archive-grid {
+      grid-template-columns: repeat(auto-fill, minmax(286px, 1fr));
+      gap: 16px;
+    }
+    .func-pending-grid {
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 14px;
+    }
+    .archive-card.func-card {
+      --func-strip: rgba(176,186,198,.94);
+      --func-strip-glow: rgba(176,186,198,.22);
+      border-color: rgba(226,233,242,.16);
+      background:
+        linear-gradient(180deg, rgba(39,47,60,.99), rgba(15,19,27,.99)),
+        linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,0) 46%);
+      box-shadow: 0 24px 42px rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.05), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .archive-card.func-card::before {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.09), transparent 24%),
+        radial-gradient(circle at top left, rgba(255,255,255,.07), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(255,255,255,.035), transparent 42%);
+      opacity: .96;
+    }
+    .archive-card.func-card::after {
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--func-strip), rgba(255,255,255,.92) 42%, rgba(255,255,255,.1) 88%);
+      box-shadow: 0 0 14px var(--func-strip-glow);
+      opacity: 1;
+    }
+    .archive-card.func-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 30px 48px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.08), 0 12px 28px var(--func-strip-glow);
+    }
+    .archive-card.func-card.rarity-1 {
+      --func-strip: rgba(186,194,204,.92);
+      --func-strip-glow: rgba(186,194,204,.18);
+    }
+    .archive-card.func-card.rarity-2 {
+      --func-strip: rgba(107,178,255,.95);
+      --func-strip-glow: rgba(107,178,255,.24);
+    }
+    .archive-card.func-card.rarity-3 {
+      --func-strip: rgba(178,138,255,.96);
+      --func-strip-glow: rgba(178,138,255,.26);
+    }
+    .archive-card.func-card.rarity-4 {
+      --func-strip: rgba(255,201,108,.96);
+      --func-strip-glow: rgba(255,201,108,.24);
+    }
+    .archive-card.func-card.rarity-5 {
+      --func-strip: rgba(255,128,158,.96);
+      --func-strip-glow: rgba(255,128,158,.28);
+    }
+    .archive-card.func-card .archive-cover {
+      aspect-ratio: 16 / 9;
+      padding: 10px 10px 0;
+      background:
+        linear-gradient(180deg, rgba(200,214,236,.1), rgba(255,255,255,.02)),
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+      border-bottom-color: rgba(255,255,255,.09);
+    }
+    .archive-card.func-card .archive-cover img {
+      border-color: rgba(214,225,240,.18);
+      border-radius: 8px;
+      box-shadow: 0 18px 28px rgba(0,0,0,.24), 0 0 0 1px rgba(255,255,255,.03);
+    }
+    .archive-card.func-card .archive-body {
+      gap: 10px;
+      padding: 13px 15px 15px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 22%),
+        linear-gradient(180deg, rgba(11,15,22,.2), rgba(255,255,255,0));
+      border-top-color: rgba(255,255,255,.08);
+    }
+    .archive-card.func-card .archive-title {
+      font-size: 16px;
+      min-height: 18px;
+    }
+    .archive-card.func-card .archive-desc {
+      min-height: 58px;
+      background: rgba(255,255,255,.04);
+      border-color: rgba(255,255,255,.08);
+      color: rgba(226,233,240,.82);
+    }
+    .archive-card.func-card .archive-actions {
+      padding-top: 8px;
+      border-top-color: rgba(255,255,255,.08);
+    }
     .filter-bar {
       display: grid;
       grid-template-columns: 126px minmax(0,220px) minmax(0,1fr);
@@ -1589,12 +1709,8 @@
       .profile-switch-btn {
         width: 100%;
       }
-      .reload-tower {
-        writing-mode: horizontal-tb;
+      .toolbar-btn {
         width: 100%;
-        min-height: 44px;
-        height: auto;
-        padding: 0 16px;
       }
       .asset-item .thumb {
         height: 126px;

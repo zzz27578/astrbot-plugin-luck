@@ -1,3 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>罗德岛档案中枢</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app">
+<aside class="side">
+  <section class="block brand">
+    <div class="mini">[ ROD ISLAND INTERNAL FILE ]</div>
+    <div class="big-wrap">
+      <span class="bar"></span>
+      <div class="big">档案<br>中枢</div>
+    </div>
+    <div class="row">
+      <span class="chip">Ver. 5.4.0</span>
+      <span class="chip">[ 插件核心 ]</span>
+    </div>
+  </section>
+
+  <section class="block nav">
+    <div class="nav-title">[ 页面索引 ]</div>
+    <div class="nav-list">
+      <button class="nav-btn active" data-page="overview">总览与方案<small>方案管理 / 访问控制</small></button>
+      <button class="nav-btn" data-page="runtime">运行配置<small>系统开关 / 概率 / 稀有度</small></button>
+      <button class="nav-btn" data-page="signin">签到配置<small>事件池 / 运势区间 / 预览</small></button>
+      <button class="nav-btn" data-page="fate">命运牌档案<small>命运池 / 图像库</small></button>
+      <button class="nav-btn" data-page="cards">功能牌档案<small>引导式标签编辑</small></button>
+      <button class="nav-btn" data-page="stats">数据统计<small>方案切换 / 群组 / 持牌排行</small></button>
+    </div>
+  </section>
+
+  <section class="block current">
+    <div class="subtle-label">[ 当前方案 ]</div>
+    <div class="name" id="currentProfileName">默认配置</div>
+    <div class="helper">所有数据请求都会自动跟随当前方案。切换后会同步刷新牌池、签到配置、资源目录与统计。</div>
+  </section>
+</aside>
+
+<main class="main">
+  <section class="hero">
+    <div>
+      <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
+      <h1 id="heroTitle">总览与方案</h1>
+      <p id="heroDesc">把方案管理、访问控制与主要操作直接压进主界面，不做无意义留白，不做软绵绵的按钮</p>
+    </div>
+    <div class="hero-side">
+      <div class="hero-aux" id="heroAux"></div>
+      <div class="toolbar">
+        <button class="btn toolbar-btn refresh-btn" id="reloadBtn">刷新</button>
+        <button class="btn btn-green toolbar-btn save-btn" id="saveAllBtn">保存</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="pages">
+    <div class="page active" id="page-overview"></div>
+    <div class="page" id="page-runtime"></div>
+    <div class="page" id="page-signin"></div>
+    <div class="page" id="page-fate"></div>
+    <div class="page" id="page-cards"></div>
+    <div class="page" id="page-stats"></div>
+  </section>
+</main>
+  </div>
+
+  <div class="dialog" id="dialog">
+<div class="dialog-card">
+  <div class="dialog-head">
+    <div>
+      <div class="tiny">[ 档案编辑器 ]</div>
+      <div class="dialog-title" id="dialogTitle">编辑器</div>
+    </div>
+    <button class="btn" id="closeDialogBtn">[ 关闭 ]</button>
+  </div>
+  <div id="dialogBody"></div>
+</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/static/js/main.js"></script>
+  <template data-broken-legacy-index>
 :root {
       --bg: #06080c;
       --bg-2: #0b0e14;
@@ -2098,5 +2184,6 @@
       60% { opacity: .72; }
       100% { opacity: 0; filter: drop-shadow(0 0 8px rgba(118,255,194,.14)); }
     }
+  </template>
 </body>
 </html>

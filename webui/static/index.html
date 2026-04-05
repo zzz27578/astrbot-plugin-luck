@@ -81,9 +81,9 @@
     .app {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 244px minmax(0,1fr);
-      gap: 16px;
-      padding: 16px;
+      grid-template-columns: 228px minmax(0,1fr);
+      gap: 14px;
+      padding: 14px;
     }
     .side {
       display: grid;
@@ -126,8 +126,8 @@
     }
 
     .brand {
-      padding: 20px 18px 18px;
-      min-height: 164px;
+      padding: 18px 16px 16px;
+      min-height: 152px;
     }
     .brand .mini {
       margin-bottom: 14px;
@@ -151,10 +151,10 @@
       background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(77,103,255,.65));
     }
     .brand .big {
-      font-size: 40px;
-      line-height: .98;
+      font-size: 36px;
+      line-height: 1;
       font-weight: 900;
-      letter-spacing: -.03em;
+      letter-spacing: -.02em;
       text-align: left;
       text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
@@ -176,7 +176,7 @@
       clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
     }
 
-    .nav { padding: 12px; }
+    .nav { padding: 10px; }
     .nav-title, .tiny, .subtle-label {
       margin-bottom: 10px;
       font-size: 10px;
@@ -231,7 +231,7 @@
     }
 
     .current {
-      padding: 14px;
+      padding: 12px;
       align-self: start;
       transition: border-color .24s var(--ease), box-shadow .24s var(--ease), transform .24s var(--ease);
     }
@@ -251,41 +251,48 @@
     }
 
     .hero {
-      padding: 24px 24px 20px;
+      padding: 18px 20px 16px;
       display: grid;
-      grid-template-columns: minmax(0,1fr) 40px;
-      gap: 12px;
-      align-items: end;
+      grid-template-columns: minmax(0,1fr) 56px;
+      gap: 10px;
+      align-items: stretch;
       background:
         linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
         radial-gradient(circle at 76% 24%, rgba(77,103,255,.14), transparent 22%),
         linear-gradient(180deg, rgba(255,255,255,.012), rgba(255,255,255,0));
       background-color: var(--surface-2);
     }
+    .hero > div:first-child {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 100%;
+    }
     .hero-side {
       display: grid;
       grid-template-columns: 1fr;
       align-items: stretch;
+      height: 100%;
     }
     .hero .kicker {
-      margin-bottom: 10px;
+      margin-bottom: 6px;
       font-size: 10px;
       letter-spacing: 2px;
       color: rgba(255,255,255,.64);
     }
     .hero h1 {
-      font-size: clamp(48px, 6vw, 78px);
-      line-height: .94;
+      font-size: clamp(46px, 6vw, 74px);
+      line-height: .92;
       font-weight: 900;
       letter-spacing: -.02em;
       text-wrap: balance;
       text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
     .hero p {
-      margin-top: 12px;
+      margin-top: 8px;
       max-width: 720px;
       font-size: 13px;
-      line-height: 1.85;
+      line-height: 1.82;
       color: var(--muted);
     }
     .quick-box {
@@ -345,11 +352,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
+      width: 56px;
       min-height: 100%;
-      padding: 10px 0;
+      padding: 14px 0;
       letter-spacing: .14em;
-      font-size: 10px;
+      font-size: 11px;
       justify-self: end;
     }
 
@@ -442,7 +449,7 @@
     }
     .panel-head > div:first-child {
       position: relative;
-      padding-top: 14px;
+      padding-top: 10px;
     }
     .panel-head > div:first-child::before {
       content: "SECTION / " counter(panel-index, decimal-leading-zero);
@@ -511,7 +518,7 @@
       display: grid;
       gap: 8px;
     }
-    .profile-main::after { display: none; }
+    .profile-main::after { display: none; content: none; }
     .profile-card.active {
       border-color: rgba(255,255,255,.16);
       box-shadow: inset 0 0 0 1px rgba(77,103,255,.08);
@@ -535,20 +542,42 @@
     .profile-card.just-activated .profile-main::before {
       content: "";
       position: absolute;
-      left: -22px;
-      top: -8px;
-      bottom: -8px;
-      width: 110px;
+      left: -72px;
+      top: 2px;
+      width: 86px;
+      height: 84px;
       pointer-events: none;
       opacity: 0;
       background:
-        radial-gradient(circle at 18px 18%, rgba(118,255,194,.95) 0 2px, transparent 5px),
-        radial-gradient(circle at 34px 34%, rgba(118,255,194,.8) 0 2px, transparent 6px),
-        radial-gradient(circle at 26px 60%, rgba(77,103,255,.78) 0 2px, transparent 6px),
-        radial-gradient(circle at 42px 78%, rgba(118,255,194,.7) 0 2px, transparent 7px),
-        linear-gradient(180deg, rgba(118,255,194,.28), rgba(77,103,255,.18), transparent 72%);
-      filter: blur(1px);
-      animation: profileBranchBloom .68s ease-out;
+        linear-gradient(270deg, rgba(118,255,194,.92), transparent 78%) 42px 10px/34px 1px no-repeat,
+        linear-gradient(236deg, rgba(118,255,194,.78), transparent 72%) 34px 20px/26px 1px no-repeat,
+        linear-gradient(304deg, rgba(118,255,194,.76), transparent 72%) 32px 38px/28px 1px no-repeat,
+        linear-gradient(252deg, rgba(66,94,255,.78), transparent 70%) 24px 56px/32px 1px no-repeat,
+        linear-gradient(214deg, rgba(118,255,194,.72), transparent 70%) 18px 28px/24px 1px no-repeat,
+        linear-gradient(286deg, rgba(66,94,255,.68), transparent 70%) 16px 46px/22px 1px no-repeat;
+      filter: drop-shadow(0 0 4px rgba(118,255,194,.2));
+      transform-origin: right center;
+      animation: branchCircuitOut .72s ease-out;
+    }
+    .profile-card.just-activated .profile-main::after {
+      content: "";
+      display: block;
+      position: absolute;
+      left: -72px;
+      top: 0;
+      width: 88px;
+      height: 88px;
+      pointer-events: none;
+      opacity: 0;
+      background:
+        radial-gradient(circle, rgba(118,255,194,.98) 0 1.4px, transparent 2.2px) 18px 14px/18px 18px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.86) 0 1.4px, transparent 2.2px) 28px 28px/18px 18px no-repeat,
+        radial-gradient(circle, rgba(66,94,255,.82) 0 1.4px, transparent 2.2px) 24px 48px/20px 20px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.74) 0 1.4px, transparent 2.2px) 38px 62px/18px 18px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.66) 0 1.2px, transparent 2px) 48px 16px/14px 14px no-repeat,
+        radial-gradient(circle, rgba(66,94,255,.7) 0 1.2px, transparent 2px) 44px 42px/14px 14px no-repeat;
+      filter: drop-shadow(0 0 6px rgba(118,255,194,.18));
+      animation: circuitParticleOut .72s ease-out;
     }
     .profile-switch-slot {
       position: absolute;
@@ -941,6 +970,75 @@
       background: #11161e;
       color: #f2f6fb;
     }
+    .custom-select {
+      position: relative;
+      width: 100%;
+    }
+    .custom-select-trigger {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.025);
+      color: #fff;
+      padding: 10px 40px 10px 12px;
+      text-align: left;
+      position: relative;
+      clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+    }
+    .custom-select-trigger::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-right: 1px solid rgba(255,255,255,.72);
+      border-bottom: 1px solid rgba(255,255,255,.72);
+      transform: translateY(-65%) rotate(45deg);
+      transition: transform .18s var(--ease);
+      pointer-events: none;
+    }
+    .custom-select.open .custom-select-trigger::after {
+      transform: translateY(-35%) rotate(225deg);
+    }
+    .custom-select-menu {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 6px);
+      display: none;
+      max-height: 240px;
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,.1);
+      background: rgba(11,14,20,.98);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 36px rgba(0,0,0,.34);
+      z-index: 120;
+      border-radius: 2px;
+    }
+    .custom-select.open .custom-select-menu {
+      display: grid;
+    }
+    .custom-select-option {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 11px;
+      letter-spacing: .08em;
+      clip-path: none;
+    }
+    .custom-select-option:last-child {
+      border-bottom: none;
+    }
+    .custom-select-option:hover,
+    .custom-select-option.active {
+      background: linear-gradient(90deg, rgba(66,94,255,.16), rgba(255,255,255,.04) 58%);
+      color: #fff;
+    }
 
     @media (max-width: 1260px) {
       .app {
@@ -948,7 +1046,7 @@
         padding: 14px;
       }
       .hero {
-        grid-template-columns: 1fr 40px;
+        grid-template-columns: 1fr 56px;
       }
       .col-8, .col-7, .col-6, .col-5, .col-4 {
         grid-column: span 12;
@@ -976,7 +1074,7 @@
       }
       .hero {
         grid-template-columns: 1fr;
-        padding: 20px;
+        padding: 16px;
       }
       .hero h1 {
         font-size: 34px;
@@ -1025,10 +1123,15 @@
       30% { box-shadow: inset 0 0 0 1px rgba(77,103,255,.16), 0 0 24px rgba(118,255,194,.16); }
       100% { box-shadow: inset 0 0 0 1px rgba(77,103,255,.08), 0 0 0 rgba(118,255,194,0); }
     }
-    @keyframes profileBranchBloom {
-      0% { opacity: 0; transform: translateX(-8px) scale(.86); }
-      35% { opacity: .95; }
-      100% { opacity: 0; transform: translateX(10px) scale(1.12); }
+    @keyframes branchCircuitOut {
+      0% { opacity: 0; transform: translateX(8px) scaleX(.52); }
+      28% { opacity: .96; }
+      100% { opacity: 0; transform: translateX(-18px) scaleX(1.16); }
+    }
+    @keyframes circuitParticleOut {
+      0% { opacity: 0; transform: translateX(6px) scale(.72); }
+      26% { opacity: 1; }
+      100% { opacity: 0; transform: translateX(-16px) scale(1.14); }
     }
   </style>
 </head>
@@ -1455,9 +1558,9 @@
               <button class="btn-strong" onclick="saveGroupAccess()">[ 保存访问控制 ]</button>
             </div>
             <div class="overview-stats">
-              <div class="overview-stat"><b id="quickProfileCount">0</b><span>方案数量</span></div>
-              <div class="overview-stat"><b id="quickGroupCount">0</b><span>群组总量</span></div>
-              <div class="overview-stat"><b id="quickUserCount">0</b><span>用户总量</span></div>
+              <div class="overview-stat"><b id="quickProfileCount">${state.profiles.length || 0}</b><span>方案数量</span></div>
+              <div class="overview-stat"><b id="quickGroupCount">${state.stats.total_groups || 0}</b><span>群组总量</span></div>
+              <div class="overview-stat"><b id="quickUserCount">${state.stats.total_users || 0}</b><span>用户总量</span></div>
             </div>
           </section>
         </div>`;
@@ -1515,7 +1618,7 @@
     }
 
     function toggleBox(label, path, on) {
-      return `<div class="toggle-row"><div><div>${label}</div><div class="helper mono">${path}</div></div><div class="toggle-box ${on ? 'on' : ''}" onclick="toggleRuntime('${path}', this)"></div></div>`;
+      return `<div class="toggle-row"><div><div>${label}</div></div><div class="toggle-box ${on ? 'on' : ''}" onclick="toggleRuntime('${path}', this)"></div></div>`;
     }
     function numField(label, path, value) {
       return `<div class="field"><label>${label}</label><input class="input" type="number" value="${esc(value ?? 0)}" onchange="setRuntimeValue('${path}', this.value)"></div>`;
@@ -1873,14 +1976,52 @@
       $('#dialog .dialog-card').classList.remove('create-mode');
     }
 
+    function copySourceChoices() {
+      return [
+        { value:'__blank__', label:'无（空白方案）' },
+        { value:'__builtin_default__', label:'内置默认模板' },
+        ...state.profiles.map(p => ({ value:p.profile_id, label:p.display_name || p.profile_id })),
+      ];
+    }
+    function renderCopySourceSelect(wrapperId, inputId, value) {
+      const options = copySourceChoices();
+      const current = options.find(item => item.value === value) || options[0];
+      return `<div class="custom-select" id="${wrapperId}"><input type="hidden" id="${inputId}" value="${esc(current.value)}"><button type="button" class="custom-select-trigger" onclick="toggleCustomSelect('${wrapperId}', event)"><span class="custom-select-current">${esc(current.label)}</span></button><div class="custom-select-menu">${options.map(item => `<button type="button" class="custom-select-option ${item.value === current.value ? 'active' : ''}" data-value="${esc(item.value)}" data-label="${esc(item.label)}" onclick="selectCustomOption('${wrapperId}', event)">${esc(item.label)}</button>`).join('')}</div></div>`;
+    }
+    function closeAllCustomSelects() {
+      $$('.custom-select.open').forEach(el => el.classList.remove('open'));
+    }
+    function toggleCustomSelect(wrapperId, event) {
+      event?.stopPropagation();
+      const root = document.getElementById(wrapperId);
+      if (!root) return;
+      const willOpen = !root.classList.contains('open');
+      closeAllCustomSelects();
+      if (willOpen) root.classList.add('open');
+    }
+    function selectCustomOption(wrapperId, event) {
+      event?.stopPropagation();
+      const root = document.getElementById(wrapperId);
+      const btn = event?.currentTarget;
+      if (!root || !btn) return;
+      const input = root.querySelector('input[type="hidden"]');
+      const current = root.querySelector('.custom-select-current');
+      const value = btn.dataset.value || '';
+      const label = btn.dataset.label || btn.textContent.trim();
+      if (input) input.value = value;
+      if (current) current.textContent = label;
+      root.querySelectorAll('.custom-select-option').forEach(el => el.classList.toggle('active', el === btn));
+      root.classList.remove('open');
+    }
     function openCreateProfileDialog() {
       state.newProfileCover = '';
+      const selectedCopyFrom = state.currentProfile || state.profiles[0]?.profile_id || '__builtin_default__';
       openDialog('新建方案', `
         <div>
           <div>
             <div class="field"><label>方案名称</label><input class="input" id="newProfileName"></div>
             <div class="field-grid" style="margin-top:12px;grid-template-columns:minmax(0,1fr) 160px;align-items:end;">
-              <div class="field"><label>复制来源</label><select class="select" id="copyFrom"><option value="__blank__">无（空白方案）</option><option value="__builtin_default__">内置默认模板</option>${state.profiles.map(p => `<option value="${esc(p.profile_id)}" ${p.profile_id === state.currentProfile ? 'selected' : ''}>${esc(p.display_name)}</option>`).join('')}</select></div>
+              <div class="field"><label>复制来源</label>${renderCopySourceSelect('copyFromSelect', 'copyFrom', selectedCopyFrom)}</div>
               <div class="field"><label>快捷创建</label><button class="btn" onclick="createBuiltinDefaultProfile()">[ 新建默认配置 ]</button></div>
             </div>
             <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="createProfileConfirm()">[ 确认创建 ]</button></div>
@@ -1929,6 +2070,7 @@
     function setAccessMode(mode) {
       state.groupAccess.mode = mode;
       renderOverview();
+      updateTop();
     }
 
     async function saveGroupAccess() {
@@ -2243,6 +2385,9 @@
       $('#reloadBtn').addEventListener('click', () => loadAll(true));
       $('#closeDialogBtn').addEventListener('click', closeDialog);
       $('#dialog').addEventListener('click', (e) => { if (e.target.id === 'dialog') closeDialog(); });
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.custom-select')) closeAllCustomSelects();
+      });
     }
 
     window.useProfile = useProfile;
@@ -2288,6 +2433,8 @@
     window.deleteFuncImage = deleteFuncImage;
     window.deleteFateImage = deleteFateImage;
     window.refreshCardAssets = refreshCardAssets;
+    window.toggleCustomSelect = toggleCustomSelect;
+    window.selectCustomOption = selectCustomOption;
 
     window.editProfile = editProfile;
     window.saveProfileEdit = saveProfileEdit;

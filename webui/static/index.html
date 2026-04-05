@@ -151,8 +151,8 @@
       background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(77,103,255,.65));
     }
     .brand .big {
-      font-size: 36px;
-      line-height: 1;
+      font-size: 40px;
+      line-height: .96;
       font-weight: 900;
       letter-spacing: -.02em;
       text-align: left;
@@ -251,7 +251,7 @@
     }
 
     .hero {
-      padding: 12px 20px 14px;
+      padding: 15px 20px 18px;
       display: grid;
       grid-template-columns: minmax(0,1fr) 56px;
       gap: 10px;
@@ -275,24 +275,24 @@
       height: 100%;
     }
     .hero .kicker {
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       font-size: 10px;
       letter-spacing: 2px;
       color: rgba(255,255,255,.64);
     }
     .hero h1 {
       font-size: clamp(46px, 6vw, 74px);
-      line-height: .92;
+      line-height: .94;
       font-weight: 900;
       letter-spacing: -.02em;
       text-wrap: balance;
       text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
     .hero p {
-      margin-top: 6px;
+      margin-top: 9px;
       max-width: 720px;
       font-size: 13px;
-      line-height: 1.78;
+      line-height: 1.8;
       color: var(--muted);
     }
     .quick-box {
@@ -542,46 +542,47 @@
     .profile-card.just-activated .profile-main::before {
       content: "";
       position: absolute;
-      left: -82px;
-      top: 4px;
-      bottom: 4px;
-      width: 102px;
+      left: -66px;
+      top: 8px;
+      bottom: 8px;
+      width: 82px;
       pointer-events: none;
       opacity: 0;
       background:
-        linear-gradient(270deg, rgba(118,255,194,.94), transparent 78%) 50px 8%/38px 1px no-repeat,
-        linear-gradient(238deg, rgba(118,255,194,.82), transparent 72%) 42px 18%/28px 1px no-repeat,
-        linear-gradient(300deg, rgba(118,255,194,.78), transparent 72%) 40px 30%/30px 1px no-repeat,
-        linear-gradient(252deg, rgba(66,94,255,.82), transparent 70%) 30px 42%/36px 1px no-repeat,
-        linear-gradient(214deg, rgba(118,255,194,.76), transparent 70%) 24px 22%/26px 1px no-repeat,
-        linear-gradient(286deg, rgba(66,94,255,.72), transparent 70%) 24px 54%/24px 1px no-repeat,
-        linear-gradient(246deg, rgba(118,255,194,.74), transparent 70%) 18px 68%/34px 1px no-repeat,
-        linear-gradient(298deg, rgba(66,94,255,.68), transparent 70%) 28px 80%/26px 1px no-repeat,
-        linear-gradient(270deg, rgba(118,255,194,.2), transparent 82%) 54px 0/36px 100% no-repeat;
-      filter: drop-shadow(0 0 4px rgba(118,255,194,.22));
-      transform-origin: right center;
-      animation: branchCircuitOut .72s ease-out;
+        linear-gradient(90deg, rgba(118,255,194,.84), transparent 78%) 42px 8%/24px 1px no-repeat,
+        linear-gradient(90deg, rgba(118,255,194,.78), transparent 78%) 34px 22%/16px 1px no-repeat,
+        linear-gradient(90deg, rgba(66,94,255,.78), transparent 76%) 30px 34%/22px 1px no-repeat,
+        linear-gradient(90deg, rgba(118,255,194,.76), transparent 78%) 22px 48%/18px 1px no-repeat,
+        linear-gradient(90deg, rgba(66,94,255,.72), transparent 76%) 28px 62%/20px 1px no-repeat,
+        linear-gradient(90deg, rgba(118,255,194,.78), transparent 78%) 18px 78%/26px 1px no-repeat,
+        linear-gradient(154deg, rgba(118,255,194,.7), transparent 72%) 28px 18%/18px 1px no-repeat,
+        linear-gradient(208deg, rgba(66,94,255,.68), transparent 70%) 20px 58%/16px 1px no-repeat,
+        linear-gradient(142deg, rgba(118,255,194,.62), transparent 72%) 34px 72%/14px 1px no-repeat;
+      filter: drop-shadow(0 0 4px rgba(110,255,196,.16));
+      mix-blend-mode: screen;
+      animation: branchCircuitOut .62s ease-out;
     }
     .profile-card.just-activated .profile-main::after {
       content: "";
       display: block;
       position: absolute;
-      left: -82px;
-      top: 4px;
-      bottom: 4px;
-      width: 102px;
+      left: -66px;
+      top: 8px;
+      bottom: 8px;
+      width: 82px;
       pointer-events: none;
       opacity: 0;
       background:
-        radial-gradient(circle, rgba(118,255,194,.98) 0 1.5px, transparent 2.3px) 16px 8%/18px 18px no-repeat,
-        radial-gradient(circle, rgba(118,255,194,.86) 0 1.5px, transparent 2.3px) 28px 18%/18px 18px no-repeat,
-        radial-gradient(circle, rgba(66,94,255,.84) 0 1.5px, transparent 2.3px) 30px 32%/20px 20px no-repeat,
-        radial-gradient(circle, rgba(118,255,194,.76) 0 1.5px, transparent 2.3px) 18px 46%/18px 18px no-repeat,
-        radial-gradient(circle, rgba(66,94,255,.72) 0 1.3px, transparent 2px) 40px 58%/16px 16px no-repeat,
-        radial-gradient(circle, rgba(118,255,194,.68) 0 1.3px, transparent 2px) 28px 74%/16px 16px no-repeat,
-        radial-gradient(circle, rgba(118,255,194,.62) 0 1.2px, transparent 1.9px) 44px 88%/14px 14px no-repeat;
-      filter: drop-shadow(0 0 6px rgba(118,255,194,.18));
-      animation: circuitParticleOut .72s ease-out;
+        radial-gradient(circle, rgba(118,255,194,.96) 0 1.2px, transparent 2px) 14px 10%/12px 12px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.84) 0 1.2px, transparent 2px) 24px 24%/12px 12px no-repeat,
+        radial-gradient(circle, rgba(66,94,255,.82) 0 1.2px, transparent 2px) 26px 38%/14px 14px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.76) 0 1.2px, transparent 2px) 16px 52%/12px 12px no-repeat,
+        radial-gradient(circle, rgba(66,94,255,.72) 0 1.1px, transparent 1.9px) 36px 64%/12px 12px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.68) 0 1.1px, transparent 1.9px) 24px 78%/12px 12px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.6) 0 1px, transparent 1.8px) 40px 88%/10px 10px no-repeat;
+      filter: drop-shadow(0 0 5px rgba(110,255,196,.14));
+      mix-blend-mode: screen;
+      animation: circuitParticleOut .62s ease-out;
     }
     .profile-switch-slot {
       position: absolute;
@@ -804,33 +805,47 @@
     }
     .rarity-weight-layout {
       display: grid;
-      grid-template-columns: minmax(0,1fr) 240px;
-      gap: 18px;
-      align-items: start;
+      grid-template-columns: 208px minmax(0,1fr);
+      gap: 20px;
+      align-items: center;
     }
     .rarity-weight-fields {
       display: grid;
-      gap: 10px;
+      gap: 8px;
+      width: min(208px, 100%);
+    }
+    .rarity-weight-fields .field label {
+      color: rgba(234,242,250,.9);
     }
     .rarity-ring-wrap {
       display: grid;
-      gap: 12px;
+      gap: 14px;
       justify-items: center;
+      align-content: start;
     }
     .rarity-ring {
-      width: 210px;
-      height: 210px;
+      width: 238px;
+      height: 238px;
       border-radius: 50%;
       position: relative;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 18px rgba(0,0,0,.24);
+      box-shadow: inset 0 0 0 1px rgba(126,215,255,.12), 0 0 24px rgba(66,94,255,.14), 0 0 32px rgba(118,255,194,.08);
+      isolation: isolate;
     }
     .rarity-ring::before {
       content: "";
       position: absolute;
-      inset: 30px;
+      inset: 32px;
       border-radius: 50%;
-      background: rgba(12,15,20,.96);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+      background: radial-gradient(circle at 35% 30%, rgba(18,25,33,.98), rgba(7,10,15,.98));
+      box-shadow: inset 0 0 0 1px rgba(126,215,255,.1), 0 0 18px rgba(0,0,0,.22);
+    }
+    .rarity-ring::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 0 18px rgba(93,190,255,.08), 0 0 28px rgba(118,255,194,.06);
     }
     .rarity-ring-center {
       position: absolute;
@@ -843,34 +858,40 @@
     }
     .rarity-ring-center b {
       display: block;
-      font-size: 28px;
+      font-size: 36px;
       line-height: 1;
       letter-spacing: -.04em;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .rarity-ring-center span {
-      font-size: 10px;
-      color: var(--dim);
-      letter-spacing: .12em;
+      font-size: 12px;
+      color: rgba(223,233,243,.78);
+      letter-spacing: .1em;
+    }
+    .rarity-legend-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      color: #eef7ff;
     }
     .rarity-legend {
-      width: 100%;
+      width: min(320px, 100%);
       display: grid;
-      gap: 8px;
+      gap: 10px;
     }
     .rarity-legend-item {
       display: grid;
-      grid-template-columns: 12px minmax(0,1fr) auto;
-      gap: 8px;
+      grid-template-columns: 14px minmax(0,1fr) auto;
+      gap: 10px;
       align-items: center;
-      font-size: 11px;
-      color: var(--muted);
+      font-size: 13px;
+      color: #dce6f0;
     }
     .rarity-dot {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       border-radius: 999px;
-      box-shadow: 0 0 10px color-mix(in srgb, var(--dot-color) 36%, transparent);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--dot-color) 44%, transparent);
       background: var(--dot-color);
     }
     .toggle-box {
@@ -937,14 +958,91 @@
 
     .event-item {
       display: grid;
-      grid-template-columns: 28px minmax(0,1fr) auto;
-      gap: 12px;
+      grid-template-columns: 22px minmax(0,1fr) auto;
+      gap: 10px;
       align-items: center;
+      padding: 9px 10px;
+      border: 1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.02);
+      border-radius: 2px;
+      font-size: 12px;
     }
     .event-check {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       accent-color: #6d83ff;
+    }
+    .signin-layout .panel {
+      padding: 16px;
+    }
+    .signin-layout .panel-head {
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    .signin-layout .panel-title {
+      font-size: 16px;
+    }
+    .signin-layout .panel-note {
+      font-size: 11px;
+      line-height: 1.65;
+    }
+    .signin-layout .row {
+      gap: 6px;
+    }
+    .signin-layout .btn,
+    .signin-layout .btn-strong,
+    .signin-layout .btn-danger {
+      padding: 8px 10px;
+      font-size: 10px;
+    }
+    .signin-layout .event-list {
+      gap: 8px;
+    }
+    .signin-layout .empty {
+      padding: 18px;
+      font-size: 11px;
+    }
+    .signin-columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px;
+    }
+    .signin-list-head {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 8px;
+    }
+    .signin-list-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: .04em;
+      padding-top: 2px;
+    }
+    .signin-actions {
+      display: grid;
+      gap: 6px;
+      justify-items: end;
+    }
+    .signin-preview {
+      min-height: 172px;
+      padding: 16px 18px;
+      font-size: 14px;
+      line-height: 1.95;
+      color: #f7fbff;
+      white-space: pre-line;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.012)),
+        linear-gradient(90deg, rgba(86,174,255,.08), rgba(118,255,194,.06) 42%, rgba(255,255,255,.02));
+      box-shadow: inset 0 0 0 1px rgba(86,174,255,.08), 0 0 18px rgba(86,174,255,.06);
+    }
+    .signin-range .field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: .04em;
     }
     .stat-grid {
       display: grid;
@@ -1162,7 +1260,8 @@
         grid-template-columns: repeat(3, minmax(0,1fr));
       }
       .split,
-      .rarity-weight-layout {
+      .rarity-weight-layout,
+      .signin-columns {
         grid-template-columns: 1fr;
       }
       .effect-row {
@@ -1218,6 +1317,12 @@
       .asset-item .thumb {
         height: 126px;
       }
+      .signin-list-head {
+        grid-template-columns: 1fr;
+      }
+      .signin-actions {
+        justify-items: stretch;
+      }
       .event-item {
         grid-template-columns: 24px minmax(0,1fr);
       }
@@ -1235,14 +1340,16 @@
       100% { box-shadow: inset 0 0 0 1px rgba(77,103,255,.08), 0 0 0 rgba(118,255,194,0); }
     }
     @keyframes branchCircuitOut {
-      0% { opacity: 0; transform: translateX(8px) scaleX(.52); }
-      28% { opacity: .96; }
-      100% { opacity: 0; transform: translateX(-18px) scaleX(1.16); }
+      0% { opacity: 0; filter: drop-shadow(0 0 0 rgba(118,255,194,0)); }
+      20% { opacity: .96; }
+      58% { opacity: .78; }
+      100% { opacity: 0; filter: drop-shadow(0 0 6px rgba(118,255,194,.12)); }
     }
     @keyframes circuitParticleOut {
-      0% { opacity: 0; transform: translateX(6px) scale(.72); }
-      26% { opacity: 1; }
-      100% { opacity: 0; transform: translateX(-16px) scale(1.14); }
+      0% { opacity: 0; filter: drop-shadow(0 0 0 rgba(118,255,194,0)); }
+      18% { opacity: 1; }
+      60% { opacity: .72; }
+      100% { opacity: 0; filter: drop-shadow(0 0 8px rgba(118,255,194,.14)); }
     }
   </style>
 </head>
@@ -1600,11 +1707,11 @@
     }
 
     const rarityWeightPalette = [
-      { key:'rarity_1', label:'普通', color:'#8a8f98' },
-      { key:'rarity_2', label:'稀有', color:'#4f79ff' },
-      { key:'rarity_3', label:'史诗', color:'#9d5cff' },
-      { key:'rarity_4', label:'传说', color:'#ffb03b' },
-      { key:'rarity_5', label:'神话', color:'#ff5b4f' },
+      { key:'rarity_1', label:'普通', color:'#6f7d8e' },
+      { key:'rarity_2', label:'稀有', color:'#58a7ff' },
+      { key:'rarity_3', label:'史诗', color:'#9f6cff' },
+      { key:'rarity_4', label:'传说', color:'#ffbf5f' },
+      { key:'rarity_5', label:'神话', color:'#ff7078' },
     ];
     function buildRarityWeightPreview() {
       const weights = state.runtimeConfig?.func_cards_settings?.custom_rarity_weights || {};
@@ -1792,8 +1899,9 @@
               </div>
               <div class="rarity-ring-wrap">
                 <div class="rarity-ring" id="rarityRing" style="background:${preview.ringBackground};">
-                  <div class="rarity-ring-center"><div><b id="rarityWeightTotal">${preview.total}</b><span>总权重</span></div></div>
+                  <div class="rarity-ring-center"><div><b id="rarityWeightTotal">${preview.total}</b><span>权重总值</span></div></div>
                 </div>
+                <div class="rarity-legend-title">实时概率分布</div>
                 <div class="rarity-legend" id="rarityLegend">
                   ${preview.items.map(item => `
                     <div class="rarity-legend-item">
@@ -1822,37 +1930,43 @@
     function renderSignin() {
       const ranges = state.signInTexts.luck_ranges || [];
       $('#page-signin').innerHTML = `
-        <div class="grid">
+        <div class="grid signin-layout">
           <section class="panel col-7">
             <div class="panel-head">
               <div>
                 <div class="panel-title">事件文本池</div>
-                <div class="panel-note">逐条列出，可勾选批量删除，也可批量增加。</div>
-              </div>
-              <div class="row">
-                <button class="btn" onclick="batchAddEvents('good')">[ 批量增加好事 ]</button>
-                <button class="btn" onclick="batchAddEvents('bad')">[ 批量增加坏事 ]</button>
+                <div class="panel-note">签到预览会按“宜 / 忌”格式生成，这里直接维护对应文案。</div>
               </div>
             </div>
-            <div class="field-grid">
+            <div class="signin-columns">
               <div>
-                <div class="panel-title" style="font-size:14px;margin-bottom:10px;">好事列表</div>
-                <div class="event-list">
-                  ${(state.signInTexts.good_things || []).map((item, i) => eventItem('good', item, i)).join('') || '<div class="empty">暂无好事文本</div>'}
+                <div class="signin-list-head">
+                  <div class="signin-list-title">宜项列表</div>
+                  <div class="signin-actions">
+                    <button class="btn" onclick="batchAddEvents('good')">[ 批量增加宜项 ]</button>
+                    <button class="btn-danger" onclick="deleteSelectedEvents('good')">[ 批量删除已勾选 ]</button>
+                  </div>
                 </div>
-                <div class="row" style="margin-top:10px;">
-                  <button class="btn-danger" onclick="deleteSelectedEvents('good')">[ 批量删除 ]</button>
-                  <button class="btn" onclick="addSingleEvent('good')">[ 增加一条 ]</button>
+                <div class="event-list">
+                  ${(state.signInTexts.good_things || []).map((item, i) => eventItem('good', item, i)).join('') || '<div class="empty">暂无宜项文本</div>'}
+                </div>
+                <div class="row" style="margin-top:8px;">
+                  <button class="btn" onclick="addSingleEvent('good')">[ 增加一条宜项 ]</button>
                 </div>
               </div>
               <div>
-                <div class="panel-title" style="font-size:14px;margin-bottom:10px;">坏事列表</div>
-                <div class="event-list">
-                  ${(state.signInTexts.bad_things || []).map((item, i) => eventItem('bad', item, i)).join('') || '<div class="empty">暂无坏事文本</div>'}
+                <div class="signin-list-head">
+                  <div class="signin-list-title">忌项列表</div>
+                  <div class="signin-actions">
+                    <button class="btn" onclick="batchAddEvents('bad')">[ 批量增加忌项 ]</button>
+                    <button class="btn-danger" onclick="deleteSelectedEvents('bad')">[ 批量删除已勾选 ]</button>
+                  </div>
                 </div>
-                <div class="row" style="margin-top:10px;">
-                  <button class="btn-danger" onclick="deleteSelectedEvents('bad')">[ 批量删除 ]</button>
-                  <button class="btn" onclick="addSingleEvent('bad')">[ 增加一条 ]</button>
+                <div class="event-list">
+                  ${(state.signInTexts.bad_things || []).map((item, i) => eventItem('bad', item, i)).join('') || '<div class="empty">暂无忌项文本</div>'}
+                </div>
+                <div class="row" style="margin-top:8px;">
+                  <button class="btn" onclick="addSingleEvent('bad')">[ 增加一条忌项 ]</button>
                 </div>
               </div>
             </div>
@@ -1861,26 +1975,26 @@
           <section class="panel col-5">
             <div class="panel-head">
               <div>
-                <div class="panel-title">签到预览与运势区间</div>
-                <div class="panel-note">点击预览按钮，随机生成一条模拟签到结果。</div>
+                <div class="panel-title">签到预览</div>
+                <div class="panel-note">按 QQ 内实际生成习惯分行显示，方便直接比对最终效果。</div>
               </div>
               <button class="btn-strong" onclick="saveSignin()">[ 保存签到配置 ]</button>
             </div>
-            <div class="row" style="margin-bottom:12px;">
+            <div class="row" style="margin-bottom:10px;">
               <button class="btn-strong" onclick="previewSignin()">[ 生成签到预览 ]</button>
             </div>
-            <div class="tag-preview" id="signinPreview">尚未生成预览。</div>
-            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">运势区间</div></div><button class="btn" onclick="addRange()">[ 新增区间 ]</button></div>
+            <div class="tag-preview signin-preview" id="signinPreview">尚未生成预览。</div>
+            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">运势区间</div><div class="panel-note">标签、数值区间和点评文案会直接影响预览结果。</div></div><button class="btn" onclick="addRange()">[ 新增区间 ]</button></div>
             <div class="stack">
               ${ranges.map((r, i) => `
-                <div class="profile-card">
+                <div class="profile-card signin-range">
                   <div class="field-grid four">
                     <div class="field"><label>标签</label><input class="input" value="${esc(r.label || '')}" onchange="setRange(${i}, 'label', this.value)"></div>
                     <div class="field"><label>最小值</label><input class="input" type="number" value="${esc(r.min ?? 0)}" onchange="setRange(${i}, 'min', Number(this.value))"></div>
                     <div class="field"><label>最大值</label><input class="input" type="number" value="${esc(r.max ?? 0)}" onchange="setRange(${i}, 'max', Number(this.value))"></div>
                     <div class="field"><label>金币修正</label><input class="input" type="number" value="${esc(r.gold_delta ?? 0)}" onchange="setRange(${i}, 'gold_delta', Number(this.value))"></div>
                   </div>
-                  <div class="field" style="margin-top:10px;"><label>评论（每行一条）</label><textarea class="textarea" onchange="setRangeComments(${i}, this.value)">${esc((r.comments || []).join('\n'))}</textarea></div>
+                  <div class="field" style="margin-top:10px;"><label>点评文案（每行一条）</label><textarea class="textarea" onchange="setRangeComments(${i}, this.value)">${esc((r.comments || []).join('\n'))}</textarea></div>
                   <div class="row" style="margin-top:10px;"><button class="btn-danger" onclick="removeRange(${i})">[ 删除区间 ]</button></div>
                 </div>`).join('') || '<div class="empty">暂无运势区间</div>'}
             </div>
@@ -2317,13 +2431,15 @@
       renderSignin();
     }
     function addSingleEvent(kind) {
-      const val = prompt(`请输入要加入${kind === 'good' ? '好事' : '坏事'}列表的文案`);
+      const label = kind === 'good' ? '宜项' : '忌项';
+      const val = prompt(`请输入要加入${label}列表的文案`);
       if (!val) return;
       (kind === 'good' ? state.signInTexts.good_things : state.signInTexts.bad_things).push(val);
       renderSignin();
     }
     function batchAddEvents(kind) {
-      const raw = prompt(`每行一条，批量增加${kind === 'good' ? '好事' : '坏事'}文案`);
+      const label = kind === 'good' ? '宜项' : '忌项';
+      const raw = prompt(`每行一条，批量增加${label}文案`);
       if (!raw) return;
       raw.split(/\r?\n/).map(v => v.trim()).filter(Boolean).forEach(v => (kind === 'good' ? state.signInTexts.good_things : state.signInTexts.bad_things).push(v));
       renderSignin();
@@ -2343,10 +2459,17 @@
       if (!ranges.length) return showToast('请先配置运势区间。', true);
       const range = ranges[Math.floor(Math.random() * ranges.length)];
       const comment = (range.comments || [])[Math.floor(Math.random() * (range.comments?.length || 1))] || '今日无额外批注。';
-      const good = (state.signInTexts.good_things || [])[Math.floor(Math.random() * Math.max(1, state.signInTexts.good_things.length))] || '暂无好事';
-      const bad = (state.signInTexts.bad_things || [])[Math.floor(Math.random() * Math.max(1, state.signInTexts.bad_things.length))] || '暂无坏事';
+      const good = (state.signInTexts.good_things || [])[Math.floor(Math.random() * Math.max(1, state.signInTexts.good_things.length))] || '暂无宜项';
+      const bad = (state.signInTexts.bad_things || [])[Math.floor(Math.random() * Math.max(1, state.signInTexts.bad_things.length))] || '暂无忌项';
       const score = Math.floor(Math.random() * Math.max(1, (range.max ?? 100) - (range.min ?? 1) + 1)) + (range.min ?? 1);
-      $('#signinPreview').textContent = `今日运势【${range.label || '未知'}】｜数值 ${score}｜金币修正 ${range.gold_delta || 0}｜点评：${comment}｜宜：${good}｜忌：${bad}`;
+      $('#signinPreview').textContent = [
+        `今日运势｜${range.label || '未知'}`,
+        `数值｜${score}`,
+        `金币修正｜${range.gold_delta || 0}`,
+        `点评｜${comment}`,
+        `宜｜${good}`,
+        `忌｜${bad}`,
+      ].join('\n');
     }
     async function saveSignin() {
       const res = await apiPost('/api/sign_in_texts', { texts: state.signInTexts });

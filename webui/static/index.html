@@ -6,25 +6,25 @@
   <title>罗德岛档案中枢</title>
   <style>
     :root {
-      --bg: #07090d;
-      --bg-2: #0b0f15;
-      --surface: rgba(15, 18, 24, .92);
-      --surface-2: rgba(20, 24, 31, .96);
-      --surface-3: rgba(255,255,255,.03);
-      --line: rgba(255,255,255,.08);
-      --line-strong: rgba(255,255,255,.16);
+      --bg: #06080c;
+      --bg-2: #0b0e14;
+      --surface: rgba(14, 17, 22, .94);
+      --surface-2: rgba(18, 22, 29, .97);
+      --surface-3: rgba(255,255,255,.028);
+      --line: rgba(255,255,255,.075);
+      --line-strong: rgba(255,255,255,.17);
       --text: #f4f6f8;
       --muted: rgba(222,228,235,.74);
       --dim: rgba(178,187,197,.48);
-      --blue: #4d67ff;
-      --blue-soft: rgba(77,103,255,.18);
-      --orange: #ff6b36;
-      --orange-soft: rgba(255,107,54,.16);
+      --blue: #425eff;
+      --blue-soft: rgba(66,94,255,.16);
+      --orange: #ff6d3b;
+      --orange-soft: rgba(255,109,59,.14);
       --danger: #ff7e68;
-      --shadow: 0 18px 48px rgba(0,0,0,.34);
-      --radius-xl: 10px;
-      --radius-lg: 8px;
-      --radius-md: 4px;
+      --shadow: 0 20px 56px rgba(0,0,0,.38);
+      --radius-xl: 8px;
+      --radius-lg: 6px;
+      --radius-md: 3px;
       --radius-sm: 2px;
       --ease: cubic-bezier(.22,1,.36,1);
     }
@@ -37,10 +37,10 @@
       color: var(--text);
       overflow-x: hidden;
       background:
-        radial-gradient(circle at 14% 18%, rgba(77,103,255,.12), transparent 24%),
-        radial-gradient(circle at 84% 14%, rgba(255,107,54,.06), transparent 20%),
-        radial-gradient(circle at 52% 100%, rgba(255,255,255,.03), transparent 34%),
-        linear-gradient(180deg, #10141b 0%, #07090d 100%);
+        radial-gradient(circle at 14% 18%, rgba(66,94,255,.11), transparent 23%),
+        radial-gradient(circle at 84% 14%, rgba(255,109,59,.05), transparent 18%),
+        radial-gradient(circle at 50% 100%, rgba(255,255,255,.025), transparent 32%),
+        linear-gradient(180deg, #0f1319 0%, #06080c 100%);
     }
     body::before {
       content: "";
@@ -99,11 +99,12 @@
       position: relative;
       border: 1px solid var(--line);
       background:
-        linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.008)),
-        linear-gradient(90deg, rgba(255,255,255,.016), rgba(255,255,255,0) 22%, rgba(255,255,255,.014) 48%, rgba(255,255,255,0));
-      background-color: var(--surface);
+        linear-gradient(180deg, rgba(255,255,255,.024), rgba(255,255,255,.006)),
+        linear-gradient(90deg, rgba(255,255,255,.012), rgba(255,255,255,0) 26%, rgba(255,255,255,.01) 54%, rgba(255,255,255,0)),
+        radial-gradient(circle at top right, rgba(66,94,255,.08), transparent 18%),
+        var(--surface);
       box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.04);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
       overflow: hidden;
       clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
     }
@@ -157,10 +158,11 @@
     }
     .brand .big {
       font-size: 42px;
-      line-height: .98;
+      line-height: .96;
       font-weight: 900;
-      letter-spacing: -.06em;
+      letter-spacing: -.1em;
       text-align: left;
+      text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
     .brand .row {
       display: flex;
@@ -173,10 +175,11 @@
       min-height: 24px;
       padding: 0 8px;
       border: 1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.035);
+      background: rgba(255,255,255,.03);
       color: var(--muted);
       font-size: 10px;
-      letter-spacing: .08em;
+      letter-spacing: .12em;
+      clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
     }
 
     .nav { padding: 14px; }
@@ -270,10 +273,11 @@
     }
     .hero h1 {
       font-size: clamp(40px, 6vw, 66px);
-      line-height: .92;
+      line-height: .9;
       font-weight: 900;
-      letter-spacing: -.08em;
+      letter-spacing: -.1em;
       text-wrap: balance;
+      text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
     .hero p {
       margin-top: 12px;
@@ -337,7 +341,7 @@
       padding: 10px 14px;
       cursor: pointer;
       transition: .18s var(--ease);
-      letter-spacing: .08em;
+      letter-spacing: .12em;
       font-size: 12px;
       clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
     }
@@ -348,9 +352,9 @@
     }
     .btn-strong {
       color: #fff;
-      font-weight: 700;
-      border-color: rgba(77,103,255,.32);
-      background: linear-gradient(90deg, rgba(77,103,255,.24), rgba(255,255,255,.04) 72%);
+      font-weight: 800;
+      border-color: rgba(66,94,255,.34);
+      background: linear-gradient(90deg, rgba(66,94,255,.26), rgba(255,255,255,.035) 72%);
       box-shadow: inset 2px 0 0 rgba(255,255,255,.56);
     }
     .btn-strong:hover {
@@ -374,7 +378,7 @@
     }
 
     .pages { display: grid; gap: 18px; }
-    .page { display: none; gap: 18px; }
+    .page { display: none; gap: 18px; counter-reset: panel-index; }
     .page.active { display: grid; }
     .grid { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); gap: 18px; }
     .col-12 { grid-column: span 12; }
@@ -387,6 +391,7 @@
     .panel {
       padding: 20px;
       background-color: var(--surface);
+      counter-increment: panel-index;
     }
     .panel-head {
       display: flex;
@@ -403,14 +408,27 @@
       position: absolute;
       left: 0;
       bottom: -1px;
-      width: 96px;
+      width: 104px;
       height: 1px;
-      background: linear-gradient(90deg, rgba(77,103,255,.85), transparent);
+      background: linear-gradient(90deg, rgba(66,94,255,.88), transparent);
+    }
+    .panel-head > div:first-child {
+      position: relative;
+      padding-top: 14px;
+    }
+    .panel-head > div:first-child::before {
+      content: "SECTION / " counter(panel-index, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 10px;
+      letter-spacing: .18em;
+      color: var(--dim);
     }
     .panel-title {
       font-size: 18px;
       font-weight: 900;
-      letter-spacing: -.04em;
+      letter-spacing: -.06em;
     }
     .panel-note {
       margin-top: 5px;
@@ -534,9 +552,9 @@
       resize: vertical;
     }
     .input:focus, .textarea:focus, .select:focus {
-      border-color: rgba(77,103,255,.38);
-      background: rgba(255,255,255,.045);
-      box-shadow: inset 2px 0 0 rgba(77,103,255,.8);
+      border-color: rgba(66,94,255,.42);
+      background: rgba(255,255,255,.05);
+      box-shadow: inset 3px 0 0 rgba(66,94,255,.92);
     }
     .field {
       display: grid;
@@ -554,9 +572,10 @@
 
     .profile-card h3, .card-item h3 {
       font-size: 18px;
-      line-height: 1.12;
+      line-height: 1.08;
       margin-bottom: 2px;
-      letter-spacing: -.03em;
+      letter-spacing: -.06em;
+      font-weight: 900;
     }
     .profile-inline { gap: 6px; align-items: center; }
     .meta, .helper, .card-desc {
@@ -583,7 +602,8 @@
       color: #fff;
       padding: 0 8px;
       font-size: 10px;
-      letter-spacing: .08em;
+      letter-spacing: .12em;
+      clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
     }
     .badge.light {
       background: rgba(77,103,255,.14);
@@ -732,7 +752,7 @@
     }
     .tag-preview {
       border: 1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.025);
+      background: linear-gradient(90deg, rgba(66,94,255,.08), rgba(255,255,255,.02) 36%, rgba(255,255,255,.02));
       padding: 12px 14px;
       min-height: 46px;
       font-size: 11px;

@@ -1171,8 +1171,8 @@
       word-break: break-all;
     }
     .func-archive-grid {
-      grid-template-columns: repeat(auto-fill, minmax(286px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
     }
     .func-pending-grid {
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -1228,8 +1228,8 @@
       --func-strip-glow: rgba(255,128,158,.28);
     }
     .archive-card.func-card .archive-cover {
-      aspect-ratio: 16 / 9;
-      padding: 10px 10px 0;
+      aspect-ratio: 3 / 4;
+      padding: 12px 12px 0;
       background:
         linear-gradient(180deg, rgba(200,214,236,.1), rgba(255,255,255,.02)),
         linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
@@ -1241,8 +1241,8 @@
       box-shadow: 0 18px 28px rgba(0,0,0,.24), 0 0 0 1px rgba(255,255,255,.03);
     }
     .archive-card.func-card .archive-body {
-      gap: 10px;
-      padding: 13px 15px 15px;
+      gap: 12px;
+      padding: 14px 16px 16px;
       background:
         linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 22%),
         linear-gradient(180deg, rgba(11,15,22,.2), rgba(255,255,255,0));
@@ -1253,7 +1253,7 @@
       min-height: 18px;
     }
     .archive-card.func-card .archive-desc {
-      min-height: 58px;
+      min-height: 48px;
       background: rgba(255,255,255,.04);
       border-color: rgba(255,255,255,.08);
       color: rgba(226,233,240,.82);

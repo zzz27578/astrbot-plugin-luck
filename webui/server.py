@@ -42,6 +42,8 @@ STATIC_DIR = WEBUI_DIR / "static"
 DEFAULT_FUNC_CARDS_FILE = CONFIG_DIR / "func_cards.json"
 DEFAULT_FATE_CARDS_FILE = CONFIG_DIR / "cards_config.json"
 DEFAULT_RUNTIME_CONFIG_FILE = CONFIG_DIR / "webui_runtime_config.json"
+BUILTIN_DEFAULT_COPY_FROM = "__builtin_default__"
+BLANK_COPY_FROM = "__blank__"
 
 # 默认签到文案（fallback）
 DEFAULT_SIGN_IN_TEXTS = {
@@ -344,6 +346,24 @@ def _default_runtime_config() -> dict:
     }
 
 
+def _seed_profile_from_builtin_defaults(paths: dict):
+    runtime_seed = _load_json_template(DEFAULT_RUNTIME_CONFIG_FILE, {})
+    merged_runtime = _deep_merge_dict(_default_runtime_config(), runtime_seed if isinstance(runtime_seed, dict) else {})
+    _atomic_write(paths["func_cards_file"], _load_json_template(DEFAULT_FUNC_CARDS_FILE, []))
+    _atomic_write(paths["fate_cards_file"], _load_json_template(DEFAULT_FATE_CARDS_FILE, []))
+    _atomic_write(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
+    _atomic_write(paths["runtime_config_file"], merged_runtime)
+
+
+def _seed_blank_profile(paths: dict):
+    runtime_seed = _load_json_template(DEFAULT_RUNTIME_CONFIG_FILE, {})
+    merged_runtime = _deep_merge_dict(_default_runtime_config(), runtime_seed if isinstance(runtime_seed, dict) else {})
+    _atomic_write(paths["func_cards_file"], [])
+    _atomic_write(paths["fate_cards_file"], [])
+    _atomic_write(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
+    _atomic_write(paths["runtime_config_file"], merged_runtime)
+
+
 # ============================================================================== 
 # API 路由处理
 # ==============================================================================
@@ -610,7 +630,8 @@ async def api_create_profile(request):
     try:
         body = await request.json()
         name = str(body.get("name", "")).strip()
-        copy_from = _sanitize_profile_id(body.get("copy_from") or DEFAULT_PROFILE_NAME)
+        raw_copy_from = str(body.get("copy_from") or DEFAULT_PROFILE_NAME).strip()
+        copy_from = _sanitize_profile_id(raw_copy_from or DEFAULT_PROFILE_NAME)
         if not name:
             return web.json_response({"ok": False, "error": "name required"}, status=400)
         profile_id = _sanitize_profile_id(body.get("profile_id") or name.lower())
@@ -619,20 +640,29 @@ async def api_create_profile(request):
         paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
         if paths["profile_dir"].exists() and any(paths["profile_dir"].iterdir()):
             return web.json_response({"ok": False, "error": "profile already exists"}, status=400)
-        source_paths = get_profile_storage_paths(copy_from, PLUGIN_NAME)
-        ensure_profile_dirs(copy_from, PLUGIN_NAME)
+
         ensure_profile_dirs(profile_id, PLUGIN_NAME)
-        for key in ("func_cards_file", "fate_cards_file", "sign_in_texts_file", "runtime_config_file"):
-            data = _read_json(source_paths[key], [] if "cards" in key else {})
-            _atomic_write(paths[key], data)
-        for src_key, dst_key in (("func_assets_dir", "func_assets_dir"), ("fate_assets_dir", "fate_assets_dir")):
-            src_dir = source_paths[src_key]
-            dst_dir = paths[dst_key]
-            dst_dir.mkdir(parents=True, exist_ok=True)
-            if src_dir.exists():
-                for item in src_dir.iterdir():
-                    if item.is_file():
-                        shutil.copy2(item, dst_dir / item.name)
+
+        if raw_copy_from == BUILTIN_DEFAULT_COPY_FROM:
+            _seed_profile_from_builtin_defaults(paths)
+        elif raw_copy_from == BLANK_COPY_FROM:
+            _seed_blank_profile(paths)
+        else:
+            source_paths = get_profile_storage_paths(copy_from, PLUGIN_NAME)
+            ensure_profile_dirs(copy_from, PLUGIN_NAME)
+            _ensure_profile_seed_data(copy_from)
+            for key in ("func_cards_file", "fate_cards_file", "sign_in_texts_file", "runtime_config_file"):
+                data = _read_json(source_paths[key], [] if "cards" in key else {})
+                _atomic_write(paths[key], data)
+            for src_key, dst_key in (("func_assets_dir", "func_assets_dir"), ("fate_assets_dir", "fate_assets_dir")):
+                src_dir = source_paths[src_key]
+                dst_dir = paths[dst_key]
+                dst_dir.mkdir(parents=True, exist_ok=True)
+                if src_dir.exists():
+                    for item in src_dir.iterdir():
+                        if item.is_file():
+                            shutil.copy2(item, dst_dir / item.name)
+
         _save_profile_meta(profile_id, {"display_name": name, "cover_image": ""})
         return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
     except Exception as e:

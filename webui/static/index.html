@@ -81,14 +81,14 @@
     .app {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 268px minmax(0,1fr);
-      gap: 20px;
-      padding: 18px;
+      grid-template-columns: 244px minmax(0,1fr);
+      gap: 16px;
+      padding: 16px;
     }
     .side {
       display: grid;
       grid-template-rows: auto auto auto;
-      gap: 18px;
+      gap: 14px;
       align-content: start;
     }
     .main {
@@ -126,8 +126,8 @@
     }
 
     .brand {
-      padding: 24px 22px 22px;
-      min-height: 180px;
+      padding: 20px 18px 18px;
+      min-height: 164px;
     }
     .brand .mini {
       margin-bottom: 14px;
@@ -151,10 +151,10 @@
       background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(77,103,255,.65));
     }
     .brand .big {
-      font-size: 44px;
-      line-height: .96;
+      font-size: 40px;
+      line-height: .98;
       font-weight: 900;
-      letter-spacing: -.04em;
+      letter-spacing: -.03em;
       text-align: left;
       text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
@@ -176,7 +176,7 @@
       clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
     }
 
-    .nav { padding: 14px; }
+    .nav { padding: 12px; }
     .nav-title, .tiny, .subtle-label {
       margin-bottom: 10px;
       font-size: 10px;
@@ -231,22 +231,31 @@
     }
 
     .current {
-      padding: 18px;
+      padding: 14px;
       align-self: start;
+      transition: border-color .24s var(--ease), box-shadow .24s var(--ease), transform .24s var(--ease);
     }
     .current .name {
       margin: 8px 0;
       font-size: 20px;
       font-weight: 800;
       letter-spacing: -.04em;
+      transition: opacity .24s var(--ease), transform .24s var(--ease), filter .24s var(--ease);
+    }
+    .current.changing {
+      border-color: rgba(66,94,255,.22);
+      box-shadow: 0 0 0 1px rgba(66,94,255,.08), 0 0 18px rgba(66,94,255,.12);
+    }
+    .current.changing .name {
+      animation: currentProfileSwap .34s var(--ease);
     }
 
     .hero {
-      padding: 28px;
+      padding: 24px 24px 20px;
       display: grid;
-      grid-template-columns: minmax(0,1fr) 220px 44px;
-      gap: 14px;
-      align-items: start;
+      grid-template-columns: minmax(0,1fr) 40px;
+      gap: 12px;
+      align-items: end;
       background:
         linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
         radial-gradient(circle at 76% 24%, rgba(77,103,255,.14), transparent 22%),
@@ -254,7 +263,9 @@
       background-color: var(--surface-2);
     }
     .hero-side {
-      display: contents;
+      display: grid;
+      grid-template-columns: 1fr;
+      align-items: stretch;
     }
     .hero .kicker {
       margin-bottom: 10px;
@@ -263,10 +274,10 @@
       color: rgba(255,255,255,.64);
     }
     .hero h1 {
-      font-size: clamp(44px, 6vw, 72px);
-      line-height: .92;
+      font-size: clamp(48px, 6vw, 78px);
+      line-height: .94;
       font-weight: 900;
-      letter-spacing: -.04em;
+      letter-spacing: -.02em;
       text-wrap: balance;
       text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
@@ -278,34 +289,47 @@
       color: var(--muted);
     }
     .quick-box {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 6px;
-      min-height: auto;
-      align-self: start;
+      display: none;
     }
-    .quick-box > div {
+    .overview-stats {
       display: grid;
-      justify-items: start;
-      gap: 4px;
-      padding: 10px 10px 10px 12px;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .overview-stat {
+      position: relative;
       border: 1px solid rgba(255,255,255,.06);
-      background: rgba(255,255,255,.03);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.012));
+      padding: 10px 10px 9px 12px;
       border-radius: 2px;
+      overflow: hidden;
     }
-    .quick-box b {
+    .overview-stat::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(66,94,255,.9), rgba(110,255,196,.66));
+      box-shadow: 0 0 12px rgba(110,255,196,.18);
+    }
+    .overview-stat b {
       display: block;
-      font-size: 20px;
+      font-size: 19px;
       line-height: 1;
       font-weight: 900;
       color: #fff;
       letter-spacing: -.02em;
+      margin-bottom: 5px;
     }
-    .quick-box span {
+    .overview-stat span {
+      display: block;
       font-size: 10px;
       line-height: 1.25;
       color: var(--dim);
-      letter-spacing: .06em;
+      letter-spacing: .08em;
     }
     .toolbar {
       display: grid;
@@ -313,6 +337,7 @@
       align-items: stretch;
       justify-items: stretch;
       align-self: stretch;
+      height: 100%;
     }
     .reload-tower {
       writing-mode: vertical-rl;
@@ -320,22 +345,23 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 44px;
+      width: 40px;
       min-height: 100%;
-      padding: 8px 0;
+      padding: 10px 0;
       letter-spacing: .14em;
       font-size: 10px;
+      justify-self: end;
     }
 
     .btn, .btn-strong, .btn-danger, .btn-mini, .mode-btn {
       border: 1px solid rgba(255,255,255,.08);
       background: rgba(255,255,255,.03);
       color: var(--text);
-      padding: 10px 14px;
+      padding: 9px 13px;
       cursor: pointer;
       transition: .18s var(--ease);
       letter-spacing: .12em;
-      font-size: 12px;
+      font-size: 11px;
       clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
     }
     .btn:hover, .btn-mini:hover, .mode-btn:hover {
@@ -366,7 +392,16 @@
       color: #fff;
     }
     .btn-mini {
-      padding: 7px 10px;
+      padding: 6px 9px;
+      font-size: 10px;
+    }
+    .panel-head > .btn,
+    .panel-head > .btn-strong,
+    .panel-head > .btn-danger,
+    .panel-head .row > .btn,
+    .panel-head .row > .btn-strong,
+    .panel-head .row > .btn-danger {
+      padding: 8px 11px;
       font-size: 11px;
     }
 
@@ -465,7 +500,8 @@
       background: transparent;
     }
     .profile-card.active::before {
-      background: linear-gradient(180deg, rgba(77,103,255,.96), rgba(255,255,255,.8));
+      background: linear-gradient(180deg, rgba(77,103,255,.98), rgba(118,255,194,.82));
+      box-shadow: 0 0 10px rgba(118,255,194,.35), 0 0 24px rgba(77,103,255,.22);
     }
     .profile-main {
       position: relative;
@@ -481,7 +517,39 @@
       box-shadow: inset 0 0 0 1px rgba(77,103,255,.08);
       transform: translateX(2px);
     }
-    .profile-card.active::after { display: none; }
+    .profile-card.active::after {
+      content: "";
+      position: absolute;
+      left: -18px;
+      top: 8px;
+      bottom: 8px;
+      width: 42px;
+      background: linear-gradient(90deg, rgba(118,255,194,.22), rgba(77,103,255,.12), transparent);
+      filter: blur(12px);
+      opacity: .9;
+      pointer-events: none;
+    }
+    .profile-card.just-activated {
+      animation: profilePulseEdge .68s ease-out;
+    }
+    .profile-card.just-activated .profile-main::before {
+      content: "";
+      position: absolute;
+      left: -22px;
+      top: -8px;
+      bottom: -8px;
+      width: 110px;
+      pointer-events: none;
+      opacity: 0;
+      background:
+        radial-gradient(circle at 18px 18%, rgba(118,255,194,.95) 0 2px, transparent 5px),
+        radial-gradient(circle at 34px 34%, rgba(118,255,194,.8) 0 2px, transparent 6px),
+        radial-gradient(circle at 26px 60%, rgba(77,103,255,.78) 0 2px, transparent 6px),
+        radial-gradient(circle at 42px 78%, rgba(118,255,194,.7) 0 2px, transparent 7px),
+        linear-gradient(180deg, rgba(118,255,194,.28), rgba(77,103,255,.18), transparent 72%);
+      filter: blur(1px);
+      animation: profileBranchBloom .68s ease-out;
+    }
     .profile-switch-slot {
       position: absolute;
       top: 16px;
@@ -499,12 +567,13 @@
       width: auto;
       height: auto;
       min-height: 0;
-      padding: 7px 10px;
-      border: 1px solid rgba(255,255,255,.08);
+      padding: 9px 14px;
+      border: 1px solid rgba(255,255,255,.1);
       background: rgba(255,255,255,.03);
       color: var(--text);
-      font-size: 10px;
-      letter-spacing: .12em;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .14em;
       writing-mode: horizontal-tb;
       text-orientation: initial;
       cursor: pointer;
@@ -515,6 +584,7 @@
       color: #fff;
       border-color: rgba(77,103,255,.34);
       background: rgba(77,103,255,.18);
+      box-shadow: 0 0 14px rgba(77,103,255,.14);
     }
     .profile-card.active .profile-switch-slot {
       width: auto;
@@ -527,8 +597,12 @@
       opacity: 1;
       pointer-events: auto;
       color: #fff;
-      border-color: rgba(77,103,255,.34);
-      background: rgba(77,103,255,.16);
+      border-color: rgba(118,255,194,.26);
+      background: linear-gradient(90deg, rgba(118,255,194,.16), rgba(77,103,255,.12));
+      box-shadow: 0 0 18px rgba(118,255,194,.12);
+    }
+    .profile-switch-btn[disabled] {
+      cursor: default;
     }
 
     .input, .textarea, .select {
@@ -539,6 +613,23 @@
       padding: 11px 12px;
       outline: none;
       clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+    }
+    select.select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 36px;
+      background-image:
+        linear-gradient(45deg, transparent 50%, rgba(255,255,255,.72) 50%),
+        linear-gradient(135deg, rgba(255,255,255,.72) 50%, transparent 50%),
+        linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.08));
+      background-position:
+        calc(100% - 18px) calc(50% - 3px),
+        calc(100% - 12px) calc(50% - 3px),
+        calc(100% - 28px) 50%;
+      background-size: 6px 6px, 6px 6px, 1px 58%;
+      background-repeat: no-repeat;
+      clip-path: none;
+      border-radius: 2px;
     }
     .textarea {
       min-height: 112px;
@@ -771,21 +862,27 @@
       min-width: 260px;
       max-width: 420px;
       padding: 12px 14px;
-      border: 1px solid rgba(77,103,255,.22);
-      background: rgba(10,13,18,.92);
-      color: #fff;
+      border: 1px solid rgba(110,255,196,.3);
+      background: linear-gradient(90deg, rgba(20,40,32,.96), rgba(10,13,18,.94));
+      color: #ecfff7;
       opacity: 0;
       transform: translateY(12px);
       pointer-events: none;
       transition: .18s var(--ease);
-      box-shadow: 0 20px 45px rgba(0,0,0,.3);
+      box-shadow: 0 0 0 1px rgba(110,255,196,.08), 0 18px 42px rgba(0,0,0,.34), 0 0 18px rgba(110,255,196,.1);
       backdrop-filter: blur(12px);
-      z-index: 20;
+      z-index: 80;
       border-radius: 2px;
     }
     .toast.show {
       opacity: 1;
       transform: translateY(0);
+    }
+    .toast.bad {
+      border-color: rgba(255,109,59,.28);
+      background: linear-gradient(90deg, rgba(46,23,18,.96), rgba(10,13,18,.94));
+      color: #fff1ec;
+      box-shadow: 0 0 0 1px rgba(255,109,59,.08), 0 18px 42px rgba(0,0,0,.34), 0 0 18px rgba(255,109,59,.08);
     }
 
     .dialog {
@@ -797,7 +894,7 @@
       justify-content: center;
       padding: 18px;
       backdrop-filter: blur(12px);
-      z-index: 30;
+      z-index: 40;
     }
     .dialog.show { display: flex; }
     .dialog-card {
@@ -851,18 +948,12 @@
         padding: 14px;
       }
       .hero {
-        grid-template-columns: 1fr;
-      }
-      .hero-side {
-        display: grid;
-        grid-template-columns: minmax(0,1fr) 44px;
-        gap: 10px;
-        align-items: stretch;
+        grid-template-columns: 1fr 40px;
       }
       .col-8, .col-7, .col-6, .col-5, .col-4 {
         grid-column: span 12;
       }
-      .quick-box {
+      .overview-stats {
         grid-template-columns: repeat(3, minmax(0,1fr));
       }
       .split {
@@ -884,18 +975,13 @@
         padding: 12px;
       }
       .hero {
-        padding: 20px;
-      }
-      .hero-side {
-        display: grid;
         grid-template-columns: 1fr;
+        padding: 20px;
       }
       .hero h1 {
         font-size: 34px;
       }
-      .quick-box {
-        grid-template-columns: 1fr;
-      }
+      .overview-stats,
       .field-grid,
       .field-grid.three,
       .field-grid.four,
@@ -929,6 +1015,20 @@
       .event-item .btn-danger {
         grid-column: 2;
       }
+    }
+    @keyframes currentProfileSwap {
+      0% { opacity: .3; transform: translateY(4px); filter: blur(4px); }
+      100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+    @keyframes profilePulseEdge {
+      0% { box-shadow: inset 0 0 0 1px rgba(77,103,255,.04), 0 0 0 rgba(118,255,194,0); }
+      30% { box-shadow: inset 0 0 0 1px rgba(77,103,255,.16), 0 0 24px rgba(118,255,194,.16); }
+      100% { box-shadow: inset 0 0 0 1px rgba(77,103,255,.08), 0 0 0 rgba(118,255,194,0); }
+    }
+    @keyframes profileBranchBloom {
+      0% { opacity: 0; transform: translateX(-8px) scale(.86); }
+      35% { opacity: .95; }
+      100% { opacity: 0; transform: translateX(10px) scale(1.12); }
     }
   </style>
 </head>
@@ -974,11 +1074,6 @@
           <p id="heroDesc">把方案管理、访问控制与主要操作直接压进主界面，不做无意义留白，不做软绵绵的按钮</p>
         </div>
         <div class="hero-side">
-          <div class="quick-box">
-            <div><b id="quickProfileCount">0</b><span>方案数量</span></div>
-            <div><b id="quickGroupCount">0</b><span>群组总量</span></div>
-            <div><b id="quickUserCount">0</b><span>用户总量</span></div>
-          </div>
           <div class="toolbar">
             <button class="btn-strong reload-tower" id="reloadBtn">载入 / 刷新</button>
           </div>
@@ -1030,6 +1125,7 @@
       editingFuncIndex: -1,
       editingFuncEffects: [],
       editingFateIndex: -1,
+      justActivatedProfile: '',
     };
 
     const $ = (s, root = document) => root.querySelector(s);
@@ -1267,11 +1363,26 @@
       }
     }
 
+    function animateCurrentProfileLabel(nextName) {
+      const wrap = $('.current');
+      const el = $('#currentProfileName');
+      if (!wrap || !el) return;
+      if (el.textContent === nextName) return;
+      wrap.classList.remove('changing');
+      void wrap.offsetWidth;
+      el.textContent = nextName;
+      wrap.classList.add('changing');
+      clearTimeout(animateCurrentProfileLabel.timer);
+      animateCurrentProfileLabel.timer = setTimeout(() => wrap.classList.remove('changing'), 360);
+    }
     function updateTop() {
-      $('#currentProfileName').textContent = getProfileName();
-      $('#quickProfileCount').textContent = String(state.profiles.length || 0);
-      $('#quickGroupCount').textContent = String(state.stats.total_groups || 0);
-      $('#quickUserCount').textContent = String(state.stats.total_users || 0);
+      animateCurrentProfileLabel(getProfileName());
+      const quickProfile = $('#quickProfileCount');
+      const quickGroup = $('#quickGroupCount');
+      const quickUser = $('#quickUserCount');
+      if (quickProfile) quickProfile.textContent = String(state.profiles.length || 0);
+      if (quickGroup) quickGroup.textContent = String(state.stats.total_groups || 0);
+      if (quickUser) quickUser.textContent = String(state.stats.total_users || 0);
     }
 
     function renderOverview() {
@@ -1288,8 +1399,10 @@
             </div>
             <div class="profile-list">
               ${state.profiles.map(p => {
+                const active = p.profile_id === state.currentProfile;
+                const justActivated = state.justActivatedProfile === p.profile_id;
                 return `
-                <article class="profile-card ${p.profile_id === state.currentProfile ? 'active' : ''}">
+                <article class="profile-card ${active ? 'active' : ''} ${justActivated ? 'just-activated' : ''}">
                   <div class="profile-main">
                       <h3>${esc(p.display_name || p.profile_id)}</h3>
                     <div class="row" style="margin-bottom:4px;">
@@ -1307,7 +1420,9 @@
                     ${(p.groups || []).slice(0,3).length ? `<div class="row" style="margin-top:4px;">${(p.groups || []).slice(0,3).map(g => `<button class="btn-mini" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('')}</div>` : ''}
                   </div>
                   <div class="profile-switch-slot">
-                    <button class="profile-switch-btn" onclick="useProfile('${esc(p.profile_id)}')">切换</button>
+                    <button class="profile-switch-btn" ${active ? 'disabled' : `onclick="useProfile('${esc(p.profile_id)}')"`}>
+                      ${active ? '使用中' : '切换'}
+                    </button>
                   </div>
                 </article>`;
               }).join('')}
@@ -1338,6 +1453,11 @@
             </div>` : ''}
             <div class="row" style="margin-top:10px;">
               <button class="btn-strong" onclick="saveGroupAccess()">[ 保存访问控制 ]</button>
+            </div>
+            <div class="overview-stats">
+              <div class="overview-stat"><b id="quickProfileCount">0</b><span>方案数量</span></div>
+              <div class="overview-stat"><b id="quickGroupCount">0</b><span>群组总量</span></div>
+              <div class="overview-stat"><b id="quickUserCount">0</b><span>用户总量</span></div>
             </div>
           </section>
         </div>`;
@@ -1634,20 +1754,30 @@
     }
 
     function renderAll() {
-      updateTop();
       renderOverview();
       renderRuntime();
       renderSignin();
       renderFate();
       renderCards();
       renderStats();
+      updateTop();
       setPage(state.activePage);
     }
 
     async function useProfile(id) {
       state.currentProfile = id;
+      state.justActivatedProfile = id;
       await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
       renderAll();
+      clearTimeout(useProfile.fxTimer);
+      useProfile.fxTimer = setTimeout(() => {
+        if (state.justActivatedProfile === id) {
+          state.justActivatedProfile = '';
+          renderOverview();
+          updateTop();
+          setPage(state.activePage);
+        }
+      }, 760);
       showToast(`已切换到方案：${getProfileName(id)}`);
     }
 
@@ -1749,7 +1879,10 @@
         <div>
           <div>
             <div class="field"><label>方案名称</label><input class="input" id="newProfileName"></div>
-            <div class="field" style="margin-top:12px;"><label>复制来源</label><select class="select" id="copyFrom">${state.profiles.map(p => `<option value="${esc(p.profile_id)}">${esc(p.display_name)}</option>`).join('')}</select></div>
+            <div class="field-grid" style="margin-top:12px;grid-template-columns:minmax(0,1fr) 160px;align-items:end;">
+              <div class="field"><label>复制来源</label><select class="select" id="copyFrom"><option value="__blank__">无（空白方案）</option><option value="__builtin_default__">内置默认模板</option>${state.profiles.map(p => `<option value="${esc(p.profile_id)}" ${p.profile_id === state.currentProfile ? 'selected' : ''}>${esc(p.display_name)}</option>`).join('')}</select></div>
+              <div class="field"><label>快捷创建</label><button class="btn" onclick="createBuiltinDefaultProfile()">[ 新建默认配置 ]</button></div>
+            </div>
             <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="createProfileConfirm()">[ 确认创建 ]</button></div>
           </div>
         </div>`, 'create');
@@ -1777,6 +1910,18 @@
         await loadProfiles();
         renderAll();
         showToast('新方案已创建。');
+      }
+      else showToast(res.error || '创建失败。', true);
+    }
+    async function createBuiltinDefaultProfile() {
+      const name = $('#newProfileName')?.value?.trim();
+      if (!name) return showToast('请先填写方案名称。', true);
+      const res = await apiPost('/api/profiles', { name, copy_from:'__builtin_default__' });
+      if (res.ok) {
+        closeDialog();
+        await loadProfiles();
+        renderAll();
+        showToast('默认模板方案已创建。');
       }
       else showToast(res.error || '创建失败。', true);
     }
@@ -2106,6 +2251,7 @@
     window.unbindGroup = unbindGroup;
     window.openCreateProfileDialog = openCreateProfileDialog;
     window.createProfileConfirm = createProfileConfirm;
+    window.createBuiltinDefaultProfile = createBuiltinDefaultProfile;
     window.setAccessMode = setAccessMode;
     window.saveGroupAccess = saveGroupAccess;
     window.toggleRuntime = toggleRuntime;

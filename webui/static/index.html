@@ -251,7 +251,7 @@
     }
 
     .hero {
-      padding: 18px 20px 16px;
+      padding: 12px 20px 14px;
       display: grid;
       grid-template-columns: minmax(0,1fr) 56px;
       gap: 10px;
@@ -265,7 +265,7 @@
     .hero > div:first-child {
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
+      justify-content: flex-start;
       min-height: 100%;
     }
     .hero-side {
@@ -275,7 +275,7 @@
       height: 100%;
     }
     .hero .kicker {
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       font-size: 10px;
       letter-spacing: 2px;
       color: rgba(255,255,255,.64);
@@ -289,10 +289,10 @@
       text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
     .hero p {
-      margin-top: 8px;
+      margin-top: 6px;
       max-width: 720px;
       font-size: 13px;
-      line-height: 1.82;
+      line-height: 1.78;
       color: var(--muted);
     }
     .quick-box {
@@ -542,20 +542,23 @@
     .profile-card.just-activated .profile-main::before {
       content: "";
       position: absolute;
-      left: -72px;
-      top: 2px;
-      width: 86px;
-      height: 84px;
+      left: -82px;
+      top: 4px;
+      bottom: 4px;
+      width: 102px;
       pointer-events: none;
       opacity: 0;
       background:
-        linear-gradient(270deg, rgba(118,255,194,.92), transparent 78%) 42px 10px/34px 1px no-repeat,
-        linear-gradient(236deg, rgba(118,255,194,.78), transparent 72%) 34px 20px/26px 1px no-repeat,
-        linear-gradient(304deg, rgba(118,255,194,.76), transparent 72%) 32px 38px/28px 1px no-repeat,
-        linear-gradient(252deg, rgba(66,94,255,.78), transparent 70%) 24px 56px/32px 1px no-repeat,
-        linear-gradient(214deg, rgba(118,255,194,.72), transparent 70%) 18px 28px/24px 1px no-repeat,
-        linear-gradient(286deg, rgba(66,94,255,.68), transparent 70%) 16px 46px/22px 1px no-repeat;
-      filter: drop-shadow(0 0 4px rgba(118,255,194,.2));
+        linear-gradient(270deg, rgba(118,255,194,.94), transparent 78%) 50px 8%/38px 1px no-repeat,
+        linear-gradient(238deg, rgba(118,255,194,.82), transparent 72%) 42px 18%/28px 1px no-repeat,
+        linear-gradient(300deg, rgba(118,255,194,.78), transparent 72%) 40px 30%/30px 1px no-repeat,
+        linear-gradient(252deg, rgba(66,94,255,.82), transparent 70%) 30px 42%/36px 1px no-repeat,
+        linear-gradient(214deg, rgba(118,255,194,.76), transparent 70%) 24px 22%/26px 1px no-repeat,
+        linear-gradient(286deg, rgba(66,94,255,.72), transparent 70%) 24px 54%/24px 1px no-repeat,
+        linear-gradient(246deg, rgba(118,255,194,.74), transparent 70%) 18px 68%/34px 1px no-repeat,
+        linear-gradient(298deg, rgba(66,94,255,.68), transparent 70%) 28px 80%/26px 1px no-repeat,
+        linear-gradient(270deg, rgba(118,255,194,.2), transparent 82%) 54px 0/36px 100% no-repeat;
+      filter: drop-shadow(0 0 4px rgba(118,255,194,.22));
       transform-origin: right center;
       animation: branchCircuitOut .72s ease-out;
     }
@@ -563,19 +566,20 @@
       content: "";
       display: block;
       position: absolute;
-      left: -72px;
-      top: 0;
-      width: 88px;
-      height: 88px;
+      left: -82px;
+      top: 4px;
+      bottom: 4px;
+      width: 102px;
       pointer-events: none;
       opacity: 0;
       background:
-        radial-gradient(circle, rgba(118,255,194,.98) 0 1.4px, transparent 2.2px) 18px 14px/18px 18px no-repeat,
-        radial-gradient(circle, rgba(118,255,194,.86) 0 1.4px, transparent 2.2px) 28px 28px/18px 18px no-repeat,
-        radial-gradient(circle, rgba(66,94,255,.82) 0 1.4px, transparent 2.2px) 24px 48px/20px 20px no-repeat,
-        radial-gradient(circle, rgba(118,255,194,.74) 0 1.4px, transparent 2.2px) 38px 62px/18px 18px no-repeat,
-        radial-gradient(circle, rgba(118,255,194,.66) 0 1.2px, transparent 2px) 48px 16px/14px 14px no-repeat,
-        radial-gradient(circle, rgba(66,94,255,.7) 0 1.2px, transparent 2px) 44px 42px/14px 14px no-repeat;
+        radial-gradient(circle, rgba(118,255,194,.98) 0 1.5px, transparent 2.3px) 16px 8%/18px 18px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.86) 0 1.5px, transparent 2.3px) 28px 18%/18px 18px no-repeat,
+        radial-gradient(circle, rgba(66,94,255,.84) 0 1.5px, transparent 2.3px) 30px 32%/20px 20px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.76) 0 1.5px, transparent 2.3px) 18px 46%/18px 18px no-repeat,
+        radial-gradient(circle, rgba(66,94,255,.72) 0 1.3px, transparent 2px) 40px 58%/16px 16px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.68) 0 1.3px, transparent 2px) 28px 74%/16px 16px no-repeat,
+        radial-gradient(circle, rgba(118,255,194,.62) 0 1.2px, transparent 1.9px) 44px 88%/14px 14px no-repeat;
       filter: drop-shadow(0 0 6px rgba(118,255,194,.18));
       animation: circuitParticleOut .72s ease-out;
     }
@@ -758,13 +762,116 @@
     .toggle-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       gap: 12px;
       border: 1px solid rgba(255,255,255,.06);
       background: rgba(255,255,255,.025);
       padding: 12px 14px;
       margin-bottom: 10px;
       border-radius: 2px;
+    }
+    .toggle-copy {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+      padding-right: 10px;
+    }
+    .toggle-copy .helper {
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--dim);
+    }
+    .config-block.locked {
+      opacity: .42;
+      filter: saturate(.72);
+      pointer-events: none;
+    }
+    .config-block.locked .input,
+    .config-block.locked .select,
+    .config-block.locked .textarea,
+    .config-block.locked button {
+      cursor: not-allowed;
+    }
+    .runtime-split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+    .runtime-three {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 10px;
+    }
+    .rarity-weight-layout {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) 240px;
+      gap: 18px;
+      align-items: start;
+    }
+    .rarity-weight-fields {
+      display: grid;
+      gap: 10px;
+    }
+    .rarity-ring-wrap {
+      display: grid;
+      gap: 12px;
+      justify-items: center;
+    }
+    .rarity-ring {
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 18px rgba(0,0,0,.24);
+    }
+    .rarity-ring::before {
+      content: "";
+      position: absolute;
+      inset: 30px;
+      border-radius: 50%;
+      background: rgba(12,15,20,.96);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .rarity-ring-center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .rarity-ring-center b {
+      display: block;
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -.04em;
+      margin-bottom: 6px;
+    }
+    .rarity-ring-center span {
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: .12em;
+    }
+    .rarity-legend {
+      width: 100%;
+      display: grid;
+      gap: 8px;
+    }
+    .rarity-legend-item {
+      display: grid;
+      grid-template-columns: 12px minmax(0,1fr) auto;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .rarity-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      box-shadow: 0 0 10px color-mix(in srgb, var(--dot-color) 36%, transparent);
+      background: var(--dot-color);
     }
     .toggle-box {
       width: 50px;
@@ -1054,7 +1161,8 @@
       .overview-stats {
         grid-template-columns: repeat(3, minmax(0,1fr));
       }
-      .split {
+      .split,
+      .rarity-weight-layout {
         grid-template-columns: 1fr;
       }
       .effect-row {
@@ -1063,7 +1171,8 @@
       .asset-grid,
       .field-grid.four,
       .field-grid.five,
-      .stat-grid {
+      .stat-grid,
+      .runtime-three {
         grid-template-columns: repeat(2, minmax(0,1fr));
       }
     }
@@ -1074,7 +1183,7 @@
       }
       .hero {
         grid-template-columns: 1fr;
-        padding: 16px;
+        padding: 14px;
       }
       .hero h1 {
         font-size: 34px;
@@ -1085,7 +1194,9 @@
       .field-grid.four,
       .field-grid.five,
       .asset-grid,
-      .stat-grid {
+      .stat-grid,
+      .runtime-split,
+      .runtime-three {
         grid-template-columns: 1fr;
       }
       .card-layout {
@@ -1488,6 +1599,55 @@
       if (quickUser) quickUser.textContent = String(state.stats.total_users || 0);
     }
 
+    const rarityWeightPalette = [
+      { key:'rarity_1', label:'普通', color:'#8a8f98' },
+      { key:'rarity_2', label:'稀有', color:'#4f79ff' },
+      { key:'rarity_3', label:'史诗', color:'#9d5cff' },
+      { key:'rarity_4', label:'传说', color:'#ffb03b' },
+      { key:'rarity_5', label:'神话', color:'#ff5b4f' },
+    ];
+    function buildRarityWeightPreview() {
+      const weights = state.runtimeConfig?.func_cards_settings?.custom_rarity_weights || {};
+      const items = rarityWeightPalette.map(item => {
+        const value = Math.max(0, Number(weights[item.key] || 0));
+        return { ...item, value };
+      });
+      const total = items.reduce((sum, item) => sum + item.value, 0);
+      let cursor = 0;
+      const segments = total > 0
+        ? items.map(item => {
+            const ratio = item.value / total;
+            const start = cursor * 100;
+            cursor += ratio;
+            const end = cursor * 100;
+            return `${item.color} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+          })
+        : ['rgba(255,255,255,.08) 0% 100%'];
+      const previewItems = items.map(item => ({
+        ...item,
+        percent: total > 0 ? ((item.value / total) * 100) : 0,
+      }));
+      return {
+        total,
+        ringBackground: `conic-gradient(${segments.join(', ')})`,
+        items: previewItems,
+      };
+    }
+    function updateRarityChart() {
+      const ring = $('#rarityRing');
+      const legend = $('#rarityLegend');
+      const total = $('#rarityWeightTotal');
+      if (!ring || !legend || !total) return;
+      const preview = buildRarityWeightPreview();
+      ring.style.background = preview.ringBackground;
+      total.textContent = String(preview.total || 0);
+      legend.innerHTML = preview.items.map(item => `
+        <div class="rarity-legend-item">
+          <span class="rarity-dot" style="--dot-color:${item.color}"></span>
+          <span>${item.label}</span>
+          <span>${item.value} / ${item.percent.toFixed(1)}%</span>
+        </div>`).join('');
+    }
     function renderOverview() {
       const page = $('#page-overview');
       page.innerHTML = `
@@ -1572,15 +1732,20 @@
       const f = c.func_cards_settings;
       const e = f.economy_settings;
       const w = f.custom_rarity_weights;
+      const preview = buildRarityWeightPreview();
+      const fateEnabled = !!c.fate_cards_settings.enable;
+      const funcEnabled = !!f.enable;
+      const duelEnabled = funcEnabled && !!f.enable_public_duel_mode;
+      const weightEnabled = funcEnabled;
       $('#page-runtime').innerHTML = `
         <div class="grid">
           <section class="panel col-4">
-            <div class="panel-head"><div><div class="panel-title">模块开关</div><div class="panel-note">按钮和边框全部强化对比。</div></div></div>
-            ${toggleBox('命运牌系统', 'fate_cards_settings.enable', c.fate_cards_settings.enable)}
-            ${toggleBox('功能牌系统', 'func_cards_settings.enable', f.enable)}
-            ${toggleBox('骰子牌系统', 'func_cards_settings.enable_dice_cards', f.enable_dice_cards)}
-            ${toggleBox('公开对赌模式', 'func_cards_settings.enable_public_duel_mode', f.enable_public_duel_mode)}
-            ${toggleBox('同档去重', 'func_cards_settings.enable_rarity_dedup', f.enable_rarity_dedup)}
+            <div class="panel-head"><div><div class="panel-title">模块开关</div><div class="panel-note">开关打开后，右侧对应参数才会进入可调状态。</div></div></div>
+            ${toggleBox('命运牌系统', '开启后才会启用命运牌相关抽取与每日上限配置。', 'fate_cards_settings.enable', c.fate_cards_settings.enable)}
+            ${toggleBox('功能牌系统', '关闭时，功能牌的经济、稀有度和对赌相关配置都会锁定。', 'func_cards_settings.enable', f.enable)}
+            ${toggleBox('骰子牌系统', '控制骰子功能牌与相关规则入口是否开放。', 'func_cards_settings.enable_dice_cards', f.enable_dice_cards)}
+            ${toggleBox('公开对赌模式', '开启后，才允许配置每日次数与赌注范围。', 'func_cards_settings.enable_public_duel_mode', f.enable_public_duel_mode)}
+            ${toggleBox('同稀有度优先不重复', '开启后，抽到功能牌时会尽量避免连续给出同稀有度重复内容。', 'func_cards_settings.enable_rarity_dedup', f.enable_rarity_dedup)}
           </section>
 
           <section class="panel col-8">
@@ -1591,40 +1756,67 @@
               </div>
               <button class="btn-strong" onclick="saveRuntime()">[ 保存运行配置 ]</button>
             </div>
-            <div class="field-grid three">
-              ${numField('命运牌每日上限','fate_cards_settings.daily_draw_limit',c.fate_cards_settings.daily_draw_limit)}
-              ${selectField('稀有度模式','func_cards_settings.rarity_mode',f.rarity_mode,[['default','默认'],['custom','自定义']])}
-              ${numField('对赌每日次数','func_cards_settings.public_duel_daily_limit',f.public_duel_daily_limit)}
-              ${numField('最小赌注','func_cards_settings.public_duel_min_stake',f.public_duel_min_stake)}
-              ${numField('最大赌注','func_cards_settings.public_duel_max_stake',f.public_duel_max_stake)}
+
+            <div class="runtime-split">
+              <div class="config-block ${fateEnabled ? '' : 'locked'}">
+                ${numField('命运牌每日上限','fate_cards_settings.daily_draw_limit',c.fate_cards_settings.daily_draw_limit,!fateEnabled)}
+              </div>
+              <div class="config-block ${funcEnabled ? '' : 'locked'}">
+                ${selectField('稀有度模式','func_cards_settings.rarity_mode',f.rarity_mode,[['default','默认'],['custom','自定义']],!funcEnabled)}
+              </div>
             </div>
-            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">抽卡经济</div></div></div>
-            <div class="field-grid four">
-              ${numField('基础掉率','func_cards_settings.economy_settings.draw_probability',e.draw_probability)}
-              ${numField('每日免费抽取','func_cards_settings.economy_settings.free_daily_draw',e.free_daily_draw)}
-              ${numField('额外抽取消耗','func_cards_settings.economy_settings.draw_cost',e.draw_cost)}
-              ${numField('保底次数','func_cards_settings.economy_settings.pity_threshold',e.pity_threshold)}
+
+            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">公开对赌配置</div><div class="panel-note">把对赌次数与赌注范围放到同一行，方便整体调整。</div></div></div>
+            <div class="runtime-three config-block ${duelEnabled ? '' : 'locked'}">
+              ${numField('对赌每日次数','func_cards_settings.public_duel_daily_limit',f.public_duel_daily_limit,!duelEnabled)}
+              ${numField('最小赌注','func_cards_settings.public_duel_min_stake',f.public_duel_min_stake,!duelEnabled)}
+              ${numField('最大赌注','func_cards_settings.public_duel_max_stake',f.public_duel_max_stake,!duelEnabled)}
             </div>
-            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">稀有度权重</div></div></div>
-            <div class="field-grid five">
-              ${numField('普通','func_cards_settings.custom_rarity_weights.rarity_1',w.rarity_1)}
-              ${numField('稀有','func_cards_settings.custom_rarity_weights.rarity_2',w.rarity_2)}
-              ${numField('史诗','func_cards_settings.custom_rarity_weights.rarity_3',w.rarity_3)}
-              ${numField('传说','func_cards_settings.custom_rarity_weights.rarity_4',w.rarity_4)}
-              ${numField('神话','func_cards_settings.custom_rarity_weights.rarity_5',w.rarity_5)}
+
+            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">抽卡经济</div><div class="panel-note">上排控制掉率与免费次数，下排控制单次消耗与保底。</div></div></div>
+            <div class="runtime-split config-block ${funcEnabled ? '' : 'locked'}">
+              ${numField('基础掉率','func_cards_settings.economy_settings.draw_probability',e.draw_probability,!funcEnabled)}
+              ${numField('每日免费抽取','func_cards_settings.economy_settings.free_daily_draw',e.free_daily_draw,!funcEnabled)}
+              ${numField('超出免费后的单次消耗','func_cards_settings.economy_settings.draw_cost',e.draw_cost,!funcEnabled)}
+              ${numField('保底次数','func_cards_settings.economy_settings.pity_threshold',e.pity_threshold,!funcEnabled)}
+            </div>
+
+            <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">稀有度权重</div><div class="panel-note">左侧逐项输入，右侧实时预览各稀有度占比。</div></div></div>
+            <div class="rarity-weight-layout config-block ${weightEnabled ? '' : 'locked'}">
+              <div class="rarity-weight-fields">
+                ${numField('普通','func_cards_settings.custom_rarity_weights.rarity_1',w.rarity_1,!weightEnabled)}
+                ${numField('稀有','func_cards_settings.custom_rarity_weights.rarity_2',w.rarity_2,!weightEnabled)}
+                ${numField('史诗','func_cards_settings.custom_rarity_weights.rarity_3',w.rarity_3,!weightEnabled)}
+                ${numField('传说','func_cards_settings.custom_rarity_weights.rarity_4',w.rarity_4,!weightEnabled)}
+                ${numField('神话','func_cards_settings.custom_rarity_weights.rarity_5',w.rarity_5,!weightEnabled)}
+              </div>
+              <div class="rarity-ring-wrap">
+                <div class="rarity-ring" id="rarityRing" style="background:${preview.ringBackground};">
+                  <div class="rarity-ring-center"><div><b id="rarityWeightTotal">${preview.total}</b><span>总权重</span></div></div>
+                </div>
+                <div class="rarity-legend" id="rarityLegend">
+                  ${preview.items.map(item => `
+                    <div class="rarity-legend-item">
+                      <span class="rarity-dot" style="--dot-color:${item.color}"></span>
+                      <span>${item.label}</span>
+                      <span>${item.value} / ${item.percent.toFixed(1)}%</span>
+                    </div>`).join('')}
+                </div>
+              </div>
             </div>
           </section>
         </div>`;
+      updateRarityChart();
     }
 
-    function toggleBox(label, path, on) {
-      return `<div class="toggle-row"><div><div>${label}</div></div><div class="toggle-box ${on ? 'on' : ''}" onclick="toggleRuntime('${path}', this)"></div></div>`;
+    function toggleBox(label, desc, path, on) {
+      return `<div class="toggle-row"><div class="toggle-copy"><div>${label}</div><div class="helper">${desc}</div></div><div class="toggle-box ${on ? 'on' : ''}" onclick="toggleRuntime('${path}', this)"></div></div>`;
     }
-    function numField(label, path, value) {
-      return `<div class="field"><label>${label}</label><input class="input" type="number" value="${esc(value ?? 0)}" onchange="setRuntimeValue('${path}', this.value)"></div>`;
+    function numField(label, path, value, disabled = false) {
+      return `<div class="field"><label>${label}</label><input class="input" type="number" value="${esc(value ?? 0)}" ${disabled ? 'disabled' : ''} oninput="setRuntimeValue('${path}', this.value)"></div>`;
     }
-    function selectField(label, path, value, options) {
-      return `<div class="field"><label>${label}</label><select class="select" onchange="setRuntimeValue('${path}', this.value)">${options.map(([v,t]) => `<option value="${esc(v)}" ${String(v)===String(value)?'selected':''}>${esc(t)}</option>`).join('')}</select></div>`;
+    function selectField(label, path, value, options, disabled = false) {
+      return `<div class="field"><label>${label}</label><select class="select" ${disabled ? 'disabled' : ''} onchange="setRuntimeValue('${path}', this.value)">${options.map(([v,t]) => `<option value="${esc(v)}" ${String(v)===String(value)?'selected':''}>${esc(t)}</option>`).join('')}</select></div>`;
     }
 
     function renderSignin() {
@@ -2088,11 +2280,12 @@
     function toggleRuntime(path, el) {
       const next = !getDeep(state.runtimeConfig, path);
       setDeep(state.runtimeConfig, path, next);
-      el.classList.toggle('on', next);
+      renderRuntime();
     }
     function setRuntimeValue(path, value) {
       const finalVal = value === '' ? '' : (isNaN(value) ? value : Number(value));
       setDeep(state.runtimeConfig, path, finalVal);
+      if (path.includes('custom_rarity_weights')) updateRarityChart();
     }
     async function saveRuntime() {
       const res = await apiPost('/api/runtime_config', { config: state.runtimeConfig });

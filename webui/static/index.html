@@ -1002,24 +1002,24 @@
       display: grid;
     }
     .archive-card.rarity-1 {
-      border-color: rgba(111,125,142,.24);
-      box-shadow: 0 0 14px rgba(111,125,142,.05);
+      border-color: rgba(111,125,142,.32);
+      box-shadow: 0 0 18px rgba(111,125,142,.12), 0 0 34px rgba(111,125,142,.05);
     }
     .archive-card.rarity-2 {
-      border-color: rgba(88,167,255,.26);
-      box-shadow: 0 0 16px rgba(88,167,255,.08);
+      border-color: rgba(88,167,255,.36);
+      box-shadow: 0 0 20px rgba(88,167,255,.18), 0 0 38px rgba(88,167,255,.08);
     }
     .archive-card.rarity-3 {
-      border-color: rgba(159,108,255,.28);
-      box-shadow: 0 0 18px rgba(159,108,255,.09);
+      border-color: rgba(159,108,255,.38);
+      box-shadow: 0 0 22px rgba(159,108,255,.2), 0 0 40px rgba(159,108,255,.1);
     }
     .archive-card.rarity-4 {
-      border-color: rgba(255,191,95,.28);
-      box-shadow: 0 0 18px rgba(255,191,95,.08);
+      border-color: rgba(255,191,95,.38);
+      box-shadow: 0 0 22px rgba(255,191,95,.18), 0 0 40px rgba(255,191,95,.09);
     }
     .archive-card.rarity-5 {
-      border-color: rgba(255,112,120,.3);
-      box-shadow: 0 0 20px rgba(255,112,120,.1);
+      border-color: rgba(255,112,120,.42);
+      box-shadow: 0 0 24px rgba(255,112,120,.22), 0 0 44px rgba(255,112,120,.1);
     }
     .archive-cover {
       aspect-ratio: 3 / 4;
@@ -1086,6 +1086,44 @@
       color: var(--muted);
       line-height: 1.55;
       word-break: break-all;
+    }
+    .filter-bar {
+      display: grid;
+      grid-template-columns: 126px minmax(0,220px) minmax(0,1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(4,6,10,.92), rgba(10,13,18,.98));
+      border-radius: 2px;
+    }
+    .filter-bar-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      color: #fff;
+    }
+    .filter-select {
+      min-height: 38px;
+      background: #090c11;
+      border-color: rgba(255,255,255,.08);
+    }
+    .filter-summary {
+      justify-self: end;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+    }
+    .stats-main .panel-head {
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .stats-main .panel-head > div:first-child {
+      padding-top: 8px;
+    }
+    .stats-main .panel-note {
+      margin-top: 4px;
     }
     .toggle-box::before {
       content: "";
@@ -1483,6 +1521,12 @@
       .hero h1 {
         font-size: 34px;
       }
+      .filter-bar {
+        grid-template-columns: 1fr;
+      }
+      .filter-summary {
+        justify-self: start;
+      }
       .overview-stats,
       .field-grid,
       .field-grid.three,
@@ -1647,6 +1691,7 @@
       editingFuncEffects: [],
       editingFateIndex: -1,
       justActivatedProfile: '',
+      funcFilter: 'all',
     };
 
     const $ = (s, root = document) => root.querySelector(s);
@@ -2067,6 +2112,25 @@
       await saveFuncCards(false);
       showToast('功能牌已复制。');
     }
+    function isFateCardIncomplete(card) {
+      return !(card.text || '').trim() || !card.filename || !state.fateImages.includes(card.filename);
+    }
+    function detectIncompleteFateCards() {
+      const boundFiles = new Set(state.fateCards.map(card => card.filename).filter(Boolean));
+      const additions = state.fateImages.filter(file => !boundFiles.has(file)).map(file => ({ text:'', gold:0, filename:file }));
+      if (additions.length) state.fateCards.push(...additions);
+      state.fateCards.sort((a, b) => Number(isFateCardIncomplete(b)) - Number(isFateCardIncomplete(a)));
+      renderFate();
+      const pendingCount = state.fateCards.filter(isFateCardIncomplete).length;
+      showToast(pendingCount ? `已置顶 ${pendingCount} 张未完成命运牌。` : '当前没有未完成的命运牌。');
+    }
+    function isFuncCardIncomplete(card) {
+      return !(card.card_name || '').trim() || !card.filename || !state.images.includes(card.filename) || !(card.description || '').trim() || !(card.tags || []).length;
+    }
+    function setFuncFilter(value) {
+      state.funcFilter = value || 'all';
+      renderCards();
+    }
     function renderOverview() {
       const page = $('#page-overview');
       page.innerHTML = `
@@ -2321,51 +2385,19 @@
     }
 
     function renderFate() {
-      const unconfigured = state.fateCards.map((card, i) => {
-        const issues = [];
-        if (!(card.text || '').trim()) issues.push('缺标题');
-        if (!card.filename) issues.push('未绑定图片');
-        else if (!state.fateImages.includes(card.filename)) issues.push('图片缺失');
-        return issues.length ? { index:i, title:(card.text || `命运牌 ${i + 1}`), issues:issues.join(' / ') } : null;
-      }).filter(Boolean);
-      const unusedImages = state.fateImages.filter(file => !state.fateCards.some(card => card.filename === file));
       $('#page-fate').innerHTML = `
         <div class="grid">
           <section class="panel col-12">
             <div class="panel-head">
               <div>
                 <div class="panel-title">命运牌档案</div>
-                <div class="panel-note">改成竖版卡片浏览。上传后的图片会先进入待建档索引，再决定是否生成卡牌。</div>
+                <div class="panel-note">上传图片后可用“检测未完成编辑的牌”把未完善的牌直接置顶。</div>
               </div>
               <div class="row">
                 <button class="btn-strong" onclick="openFateEditor(-1)">[ 新增命运牌 ]</button>
                 <button class="btn" onclick="uploadFateImages()">[ 批量上传图片 ]</button>
+                <button class="btn-danger" onclick="detectIncompleteFateCards()">[ 检测未完成编辑的牌 ]</button>
                 <button class="btn" onclick="saveFateCards()">[ 保存全部 ]</button>
-              </div>
-            </div>
-            <div class="archive-index">
-              <div class="archive-index-group">
-                <div class="archive-index-title">未完成档案索引</div>
-                <div class="index-badges">
-                  ${unconfigured.map(item => `<button class="index-pill" onclick="openFateEditor(${item.index})">#${item.index + 1} ${esc(item.title)} ｜ ${esc(item.issues)}</button>`).join('') || '<div class="empty">当前没有未配置完成的命运牌</div>'}
-                </div>
-              </div>
-              <div class="archive-index-group">
-                <div class="archive-index-title">待建档图片</div>
-                <div class="pending-grid">
-                  ${unusedImages.map(file => `
-                    <article class="archive-card">
-                      <div class="archive-cover"><img src="/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}" alt="${esc(file)}"></div>
-                      <div class="archive-body">
-                        <div class="pending-caption">这张图片还没有被任何命运牌使用。</div>
-                        <div class="archive-actions">
-                          <button class="btn-green" onclick="openFateEditorFromImage('${esc(file)}')">[ 以图建牌 ]</button>
-                          <button class="btn-danger" onclick="deleteFateImage('${esc(file)}')">[ 删除图片 ]</button>
-                          <button class="btn" onclick="openFateEditorFromImage('${esc(file)}')">[ 直接编辑 ]</button>
-                        </div>
-                      </div>
-                    </article>`).join('') || '<div class="empty">当前没有待建档图片</div>'}
-                </div>
               </div>
             </div>
             <div class="archive-grid">
@@ -2385,9 +2417,7 @@
             <div class="archive-title">${esc(card.text || '未命名命运牌')}</div>
             <div class="archive-meta">
               <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
-              <span class="badge">${has ? '图片已绑定' : '图片未绑定'}</span>
             </div>
-            <div class="archive-desc">${has ? '已绑定可用图片，可直接复制、编辑或删除。' : '当前还没有绑定可用图片，建议先从待建档图片中补齐。'}</div>
             <div class="archive-actions">
               <button class="btn-strong" onclick="openFateEditor(${i})">[ 编辑 ]</button>
               <button class="btn-green" onclick="duplicateFateCard(${i})">[ 复制 ]</button>
@@ -2403,24 +2433,22 @@
     }
 
     function renderCards() {
-      const typePreview = buildFuncTypeDistribution();
-      const unconfigured = state.funcCards.map((card, i) => {
-        const issues = [];
-        if (!(card.card_name || '').trim()) issues.push('缺名称');
-        if (!card.filename) issues.push('未绑定图片');
-        else if (!state.images.includes(card.filename)) issues.push('图片缺失');
-        if (!(card.description || '').trim()) issues.push('缺描述');
-        if (!(card.tags || []).length) issues.push('缺效果');
-        return issues.length ? { index:i, title:(card.card_name || `功能牌 ${i + 1}`), issues:issues.join(' / ') } : null;
-      }).filter(Boolean);
+      const filter = state.funcFilter || 'all';
+      const incompleteCount = state.funcCards.filter(isFuncCardIncomplete).length;
       const unusedImages = state.images.filter(file => !state.funcCards.some(card => card.filename === file));
+      const filteredEntries = state.funcCards.map((card, index) => ({ card, index })).filter(({ card }) => {
+        const type = card.type || 'attack';
+        if (filter === 'all') return true;
+        if (filter === 'other') return !Object.keys(funcTypePalette).includes(type);
+        return type === filter;
+      });
       $('#page-cards').innerHTML = `
         <div class="grid">
           <section class="panel col-12">
             <div class="panel-head">
               <div>
                 <div class="panel-title">功能牌档案</div>
-                <div class="panel-note">改成竖版卡片展示，稀有度会在卡面边缘发出对应颜色的淡光。</div>
+                <div class="panel-note">用下拉筛选不同类型的牌，稀有度边缘会发出更明显的淡光。</div>
               </div>
               <div class="row">
                 <button class="btn-strong" onclick="openFuncEditor(-1)">[ 新增功能牌 ]</button>
@@ -2429,39 +2457,37 @@
                 <button class="btn" onclick="saveFuncCards()">[ 保存全部 ]</button>
               </div>
             </div>
-            <div class="archive-index">
-              <div class="archive-index-group">
-                <div class="archive-index-title">类型索引</div>
-                <div class="index-badges">
-                  ${typePreview.items.map(item => `<span class="index-pill static"><span class="hero-pie-dot" style="--dot-color:${item.color}"></span>${item.label} ${item.count}</span>`).join('')}
-                </div>
-              </div>
-              <div class="archive-index-group">
-                <div class="archive-index-title">未完成档案索引</div>
-                <div class="index-badges">
-                  ${unconfigured.map(item => `<button class="index-pill" onclick="openFuncEditor(${item.index})">#${item.index + 1} ${esc(item.title)} ｜ ${esc(item.issues)}</button>`).join('') || '<div class="empty">当前没有未配置完成的功能牌</div>'}
-                </div>
-              </div>
-              <div class="archive-index-group">
-                <div class="archive-index-title">待建档图片</div>
-                <div class="pending-grid">
-                  ${unusedImages.map(file => `
-                    <article class="archive-card">
-                      <div class="archive-cover"><img src="/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}" alt="${esc(file)}"></div>
-                      <div class="archive-body">
-                        <div class="pending-caption">这张图片还没有被任何功能牌使用。</div>
-                        <div class="archive-actions">
-                          <button class="btn-green" onclick="openFuncEditorFromImage('${esc(file)}')">[ 以图建牌 ]</button>
-                          <button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')">[ 删除图片 ]</button>
-                          <button class="btn" onclick="openFuncEditorFromImage('${esc(file)}')">[ 直接编辑 ]</button>
-                        </div>
-                      </div>
-                    </article>`).join('') || '<div class="empty">当前没有待建档图片</div>'}
-                </div>
-              </div>
+            <div class="filter-bar">
+              <div class="filter-bar-title">类型筛选</div>
+              <select class="select filter-select" onchange="setFuncFilter(this.value)">
+                <option value="all" ${filter === 'all' ? 'selected' : ''}>全部</option>
+                <option value="attack" ${filter === 'attack' ? 'selected' : ''}>攻击</option>
+                <option value="heal" ${filter === 'heal' ? 'selected' : ''}>辅助</option>
+                <option value="defense" ${filter === 'defense' ? 'selected' : ''}>防御</option>
+                <option value="other" ${filter === 'other' ? 'selected' : ''}>其他</option>
+              </select>
+              <div class="filter-summary">当前显示 ${filteredEntries.length} / ${state.funcCards.length} ｜ 未完成 ${incompleteCount} 张</div>
             </div>
+            ${filter === 'all' ? `
+            <div class="archive-index-group" style="margin-bottom:14px;">
+              <div class="archive-index-title">待建档图片</div>
+              <div class="pending-grid">
+                ${unusedImages.map(file => `
+                  <article class="archive-card">
+                    <div class="archive-cover"><img src="/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}" alt="${esc(file)}"></div>
+                    <div class="archive-body">
+                      <div class="pending-caption">这张图片还没有被任何功能牌使用。</div>
+                      <div class="archive-actions">
+                        <button class="btn-green" onclick="openFuncEditorFromImage('${esc(file)}')">[ 编辑 ]</button>
+                        <button class="btn" onclick="openFuncEditorFromImage('${esc(file)}')">[ 建牌 ]</button>
+                        <button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')">[ 删除 ]</button>
+                      </div>
+                </div>
+                  </article>`).join('') || '<div class="empty">当前没有待建档图片</div>'}
+              </div>
+            </div>` : ''}
             <div class="archive-grid">
-              ${state.funcCards.map((card, i) => funcItem(card, i)).join('') || '<div class="empty">暂无功能牌</div>'}
+              ${filteredEntries.map(entry => funcItem(entry.card, entry.index)).join('') || '<div class="empty">当前筛选下没有功能牌</div>'}
             </div>
           </section>
         </div>`;
@@ -2496,7 +2522,7 @@
       const holders = Object.entries(state.stats.card_holders || {}).sort((a,b) => b[1] - a[1]);
       $('#page-stats').innerHTML = `
         <div class="grid">
-          <section class="panel col-12">
+          <section class="panel col-12 stats-main">
             <div class="panel-head">
               <div>
                 <div class="panel-title">方案切换与总体统计</div>
@@ -3120,6 +3146,8 @@
     window.openFuncEditorFromImage = openFuncEditorFromImage;
     window.duplicateFateCard = duplicateFateCard;
     window.duplicateFuncCard = duplicateFuncCard;
+    window.detectIncompleteFateCards = detectIncompleteFateCards;
+    window.setFuncFilter = setFuncFilter;
 
     window.editProfile = editProfile;
     window.saveProfileEdit = saveProfileEdit;

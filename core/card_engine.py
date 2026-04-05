@@ -337,18 +337,19 @@ class CardEngine:
 
             elif tag == "fate_roulette":
                 roll = random.randint(1, 5)
+                reports.append(f"🎰 命运转盘开始旋转……结果序号：{roll}/5")
                 if roll == 1:
                     gain = 28
                     source_data["total_gold"] += gain
-                    reports.append(f"🎡 命运转盘停下，幸运偏向了你！你获得 {gain} 金币。")
+                    reports.append(f"✨ 奖励命中：【金币馈赠】你获得 {gain} 金币。")
                 elif roll == 2:
                     _ = int(time.time()) + 24 * 3600
                     has_shield = any(st.get("name") == "无懈可击" for st in source_data.get("statuses", []))
                     if has_shield:
-                        reports.append("🎡 命运转盘停下，你本想再添一层庇护，但护盾已在身，力量只是轻轻荡开。")
+                        reports.append("✨ 奖励命中：【护盾共鸣】你本想再添一层庇护，但护盾已在身，力量只是轻轻荡开。")
                     else:
                         source_data.setdefault("statuses", []).append({"name": "无懈可击", "desc": "抵挡1次恶意法术"})
-                        reports.append("🎡 命运转盘停下，一层突如其来的庇护笼住了你：你获得了【无懈可击】。")
+                        reports.append("✨ 奖励命中：【护盾庇佑】你获得了【无懈可击】。")
                 elif roll == 3:
                     expire_time = int(time.time()) + 24 * 3600
                     self._upsert_timed_status(
@@ -358,7 +359,7 @@ class CardEngine:
                         func_draw_prob_mod=8,
                         desc="功能牌爆率 +8%",
                     )
-                    reports.append("🎡 命运转盘停下，接下来的风向明显站到了你这边：功能牌爆率 +8%，持续 24 小时。")
+                    reports.append("✨ 奖励命中：【好运加护】功能牌爆率 +8%，持续 24 小时。")
                 elif roll == 4:
                     heal = 20
                     source_data["total_gold"] += heal
@@ -366,14 +367,14 @@ class CardEngine:
                     for i, st in enumerate(list(statuses)):
                         if not self._is_positive_status(st):
                             removed = statuses.pop(i)
-                            reports.append(f"🎡 命运转盘停下，你获得 {heal} 金币，并顺手洗掉了自身的【{removed.get('name')}】。")
+                            reports.append(f"✨ 奖励命中：【净化赐福】你获得 {heal} 金币，并解除了自身的【{removed.get('name')}】。")
                             break
                     else:
-                        reports.append(f"🎡 命运转盘停下，你获得 {heal} 金币，局势暂时朝你这边倾斜。")
+                        reports.append(f"✨ 奖励命中：【净化赐福】你获得 {heal} 金币。")
                 else:
                     loss = min(18, max(0, source_data.get("total_gold", 0)))
                     source_data["total_gold"] -= loss
-                    reports.append(f"🎡 命运转盘忽然翻脸！你反被命运咬了一口，损失 {loss} 金币。")
+                    reports.append(f"💥 反噬命中：【命运反咬】你损失 {loss} 金币。")
 
             elif tag.startswith("borrow_blade:"):
                 if not all_users or not source_uid or not target_data:

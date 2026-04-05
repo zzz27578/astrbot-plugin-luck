@@ -94,7 +94,7 @@ def _apply_reroll_status(user_data: dict, hours: int = 24):
     })
 
 
-def load_func_cards_config(config: dict = None):
+def load_func_cards_config(config: dict = None, include_disabled_dice: bool = False):
     storage_paths = (config or {}).get("_storage_paths", {})
     config_path = storage_paths.get("func_cards_file")
     if config_path is None or not config_path.exists():
@@ -106,7 +106,6 @@ def load_func_cards_config(config: dict = None):
     except Exception:
         return []
 
-    # 仅保留可用卡牌配置：card_name 必填；其余字段兜底
     valid_cards = []
     for card in raw_cards if isinstance(raw_cards, list) else []:
         if not isinstance(card, dict):
@@ -129,7 +128,7 @@ def load_func_cards_config(config: dict = None):
         }
 
         dice_enabled = True if config is None else config.get("func_cards_settings", {}).get("enable_dice_cards", True)
-        if not dice_enabled and _is_dice_card_by_tags(entry.get("tags", [])):
+        if not include_disabled_dice and not dice_enabled and _is_dice_card_by_tags(entry.get("tags", [])):
             continue
 
         valid_cards.append(entry)
@@ -246,12 +245,57 @@ def _extract_duel_stake(raw_text: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _extract_group_id_from_event(event: AstrMessageEvent) -> str:
+    candidates = []
+
+    for attr in ("get_group_id", "get_chat_id"):
+        getter = getattr(event, attr, None)
+        if callable(getter):
+            try:
+                value = getter()
+                if value:
+                    candidates.append(value)
+            except Exception:
+                pass
+
+    for attr in ("group_id", "chat_id", "session_id"):
+        value = getattr(event, attr, None)
+        if value:
+            candidates.append(value)
+
+    message_obj = getattr(event, "message_obj", None)
+    if message_obj is not None:
+        for attr in ("group_id", "group_openid", "peer_id"):
+            value = getattr(message_obj, attr, None)
+            if value:
+                candidates.append(value)
+
+    session = getattr(event, "session", None)
+    if session is not None:
+        for attr in ("group_id",):
+            value = getattr(session, attr, None)
+            if value:
+                candidates.append(value)
+
+    for value in candidates:
+        text = str(value).strip()
+        if not text:
+            continue
+        if text.isdigit():
+            return text
+        match = re.search(r"(\d{5,})", text)
+        if match:
+            return match.group(1)
+
+    return ""
+
+
 async def _has_enough_gold(bank, user_id: str, user_name: str, stake: int) -> bool:
     user_data = await bank.get_user_data(user_id, user_name)
     return int(user_data.get("total_gold", 0)) >= int(stake)
 
 
-def _format_aoe_chain(user_name: str, card_name: str, aoe_events: list, is_heal: bool, karma_report: str, slot_len: int):
+def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: list, is_heal: bool, karma_report: str, slot_len: int):
     action_line = "🌿 范围援护落下，受益名单：" if is_heal else "🏹 范围轰炸命中，受创名单："
     components = [Plain(f"⚡ {user_name} 打出了 [{card_name}]！\n━━━━━━━━\n{action_line}")]
 
@@ -264,7 +308,9 @@ def _format_aoe_chain(user_name: str, card_name: str, aoe_events: list, is_heal:
 
             target_uid_evt = str(aoe_event.get("target_uid", ""))
             target_name_evt = aoe_event.get("target_name", f"群友({target_uid_evt})")
-            if target_uid_evt.isdigit():
+            if target_uid_evt == str(user_id):
+                components.append(Plain(f"{target_name_evt}(自己)"))
+            elif target_uid_evt.isdigit():
                 components.append(At(qq=int(target_uid_evt)))
                 components.append(Plain(target_name_evt))
             else:
@@ -283,6 +329,21 @@ def _format_aoe_chain(user_name: str, card_name: str, aoe_events: list, is_heal:
     tail += f"\n🎴 当前卡槽：{slot_len}/3"
     components.append(Plain(tail))
     return components
+
+
+def _build_karma_title_report(user_data: dict, func_cards_enabled: bool = True) -> str:
+    lines = []
+    for action, t_name in TitleEngine.sync_karma_titles(user_data):
+        if action == "gained":
+            line = f"\n🏅 达成伟业！获得称号：【{t_name}】"
+            if t_name == "行善之人" and func_cards_enabled:
+                line += "（特权：抽卡爆率永久+5%）"
+            elif t_name == "邪恶之人":
+                line += "（特权：攻击牌命中额外获得10金币）"
+            lines.append(line)
+        else:
+            lines.append(f"\n🥀 善恶流转... 称号【{t_name}】已撤销。")
+    return "".join(lines)
 
 
 def _roll_duel_side(dice_engine: DiceEngine, user_data: dict, player_name: str) -> dict:
@@ -447,7 +508,7 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool) -> str:
 
 async def handle_confirm_duel(event: AstrMessageEvent, bank):
     user_id = event.get_sender_id()
-    group_id = str(getattr(event, "group_id", "") or (getattr(event, "session_id", "") if getattr(event, "session_id", "") else ""))
+    group_id = _extract_group_id_from_event(event)
 
     async with PENDING_DUEL_LOCK:
         if not PENDING_DUEL.get("active") or (group_id and str(PENDING_DUEL.get("group_id", "")) != group_id):
@@ -521,7 +582,7 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
 
 async def handle_raise_duel(event: AstrMessageEvent, bank):
     user_id = event.get_sender_id()
-    group_id = str(getattr(event, "group_id", "") or (getattr(event, "session_id", "") if getattr(event, "session_id", "") else ""))
+    group_id = _extract_group_id_from_event(event)
     raw_text = event.message_str.replace("/luck", "").strip()
     match = re.search(r"加注\s*(-?\d+)", raw_text)
     if not match:
@@ -1034,12 +1095,20 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
     res_text = f"✨ {hit_reason}\n你从虚空中凝结出了：\n【{actual_rarity_str}】{card['card_name']}\n━━━━━━━━\n📝 {text}\n{cost_str}\n🎴 当前卡槽：{len(user_data['inventory'])}/3"
 
     img_filename = str(card.get("filename", "")).strip()
-    img_path = os.path.join(os.path.dirname(__file__), "..", "assets", "func_cards", img_filename)
+    img_path = ""
+    storage_paths = (config or {}).get("_storage_paths", {})
+    func_assets_dir = storage_paths.get("func_assets_dir")
+    profile_img_path = os.path.join(str(func_assets_dir), img_filename) if func_assets_dir and img_filename else ""
+    legacy_img_path = os.path.join(os.path.dirname(__file__), "..", "assets", "func_cards", img_filename) if img_filename else ""
 
-    if img_filename and os.path.isfile(img_path):
+    if profile_img_path and os.path.isfile(profile_img_path):
+        img_path = profile_img_path
+    elif legacy_img_path and os.path.isfile(legacy_img_path):
+        img_path = legacy_img_path
+
+    if img_path:
         yield event.chain_result([Image.fromFileSystem(img_path), Plain("\n" + res_text)])
     else:
-        # 图片为可选项：未配置或文件缺失时，自动降级为纯文本结果
         if img_filename:
             res_text += f"\n⚠️ 卡图未找到：{img_filename}（已使用纯文本展示）"
         yield event.plain_result(res_text)
@@ -1118,10 +1187,10 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         return
 
     cards_config = load_func_cards_config(config)
+    raw_cards_config = load_func_cards_config(config, include_disabled_dice=True)
     card_cfg = next((c for c in cards_config if c.get("card_name") == target_card_name), None)
     if not card_cfg:
-        all_cards = load_func_cards_config(config)
-        raw_cfg = next((c for c in all_cards if c.get("card_name") == target_card_name), None)
+        raw_cfg = next((c for c in raw_cards_config if c.get("card_name") == target_card_name), None)
         if raw_cfg and _is_dice_card_by_tags(raw_cfg.get("tags", [])) and not (config or {}).get("func_cards_settings", {}).get("enable_dice_cards", True):
             yield event.plain_result("🎲 当前已关闭骰子玩法，无法使用该骰子功能牌。")
             return
@@ -1274,11 +1343,11 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             user_data["daily_attack_count"] += 1
             user_data["karma_value"] -= 1
             karma_report = "\n💀 【业报积累】今日连续发动攻击，善恶值 -1！"
-        # 对赌牌属于功能牌攻击，邪恶之人奖励同样触发
         duel_evil_bonus = TitleEngine.calculate_total_attack_gold_bonus(user_data.get("titles", []))
         if duel_evil_bonus > 0:
             user_data["total_gold"] += duel_evil_bonus
             karma_report += f"\n😈 【邪恶之人】攻击奖励触发，额外获得 {duel_evil_bonus} 金币！"
+        karma_report += _build_karma_title_report(user_data, (config or {}).get("func_cards_settings", {}).get("enable", True))
 
         await bank.save_user_data()
         yield event.plain_result(
@@ -1286,6 +1355,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         )
         return
     evil_bonus = 0
+    karma_report = ""
     if card_type == "attack":
         if user_data.get("last_attack_date") != today:
             user_data["last_attack_date"] = today
@@ -1307,21 +1377,27 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
     engine = CardEngine()
     battle_reports = await engine.execute_tags(user_data, target_data, tags, all_users, user_id)
+    karma_report += _build_karma_title_report(user_data, (config or {}).get("func_cards_settings", {}).get("enable", True))
 
     # AOE 施法者使用简报，避免日志过长；被波及者保留精准个人战报
     aoe_chain = None
     if is_aoe:
-        aoe_events = [e for e in engine.last_aoe_events if e.get("target_uid") != user_id]
-        affected_count = len(aoe_events)
-        blocked_count = sum(1 for e in aoe_events if e.get("blocked"))
         is_heal_aoe = any(t.startswith("aoe_heal:") for t in tags)
         if is_heal_aoe:
+            aoe_events = sorted(
+                engine.last_aoe_events,
+                key=lambda e: 0 if str(e.get("target_uid", "")) == str(user_id) else 1,
+            )
+            affected_count = len(aoe_events)
             total_heal = sum(int(e.get("amount", 0)) for e in aoe_events)
-            report_str = f"🌿 范围援助命中 {affected_count} 人，总恢复 {total_heal} 金币。"
+            report_str = f"🌿 范围援助命中 {affected_count} 人（含自己），总恢复 {total_heal} 金币。"
         else:
+            aoe_events = [e for e in engine.last_aoe_events if e.get("target_uid") != user_id]
+            affected_count = len(aoe_events)
+            blocked_count = sum(1 for e in aoe_events if e.get("blocked"))
             total_damage = sum(int(e.get("amount", 0)) for e in aoe_events)
             report_str = f"🏹 范围攻击命中 {affected_count} 人（免疫 {blocked_count} 人），总造成 {total_damage} 金币伤害。"
-        aoe_chain = _format_aoe_chain(user_name, target_card_name, aoe_events, is_heal_aoe, karma_report, len(inventory) - 1)
+        aoe_chain = _format_aoe_chain(user_id, user_name, target_card_name, aoe_events, is_heal_aoe, karma_report, len(inventory) - 1)
     else:
         report_str = "\n".join(battle_reports) if battle_reports else "💨 法术消散在风中，似乎什么也没发生..."
     
@@ -1361,7 +1437,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     else:
         yield event.plain_result(final_msg)
 
-async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_activate: bool):
+async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_activate: bool, config: dict = None):
     user_id = event.get_sender_id()
     user_name = event.get_sender_name()
     

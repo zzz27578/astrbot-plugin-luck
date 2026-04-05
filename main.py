@@ -9,7 +9,7 @@ from .modules.m_sign_in import handle_sign_in, handle_leaderboard
 
 # ================= 🔌 核心底座与模块导入 =================
 from .core.luck_bank import LuckBank
-from .core.plugin_storage import PLUGIN_NAME, get_runtime_context, migrate_legacy_storage
+from .core.plugin_storage import PLUGIN_NAME, get_base_storage_paths, get_runtime_context, migrate_legacy_storage
 from .modules import m_sign_in, m_fate_cards, m_func_cards
 from .webui.server import start_webui
 
@@ -92,6 +92,38 @@ def _extract_group_id(event: AstrMessageEvent) -> str | None:
     return None
 
 
+def _load_group_access_config(plugin_name: str = PLUGIN_NAME) -> dict:
+    default_cfg = {"mode": "off", "blacklist": [], "whitelist": []}
+    try:
+        base_paths = get_base_storage_paths(plugin_name)
+        group_access_file = base_paths["plugin_data_dir"] / "group_access_control.json"
+        if not group_access_file.exists():
+            return default_cfg
+        with open(group_access_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return default_cfg
+        mode = str(data.get("mode", "off")).strip().lower()
+        return {
+            "mode": mode if mode in {"off", "blacklist", "whitelist"} else "off",
+            "blacklist": [str(x).strip() for x in data.get("blacklist", []) if str(x).strip()],
+            "whitelist": [str(x).strip() for x in data.get("whitelist", []) if str(x).strip()],
+        }
+    except Exception:
+        return default_cfg
+
+
+def _is_group_access_allowed(group_id: str, plugin_name: str = PLUGIN_NAME) -> bool:
+    cfg = _load_group_access_config(plugin_name)
+    mode = cfg.get("mode", "off")
+    group_key = str(group_id).strip()
+    if mode == "blacklist":
+        return group_key not in set(cfg.get("blacklist", []))
+    if mode == "whitelist":
+        return group_key in set(cfg.get("whitelist", []))
+    return True
+
+
 PLUGIN_NAME = "luck_rank"
 AUTHOR = "YourName" # 可修改为你自己的名字
 VERSION = "5.4.0-Pro"
@@ -145,6 +177,9 @@ class LuckPlugin(Star):
         group_id = _extract_group_id(event)
         if not group_id:
             yield event.plain_result("⚠️ 当前功能仅支持群聊使用，私聊场景不参与签到与排行映射。")
+            return
+
+        if not _is_group_access_allowed(group_id, self.name or PLUGIN_NAME):
             return
 
         bank, current_config = self._refresh_runtime_config(group_id)
@@ -279,7 +314,7 @@ class LuckPlugin(Star):
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_active_card(event, bank, cmd_str, True):
+            async for res in m_func_cards.handle_active_card(event, bank, cmd_str, True, current_config):
                 yield res
             return
 
@@ -287,7 +322,7 @@ class LuckPlugin(Star):
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_active_card(event, bank, cmd_str, False):
+            async for res in m_func_cards.handle_active_card(event, bank, cmd_str, False, current_config):
                 yield res
             return
 

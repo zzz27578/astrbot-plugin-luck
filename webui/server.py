@@ -114,6 +114,78 @@ def _load_json_template(path: Path, default):
     return data
 
 
+def _safe_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _normalize_fate_cards(cards) -> list:
+    normalized = []
+    for card in cards if isinstance(cards, list) else []:
+        if not isinstance(card, dict):
+            continue
+        normalized.append({
+            "text": str(card.get("text", "") or "一张神秘的卡牌").strip() or "一张神秘的卡牌",
+            "gold": _safe_int(card.get("gold", card.get("value", 0)), 0),
+            "filename": Path(str(card.get("filename", "") or "")).name,
+        })
+    return normalized
+
+
+def _normalize_func_cards(cards) -> list:
+    normalized = []
+    for card in cards if isinstance(cards, list) else []:
+        if not isinstance(card, dict):
+            continue
+        card_name = str(card.get("card_name", "") or "").strip()
+        if not card_name:
+            continue
+        raw_tags = card.get("tags", [])
+        tags = [str(t).strip() for t in raw_tags if str(t).strip()] if isinstance(raw_tags, list) else []
+        rarity = max(1, min(5, _safe_int(card.get("rarity", 1), 1)))
+        normalized.append({
+            "card_name": card_name,
+            "type": str(card.get("type", "attack") or "attack").strip() or "attack",
+            "description": str(card.get("description", "") or "一张神秘的战术卡").strip() or "一张神秘的战术卡",
+            "filename": Path(str(card.get("filename", "") or "")).name,
+            "tags": tags,
+            "rarity": rarity,
+        })
+    return normalized
+
+
+def _normalize_sign_in_texts(texts) -> dict:
+    data = texts if isinstance(texts, dict) else {}
+    result = {
+        "good_things": [str(x).strip() for x in data.get("good_things", []) if str(x).strip()],
+        "bad_things": [str(x).strip() for x in data.get("bad_things", []) if str(x).strip()],
+        "luck_ranges": [],
+    }
+
+    legacy_comments = data.get("luck_comments")
+    if isinstance(legacy_comments, dict):
+        result["luck_comments"] = legacy_comments
+
+    for item in data.get("luck_ranges", []) if isinstance(data.get("luck_ranges", []), list) else []:
+        if not isinstance(item, dict):
+            continue
+        min_val = _safe_int(item.get("min", 1), 1)
+        max_val = _safe_int(item.get("max", 100), 100)
+        if min_val > max_val:
+            min_val, max_val = max_val, min_val
+        result["luck_ranges"].append({
+            "label": str(item.get("label", "") or "新区间").strip() or "新区间",
+            "min": min_val,
+            "max": max_val,
+            "gold_delta": _safe_int(item.get("gold_delta", 0), 0),
+            "comments": [str(x).strip() for x in item.get("comments", []) if str(x).strip()] if isinstance(item.get("comments", []), list) else [],
+        })
+
+    return result
+
+
 def _ensure_profile_seed_data(profile_id: str):
     paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
     ensure_profile_dirs(profile_id, PLUGIN_NAME)
@@ -303,8 +375,8 @@ async def api_save_runtime_config(request):
 async def api_get_fate_cards(request):
     try:
         paths = _get_request_profile_paths(request)
-        cards = _read_json(paths["fate_cards_file"], [])
-        return web.json_response({"ok": True, "cards": cards if isinstance(cards, list) else []})
+        cards = _normalize_fate_cards(_read_json(paths["fate_cards_file"], []))
+        return web.json_response({"ok": True, "cards": cards})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "cards": []}, status=500)
 
@@ -312,10 +384,10 @@ async def api_get_fate_cards(request):
 async def api_save_fate_cards(request):
     try:
         body = await request.json()
-        cards = body.get("cards", [])
+        cards = _normalize_fate_cards(body.get("cards", []))
         paths = _get_request_profile_paths(request)
         _atomic_write(paths["fate_cards_file"], cards)
-        return web.json_response({"ok": True})
+        return web.json_response({"ok": True, "cards": cards})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
@@ -364,8 +436,8 @@ async def api_list_fate_images(request):
 async def api_get_func_cards(request):
     try:
         paths = _get_request_profile_paths(request)
-        cards = _read_json(paths["func_cards_file"], [])
-        return web.json_response({"ok": True, "cards": cards if isinstance(cards, list) else []})
+        cards = _normalize_func_cards(_read_json(paths["func_cards_file"], []))
+        return web.json_response({"ok": True, "cards": cards})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "cards": []}, status=500)
 
@@ -373,10 +445,10 @@ async def api_get_func_cards(request):
 async def api_save_func_cards(request):
     try:
         body = await request.json()
-        cards = body.get("cards", [])
+        cards = _normalize_func_cards(body.get("cards", []))
         paths = _get_request_profile_paths(request)
         _atomic_write(paths["func_cards_file"], cards)
-        return web.json_response({"ok": True})
+        return web.json_response({"ok": True, "cards": cards})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
@@ -384,7 +456,7 @@ async def api_save_func_cards(request):
 async def api_get_sign_in_texts(request):
     try:
         paths = _get_request_profile_paths(request)
-        texts = _read_json(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
+        texts = _normalize_sign_in_texts(_read_json(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS))
         for key in DEFAULT_SIGN_IN_TEXTS:
             if key not in texts:
                 texts[key] = DEFAULT_SIGN_IN_TEXTS[key]
@@ -404,10 +476,10 @@ async def api_get_sign_in_texts(request):
 async def api_save_sign_in_texts(request):
     try:
         body = await request.json()
-        texts = body.get("texts", {})
+        texts = _normalize_sign_in_texts(body.get("texts", {}))
         paths = _get_request_profile_paths(request)
         _atomic_write(paths["sign_in_texts_file"], texts)
-        return web.json_response({"ok": True})
+        return web.json_response({"ok": True, "texts": texts})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
@@ -495,6 +567,17 @@ async def api_delete_image(request):
         return web.json_response({"ok": False, "error": "no filename"}, status=400)
     paths = _get_request_profile_paths(request)
     target = paths["func_assets_dir"] / Path(filename).name
+    if target.exists():
+        target.unlink()
+    return web.json_response({"ok": True})
+
+
+async def api_delete_fate_image(request):
+    filename = request.match_info.get("filename", "")
+    if not filename:
+        return web.json_response({"ok": False, "error": "no filename"}, status=400)
+    paths = _get_request_profile_paths(request)
+    target = paths["fate_assets_dir"] / Path(filename).name
     if target.exists():
         target.unlink()
     return web.json_response({"ok": True})
@@ -796,6 +879,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/fate_cards", api_save_fate_cards)
     app.router.add_post("/api/upload_fate_image", api_upload_fate_image)
     app.router.add_get("/api/fate_images", api_list_fate_images)
+    app.router.add_delete("/api/fate_images/{filename}", api_delete_fate_image)
     app.router.add_get("/fate_assets/{filename}", serve_fate_image)
     app.router.add_get("/api/func_cards", api_get_func_cards)
     app.router.add_post("/api/func_cards", api_save_func_cards)

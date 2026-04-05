@@ -13,9 +13,24 @@ def load_cards_config(config: dict | None = None):
     if config_path and config_path.exists():
         try:
             with open(config_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                raw_cards = json.load(f)
         except Exception:
             return []
+
+        normalized = []
+        for card in raw_cards if isinstance(raw_cards, list) else []:
+            if not isinstance(card, dict):
+                continue
+            try:
+                gold = int(card.get("gold", card.get("value", 0)) or 0)
+            except Exception:
+                gold = 0
+            normalized.append({
+                "text": str(card.get("text", "一张神秘的卡牌") or "一张神秘的卡牌"),
+                "gold": gold,
+                "filename": str(card.get("filename", "") or ""),
+            })
+        return normalized
     return []
 
 async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max_limit: int = 3):
@@ -62,7 +77,7 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max
     card = random.choice(cards_config)
     img_filename = card.get("filename", "")
     text = card.get("text", "一张神秘的卡牌")
-    value = card.get("value", 0)
+    value = int(card.get("gold", card.get("value", 0)) or 0)
 
     # 匹配原有的图库路径
     img_path = config.get("_storage_paths", {}).get("fate_assets_dir") / img_filename

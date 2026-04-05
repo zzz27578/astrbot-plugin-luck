@@ -343,6 +343,7 @@
     .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
     .field-grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
     .field-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .field-grid.five { grid-template-columns: repeat(5, minmax(0,1fr)); }
     .profile-card, .card-item, .asset-item, .event-item, .stat-item, .effect-row {
       border: 1px solid var(--line);
       background: rgba(255,255,255,.018);
@@ -504,7 +505,7 @@
     @media (max-width: 1260px) {
       .hero { grid-template-columns: 1fr; }
       .col-8, .col-7, .col-6, .col-5, .col-4 { grid-column: span 12; }
-      .asset-grid, .field-grid.four, .stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .asset-grid, .field-grid.four, .field-grid.five, .stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .split { grid-template-columns: 1fr; }
       .effect-row { grid-template-columns: 1fr; }
     }
@@ -765,6 +766,9 @@
     async function apiPost(path, body) {
       return await (await fetch(apiUrl(path), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json();
     }
+    async function apiDelete(path) {
+      return await (await fetch(apiUrl(path), { method:'DELETE' })).json();
+    }
     async function apiDeleteProfileById(profileId) {
       return await apiPost('/api/profile_remove', { profile_id: profileId });
     }
@@ -936,7 +940,6 @@
         <div class="grid">
           <section class="panel col-4">
             <div class="panel-head"><div><div class="panel-title">模块开关</div><div class="panel-note">按钮和边框全部强化对比。</div></div></div>
-            ${toggleBox('网页控制台', 'webui_settings.enable', c.webui_settings.enable)}
             ${toggleBox('命运牌系统', 'fate_cards_settings.enable', c.fate_cards_settings.enable)}
             ${toggleBox('功能牌系统', 'func_cards_settings.enable', f.enable)}
             ${toggleBox('骰子牌系统', 'func_cards_settings.enable_dice_cards', f.enable_dice_cards)}
@@ -953,7 +956,6 @@
               <button class="btn-strong" onclick="saveRuntime()">[ 保存运行配置 ]</button>
             </div>
             <div class="field-grid three">
-              ${numField('网页端口','webui_settings.port',c.webui_settings.port)}
               ${numField('命运牌每日上限','fate_cards_settings.daily_draw_limit',c.fate_cards_settings.daily_draw_limit)}
               ${selectField('稀有度模式','func_cards_settings.rarity_mode',f.rarity_mode,[['default','默认'],['custom','自定义']])}
               ${numField('对赌每日次数','func_cards_settings.public_duel_daily_limit',f.public_duel_daily_limit)}
@@ -1101,7 +1103,7 @@
             <div>
               <h3>${esc(card.text || '未命名命运牌')}</h3>
               <div class="row" style="margin-bottom:8px;">
-                <span class="badge orange">金币 ${esc(card.gold ?? card.value ?? 0)}</span>
+                <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
                 <span class="badge">文件 ${esc(card.filename || '未绑定')}</span>
               </div>
               <div class="row">
@@ -1115,7 +1117,7 @@
 
     function assetItem(file, kind) {
       const src = kind === 'fate' ? `/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}` : `/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}`;
-      return `<div class="asset-item"><div class="thumb"><img src="${src}" alt="${esc(file)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div>${kind === 'func' ? `<button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')">[ 删除 ]</button>` : ''}</div>`;
+      return `<div class="asset-item"><div class="thumb"><img src="${src}" alt="${esc(file)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div>${kind === 'func' ? `<button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')">[ 删除 ]</button>` : `<button class="btn-danger" onclick="deleteFateImage('${esc(file)}')">[ 删除 ]</button>`}</div>`;
     }
 
     function renderCards() {
@@ -1467,7 +1469,7 @@
           <div>
             <div class="field-grid">
               <div class="field"><label>文案</label><input class="input" id="fateText" value="${esc(card.text || '')}"></div>
-              <div class="field"><label>金币值</label><input class="input" type="number" id="fateGold" value="${esc(card.gold ?? card.value ?? 0)}"></div>
+              <div class="field"><label>金币值</label><input class="input" type="number" id="fateGold" value="${esc(card.gold ?? 0)}"></div>
             </div>
             <div class="field" style="margin-top:12px;"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}"></div>
             <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFateEditor()">[ 写入命运牌 ]</button></div>
@@ -1584,8 +1586,6 @@
       const type = $('#funcType')?.value || 'attack';
       const key = effectCatalog[type]?.[0]?.key || '';
       state.editingFuncEffects.push({ key, params: [] });
-      changeFuncType(type);
-      state.editingFuncEffects[state.editingFuncEffects.length - 1] = { key, params: [] };
       $('#effectBuilder').innerHTML = renderEffectRows(type);
       $('#effectPreview').innerHTML = effectPreviewHtml();
     }
@@ -1669,6 +1669,12 @@
       if (res.ok) { await loadCards(); renderCards(); showToast('图片已删除。'); }
       else showToast(res.error || '删除失败。', true);
     }
+    async function deleteFateImage(file) {
+      if (!confirm(`确认删除图片 ${file} 吗？`)) return;
+      const res = await apiDelete(`/api/fate_images/${encodeURIComponent(file)}`);
+      if (res.ok) { await loadFate(); renderFate(); showToast('图片已删除。'); }
+      else showToast(res.error || '删除失败。', true);
+    }
     async function refreshCardAssets(show = true) {
       await loadCards();
       if (show) showToast('资源扫描完成。');
@@ -1721,6 +1727,7 @@
     window.batchAddCards = batchAddCards;
     window.uploadFuncImages = uploadFuncImages;
     window.deleteFuncImage = deleteFuncImage;
+    window.deleteFateImage = deleteFateImage;
     window.refreshCardAssets = refreshCardAssets;
 
     window.editProfile = editProfile;

@@ -251,10 +251,10 @@
     }
 
     .hero {
-      padding: 15px 20px 18px;
+      padding: 14px 86px 10px 20px;
       display: grid;
-      grid-template-columns: minmax(0,1fr) auto;
-      gap: 10px;
+      grid-template-columns: minmax(0,1fr);
+      gap: 0;
       align-items: start;
       background:
         linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
@@ -262,26 +262,38 @@
         linear-gradient(180deg, rgba(255,255,255,.012), rgba(255,255,255,0));
       background-color: var(--surface-2);
     }
+    .hero.with-aux {
+      padding-right: 270px;
+    }
     .hero > div:first-child {
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      min-height: 100%;
+      min-height: 0;
     }
     .hero-side {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
       display: grid;
-      grid-template-columns: auto 52px;
+      grid-template-columns: auto 64px;
       gap: 10px;
-      align-items: start;
+      align-items: stretch;
       justify-content: end;
-      height: auto;
+      height: 100%;
+      pointer-events: none;
+    }
+    .hero-side > * {
+      pointer-events: auto;
     }
     .hero-aux:empty {
       display: none;
     }
     .hero-aux {
-      width: 168px;
-      align-self: stretch;
+      width: 184px;
+      margin-top: 10px;
+      align-self: start;
     }
     .hero .kicker {
       margin-bottom: 6px;
@@ -298,10 +310,10 @@
       text-shadow: 0 1px 0 rgba(255,255,255,.08);
     }
     .hero p {
-      margin-top: 9px;
+      margin-top: 5px;
       max-width: 720px;
       font-size: 13px;
-      line-height: 1.8;
+      line-height: 1.7;
       color: var(--muted);
     }
     .quick-box {
@@ -352,8 +364,8 @@
       gap: 0;
       align-items: stretch;
       justify-items: stretch;
-      align-self: start;
-      height: auto;
+      align-self: stretch;
+      height: 100%;
     }
     .reload-tower {
       writing-mode: vertical-rl;
@@ -361,12 +373,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 52px;
-      min-height: 0;
+      width: 64px;
+      min-height: 100%;
       height: 100%;
-      padding: 10px 0;
+      padding: 16px 0;
       letter-spacing: .14em;
-      font-size: 10px;
+      font-size: 12px;
       justify-self: end;
     }
     .hero-pie {
@@ -993,38 +1005,40 @@
     }
     .archive-card {
       position: relative;
-      border: 1px solid rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.16);
       background:
-        linear-gradient(180deg, rgba(255,255,255,.024), rgba(255,255,255,.01)),
-        linear-gradient(90deg, rgba(255,255,255,.014), rgba(255,255,255,0));
-      border-radius: 2px;
+        linear-gradient(180deg, rgba(22,27,35,.98), rgba(10,13,19,.98)),
+        linear-gradient(90deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+      border-radius: 4px;
       overflow: hidden;
       display: grid;
+      box-shadow: 0 16px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.05);
     }
     .archive-card.rarity-1 {
-      border-color: rgba(111,125,142,.32);
-      box-shadow: 0 0 18px rgba(111,125,142,.12), 0 0 34px rgba(111,125,142,.05);
+      border-color: rgba(111,125,142,.38);
+      box-shadow: 0 0 0 1px rgba(111,125,142,.12), 0 0 18px rgba(111,125,142,.16), 0 0 34px rgba(111,125,142,.08);
     }
     .archive-card.rarity-2 {
-      border-color: rgba(88,167,255,.36);
-      box-shadow: 0 0 20px rgba(88,167,255,.18), 0 0 38px rgba(88,167,255,.08);
+      border-color: rgba(88,167,255,.42);
+      box-shadow: 0 0 0 1px rgba(88,167,255,.14), 0 0 22px rgba(88,167,255,.24), 0 0 42px rgba(88,167,255,.12);
     }
     .archive-card.rarity-3 {
-      border-color: rgba(159,108,255,.38);
-      box-shadow: 0 0 22px rgba(159,108,255,.2), 0 0 40px rgba(159,108,255,.1);
+      border-color: rgba(159,108,255,.44);
+      box-shadow: 0 0 0 1px rgba(159,108,255,.14), 0 0 24px rgba(159,108,255,.26), 0 0 46px rgba(159,108,255,.13);
     }
     .archive-card.rarity-4 {
-      border-color: rgba(255,191,95,.38);
-      box-shadow: 0 0 22px rgba(255,191,95,.18), 0 0 40px rgba(255,191,95,.09);
+      border-color: rgba(255,191,95,.44);
+      box-shadow: 0 0 0 1px rgba(255,191,95,.14), 0 0 24px rgba(255,191,95,.24), 0 0 46px rgba(255,191,95,.12);
     }
-    .archive-card.rarity-5 {
-      border-color: rgba(255,112,120,.42);
-      box-shadow: 0 0 24px rgba(255,112,120,.22), 0 0 44px rgba(255,112,120,.1);
+    .archive-card.rarity-5,
+    .archive-card.incomplete {
+      border-color: rgba(255,112,120,.48);
+      box-shadow: 0 0 0 1px rgba(255,112,120,.16), 0 0 26px rgba(255,112,120,.28), 0 0 48px rgba(255,112,120,.14);
     }
     .archive-cover {
       aspect-ratio: 3 / 4;
-      background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.015));
-      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 10px 10px 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
       overflow: hidden;
       display: grid;
       place-items: center;
@@ -1036,11 +1050,16 @@
       height: 100%;
       object-fit: cover;
       display: block;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 2px;
+      box-shadow: 0 10px 22px rgba(0,0,0,.18);
     }
     .archive-body {
       display: grid;
       gap: 10px;
-      padding: 14px;
+      padding: 12px 14px 14px;
+      background: linear-gradient(180deg, rgba(0,0,0,.1), rgba(255,255,255,0));
+      border-top: 1px solid rgba(255,255,255,.06);
     }
     .archive-title {
       font-size: 16px;
@@ -1115,15 +1134,18 @@
       color: var(--muted);
       letter-spacing: .08em;
     }
-    .stats-main .panel-head {
-      padding-bottom: 8px;
-      margin-bottom: 10px;
+    .stats-main .panel-head,
+    .fate-main .panel-head {
+      padding-bottom: 6px;
+      margin-bottom: 8px;
     }
-    .stats-main .panel-head > div:first-child {
-      padding-top: 8px;
+    .stats-main .panel-head > div:first-child,
+    .fate-main .panel-head > div:first-child {
+      padding-top: 7px;
     }
-    .stats-main .panel-note {
-      margin-top: 4px;
+    .stats-main .panel-note,
+    .fate-main .panel-note {
+      margin-top: 3px;
     }
     .toggle-box::before {
       content: "";
@@ -1479,7 +1501,7 @@
         padding: 14px;
       }
       .hero {
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr;
       }
       .col-8, .col-7, .col-6, .col-5, .col-4 {
         grid-column: span 12;
@@ -1512,11 +1534,17 @@
         grid-template-columns: 1fr;
         padding: 14px;
       }
+      .hero.with-aux {
+        padding-right: 14px;
+      }
       .hero-side {
+        position: static;
         grid-template-columns: 1fr;
+        pointer-events: auto;
       }
       .hero-aux {
         width: 100%;
+        margin-top: 0;
       }
       .hero h1 {
         font-size: 34px;
@@ -1554,6 +1582,7 @@
         writing-mode: horizontal-tb;
         width: 100%;
         min-height: 44px;
+        height: auto;
         padding: 0 16px;
       }
       .asset-item .thumb {
@@ -2033,11 +2062,14 @@
     }
     function renderHeroAux() {
       const el = $('#heroAux');
-      if (!el) return;
+      const hero = $('.hero');
+      if (!el || !hero) return;
       if (state.activePage !== 'cards') {
         el.innerHTML = '';
+        hero.classList.remove('with-aux');
         return;
       }
+      hero.classList.add('with-aux');
       const preview = buildFuncTypeDistribution();
       el.innerHTML = `
         <div class="hero-pie">
@@ -2115,10 +2147,14 @@
     function isFateCardIncomplete(card) {
       return !(card.text || '').trim() || !card.filename || !state.fateImages.includes(card.filename);
     }
-    function detectIncompleteFateCards() {
+    function ensureFateDraftCards() {
       const boundFiles = new Set(state.fateCards.map(card => card.filename).filter(Boolean));
-      const additions = state.fateImages.filter(file => !boundFiles.has(file)).map(file => ({ text:'', gold:0, filename:file }));
-      if (additions.length) state.fateCards.push(...additions);
+      state.fateImages.filter(file => !boundFiles.has(file)).forEach(file => {
+        state.fateCards.push({ text:'', gold:0, filename:file });
+      });
+    }
+    function detectIncompleteFateCards() {
+      ensureFateDraftCards();
       state.fateCards.sort((a, b) => Number(isFateCardIncomplete(b)) - Number(isFateCardIncomplete(a)));
       renderFate();
       const pendingCount = state.fateCards.filter(isFateCardIncomplete).length;
@@ -2385,9 +2421,10 @@
     }
 
     function renderFate() {
+      ensureFateDraftCards();
       $('#page-fate').innerHTML = `
         <div class="grid">
-          <section class="panel col-12">
+          <section class="panel col-12 fate-main">
             <div class="panel-head">
               <div>
                 <div class="panel-title">命运牌档案</div>
@@ -2410,13 +2447,15 @@
     function fateItem(card, i) {
       const has = card.filename && state.fateImages.includes(card.filename);
       const src = has ? `/fate_assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
+      const incomplete = isFateCardIncomplete(card);
       return `
-        <article class="archive-card">
+        <article class="archive-card${incomplete ? ' incomplete' : ''}">
           <div class="archive-cover">${has ? `<img src="${src}" alt="命运牌图片">` : '未绑定图片'}</div>
           <div class="archive-body">
             <div class="archive-title">${esc(card.text || '未命名命运牌')}</div>
             <div class="archive-meta">
               <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
+              ${incomplete ? '<span class="badge">未完成</span>' : ''}
             </div>
             <div class="archive-actions">
               <button class="btn-strong" onclick="openFateEditor(${i})">[ 编辑 ]</button>

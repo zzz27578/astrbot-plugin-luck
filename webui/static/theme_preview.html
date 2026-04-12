@@ -836,11 +836,6 @@ animation: metricsHaloDrift 24s linear infinite reverse;
 /* 清理无用状态，回归极致性能 */
 .core.is-shrinking .face { opacity: 0; pointer-events: none; }
 .core.is-shrinking .view-orbit-cube { opacity: 0; }
-.core.state-metrics .face:nth-child(1) {
-opacity: 0.995;
-transform: translateZ(0px) rotateZ(0deg) scale(1);
-filter: drop-shadow(0 0 12px rgba(186, 98, 255, 0.10)) drop-shadow(0 0 22px rgba(66, 188, 255, 0.04));
-}
 .core.state-metrics .face:nth-child(2),
 .core.state-metrics .face:nth-child(3),
 .core.state-metrics .face:nth-child(4),
@@ -1074,10 +1069,6 @@ function applyTransitionState(geometry, nextState, duration = 1200) {
   geometry.dataset.targetState = nextState;
   if (geometry._transitionTimer) clearTimeout(geometry._transitionTimer);
   if (geometry._phaseTimer) clearTimeout(geometry._phaseTimer);
-  if (geometry._viewEnterTimer) {
-    clearTimeout(geometry._viewEnterTimer);
-    geometry._viewEnterTimer = null;
-  }
 
   const enterMetrics = nextState === 'metrics' && normalizedCurrentState !== 'metrics';
   const exitMetrics = normalizedCurrentState === 'metrics' && nextState !== 'metrics';

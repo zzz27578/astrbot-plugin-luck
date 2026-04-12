@@ -1,0 +1,1045 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Theme Preview - 精修预览版</title>
+<style>
+:root {--bg: #030508;
+--neon: #00e5ff;
+--neon-dim: rgba(0, 229, 255, 0.7);
+--card-bg: rgba(10, 15, 25,0.15);
+--text: #e0e6ed;
+}
+body,html {
+margin: 0; padding: 0; height: 100%;
+background: var(--bg); color: var(--text);
+font-family: 'Segoe UI', system-ui, sans-serif;
+overflow: hidden;
+}
+.geo-wrapper {
+position: fixed; top: 50%; left: 50%; width: 0; height: 0;
+perspective: 1800px;
+perspective-origin: 50% 50%;
+transform-style: preserve-3d;
+z-index: 0; pointer-events: none;}
+.core {
+position: absolute;
+transform-style: preserve-3d;
+transition: transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+animation: slowSpin 35s linear infinite;
+}
+.face {
+position: absolute;
+width: 340px; height:340px;
+margin-left: -170px; margin-top: -170px;
+box-sizing: border-box;
+overflow: visible;
+transform-origin: center center;
+transform-style: preserve-3d;
+backface-visibility: visible;
+-webkit-backface-visibility: visible;
+will-change: transform;
+border: 7px solid rgba(0, 229, 255, 0.58);
+background: linear-gradient(145deg, rgba(0, 229, 255, 0.085), rgba(0, 229,255, 0.03) 58%, rgba(255, 255, 255, 0.018));
+box-shadow:
+  inset 0 0 24px rgba(0, 229, 255, 0.075),
+  inset 0 052px rgba(255, 255, 255, 0.016),
+  0 0 12px rgba(0, 229, 255, 0.09);
+outline: 1px solid rgba(255, 255, 255, 0.03);
+filter: drop-shadow(0 0 7px rgba(0, 229, 255, 0.07));
+  transition:
+  transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+  border-color 0.8s ease,
+  border-width 0.8s ease,
+  background 0.8s ease,
+  box-shadow 0.8s ease,
+  border-radius 0.8s ease,
+  clip-path 0.8s ease,
+  opacity 0.8s ease,
+  filter 0.8s ease;
+}
+.face.aux {
+opacity: 0 !important;
+pointer-events: none;
+}
+#geometry[data-metrics-theme="violet"] {
+--metrics-border: rgba(196, 118, 255, 0.92);
+--metrics-outline: rgba(255, 255, 255, 0.10);
+--metrics-inner-glow: rgba(214, 144, 255, 0.18);
+--metrics-outer-glow: rgba(156, 76, 255, 0.24);
+--metrics-drop: rgba(122, 54, 238, 0.22);
+--metrics-metal-a: rgba(255, 255, 255, 0.26);
+--metrics-metal-b: rgba(196, 132, 255, 0.14);
+--metrics-metal-c: rgba(18, 8, 42, 0.30);
+--metrics-metal-d: rgba(255, 255, 255, 0.10);
+--metrics-sweep-outer-a: rgba(232, 196, 255, 0.18);
+--metrics-sweep-outer-b: rgba(255, 255, 255, 0.38);
+--metrics-sweep-mid-a: rgba(214, 172, 255, 0.15);
+--metrics-sweep-mid-b: rgba(255, 255, 255, 0.30);
+--metrics-sweep-inner-a: rgba(196, 148, 255, 0.12);
+--metrics-sweep-inner-b: rgba(250, 242, 255, 0.24);
+}
+#geometry[data-metrics-theme="titanium"] {
+--metrics-border: rgba(74, 194, 255, 0.96);
+--metrics-outline: rgba(255, 255, 255, 0.06);
+--metrics-inner-glow: rgba(110, 226, 255, 0.22);
+--metrics-outer-glow: rgba(54, 150, 255, 0.34);
+--metrics-drop: rgba(36, 108, 228, 0.30);
+--metrics-metal-a: rgba(255, 255, 255, 0.30);
+--metrics-metal-b: rgba(88, 200, 255, 0.18);
+--metrics-metal-c: rgba(8, 26, 76, 0.46);
+--metrics-metal-d: rgba(255, 255, 255, 0.10);
+--metrics-sweep-outer-a: rgba(176, 228, 255, 0.22);
+--metrics-sweep-outer-b: rgba(255, 255, 255, 0.46);
+--metrics-sweep-mid-a: rgba(152, 212, 255, 0.19);
+--metrics-sweep-mid-b: rgba(240, 250, 255, 0.38);
+--metrics-sweep-inner-a: rgba(130, 194, 255, 0.16);
+--metrics-sweep-inner-b: rgba(228, 246, 255, 0.30);
+}
+#geometry[data-metrics-theme="cyan"] {
+--metrics-border: rgba(64, 255, 208, 0.96);
+--metrics-outline: rgba(255, 255, 255, 0.06);
+--metrics-inner-glow: rgba(102, 255, 228, 0.22);
+--metrics-outer-glow: rgba(32, 226, 182, 0.34);
+--metrics-drop: rgba(20, 174, 138, 0.30);
+--metrics-metal-a: rgba(255, 255, 255, 0.30);
+--metrics-metal-b: rgba(82, 255, 220, 0.16);
+--metrics-metal-c: rgba(8, 52, 46, 0.44);
+--metrics-metal-d: rgba(255, 255, 255, 0.10);
+--metrics-sweep-outer-a: rgba(176, 255, 236, 0.22);
+--metrics-sweep-outer-b: rgba(255, 255, 255, 0.46);
+--metrics-sweep-mid-a: rgba(150, 255, 226, 0.19);
+--metrics-sweep-mid-b: rgba(238, 255, 250, 0.38);
+--metrics-sweep-inner-a: rgba(126, 246, 214, 0.16);
+--metrics-sweep-inner-b: rgba(226, 255, 244, 0.30);
+}
+.lock-layer,
+.gyro-layer {
+position: absolute;
+left: 0;
+top: 0;
+width: 0;
+height: 0;
+transform-style: preserve-3d;
+pointer-events: none;
+opacity: 0;
+transition: opacity 0.45s ease, filter 0.45s ease;
+}
+.lock-layer {
+filter:
+  drop-shadow(0 0 18px rgba(214, 170, 96, 0.14))
+  drop-shadow(0 0 34px rgba(214, 170, 96, 0.08));
+}
+.lock-bar {
+position: absolute;
+left: 0;
+top: 0;
+transform-style: preserve-3d;
+transform-origin: center center;
+--w: 420px;
+--h: 92px;
+--d: 92px;
+--hw: 210px;
+--hh: 46px;
+--hd: 46px;
+--nhw: -210px;
+--nhh: -46px;
+--nhd: -46px;
+}
+.lock-bar .lock-surface {
+position: absolute;
+left: 0;
+top: 0;
+box-sizing: border-box;
+transform-style: preserve-3d;
+backface-visibility: visible;
+-webkit-backface-visibility: visible;
+}
+.lock-bar .front,
+.lock-bar .back {
+width: var(--w);
+height: var(--h);
+margin-left: var(--nhw);
+margin-top: var(--nhh);
+border: 5px solid rgba(236, 194, 112, 0.90);
+border-radius: 10px;
+background:
+  linear-gradient(180deg, rgba(255, 245, 214, 0.055), rgba(255, 255, 255, 0.008) 18%, rgba(0, 0, 0, 0.01) 100%),
+  linear-gradient(90deg, rgba(238, 198, 122, 0.028), rgba(108, 72, 22, 0.018));
+box-shadow:
+  inset 0 0 10px rgba(255, 236, 188, 0.035),
+  inset 0 0 22px rgba(236, 194, 112, 0.028),
+  0 0 10px rgba(236, 194, 112, 0.10);
+}
+.lock-bar .front {
+transform: translateZ(var(--hd));
+opacity: 0.96;
+}
+.lock-bar .back {
+transform: rotateY(180deg) translateZ(var(--hd));
+opacity: 0.38;
+}
+.lock-bar .right,
+.lock-bar .left {
+width: var(--d);
+height: var(--h);
+margin-left: var(--nhd);
+margin-top: var(--nhh);
+border: 4px solid rgba(220, 176, 98, 0.62);
+border-radius: 8px;
+background: linear-gradient(180deg, rgba(255, 232, 184, 0.018), rgba(84, 56, 16, 0.010));
+box-shadow:
+  inset 0 0 8px rgba(236, 194, 112, 0.020),
+  0 0 8px rgba(236, 194, 112, 0.06);
+opacity: 0.72;
+}
+.lock-bar .right {
+transform: rotateY(90deg) translateZ(var(--hw));
+}
+.lock-bar .left {
+transform: rotateY(-90deg) translateZ(var(--hw));
+}
+.lock-bar .top,
+.lock-bar .bottom {
+width: var(--w);
+height: var(--d);
+margin-left: var(--nhw);
+margin-top: var(--nhd);
+border: 4px solid rgba(228, 184, 106, 0.68);
+border-radius: 8px;
+background: linear-gradient(180deg, rgba(255, 238, 196, 0.020), rgba(96, 64, 20, 0.010));
+box-shadow:
+  inset 0 0 8px rgba(236, 194, 112, 0.022),
+  0 0 8px rgba(236, 194, 112, 0.06);
+opacity: 0.78;
+}
+.lock-bar .top {
+transform: rotateX(90deg) translateZ(var(--hh));
+}
+.lock-bar .bottom {
+transform: rotateX(-90deg) translateZ(var(--hh));
+}
+.lock-bar.bar-x {
+transform: translate3d(0, 0, 92px) rotateY(16deg) rotateX(-10deg);
+}
+.lock-bar.bar-y {
+transform: translate3d(92px, 0, 0) rotateZ(90deg) rotateY(-16deg) rotateX(8deg);
+}
+.lock-bar.bar-z {
+transform: translate3d(0, -92px, 0) rotateY(90deg) rotateZ(14deg) rotateX(10deg);
+}
+.gyro-layer {
+filter: drop-shadow(0 0 18px rgba(206, 170, 255, 0.2));
+animation: gyroBody 34s linear infinite;
+}
+.gyro-ring {
+position: absolute;
+left: 0;
+top: 0;
+width: 0;
+height: 0;
+transform-style: preserve-3d;
+}
+.gyro-ring::before,
+.gyro-ring::after {
+content: '';
+position: absolute;
+left: calc(var(--size) * -0.5);
+top: calc(var(--size) * -0.5);
+width: var(--size);
+height: var(--size);
+border-radius: 50%;
+box-sizing: border-box;
+}
+.gyro-ring::before {
+border: var(--line) solid rgba(206, 170, 255, 0.42);
+box-shadow: inset 0 0 18px rgba(206, 170, 255, 0.08), 0 0 18px rgba(206, 170, 255, 0.1);
+opacity: 0.96;
+}
+.gyro-ring::after {
+background: conic-gradient(
+  from 0deg,
+  rgba(255, 255, 255, 0) 0deg,
+  rgba(255, 255, 255, 0.03) 150deg,
+  rgba(255, 255, 255, 0.98) 270deg,
+  rgba(255, 255, 255, 0.16) 334deg,
+  rgba(255, 255, 255, 0) 360deg
+);
+-webkit-mask: radial-gradient(circle, transparent calc(50% - var(--line)), #000 calc(50% - var(--line) + 1px) calc(50% - 1px), transparent 50%);
+mask: radial-gradient(circle, transparent calc(50% - var(--line)), #000 calc(50% - var(--line) + 1px) calc(50% - 1px), transparent 50%);
+filter: blur(0.7px);
+opacity: 0.98;
+}
+.gyro-ring.ring-a {
+--size: 640px;
+--line: 16px;
+}
+.gyro-ring.ring-b {
+--size: 520px;
+--line: 14px;
+}
+.gyro-ring.ring-c {
+--size: 392px;
+--line: 12px;
+}
+
+.view-cube {
+position: absolute;
+left: 0;
+top: 0;
+width: 0;
+height: 0;
+transform-style: preserve-3d;
+opacity: 1;
+transition: transform 0.72s cubic-bezier(0.2, 0.9, 0.24, 1), opacity 0.32s ease;
+}
+.view-cube-face {
+position: absolute;
+left: 0;
+top: 0;
+width: 340px;
+height: 340px;
+margin-left: -170px;
+margin-top: -170px;
+box-sizing: border-box;
+overflow: visible;
+transform-origin: center center;
+transform-style: preserve-3d;
+backface-visibility: visible;
+-webkit-backface-visibility: visible;
+will-change: transform;
+border: 7px solid rgba(84, 138, 255, 0.58);
+border-radius: 10px;
+background: linear-gradient(145deg, rgba(84, 138, 255, 0.085), rgba(84, 138, 255, 0.03) 58%, rgba(255, 255, 255, 0.018));
+box-shadow:
+  inset 0 0 24px rgba(84, 138, 255, 0.075),
+  inset 0 0 52px rgba(255, 255, 255, 0.016),
+  0 0 12px rgba(84, 138, 255, 0.09);
+outline: 1px solid rgba(255, 255, 255, 0.03);
+filter: drop-shadow(0 0 7px rgba(84, 138, 255, 0.07));
+transition:
+  transform 0.72s cubic-bezier(0.2, 0.9, 0.24, 1),
+  border-color 0.45s ease,
+  border-width 0.45s ease,
+  background 0.45s ease,
+  box-shadow 0.45s ease,
+  border-radius 0.45s ease,
+  clip-path 0.3s ease,
+  opacity 0.22s ease,
+  filter 0.45s ease;
+}
+.view-cube-face::before,
+.view-cube-face::after {
+content: '';
+position: absolute;
+inset: 0;
+pointer-events: none;
+box-sizing: border-box;
+border-radius: inherit;
+transition:
+  transform 0.72s cubic-bezier(0.2, 0.9, 0.24, 1),
+  background 0.45s ease,
+  opacity 0.45s ease,
+  border-radius 0.45s ease,
+  clip-path 0.3s ease,
+  box-shadow 0.45s ease;
+}
+.view-cube-face::before {
+transform: translateZ(8px);
+background: linear-gradient(145deg, rgba(255, 255, 255, 0.038), transparent 44%, rgba(84, 138, 255, 0.014));
+opacity: 0.72;
+}
+.view-cube-face::after {
+transform: translateZ(-8px);
+background: linear-gradient(160deg, rgba(6, 16, 42, 0.09), rgba(0, 0, 0, 0.018));
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+opacity: 0.42;
+}
+.view-cube-face.front { transform: translateZ(170px); }
+.view-cube-face.back { transform: rotateY(180deg) translateZ(170px); opacity: 0.42; }
+.view-cube-face.right { transform: rotateY(90deg) translateZ(170px); }
+.view-cube-face.left { transform: rotateY(-90deg) translateZ(170px); opacity: 0.84; }
+.view-cube-face.top { transform: rotateX(90deg) translateZ(170px); }
+.view-cube-face.bottom { transform: rotateX(-90deg) translateZ(170px); opacity: 0.84; }
+.view-cube.center { transform: translate3d(0, 0, 0) scale(0.01); opacity: 0; }
+.view-cube.pos-z { transform: translate3d(0, 0, 128px) scale(0.25); }
+.view-cube.neg-z { transform: translate3d(0, 0, -128px) scale(0.25); }
+.view-cube.pos-x { transform: translate3d(128px, 0, 0) scale(0.25); }
+.view-cube.neg-x { transform: translate3d(-128px, 0, 0) scale(0.25); }
+.view-cube.pos-y { transform: translate3d(0, -128px, 0) scale(0.25); }
+.view-cube.neg-y { transform: translate3d(0, 128px, 0) scale(0.25); }
+.face::before,
+.face::after {
+content: '';
+position: absolute;
+inset: 0;
+pointer-events: none;
+box-sizing: border-box;
+border-radius: inherit;
+clip-path: inherit;
+transition:
+  transform 1.2s cubic-bezier(0.16, 1, 0.3,1),
+ background 0.6s ease,
+  opacity 0.6s ease,
+  border-radius 0.6s ease,
+  clip-path 0.6s ease,
+  box-shadow 0.6s ease,
+  filter 0.6s ease;
+}
+.face::before {
+transform: translateZ(8px);
+background: linear-gradient(145deg, rgba(255, 255, 255, 0.038), transparent 44%, rgba(0, 229, 255, 0.014));
+opacity: 0.72;
+}
+.face::after {
+transform: translateZ(-8px);
+background: linear-gradient(160deg, rgba(0, 24, 30, 0.09), rgba(0, 0, 0, 0.018));
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+opacity: 0.42;
+}
+
+/* 形态一：规整立方 (隐忍) */
+.core.state-idle .face:nth-child(1) { transform: translateZ(170px); }
+.core.state-idle .face:nth-child(2) { transform: rotateY(180deg) translateZ(170px); }
+.core.state-idle .face:nth-child(3) { transform: rotateY(90deg) translateZ(170px); }
+.core.state-idle .face:nth-child(4) { transform: rotateY(-90deg) translateZ(170px); }
+.core.state-idle .face:nth-child(5) { transform: rotateX(90deg) translateZ(170px); }
+.core.state-idle .face:nth-child(6) { transform: rotateX(-90deg) translateZ(170px); }
+.core.state-idle .face:nth-child(7) { transform: rotateY(90deg) translateZ(170px); }
+.core.state-idle .face:nth-child(8) { transform: rotateX(90deg) translateZ(170px); }
+/* 形态二：锐利棱锥 (攻击) */
+.core.state-pyramid .face {
+border-width: 5px;
+border-color: rgba(255, 92, 112, 0.72);
+border-radius: 10px;
+clip-path: polygon(12% 0%, 88% 0%, 100% 12%, 100% 88%, 88% 100%, 12% 100%, 0% 88%, 0% 12%);
+background: linear-gradient(145deg, rgba(255, 92, 112, 0.11), rgba(255, 92, 112, 0.032) 58%, rgba(255, 255, 255, 0.016));
+box-shadow: inset 0 0 22px rgba(255, 92, 112, 0.08), 0 0 16px rgba(255, 92, 112, 0.12);
+filter: drop-shadow(0 0 10px rgba(255, 92, 112, 0.09));
+}
+.core.state-pyramid .face::before {
+background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 42%, rgba(255, 92, 112, 0.018));
+}
+.core.state-pyramid .face::after {
+background: linear-gradient(160deg, rgba(38, 4, 10, 0.11), rgba(18, 4, 6, 0.024));
+}
+.core.state-pyramid .face:nth-child(1) { transform: translateZ(154px) rotateZ(42deg); }
+.core.state-pyramid .face:nth-child(2) { transform: rotateY(180deg) translateZ(154px) rotateZ(-42deg); }
+.core.state-pyramid .face:nth-child(3) { transform: rotateY(90deg) translateZ(154px) rotateZ(42deg); }
+.core.state-pyramid .face:nth-child(4) { transform: rotateY(-90deg) translateZ(154px) rotateZ(-42deg); }
+.core.state-pyramid .face:nth-child(5) { transform: rotateX(90deg) translateZ(154px) rotateZ(42deg); }
+.core.state-pyramid .face:nth-child(6) { transform: rotateX(-90deg) translateZ(154px) rotateZ(-42deg); }
+.core.state-pyramid .face:nth-child(7) { transform: rotateY(90deg) translateZ(170px); }
+.core.state-pyramid .face:nth-child(8) { transform: rotateX(90deg) translateZ(170px); }
+/* 形态三：金色散架构建态 (创造) */
+.core.state-create {
+animation: slowSpin 35s linear infinite;
+transform-style: preserve-3d;
+}
+.core.state-create .lock-layer,
+.core.state-create .gyro-layer {
+opacity: 0;
+}
+.core.state-create .face {
+width: 340px;
+height: 340px;
+margin-left: -170px;
+margin-top: -170px;
+border-width: 6px;
+border-color: rgba(236, 194, 112, 0.76);
+border-radius: 10px;
+clip-path: none;
+background: linear-gradient(145deg, rgba(236, 194, 112, 0.09), rgba(236, 194, 112, 0.03) 58%, rgba(255, 255, 255, 0.016));
+box-shadow: inset 0 0 22px rgba(236, 194, 112, 0.08), 0 0 14px rgba(236, 194, 112, 0.11);
+filter: drop-shadow(0 0 8px rgba(236, 194, 112, 0.08));
+opacity: 0.94;
+}
+.core.state-create .face::before {
+background: linear-gradient(145deg, rgba(255, 250, 232, 0.046), transparent 42%, rgba(236, 194, 112, 0.018));
+opacity: 0.74;
+}
+.core.state-create .face::after {
+background: linear-gradient(160deg, rgba(58, 34, 6, 0.09), rgba(0, 0, 0, 0.02));
+opacity: 0.38;
+}
+.core.state-create .face:nth-child(1) { transform: translateZ(308px) scale(0.92); opacity: 0.98; }
+.core.state-create .face:nth-child(2) { transform: rotateY(180deg) translateZ(308px) scale(0.92); opacity: 0.54; }
+.core.state-create .face:nth-child(3) { transform: rotateY(90deg) translateZ(308px) scale(0.92); opacity: 0.90; }
+.core.state-create .face:nth-child(4) { transform: rotateY(-90deg) translateZ(308px) scale(0.92); opacity: 0.82; }
+.core.state-create .face:nth-child(5) { transform: rotateX(90deg) translateZ(308px) scale(0.92); opacity: 0.92; }
+.core.state-create .face:nth-child(6) { transform: rotateX(-90deg) translateZ(308px) scale(0.92); opacity: 0.82; }
+.core.state-create .face:nth-child(7) { transform: rotateY(90deg) translateZ(308px) scale(0.92); opacity: 0; }
+.core.state-create .face:nth-child(8) { transform: rotateX(90deg) translateZ(308px) scale(0.92); opacity: 0; }
+/* 形态四：深蓝复制立方阵列态 (查看) */
+.core.state-view {
+transform-style: preserve-3d;
+}
+
+
+.core.state-view .lock-layer,
+.core.state-view .gyro-layer {
+opacity: 0;
+}
+
+
+.core.state-view .face {
+width: 340px;
+height: 340px;
+margin-left: -170px;
+margin-top: -170px;
+border-width: 4px; /* 增加到4px，使其更规稳 */
+border-color: rgba(72, 132, 232, 0.9);
+border-radius: 4px; /* 稍微圆角，减少尖锐感 */
+outline: none;
+clip-path: none;
+background: linear-gradient(180deg, rgba(14, 30, 72, 0.96), rgba(8, 18, 42, 0.98));
+box-shadow: inset 0 0 20px rgba(64, 126, 228, 0.15), 0 0 20px rgba(20, 72, 170, 0.2);
+filter: drop-shadow(0 0 12px rgba(10, 40, 104, 0.2));
+opacity: 0.98;
+}
+
+
+
+
+
+
+
+
+
+
+
+.core.state-view .face::before {
+background: none;
+opacity: 0;
+}
+
+
+
+
+
+
+
+.core.state-view .face::after {
+background: linear-gradient(180deg, rgba(4, 10, 24, 0.00), rgba(4, 10, 24, 0.18));
+opacity: 0.20;
+
+
+}
+
+
+
+
+
+.core.state-view .face:nth-child(1) { transform: translateZ(85px) scale(0.5); opacity: 0.98; border-color: rgba(78, 148, 255, 0.92); }
+.core.state-view .face:nth-child(2) { transform: rotateY(180deg) translateZ(85px) scale(0.5); opacity: 0.26; border-color: rgba(32, 72, 138, 0.38); }
+.core.state-view .face:nth-child(3) { transform: rotateY(90deg) translateZ(85px) scale(0.5); opacity: 0.88; border-color: rgba(56, 118, 222, 0.68); }
+.core.state-view .face:nth-child(4) { transform: rotateY(-90deg) translateZ(85px) scale(0.5); opacity: 0.78; border-color: rgba(50, 106, 204, 0.58); }
+.core.state-view .face:nth-child(5) { transform: rotateX(90deg) translateZ(85px) scale(0.5); opacity: 0.84; border-color: rgba(54, 114, 216, 0.64); }
+.core.state-view .face:nth-child(6) { transform: rotateX(-90deg) translateZ(85px) scale(0.5); opacity: 0.72; border-color: rgba(44, 96, 188, 0.52); }
+
+
+
+
+
+
+
+.core.state-view .face:nth-child(7) { transform: rotateY(90deg) translateZ(85px) scale(0.5); opacity: 0 !important; }
+.core.state-view .face:nth-child(8) { transform: rotateX(90deg) translateZ(85px) scale(0.5); opacity: 0 !important; }
+.view-orbit-cube {
+  position: absolute;
+  left: 0; top: 0; width: 0; height: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 0, 0) scale(0.18);
+  transition: opacity 0.6s ease, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+.view-orbit-cube.pos-z { transform: translateZ(85px) scale(0.18); }
+.view-orbit-cube.neg-z { transform: rotateY(180deg) translateZ(85px) scale(0.18); }
+.view-orbit-cube.pos-x { transform: rotateY(90deg) translateZ(85px) scale(0.18); }
+.view-orbit-cube.neg-x { transform: rotateY(-90deg) translateZ(85px) scale(0.18); }
+.view-orbit-cube.pos-y { transform: rotateX(90deg) translateZ(85px) scale(0.18); }
+.view-orbit-cube.neg-y { transform: rotateX(-90deg) translateZ(85px) scale(0.18); }
+
+/* 轨道立方体：单面基础样式 */
+.orbit-face {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  margin-left: -85px;
+  margin-top: -85px;
+  box-sizing: border-box;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  border: 2px solid rgba(60, 118, 214, 0.85);
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(20, 45, 100, 0.94), rgba(10, 25, 60, 0.98));
+  /* 使用 box-shadow 代替 filter 以防止 3D 拍扁效应 */
+  box-shadow: 
+    inset 0 0 12px rgba(56, 112, 208, 0.2), 
+    0 0 15px rgba(18, 66, 154, 0.2);
+  opacity: 0.92;
+  transition: opacity 0.8s ease;
+}
+
+/* 延迟步进：确保分步展开感 */
+.core.state-view .view-orbit-cube.pos-z { transition-delay: 0.1s; }
+.core.state-view .view-orbit-cube.neg-z { transition-delay: 0.2s; }
+.core.state-view .view-orbit-cube.pos-x { transition-delay: 0.3s; }
+.core.state-view .view-orbit-cube.neg-x { transition-delay: 0.4s; }
+.core.state-view .view-orbit-cube.pos-y { transition-delay: 0.5s; }
+.core.state-view .view-orbit-cube.neg-y { transition-delay: 0.6s; }
+
+/* 轨道立方体：6面空间定位 (强制 3D) */
+.orbit-face:nth-child(1) { transform: translateZ(85px) !important; }
+.orbit-face:nth-child(2) { transform: rotateY(180deg) translateZ(85px) !important; }
+.orbit-face:nth-child(3) { transform: rotateY(90deg) translateZ(85px) !important; }
+.orbit-face:nth-child(4) { transform: rotateY(-90deg) translateZ(85px) !important; }
+.orbit-face:nth-child(5) { transform: rotateX(90deg) translateZ(85px) !important; }
+.orbit-face:nth-child(6) { transform: rotateX(-90deg) translateZ(85px) !important; }
+
+.orbit-face::before,
+.orbit-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: inherit;
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+}
+.orbit-face::before {
+  transform: translateZ(8px);
+  background: none;
+  opacity: 0;
+}
+.orbit-face::after {
+  transform: translateZ(-8px);
+  background: linear-gradient(180deg, rgba(4, 10, 24, 0.00), rgba(4, 10, 24, 0.14));
+  opacity: 0.14;
+}
+
+
+
+/* 已清理此处冗余样式，统一由底部强制样式接管 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.core.state-view .view-orbit-cube {
+opacity: 1;
+}
+.core.state-view .view-orbit-cube.pos-z { transform: translateZ(255px) scale(0.92); }
+.core.state-view .view-orbit-cube.neg-z { transform: rotateY(180deg) translateZ(255px) scale(0.92); }
+.core.state-view .view-orbit-cube.pos-x { transform: rotateY(90deg) translateZ(255px) scale(0.92); }
+.core.state-view .view-orbit-cube.neg-x { transform: rotateY(-90deg) translateZ(255px) scale(0.92); }
+.core.state-view .view-orbit-cube.pos-y { transform: rotateX(90deg) translateZ(255px) scale(0.92); }
+.core.state-view .view-orbit-cube.neg-y { transform: rotateX(-90deg) translateZ(255px) scale(0.92); }
+.core.state-view > .face:nth-child(1) { opacity: 0.90; }
+.core.state-view > .face:nth-child(2) { opacity: 0.18; }
+.core.state-view > .face:nth-child(3) { opacity: 0.70; }
+.core.state-view > .face:nth-child(4) { opacity: 0.58; }
+.core.state-view > .face:nth-child(5) { opacity: 0.66; }
+.core.state-view > .face:nth-child(6) { opacity: 0.54; }
+
+
+
+
+
+
+
+
+
+
+.core.state-metrics {
+animation: none;
+transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+--metrics-size: min(calc(100vw - 2px), calc(100vh - 2px), 126vmin, 1440px);
+}
+.core.state-metrics .face {
+width: var(--metrics-size);
+height: var(--metrics-size);
+margin-left: calc(var(--metrics-size) / -2);
+margin-top: calc(var(--metrics-size) / -2);
+border: none;
+outline: none;
+border-radius: 50%;
+clip-path: none;
+background: transparent;
+box-shadow: none;
+filter: none;
+opacity: 0;
+transform: translateZ(0) rotateZ(-120deg) scale(0.24);
+transition: 
+  transform 0.78s cubic-bezier(0.16, 1, 0.3, 1),
+  opacity 0.32s ease;
+will-change: transform, opacity;
+contain: layout paint;
+backface-visibility: hidden;
+-webkit-backface-visibility: hidden;
+}
+.core.state-metrics .face::before,
+.core.state-metrics .face::after {
+border-radius: 50%;
+clip-path: none;
+}
+.core.state-metrics > .face:nth-child(1)::before {
+inset: 0;
+transform: translateZ(8px);
+background:
+  conic-gradient(from 0deg,
+    transparent 0deg 42deg,
+    rgba(132, 214, 255, 0.18) 42deg 50deg,
+    transparent 50deg 176deg,
+    var(--metrics-sweep-outer-a) 176deg 196deg,
+    transparent 196deg 312deg,
+    rgba(255, 255, 255, 0.05) 312deg 318deg,
+    transparent 318deg 360deg),
+  radial-gradient(circle,
+    transparent 0 37.8%,
+    rgba(255, 255, 255, 0.04) 37.8% 38.4%,
+    rgba(80, 28, 154, 0.12) 38.4% 45.4%,
+    rgba(132, 214, 255, 0.12) 45.4% 46.0%,
+    var(--metrics-border) 46.0% 46.6%,
+    transparent 46.6% 100%);
+border: 1px solid rgba(214, 156, 255, 0.22);
+-webkit-mask: radial-gradient(circle, transparent 0 37.2%, #000 37.8% 46.9%, transparent 47.4%);
+mask: radial-gradient(circle, transparent 0 37.2%, #000 37.8% 46.9%, transparent 47.4%);
+box-shadow:
+  inset 0 0 12px rgba(255, 255, 255, 0.03),
+  inset 0 0 24px rgba(112, 48, 210, 0.10),
+  0 0 12px rgba(186, 98, 255, 0.14),
+  0 0 24px rgba(66, 188, 255, 0.05);
+filter: brightness(1.02);
+opacity: 1;
+animation: metricsHaloSpin 36s linear infinite;
+animation-play-state: paused;
+}
+.core.state-metrics > .face:nth-child(1)::after {
+inset: 0;
+transform: translateZ(-8px);
+background:
+  conic-gradient(from 180deg,
+    transparent 0deg 132deg,
+    rgba(132, 214, 255, 0.07) 132deg 140deg,
+    transparent 140deg 286deg,
+    rgba(196, 148, 255, 0.07) 286deg 296deg,
+    transparent 296deg 360deg),
+  radial-gradient(circle,
+    transparent 0 37.2%,
+    rgba(76, 24, 142, 0.08) 37.8% 45.4%,
+    rgba(160, 92, 255, 0.05) 45.4% 46.0%,
+    transparent 46.0% 100%);
+-webkit-mask: radial-gradient(circle, transparent 0 37.2%, #000 37.8% 46.9%, transparent 47.4%);
+mask: radial-gradient(circle, transparent 0 37.2%, #000 37.8% 46.9%, transparent 47.4%);
+opacity: 0.52;
+animation: metricsHaloDrift 24s linear infinite reverse;
+animation-play-state: paused;
+}
+
+.core.state-metrics.is-transitioning > .face:nth-child(1)::before,
+.core.state-metrics.is-transitioning > .face:nth-child(1)::after {
+animation-play-state: paused;
+}
+.core.state-metrics:not(.is-transitioning) > .face:nth-child(1)::before,
+.core.state-metrics:not(.is-transitioning) > .face:nth-child(1)::after {
+animation-play-state: running;
+}
+
+/* 螺旋展开效果：进入指标态时启动，且赋予极强的 Z 轴旋转 */
+.core.state-metrics .face:nth-child(1) {
+  opacity: 0.995;
+  transform: translateZ(0px) rotateZ(0deg) scale(1);
+  filter: drop-shadow(0 0 12px rgba(186, 98, 255, 0.10)) drop-shadow(0 0 22px rgba(66, 188, 255, 0.04));
+}
+
+/* 清理无用状态，回归极致性能 */
+.core.is-shrinking .face { opacity: 0; pointer-events: none; }
+.core.is-shrinking .view-orbit-cube { opacity: 0; }
+.core.state-metrics .face:nth-child(1) {
+opacity: 0.995;
+transform: translateZ(0px) rotateZ(0deg) scale(1);
+filter: drop-shadow(0 0 12px rgba(186, 98, 255, 0.10)) drop-shadow(0 0 22px rgba(66, 188, 255, 0.04));
+}
+.core.state-metrics .face:nth-child(2),
+.core.state-metrics .face:nth-child(3),
+.core.state-metrics .face:nth-child(4),
+.core.state-metrics .face:nth-child(5),
+.core.state-metrics .face:nth-child(6),
+.core.state-metrics .face:nth-child(7),
+.core.state-metrics .face:nth-child(8) {
+opacity: 0 !important;
+}
+.core.state-metrics .lock-layer,
+.core.state-metrics .gyro-layer {
+opacity: 0;
+}
+/* 保存爆发 (绿色扩张) */
+.core.state-save .face {
+border-color: rgba(72, 255, 178, 0.68);
+background: linear-gradient(145deg, rgba(72, 255, 178, 0.11), rgba(72, 255, 178, 0.04) 58%, rgba(255, 255, 255, 0.02));
+box-shadow: inset 0 0 30px rgba(72, 255, 178, 0.095), 0 0 18px rgba(72, 255, 178, 0.12);
+filter: drop-shadow(0 0 9px rgba(72, 255, 178, 0.09));
+}
+.core.state-save .face::before {
+background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 42%, rgba(72, 255, 178, 0.02));
+}
+.core.state-save .face::after {
+background: linear-gradient(160deg, rgba(0, 18, 10, 0.10), rgba(0, 10, 5, 0.024));
+}
+.core.state-save .face:nth-child(1) { transform: translateZ(438px) rotateZ(28deg); }
+.core.state-save .face:nth-child(2) { transform: rotateY(180deg) translateZ(438px) rotateZ(-28deg); }
+.core.state-save .face:nth-child(3) { transform: rotateY(90deg) translateZ(426px) rotateZ(24deg); }
+.core.state-save .face:nth-child(4) { transform: rotateY(-90deg) translateZ(426px) rotateZ(-24deg); }
+.core.state-save .face:nth-child(5) { transform: rotateX(90deg) translateZ(432px) rotateZ(18deg); }
+.core.state-save .face:nth-child(6) { transform: rotateX(-90deg) translateZ(432px) rotateZ(-18deg); }
+.core.state-save .face:nth-child(7) { transform: rotateY(90deg) translateZ(426px) rotateZ(24deg); }
+.core.state-save .face:nth-child(8) { transform: rotateX(90deg) translateZ(432px) rotateZ(18deg); }
+@keyframes viewClusterHum {
+0% { transform: scale(1) translate3d(0, 0, 0); }
+25% { transform: scale(1.01) translate3d(5px, -3px, 0); }
+50% { transform: scale(0.995) translate3d(-5px, 3px, 0); }
+75% { transform: scale(1.01) translate3d(4px, 2px, 0); }
+100% { transform: scale(1) translate3d(0, 0, 0); }
+}
+@keyframes viewFrontPlateHum {
+0% { transform: translate3d(0, 0, 8px); }
+20% { transform: translate3d(7px, -4px, 8px); }
+40% { transform: translate3d(-7px, 4px, 8px); }
+60% { transform: translate3d(5px, 2px, 8px); }
+80% { transform: translate3d(-4px, -2px, 8px); }
+100% { transform: translate3d(0, 0, 8px); }
+}
+@keyframes viewFrontPlateHumBack {
+0% { transform: translate3d(0, 0, -8px); }
+20% { transform: translate3d(7px, -4px, -8px); }
+40% { transform: translate3d(-7px, 4px, -8px); }
+60% { transform: translate3d(5px, 2px, -8px); }
+80% { transform: translate3d(-4px, -2px, -8px); }
+100% { transform: translate3d(0, 0, -8px); }
+}
+@keyframes viewCorePulse {
+0% { filter: drop-shadow(0 0 5px rgba(84, 138, 255, 0.040)); }
+25% { filter: drop-shadow(0 0 8px rgba(124, 176, 255, 0.060)); }
+50% { filter: drop-shadow(0 0 4px rgba(84, 138, 255, 0.032)); }
+75% { filter: drop-shadow(0 0 9px rgba(132, 188, 255, 0.066)); }
+100% { filter: drop-shadow(0 0 5px rgba(84, 138, 255, 0.040)); }
+}
+@keyframes metricsHaloSpin {
+0% { transform: translateZ(8px) rotateZ(0deg); }
+100% { transform: translateZ(8px) rotateZ(360deg); }
+}
+@keyframes metricsHaloDrift {
+0% { transform: translateZ(-8px) rotateZ(0deg) scale(1); opacity: 0.46; }
+50% { transform: translateZ(-8px) rotateZ(-180deg) scale(1.003); opacity: 0.56; }
+100% { transform: translateZ(-8px) rotateZ(-360deg) scale(1); opacity: 0.46; }
+}
+@keyframes slowSpin {
+0% { transform: rotateX(15deg) rotateY(0deg) rotateZ(0deg); }
+100% { transform: rotateX(375deg) rotateY(720deg) rotateZ(360deg); }
+}
+.ui-layer {
+position: relative; z-index: 10; height:100%; display: flex;
+padding: 60px; box-sizing: border-box; gap: 40px;
+}
+.sidebar { width: 320px; display: flex; flex-direction: column; gap: 16px; }
+.main-content { flex: 1; display: flex; flex-direction: column; gap: 20px;}
+.glass-panel {
+background: var(--card-bg);
+border: 1px solid rgba(255, 255, 255, 0.15);border-radius: 12px; padding: 30px;
+box-shadow:0 10px 30px rgba(0,0,0,0.8);transition: transform 0.3s ease, border-color 0.3s ease;
+}h1, h2 { margin: 0 0 16px 0; font-weight:300; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.9); }
+.title { color: #fff;font-size: 24px; display: flex; align-items: center; gap: 12px; font-weight: 400; text-shadow: 0 2px 4px rgba(0,0,0,0.9); }
+.title::before { content: ''; width:4px; height: 18px; background: var(--neon); display: block; box-shadow: 0 0 10px var(--neon); }
+.btn {
+background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2);
+color: #fff;padding: 12px 24px; border-radius: 6px;
+cursor: pointer; font-size: 14px; transition: all 0.2s; letter-spacing:1px;
+}
+.btn:hover { background: rgba(0, 229,255, 0.15); border-color: var(--neon); box-shadow:0 0 15px rgba(0, 229, 255, 0.3); }
+.btn.active { border-left: 3px solid var(--neon); background:rgba(0, 229, 255, 0.1); }
+.config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.card {
+background:rgba(0, 0, 0, 0.6); padding: 20px; border-radius: 8px;
+border: 1px solid rgba(255, 255, 255, 0.15); cursor: pointer; transition: all 0.2s;
+}
+.card:hover { transform: translateY(-3px); background: rgba(0,0,0,0.8); border-color: rgba(0,229,255,0.5); }
+.card-title { font-size: 16px; color: #fff; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.9); }
+.card-desc { font-size: 12px; color: #bbb; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
+
+/* 底部强加固已移除，由核心样式块统一管理 */
+
+/* 标记点：用于确认 CSS 是否生效 */
+#css-marker { position: fixed; top: 10px; left: 10px; width: 6px; height: 6px; background: #ba62ff; border-radius: 50%; box-shadow: 0 0 10px #ba62ff; z-index: 9999; }
+</style></head>
+<body>
+<div id="css-marker"></div>
+<div class="geo-wrapper">
+<div class="core state-idle" id="geometry" data-metrics-theme="violet">
+<div class="face"></div>
+<div class="face"></div><div class="face"></div>
+<div class="face"></div>
+<div class="face"></div>
+<div class="face"></div>
+<div class="face aux"></div>
+<div class="face aux"></div>
+<div class="lock-layer">
+<div class="lock-bar bar-x">
+<div class="lock-surface front"></div><div class="lock-surface back"></div><div class="lock-surface right"></div><div class="lock-surface left"></div><div class="lock-surface top"></div><div class="lock-surface bottom"></div>
+</div>
+<div class="lock-bar bar-y">
+<div class="lock-surface front"></div><div class="lock-surface back"></div><div class="lock-surface right"></div><div class="lock-surface left"></div><div class="lock-surface top"></div><div class="lock-surface bottom"></div>
+</div>
+<div class="lock-bar bar-z">
+<div class="lock-surface front"></div><div class="lock-surface back"></div><div class="lock-surface right"></div><div class="lock-surface left"></div><div class="lock-surface top"></div><div class="lock-surface bottom"></div>
+</div>
+</div>
+<div class="view-orbit-cube pos-z">
+<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
+</div>
+<div class="view-orbit-cube neg-z">
+<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
+</div>
+<div class="view-orbit-cube pos-x">
+<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
+</div>
+<div class="view-orbit-cube neg-x">
+<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
+</div>
+<div class="view-orbit-cube pos-y">
+<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
+</div>
+<div class="view-orbit-cube neg-y">
+<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
+</div>
+<div class="gyro-layer">
+<div class="gyro-ring ring-a"></div>
+<div class="gyro-ring ring-b"></div>
+<div class="gyro-ring ring-c"></div>
+</div>
+</div>
+</div>
+<div class="ui-layer">
+<div class="sidebar glass-panel">
+<div class="title">控制中枢</div>
+<div style="font-size: 12px; color: #888; margin-bottom: 30px; line-height: 1.6;">蓝色中枢 / 红色警戒 / 金色创造 / 冰蓝查看 / 紫色统计 / 绿爆回收</div>
+<button class="btn active" data-state="idle" onclick="switchState('idle', this)">1. 规整立方 (隐忍 / 默认)</button>
+<button class="btn" data-state="pyramid" onclick="switchState('pyramid', this)">2. 赤红棱锥 (删除 / 危险)</button>
+<div style="margin-top: 6px; margin-bottom: 4px; font-size: 12px; color: #666; font-weight: bold;">[ 页面背景库 ]</div>
+<button class="btn" data-state="create" onclick="switchState('create', this)">3. 金色散架构建态 (创造)</button>
+<button class="btn" data-state="view" onclick="switchState('view', this)">4. 深蓝真复制立方态 (查看)</button>
+<button class="btn" data-state="metrics" onclick="switchState('metrics', this)">5. 紫色圆环 (统计)</button>
+<div style="margin-top: 8px; margin-bottom: 4px; font-size: 12px; color: #666; font-weight: bold;">[ 圆环风格 ]</div>
+<div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+<button class="btn active" data-metrics-theme="violet" style="padding: 10px 12px; font-size: 12px; border-color: rgba(170, 106, 255, 0.78);" onclick="setMetricsTheme('violet', this)">紫环</button>
+</div>
+<div style="margin-top: auto;"></div>
+<button class="btn" style="border-color: rgba(0, 255, 170, 0.6); width: 100%;" onclick="triggerSave()">执行：保存设定 (绿色爆发)</button>
+</div>
+<div class="main-content"></div></div>
+<script>
+function getStateName(geometry) {
+  return (Array.from(geometry.classList).find(name => name.startsWith('state-')) || 'state-idle').replace('state-', '');
+}
+
+function applyTransitionState(geometry, nextState, duration = 1200) {
+  if (!geometry) return;
+  const currentStateClass = Array.from(geometry.classList).find(name => name.startsWith('state-')) || 'state-idle';
+  const currentState = currentStateClass.replace('state-', '');
+  const targetState = geometry.dataset.targetState || currentState;
+
+  if ((currentState === nextState && !geometry.classList.contains('is-transitioning')) || targetState === nextState) {
+    return;
+  }
+
+  geometry.dataset.targetState = nextState;
+  if (geometry._transitionTimer) clearTimeout(geometry._transitionTimer);
+  if (geometry._viewEnterTimer) {
+    clearTimeout(geometry._viewEnterTimer);
+    geometry._viewEnterTimer = null;
+  }
+
+  geometry.className = `core ${currentStateClass} is-transitioning`;
+  requestAnimationFrame(() => {
+    geometry.className = `core state-${nextState} is-transitioning`;
+    geometry._transitionTimer = setTimeout(() => {
+      geometry.className = `core state-${nextState}`;
+      geometry.dataset.targetState = nextState;
+      // 动画完全结束后再解锁，降低切换闪烁
+      geometry._transitionTimer = null;
+    }, duration);
+  });
+}
+
+function switchState(state, btn) {
+  const geometry = document.getElementById('geometry');
+  if (!geometry || geometry.dataset.saving === '1') return;
+
+  const activeState = geometry.dataset.targetState || getStateName(geometry);
+  if (activeState === state) return;
+
+  const transitionDuration = state === 'metrics' ? 820 : 1200;
+
+  // 极致性能：移除冗余的 JS 中间态，由 CSS 硬件加速自动处理平滑的补间动画，彻底杜绝闪烁。
+  applyTransitionState(geometry, state, transitionDuration); 
+
+
+  document.querySelectorAll('.sidebar .btn[data-state]').forEach(button => button.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function setMetricsTheme(theme, btn) {
+  const geometry = document.getElementById('geometry');
+  if (!geometry) return;
+
+  geometry.dataset.metricsTheme = theme;
+  document.querySelectorAll('.sidebar .btn[data-metrics-theme]').forEach(button => button.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  if (geometry.dataset.saving === '1') return;
+  const activeState = geometry.dataset.targetState || getStateName(geometry);
+  if (activeState !== 'metrics') {
+    const metricsBtn = document.querySelector('.sidebar .btn[data-state="metrics"]');
+    switchState('metrics', metricsBtn);
+  }
+}
+
+function triggerSave() {
+  const geometry = document.getElementById('geometry');
+  if (!geometry || geometry.dataset.saving === '1') return;
+
+  const previousState = geometry.dataset.targetState || getStateName(geometry);
+  if (previousState === 'save') return;
+
+  geometry.dataset.saving = '1';
+  applyTransitionState(geometry, 'save', 110);
+
+  if (geometry._saveReturnTimer) clearTimeout(geometry._saveReturnTimer);
+  if (geometry._saveUnlockTimer) clearTimeout(geometry._saveUnlockTimer);
+
+  geometry._saveReturnTimer = setTimeout(() => {
+    applyTransitionState(geometry, previousState, 110);
+    geometry._saveUnlockTimer = setTimeout(() => {
+      geometry.dataset.saving = '0';
+      geometry._saveReturnTimer = null;
+      geometry._saveUnlockTimer = null;
+    }, 180);
+  }, 2350);
+}
+</script>
+</body>
+</html>

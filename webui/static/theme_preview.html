@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿
+
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -25,25 +27,62 @@ z-index: 0; pointer-events: none;}
 .core {
 position: absolute;
 transform-style: preserve-3d;
-transition: transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+transition: transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease, filter 0.24s ease;
 animation: slowSpin 35s linear infinite;
 }
-.core.is-entering-metrics {
+.core.is-fading-to-metrics {
+--metrics-fade-duration: 0.26s;
+--metrics-fade-ease: cubic-bezier(0.22, 1, 0.36, 1);
 animation-play-state: paused;
+transition-property: opacity, filter !important;
+transition-duration: var(--metrics-fade-duration) !important;
+transition-timing-function: var(--metrics-fade-ease) !important;
 }
-.core.is-entering-metrics .face {
-transition: opacity 0.22s ease, filter 0.22s ease, background 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
-opacity: 0.14 !important;
-filter: brightness(0.25) saturate(0.55) drop-shadow(0 0 6px rgba(0, 0, 0, 0.18));
+.core.is-fading-to-metrics .face,
+.core.is-fading-to-metrics .lock-layer,
+.core.is-fading-to-metrics .gyro-layer,
+.core.is-fading-to-metrics .view-orbit-cube,
+.core.is-fading-to-metrics .face::before,
+.core.is-fading-to-metrics .face::after,
+.core.is-fading-to-metrics .orbit-face,
+.core.is-fading-to-metrics .orbit-face::before,
+.core.is-fading-to-metrics .orbit-face::after {
+transition-duration: var(--metrics-fade-duration) !important;
+transition-timing-function: var(--metrics-fade-ease) !important;
 }
-.core.is-entering-metrics .face::before,
-.core.is-entering-metrics .face::after {
+  
+
+.core.is-fading-to-metrics .face,
+.core.is-fading-to-metrics .lock-layer,
+.core.is-fading-to-metrics .gyro-layer {
+transition-property: opacity, filter, box-shadow, border-color, background !important;
+filter: brightness(0.28) saturate(0.52);
+}
+
+.core.is-fading-to-metrics .face {
 opacity: 0.08 !important;
-filter: brightness(0.2) saturate(0.5);
 }
-.core.is-entering-metrics .view-orbit-cube,
-.core.is-entering-metrics .lock-layer,
-.core.is-entering-metrics .gyro-layer {
+.core.is-fading-to-metrics .face::before,
+.core.is-fading-to-metrics .face::after {
+transition-property: opacity, filter, background, box-shadow, border-radius, clip-path !important;
+filter: brightness(0.2) saturate(0.5);
+opacity: 0 !important;
+}
+
+.core.is-fading-to-metrics .view-orbit-cube {
+transition-property: opacity, filter !important;
+transition-delay: 0s !important;
+}
+
+.core.is-fading-to-metrics .orbit-face,
+.core.is-fading-to-metrics .orbit-face::before,
+.core.is-fading-to-metrics .orbit-face::after {
+transition-property: opacity !important;
+}
+
+.core.is-fading-to-metrics .view-orbit-cube,
+.core.is-fading-to-metrics .lock-layer,
+.core.is-fading-to-metrics .gyro-layer {
 opacity: 0 !important;
 }
 .face {
@@ -61,11 +100,12 @@ border: 7px solid rgba(0, 229, 255, 0.58);
 background: linear-gradient(145deg, rgba(0, 229, 255, 0.085), rgba(0, 229,255, 0.03) 58%, rgba(255, 255, 255, 0.018));
 box-shadow:
   inset 0 0 24px rgba(0, 229, 255, 0.075),
-  inset 0 052px rgba(255, 255, 255, 0.016),
+  inset 0 0 52px rgba(255, 255, 255, 0.016),
   0 0 12px rgba(0, 229, 255, 0.09);
 outline: 1px solid rgba(255, 255, 255, 0.03);
 filter: drop-shadow(0 0 7px rgba(0, 229, 255, 0.07));
-  transition:
+transition:
+
   transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
   border-color 0.8s ease,
   border-width 0.8s ease,
@@ -301,94 +341,10 @@ opacity: 0.98;
 --line: 12px;
 }
 
-.view-cube {
-position: absolute;
-left: 0;
-top: 0;
-width: 0;
-height: 0;
-transform-style: preserve-3d;
-opacity: 1;
-transition: transform 0.72s cubic-bezier(0.2, 0.9, 0.24, 1), opacity 0.32s ease;
-}
-.view-cube-face {
-position: absolute;
-left: 0;
-top: 0;
-width: 340px;
-height: 340px;
-margin-left: -170px;
-margin-top: -170px;
-box-sizing: border-box;
-overflow: visible;
-transform-origin: center center;
-transform-style: preserve-3d;
-backface-visibility: visible;
--webkit-backface-visibility: visible;
-will-change: transform;
-border: 7px solid rgba(84, 138, 255, 0.58);
-border-radius: 10px;
-background: linear-gradient(145deg, rgba(84, 138, 255, 0.085), rgba(84, 138, 255, 0.03) 58%, rgba(255, 255, 255, 0.018));
-box-shadow:
-  inset 0 0 24px rgba(84, 138, 255, 0.075),
-  inset 0 0 52px rgba(255, 255, 255, 0.016),
-  0 0 12px rgba(84, 138, 255, 0.09);
-outline: 1px solid rgba(255, 255, 255, 0.03);
-filter: drop-shadow(0 0 7px rgba(84, 138, 255, 0.07));
-transition:
-  transform 0.72s cubic-bezier(0.2, 0.9, 0.24, 1),
-  border-color 0.45s ease,
-  border-width 0.45s ease,
-  background 0.45s ease,
-  box-shadow 0.45s ease,
-  border-radius 0.45s ease,
-  clip-path 0.3s ease,
-  opacity 0.22s ease,
-  filter 0.45s ease;
-}
-.view-cube-face::before,
-.view-cube-face::after {
-content: '';
-position: absolute;
-inset: 0;
-pointer-events: none;
-box-sizing: border-box;
-border-radius: inherit;
-transition:
-  transform 0.72s cubic-bezier(0.2, 0.9, 0.24, 1),
-  background 0.45s ease,
-  opacity 0.45s ease,
-  border-radius 0.45s ease,
-  clip-path 0.3s ease,
-  box-shadow 0.45s ease;
-}
-.view-cube-face::before {
-transform: translateZ(8px);
-background: linear-gradient(145deg, rgba(255, 255, 255, 0.038), transparent 44%, rgba(84, 138, 255, 0.014));
-opacity: 0.72;
-}
-.view-cube-face::after {
-transform: translateZ(-8px);
-background: linear-gradient(160deg, rgba(6, 16, 42, 0.09), rgba(0, 0, 0, 0.018));
-box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-opacity: 0.42;
-}
-.view-cube-face.front { transform: translateZ(170px); }
-.view-cube-face.back { transform: rotateY(180deg) translateZ(170px); opacity: 0.42; }
-.view-cube-face.right { transform: rotateY(90deg) translateZ(170px); }
-.view-cube-face.left { transform: rotateY(-90deg) translateZ(170px); opacity: 0.84; }
-.view-cube-face.top { transform: rotateX(90deg) translateZ(170px); }
-.view-cube-face.bottom { transform: rotateX(-90deg) translateZ(170px); opacity: 0.84; }
-.view-cube.center { transform: translate3d(0, 0, 0) scale(0.01); opacity: 0; }
-.view-cube.pos-z { transform: translate3d(0, 0, 128px) scale(0.25); }
-.view-cube.neg-z { transform: translate3d(0, 0, -128px) scale(0.25); }
-.view-cube.pos-x { transform: translate3d(128px, 0, 0) scale(0.25); }
-.view-cube.neg-x { transform: translate3d(-128px, 0, 0) scale(0.25); }
-.view-cube.pos-y { transform: translate3d(0, -128px, 0) scale(0.25); }
-.view-cube.neg-y { transform: translate3d(0, 128px, 0) scale(0.25); }
 .face::before,
 .face::after {
 content: '';
+
 position: absolute;
 inset: 0;
 pointer-events: none;
@@ -396,10 +352,11 @@ box-sizing: border-box;
 border-radius: inherit;
 clip-path: inherit;
 transition:
-  transform 1.2s cubic-bezier(0.16, 1, 0.3,1),
- background 0.6s ease,
+  transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+  background 0.6s ease,
   opacity 0.6s ease,
   border-radius 0.6s ease,
+
   clip-path 0.6s ease,
   box-shadow 0.6s ease,
   filter 0.6s ease;
@@ -417,14 +374,14 @@ opacity: 0.42;
 }
 
 /* 形态一：规整立方 (隐忍) */
-.core.state-idle .face:nth-child(1) { transform: translateZ(170px); }
-.core.state-idle .face:nth-child(2) { transform: rotateY(180deg) translateZ(170px); }
-.core.state-idle .face:nth-child(3) { transform: rotateY(90deg) translateZ(170px); }
-.core.state-idle .face:nth-child(4) { transform: rotateY(-90deg) translateZ(170px); }
-.core.state-idle .face:nth-child(5) { transform: rotateX(90deg) translateZ(170px); }
-.core.state-idle .face:nth-child(6) { transform: rotateX(-90deg) translateZ(170px); }
-.core.state-idle .face:nth-child(7) { transform: rotateY(90deg) translateZ(170px); }
-.core.state-idle .face:nth-child(8) { transform: rotateX(90deg) translateZ(170px); }
+.core.state-idle .face-front { transform: translateZ(170px); }
+.core.state-idle .face-back { transform: rotateY(180deg) translateZ(170px); }
+.core.state-idle .face-right { transform: rotateY(90deg) translateZ(170px); }
+.core.state-idle .face-left { transform: rotateY(-90deg) translateZ(170px); }
+.core.state-idle .face-top { transform: rotateX(90deg) translateZ(170px); }
+.core.state-idle .face-bottom { transform: rotateX(-90deg) translateZ(170px); }
+.core.state-idle .face-aux-a { transform: rotateY(90deg) translateZ(170px); }
+.core.state-idle .face-aux-b { transform: rotateX(90deg) translateZ(170px); }
 /* 形态二：锐利棱锥 (攻击) */
 .core.state-pyramid .face {
 border-width: 5px;
@@ -441,14 +398,14 @@ background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 42%, 
 .core.state-pyramid .face::after {
 background: linear-gradient(160deg, rgba(38, 4, 10, 0.11), rgba(18, 4, 6, 0.024));
 }
-.core.state-pyramid .face:nth-child(1) { transform: translateZ(154px) rotateZ(42deg); }
-.core.state-pyramid .face:nth-child(2) { transform: rotateY(180deg) translateZ(154px) rotateZ(-42deg); }
-.core.state-pyramid .face:nth-child(3) { transform: rotateY(90deg) translateZ(154px) rotateZ(42deg); }
-.core.state-pyramid .face:nth-child(4) { transform: rotateY(-90deg) translateZ(154px) rotateZ(-42deg); }
-.core.state-pyramid .face:nth-child(5) { transform: rotateX(90deg) translateZ(154px) rotateZ(42deg); }
-.core.state-pyramid .face:nth-child(6) { transform: rotateX(-90deg) translateZ(154px) rotateZ(-42deg); }
-.core.state-pyramid .face:nth-child(7) { transform: rotateY(90deg) translateZ(170px); }
-.core.state-pyramid .face:nth-child(8) { transform: rotateX(90deg) translateZ(170px); }
+.core.state-pyramid .face-front { transform: translateZ(154px) rotateZ(42deg); }
+.core.state-pyramid .face-back { transform: rotateY(180deg) translateZ(154px) rotateZ(-42deg); }
+.core.state-pyramid .face-right { transform: rotateY(90deg) translateZ(154px) rotateZ(42deg); }
+.core.state-pyramid .face-left { transform: rotateY(-90deg) translateZ(154px) rotateZ(-42deg); }
+.core.state-pyramid .face-top { transform: rotateX(90deg) translateZ(154px) rotateZ(42deg); }
+.core.state-pyramid .face-bottom { transform: rotateX(-90deg) translateZ(154px) rotateZ(-42deg); }
+.core.state-pyramid .face-aux-a { transform: rotateY(90deg) translateZ(170px); }
+.core.state-pyramid .face-aux-b { transform: rotateX(90deg) translateZ(170px); }
 /* 形态三：金色散架构建态 (创造) */
 .core.state-create {
 animation: slowSpin 35s linear infinite;
@@ -480,34 +437,30 @@ opacity: 0.74;
 background: linear-gradient(160deg, rgba(58, 34, 6, 0.09), rgba(0, 0, 0, 0.02));
 opacity: 0.38;
 }
-.core.state-create .face:nth-child(1) { transform: translateZ(308px) scale(0.92); opacity: 0.98; }
-.core.state-create .face:nth-child(2) { transform: rotateY(180deg) translateZ(308px) scale(0.92); opacity: 0.54; }
-.core.state-create .face:nth-child(3) { transform: rotateY(90deg) translateZ(308px) scale(0.92); opacity: 0.90; }
-.core.state-create .face:nth-child(4) { transform: rotateY(-90deg) translateZ(308px) scale(0.92); opacity: 0.82; }
-.core.state-create .face:nth-child(5) { transform: rotateX(90deg) translateZ(308px) scale(0.92); opacity: 0.92; }
-.core.state-create .face:nth-child(6) { transform: rotateX(-90deg) translateZ(308px) scale(0.92); opacity: 0.82; }
-.core.state-create .face:nth-child(7) { transform: rotateY(90deg) translateZ(308px) scale(0.92); opacity: 0; }
-.core.state-create .face:nth-child(8) { transform: rotateX(90deg) translateZ(308px) scale(0.92); opacity: 0; }
+.core.state-create .face-front { transform: translateZ(308px) scale(0.92); opacity: 0.98; }
+.core.state-create .face-back { transform: rotateY(180deg) translateZ(308px) scale(0.92); opacity: 0.54; }
+.core.state-create .face-right { transform: rotateY(90deg) translateZ(308px) scale(0.92); opacity: 0.90; }
+.core.state-create .face-left { transform: rotateY(-90deg) translateZ(308px) scale(0.92); opacity: 0.82; }
+.core.state-create .face-top { transform: rotateX(90deg) translateZ(308px) scale(0.92); opacity: 0.92; }
+.core.state-create .face-bottom { transform: rotateX(-90deg) translateZ(308px) scale(0.92); opacity: 0.82; }
+.core.state-create .face-aux-a { transform: rotateY(90deg) translateZ(308px) scale(0.92); opacity: 0; }
+.core.state-create .face-aux-b { transform: rotateX(90deg) translateZ(308px) scale(0.92); opacity: 0; }
 /* 形态四：深蓝复制立方阵列态 (查看) */
 .core.state-view {
 transform-style: preserve-3d;
 }
-
-
 .core.state-view .lock-layer,
 .core.state-view .gyro-layer {
 opacity: 0;
 }
-
-
 .core.state-view .face {
 width: 340px;
 height: 340px;
 margin-left: -170px;
 margin-top: -170px;
-border-width: 4px; /* 增加到4px，使其更规稳 */
+border-width: 4px;
 border-color: rgba(72, 132, 232, 0.9);
-border-radius: 4px; /* 稍微圆角，减少尖锐感 */
+border-radius: 4px;
 outline: none;
 clip-path: none;
 background: linear-gradient(180deg, rgba(14, 30, 72, 0.96), rgba(8, 18, 42, 0.98));
@@ -515,55 +468,26 @@ box-shadow: inset 0 0 20px rgba(64, 126, 228, 0.15), 0 0 20px rgba(20, 72, 170, 
 filter: drop-shadow(0 0 12px rgba(10, 40, 104, 0.2));
 opacity: 0.98;
 }
-
-
-
-
-
-
-
-
-
-
-
 .core.state-view .face::before {
 background: none;
 opacity: 0;
 }
-
-
-
-
-
-
-
 .core.state-view .face::after {
-background: linear-gradient(180deg, rgba(4, 10, 24, 0.00), rgba(4, 10, 24, 0.18));
-opacity: 0.20;
-
-
+background: linear-gradient(180deg, rgba(4, 10, 24, 0), rgba(4, 10, 24, 0.18));
+opacity: 0.2;
 }
+.core.state-view .face-front { transform: translateZ(85px) scale(0.5); opacity: 0.98; border-color: rgba(78, 148, 255, 0.92); }
+.core.state-view .face-back { transform: rotateY(180deg) translateZ(85px) scale(0.5); opacity: 0.26; border-color: rgba(32, 72, 138, 0.38); }
+.core.state-view .face-right { transform: rotateY(90deg) translateZ(85px) scale(0.5); opacity: 0.88; border-color: rgba(56, 118, 222, 0.68); }
+.core.state-view .face-left { transform: rotateY(-90deg) translateZ(85px) scale(0.5); opacity: 0.78; border-color: rgba(50, 106, 204, 0.58); }
+.core.state-view .face-top { transform: rotateX(90deg) translateZ(85px) scale(0.5); opacity: 0.84; border-color: rgba(54, 114, 216, 0.64); }
+.core.state-view .face-bottom { transform: rotateX(-90deg) translateZ(85px) scale(0.5); opacity: 0.72; border-color: rgba(44, 96, 188, 0.52); }
+.core.state-view .face-aux-a { transform: rotateY(90deg) translateZ(85px) scale(0.5); opacity: 0 !important; }
+.core.state-view .face-aux-b { transform: rotateX(90deg) translateZ(85px) scale(0.5); opacity: 0 !important; }
 
 
-
-
-
-.core.state-view .face:nth-child(1) { transform: translateZ(85px) scale(0.5); opacity: 0.98; border-color: rgba(78, 148, 255, 0.92); }
-.core.state-view .face:nth-child(2) { transform: rotateY(180deg) translateZ(85px) scale(0.5); opacity: 0.26; border-color: rgba(32, 72, 138, 0.38); }
-.core.state-view .face:nth-child(3) { transform: rotateY(90deg) translateZ(85px) scale(0.5); opacity: 0.88; border-color: rgba(56, 118, 222, 0.68); }
-.core.state-view .face:nth-child(4) { transform: rotateY(-90deg) translateZ(85px) scale(0.5); opacity: 0.78; border-color: rgba(50, 106, 204, 0.58); }
-.core.state-view .face:nth-child(5) { transform: rotateX(90deg) translateZ(85px) scale(0.5); opacity: 0.84; border-color: rgba(54, 114, 216, 0.64); }
-.core.state-view .face:nth-child(6) { transform: rotateX(-90deg) translateZ(85px) scale(0.5); opacity: 0.72; border-color: rgba(44, 96, 188, 0.52); }
-
-
-
-
-
-
-
-.core.state-view .face:nth-child(7) { transform: rotateY(90deg) translateZ(85px) scale(0.5); opacity: 0 !important; }
-.core.state-view .face:nth-child(8) { transform: rotateX(90deg) translateZ(85px) scale(0.5); opacity: 0 !important; }
 .view-orbit-cube {
+
   position: absolute;
   left: 0; top: 0; width: 0; height: 0;
   transform-style: preserve-3d;
@@ -611,15 +535,20 @@ opacity: 0.20;
 .core.state-view .view-orbit-cube.neg-y { transition-delay: 0.6s; }
 
 /* 轨道立方体：6面空间定位 (强制 3D) */
-.orbit-face:nth-child(1) { transform: translateZ(85px) !important; }
-.orbit-face:nth-child(2) { transform: rotateY(180deg) translateZ(85px) !important; }
-.orbit-face:nth-child(3) { transform: rotateY(90deg) translateZ(85px) !important; }
-.orbit-face:nth-child(4) { transform: rotateY(-90deg) translateZ(85px) !important; }
-.orbit-face:nth-child(5) { transform: rotateX(90deg) translateZ(85px) !important; }
-.orbit-face:nth-child(6) { transform: rotateX(-90deg) translateZ(85px) !important; }
+.orbit-face.orbit-front { transform: translateZ(85px) !important; }
+.orbit-face.orbit-back { transform: rotateY(180deg) translateZ(85px) !important; }
+.orbit-face.orbit-right { transform: rotateY(90deg) translateZ(85px) !important; }
+.orbit-face.orbit-left { transform: rotateY(-90deg) translateZ(85px) !important; }
+.orbit-face.orbit-top { transform: rotateX(90deg) translateZ(85px) !important; }
+.orbit-face.orbit-bottom { transform: rotateX(-90deg) translateZ(85px) !important; }
+
+
+
+
 
 .orbit-face::before,
 .orbit-face::after {
+
   content: '';
   position: absolute;
   inset: 0;
@@ -641,38 +570,23 @@ opacity: 0.20;
 
 
 
-/* 已清理此处冗余样式，统一由底部强制样式接管 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 .core.state-view .view-orbit-cube {
 opacity: 1;
 }
+
 .core.state-view .view-orbit-cube.pos-z { transform: translateZ(255px) scale(0.92); }
 .core.state-view .view-orbit-cube.neg-z { transform: rotateY(180deg) translateZ(255px) scale(0.92); }
 .core.state-view .view-orbit-cube.pos-x { transform: rotateY(90deg) translateZ(255px) scale(0.92); }
 .core.state-view .view-orbit-cube.neg-x { transform: rotateY(-90deg) translateZ(255px) scale(0.92); }
 .core.state-view .view-orbit-cube.pos-y { transform: rotateX(90deg) translateZ(255px) scale(0.92); }
 .core.state-view .view-orbit-cube.neg-y { transform: rotateX(-90deg) translateZ(255px) scale(0.92); }
-.core.state-view > .face:nth-child(1) { opacity: 0.90; }
-.core.state-view > .face:nth-child(2) { opacity: 0.18; }
-.core.state-view > .face:nth-child(3) { opacity: 0.70; }
-.core.state-view > .face:nth-child(4) { opacity: 0.58; }
-.core.state-view > .face:nth-child(5) { opacity: 0.66; }
-.core.state-view > .face:nth-child(6) { opacity: 0.54; }
+.core.state-view > .face-front { opacity: 0.90; }
+.core.state-view > .face-back { opacity: 0.18; }
+.core.state-view > .face-right { opacity: 0.70; }
+.core.state-view > .face-left { opacity: 0.58; }
+.core.state-view > .face-top { opacity: 0.66; }
+.core.state-view > .face-bottom { opacity: 0.54; }
 
 
 
@@ -684,53 +598,52 @@ opacity: 1;
 
 
 .core.state-metrics,
-.core.state-metrics-enter,
 .core.state-metrics-exit {
 animation: none;
 transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
 --metrics-size: min(calc(100vw - 2px), calc(100vh - 2px), 126vmin, 1440px);
---metrics-inner: 41.2%;
+--metrics-inner:41.2%;
 --metrics-inner-highlight: 41.8%;
 --metrics-mid: 48.6%;
 --metrics-outer-line: 49.2%;
 --metrics-outer-mask: 49.6%;
 }
-.core.state-metrics .face,
-.core.state-metrics-enter .face,
-.core.state-metrics-exit .face {
+.metrics-layer {
+position: absolute;
+left: 0;
+top: 0;
+width: 0;
+height: 0;
+pointer-events: none;
+opacity: 0;
+transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+transform-style: preserve-3d;
+will-change: opacity;
+}
+
+.metrics-layer::before,
+.metrics-layer::after {
+content: '';
+position: absolute;
 width: var(--metrics-size);
 height: var(--metrics-size);
 margin-left: calc(var(--metrics-size) / -2);
 margin-top: calc(var(--metrics-size) / -2);
-border: none;
-outline: none;
 border-radius: 50%;
 clip-path: none;
-background: transparent;
-box-shadow: none;
-filter: none;
-opacity: 0;
-transform: translateZ(0) rotateZ(-18deg) scale(0.86);
-transition: 
-  transform 0.72s cubic-bezier(0.16, 1, 0.3, 1),
-  opacity 0.40s ease;
-will-change: transform, opacity;
-contain: layout paint;
+box-sizing: border-box;
 backface-visibility: hidden;
 -webkit-backface-visibility: hidden;
 }
-.core.state-metrics .face::before,
-.core.state-metrics .face::after,
-.core.state-metrics-enter .face::before,
-.core.state-metrics-enter .face::after,
-.core.state-metrics-exit .face::before,
-.core.state-metrics-exit .face::after {
-border-radius: 50%;
-clip-path: none;
+.core.state-metrics .metrics-layer,
+.core.state-metrics-exit .metrics-layer { opacity: 1; }
+
+  
+.core.is-fading-to-metrics .metrics-layer {
+opacity: 0.12;
 }
-.core.state-metrics > .face:nth-child(1)::before,
-.core.state-metrics-enter > .face:nth-child(1)::before,
-.core.state-metrics-exit > .face:nth-child(1)::before {
+.core.state-metrics > .metrics-layer::before,
+.core.state-metrics-exit > .metrics-layer::before {
 inset: 0;
 transform: translateZ(8px);
 background:
@@ -761,9 +674,8 @@ filter: brightness(1.02);
 opacity: 1;
 animation: metricsHaloSpin 36s linear infinite;
 }
-.core.state-metrics > .face:nth-child(1)::after,
-.core.state-metrics-enter > .face:nth-child(1)::after,
-.core.state-metrics-exit > .face:nth-child(1)::after {
+.core.state-metrics > .metrics-layer::after,
+.core.state-metrics-exit > .metrics-layer::after {
 inset: 0;
 transform: translateZ(-8px);
 background:
@@ -784,89 +696,68 @@ opacity: 0.52;
 animation: metricsHaloDrift 24s linear infinite reverse;
 }
 
-/* 紫环进入：先暗化保持原形态，再用赛博点亮接管 */
-.core.state-metrics.is-transitioning .face:nth-child(1) {
-  opacity: 0.986;
-  transform: translateZ(0px) rotateZ(0deg) scale(1);
-  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.14)) drop-shadow(0 0 4px rgba(186, 98, 255, 0.02));
+/* 紫环进入：再贵一点，旋入更柔和，强调流动感而不是力量感 */
+.core.state-metrics.is-transitioning > .metrics-layer::before {
+opacity: 1;
+animation: metricsIgniteSpin 0.78s cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
 }
-.core.state-metrics.is-transitioning > .face:nth-child(1)::before {
-  opacity: 1;
-  animation: metricsIgnite 0.96s ease-out 1, metricsHaloSpin 36s linear 0.96s infinite;
-}
-.core.state-metrics.is-transitioning > .face:nth-child(1)::after {
-  opacity: 0.52;
-  animation: metricsIgniteBack 0.96s ease-out 1, metricsHaloDrift 24s linear 0.96s infinite reverse;
-}
-.core.state-metrics:not(.is-transitioning) > .face:nth-child(1)::before,
-.core.state-metrics-enter:not(.is-transitioning) > .face:nth-child(1)::before,
-.core.state-metrics-exit:not(.is-transitioning) > .face:nth-child(1)::before {
-  animation: metricsHaloSpin 36s linear infinite;
-}
-.core.state-metrics:not(.is-transitioning) > .face:nth-child(1)::after,
-.core.state-metrics-enter:not(.is-transitioning) > .face:nth-child(1)::after,
-.core.state-metrics-exit:not(.is-transitioning) > .face:nth-child(1)::after {
-  animation: metricsHaloDrift 24s linear infinite reverse;
+.core.state-metrics.is-transitioning > .metrics-layer::after {
+opacity: 0.52;
+animation: metricsIgniteBackSpin 0.78s cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
 }
 
-/* 紫环中继：任意状态先收束成核心环，再进入稳态 */
-.core.state-metrics-enter .face:nth-child(1) {
-  opacity: 0.995;
-  transform: translateZ(0px) rotateZ(0deg) scale(1);
-  filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.22)) drop-shadow(0 0 12px rgba(186, 98, 255, 0.06));
-}
-.core.state-metrics-enter > .face:nth-child(1)::before { opacity: 0.12; }
-.core.state-metrics-enter > .face:nth-child(1)::after { opacity: 0.04; }
 
-.core.state-metrics-exit .face:nth-child(1) {
-  opacity: 0.84;
-  transform: translateZ(0px) rotateZ(6deg) scale(0.74);
-  filter: drop-shadow(0 0 7px rgba(186, 98, 255, 0.06)) drop-shadow(0 0 12px rgba(66, 188, 255, 0.025));
-}
-.core.state-metrics-exit > .face:nth-child(1)::before { opacity: 0.42; }
-.core.state-metrics-exit > .face:nth-child(1)::after { opacity: 0.12; }
 
-/* 螺旋展开效果：进入指标态时启动，且赋予极强的 Z 轴旋转 */
-.core.state-metrics .face:nth-child(1) {
-  opacity: 0.995;
-  transform: translateZ(0px) rotateZ(0deg) scale(1);
-  filter: drop-shadow(0 0 12px rgba(186, 98, 255, 0.10)) drop-shadow(0 0 22px rgba(66, 188, 255, 0.04));
+
+.core.state-metrics:not(.is-transitioning) > .metrics-layer::before {
+animation: metricsHaloSpin 36s linear infinite;
+}
+.core.state-metrics:not(.is-transitioning) > .metrics-layer::after {
+animation: metricsHaloDrift 24s linear infinite reverse;
 }
 
-/* 清理无用状态，回归极致性能 */
-.core.is-shrinking .face { opacity: 0; pointer-events: none; }
-.core.is-shrinking .view-orbit-cube { opacity: 0; }
-.core.state-metrics .face:nth-child(2),
-.core.state-metrics .face:nth-child(3),
-.core.state-metrics .face:nth-child(4),
-.core.state-metrics .face:nth-child(5),
-.core.state-metrics .face:nth-child(6),
-.core.state-metrics .face:nth-child(7),
-.core.state-metrics .face:nth-child(8),
-.core.state-metrics-enter .face:nth-child(2),
-.core.state-metrics-enter .face:nth-child(3),
-.core.state-metrics-enter .face:nth-child(4),
-.core.state-metrics-enter .face:nth-child(5),
-.core.state-metrics-enter .face:nth-child(6),
-.core.state-metrics-enter .face:nth-child(7),
-.core.state-metrics-enter .face:nth-child(8),
-.core.state-metrics-exit .face:nth-child(2),
-.core.state-metrics-exit .face:nth-child(3),
-.core.state-metrics-exit .face:nth-child(4),
-.core.state-metrics-exit .face:nth-child(5),
-.core.state-metrics-exit .face:nth-child(6),
-.core.state-metrics-exit .face:nth-child(7),
-.core.state-metrics-exit .face:nth-child(8) {
+/* 紫环退出：先有一个明确的退场提示，再收束淡出 */
+.core.state-metrics-exit.is-transitioning > .metrics-layer::before {
+opacity: 0.42;
+animation: metricsHaloCollapse 0.32s cubic-bezier(0.32, 0, 0.2, 1) 1 forwards;
+}
+.core.state-metrics-exit.is-transitioning > .metrics-layer::after {
+opacity: 0.12;
+animation: metricsHaloCollapseBack 0.32s cubic-bezier(0.32, 0, 0.2, 1) 1 forwards;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 指标态切换时彻底隐藏原几何体，避免中心残留正方形 */
+.core.state-metrics .face,
+.core.state-metrics-exit .face {
 opacity: 0 !important;
+visibility: hidden;
+pointer-events: none;
+transform: translateZ(0) scale(0.001) !important;
+transition-property: opacity, filter !important;
 }
 .core.state-metrics .lock-layer,
 .core.state-metrics .gyro-layer,
-.core.state-metrics-enter .lock-layer,
-.core.state-metrics-enter .gyro-layer,
+.core.state-metrics .view-orbit-cube,
 .core.state-metrics-exit .lock-layer,
-.core.state-metrics-exit .gyro-layer {
-opacity: 0;
+.core.state-metrics-exit .gyro-layer,
+.core.state-metrics-exit .view-orbit-cube {
+opacity: 0 !important;
+visibility: hidden;
+transition-property: opacity, filter !important;
 }
+
 /* 保存爆发 (绿色扩张) */
 .core.state-save .face {
 border-color: rgba(72, 255, 178, 0.68);
@@ -880,64 +771,90 @@ background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 42%, 
 .core.state-save .face::after {
 background: linear-gradient(160deg, rgba(0, 18, 10, 0.10), rgba(0, 10, 5, 0.024));
 }
-.core.state-save .face:nth-child(1) { transform: translateZ(438px) rotateZ(28deg); }
-.core.state-save .face:nth-child(2) { transform: rotateY(180deg) translateZ(438px) rotateZ(-28deg); }
-.core.state-save .face:nth-child(3) { transform: rotateY(90deg) translateZ(426px) rotateZ(24deg); }
-.core.state-save .face:nth-child(4) { transform: rotateY(-90deg) translateZ(426px) rotateZ(-24deg); }
-.core.state-save .face:nth-child(5) { transform: rotateX(90deg) translateZ(432px) rotateZ(18deg); }
-.core.state-save .face:nth-child(6) { transform: rotateX(-90deg) translateZ(432px) rotateZ(-18deg); }
-.core.state-save .face:nth-child(7) { transform: rotateY(90deg) translateZ(426px) rotateZ(24deg); }
-.core.state-save .face:nth-child(8) { transform: rotateX(90deg) translateZ(432px) rotateZ(18deg); }
-@keyframes viewClusterHum {
-0% { transform: scale(1) translate3d(0, 0, 0); }
-25% { transform: scale(1.01) translate3d(5px, -3px, 0); }
-50% { transform: scale(0.995) translate3d(-5px, 3px, 0); }
-75% { transform: scale(1.01) translate3d(4px, 2px, 0); }
-100% { transform: scale(1) translate3d(0, 0, 0); }
-}
-@keyframes viewFrontPlateHum {
-0% { transform: translate3d(0, 0, 8px); }
-20% { transform: translate3d(7px, -4px, 8px); }
-40% { transform: translate3d(-7px, 4px, 8px); }
-60% { transform: translate3d(5px, 2px, 8px); }
-80% { transform: translate3d(-4px, -2px, 8px); }
-100% { transform: translate3d(0, 0, 8px); }
-}
-@keyframes viewFrontPlateHumBack {
-0% { transform: translate3d(0, 0, -8px); }
-20% { transform: translate3d(7px, -4px, -8px); }
-40% { transform: translate3d(-7px, 4px, -8px); }
-60% { transform: translate3d(5px, 2px, -8px); }
-80% { transform: translate3d(-4px, -2px, -8px); }
-100% { transform: translate3d(0, 0, -8px); }
-}
-@keyframes viewCorePulse {
-0% { filter: drop-shadow(0 0 5px rgba(84, 138, 255, 0.040)); }
-25% { filter: drop-shadow(0 0 8px rgba(124, 176, 255, 0.060)); }
-50% { filter: drop-shadow(0 0 4px rgba(84, 138, 255, 0.032)); }
-75% { filter: drop-shadow(0 0 9px rgba(132, 188, 255, 0.066)); }
-100% { filter: drop-shadow(0 0 5px rgba(84, 138, 255, 0.040)); }
-}
-@keyframes metricsIgnite {
+.core.state-save .face-front { transform: translateZ(438px) rotateZ(28deg); }
+.core.state-save .face-back { transform: rotateY(180deg) translateZ(438px) rotateZ(-28deg); }
+.core.state-save .face-right { transform: rotateY(90deg) translateZ(426px) rotateZ(24deg); }
+.core.state-save .face-left { transform: rotateY(-90deg) translateZ(426px) rotateZ(-24deg); }
+.core.state-save .face-top { transform: rotateX(90deg) translateZ(432px) rotateZ(18deg); }
+.core.state-save .face-bottom { transform: rotateX(-90deg) translateZ(432px) rotateZ(-18deg); }
+.core.state-save .face-aux-a { transform: rotateY(90deg) translateZ(426px) rotateZ(24deg); }
+.core.state-save .face-aux-b { transform: rotateX(90deg) translateZ(432px) rotateZ(18deg); }
+
+
+@keyframes metricsIgniteSpin {
 0% {
-  opacity: 0.24;
-  filter: brightness(0.58) saturate(0.84);
+  transform: translateZ(8px) rotateZ(-30deg) scale(0.94);
+  opacity: 0.08;
+  filter: brightness(0.58) saturate(0.82);
+}
+58% {
+  transform: translateZ(8px) rotateZ(5deg) scale(1.01);
+  opacity: 1;
+  filter: brightness(1.06) saturate(1.04);
 }
 100% {
+  transform: translateZ(8px) rotateZ(0deg) scale(1);
   opacity: 1;
   filter: brightness(1.02) saturate(1);
 }
 }
-@keyframes metricsIgniteBack {
+@keyframes metricsIgniteBackSpin {
 0% {
-  opacity: 0.14;
-  filter: brightness(0.56) saturate(0.82);
+  transform: translateZ(-8px) rotateZ(24deg) scale(0.95);
+  opacity: 0.05;
+  filter: brightness(0.58) saturate(0.82);
+}
+56% {
+  transform: translateZ(-8px) rotateZ(-4deg) scale(1.008);
+  opacity: 0.55;
+  filter: brightness(1.03) saturate(1.03);
 }
 100% {
+  transform: translateZ(-8px) rotateZ(0deg) scale(1);
   opacity: 0.52;
   filter: brightness(1) saturate(1);
 }
 }
+@keyframes metricsHaloCollapse {
+0% {
+  transform: translateZ(8px) rotateZ(0deg) scale(1);
+  opacity: 0.42;
+  filter: brightness(1.02) saturate(1);
+}
+32% {
+  transform: translateZ(8px) rotateZ(7deg) scale(1.014);
+  opacity: 0.58;
+  filter: brightness(1.12) saturate(1.08);
+}
+100% {
+  transform: translateZ(8px) rotateZ(16deg) scale(0.89);
+  opacity: 0;
+  filter: brightness(0.92) saturate(0.96);
+}
+}
+@keyframes metricsHaloCollapseBack {
+0% {
+  transform: translateZ(-8px) rotateZ(0deg) scale(1);
+  opacity: 0.12;
+  filter: brightness(1) saturate(1);
+}
+30% {
+  transform: translateZ(-8px) rotateZ(-5deg) scale(1.01);
+  opacity: 0.2;
+  filter: brightness(1.08) saturate(1.06);
+}
+100% {
+  transform: translateZ(-8px) rotateZ(-13deg) scale(0.9);
+  opacity: 0;
+  filter: brightness(0.92) saturate(0.96);
+}
+}
+
+
+
+
+
+
 @keyframes metricsHaloSpin {
 0% { transform: translateZ(8px) rotateZ(0deg); }
 100% { transform: translateZ(8px) rotateZ(360deg); }
@@ -979,160 +896,281 @@ border: 1px solid rgba(255, 255, 255, 0.15); cursor: pointer; transition: all 0.
 .card:hover { transform: translateY(-3px); background: rgba(0,0,0,0.8); border-color: rgba(0,229,255,0.5); }
 .card-title { font-size: 16px; color: #fff; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.9); }
 .card-desc { font-size: 12px; color: #bbb; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
+.sidebar-hint { font-size: 12px; color: #888; margin-bottom: 30px; line-height: 1.6; }
+.sidebar-section-label { margin: 6px 0 4px; font-size: 12px; color: #666; font-weight: 700; }
+.sidebar-section-label.metrics { margin-top: 8px; }
+.metrics-theme-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.metrics-theme-btn { padding: 10px 12px; font-size: 12px; border-color: rgba(170, 106, 255, 0.78); }
+.sidebar-spacer { margin-top: auto; }
+.save-btn { width: 100%; border-color: rgba(0, 255, 170, 0.6); }
 
 /* 底部强加固已移除，由核心样式块统一管理 */
 
-/* 标记点：用于确认 CSS 是否生效 */
-#css-marker { position: fixed; top: 10px; left: 10px; width: 6px; height: 6px; background: #ba62ff; border-radius: 50%; box-shadow: 0 0 10px #ba62ff; z-index: 9999; }
+
 </style></head>
 <body>
-<div id="css-marker"></div>
+
 <div class="geo-wrapper">
-<div class="core state-idle" id="geometry" data-metrics-theme="violet">
-<div class="face"></div>
-<div class="face"></div><div class="face"></div>
-<div class="face"></div>
-<div class="face"></div>
-<div class="face"></div>
-<div class="face aux"></div>
-<div class="face aux"></div>
-<div class="lock-layer">
-<div class="lock-bar bar-x">
-<div class="lock-surface front"></div><div class="lock-surface back"></div><div class="lock-surface right"></div><div class="lock-surface left"></div><div class="lock-surface top"></div><div class="lock-surface bottom"></div>
+  <div class="core state-idle" id="geometry" data-metrics-theme="violet">
+    <div class="face face-front"></div>
+    <div class="face face-back"></div>
+    <div class="face face-right"></div>
+    <div class="face face-left"></div>
+    <div class="face face-top"></div>
+    <div class="face face-bottom"></div>
+    <div class="face aux face-aux-a"></div>
+    <div class="face aux face-aux-b"></div>
+    <div class="lock-layer">
+      <div class="lock-bar bar-x">
+        <div class="lock-surface front lock-front"></div>
+        <div class="lock-surface back lock-back"></div>
+        <div class="lock-surface right lock-right"></div>
+        <div class="lock-surface left lock-left"></div>
+        <div class="lock-surface top lock-top"></div>
+        <div class="lock-surface bottom lock-bottom"></div>
+      </div>
+      <div class="lock-bar bar-y">
+        <div class="lock-surface front lock-front"></div>
+        <div class="lock-surface back lock-back"></div>
+        <div class="lock-surface right lock-right"></div>
+        <div class="lock-surface left lock-left"></div>
+        <div class="lock-surface top lock-top"></div>
+        <div class="lock-surface bottom lock-bottom"></div>
+      </div>
+      <div class="lock-bar bar-z">
+        <div class="lock-surface front lock-front"></div>
+        <div class="lock-surface back lock-back"></div>
+        <div class="lock-surface right lock-right"></div>
+        <div class="lock-surface left lock-left"></div>
+        <div class="lock-surface top lock-top"></div>
+        <div class="lock-surface bottom lock-bottom"></div>
+      </div>
+    </div>
+    <div class="view-orbit-cube pos-z">
+      <div class="orbit-face orbit-front"></div>
+      <div class="orbit-face orbit-back"></div>
+      <div class="orbit-face orbit-right"></div>
+      <div class="orbit-face orbit-left"></div>
+      <div class="orbit-face orbit-top"></div>
+      <div class="orbit-face orbit-bottom"></div>
+    </div>
+    <div class="view-orbit-cube neg-z">
+      <div class="orbit-face orbit-front"></div>
+      <div class="orbit-face orbit-back"></div>
+      <div class="orbit-face orbit-right"></div>
+      <div class="orbit-face orbit-left"></div>
+      <div class="orbit-face orbit-top"></div>
+      <div class="orbit-face orbit-bottom"></div>
+    </div>
+    <div class="view-orbit-cube pos-x">
+      <div class="orbit-face orbit-front"></div>
+      <div class="orbit-face orbit-back"></div>
+      <div class="orbit-face orbit-right"></div>
+      <div class="orbit-face orbit-left"></div>
+      <div class="orbit-face orbit-top"></div>
+      <div class="orbit-face orbit-bottom"></div>
+    </div>
+    <div class="view-orbit-cube neg-x">
+      <div class="orbit-face orbit-front"></div>
+      <div class="orbit-face orbit-back"></div>
+      <div class="orbit-face orbit-right"></div>
+      <div class="orbit-face orbit-left"></div>
+      <div class="orbit-face orbit-top"></div>
+      <div class="orbit-face orbit-bottom"></div>
+    </div>
+    <div class="view-orbit-cube pos-y">
+      <div class="orbit-face orbit-front"></div>
+      <div class="orbit-face orbit-back"></div>
+      <div class="orbit-face orbit-right"></div>
+      <div class="orbit-face orbit-left"></div>
+      <div class="orbit-face orbit-top"></div>
+      <div class="orbit-face orbit-bottom"></div>
+    </div>
+    <div class="view-orbit-cube neg-y">
+      <div class="orbit-face orbit-front"></div>
+      <div class="orbit-face orbit-back"></div>
+      <div class="orbit-face orbit-right"></div>
+      <div class="orbit-face orbit-left"></div>
+      <div class="orbit-face orbit-top"></div>
+      <div class="orbit-face orbit-bottom"></div>
+    </div>
+    <div class="gyro-layer">
+      <div class="gyro-ring ring-a"></div>
+      <div class="gyro-ring ring-b"></div>
+      <div class="gyro-ring ring-c"></div>
+    </div>
+    <div class="metrics-layer"></div>
+  </div>
 </div>
-<div class="lock-bar bar-y">
-<div class="lock-surface front"></div><div class="lock-surface back"></div><div class="lock-surface right"></div><div class="lock-surface left"></div><div class="lock-surface top"></div><div class="lock-surface bottom"></div>
-</div>
-<div class="lock-bar bar-z">
-<div class="lock-surface front"></div><div class="lock-surface back"></div><div class="lock-surface right"></div><div class="lock-surface left"></div><div class="lock-surface top"></div><div class="lock-surface bottom"></div>
-</div>
-</div>
-<div class="view-orbit-cube pos-z">
-<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
-</div>
-<div class="view-orbit-cube neg-z">
-<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
-</div>
-<div class="view-orbit-cube pos-x">
-<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
-</div>
-<div class="view-orbit-cube neg-x">
-<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
-</div>
-<div class="view-orbit-cube pos-y">
-<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
-</div>
-<div class="view-orbit-cube neg-y">
-<div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div><div class="orbit-face"></div>
-</div>
-<div class="gyro-layer">
-<div class="gyro-ring ring-a"></div>
-<div class="gyro-ring ring-b"></div>
-<div class="gyro-ring ring-c"></div>
-</div>
-</div>
-</div>
+
 <div class="ui-layer">
-<div class="sidebar glass-panel">
-<div class="title">控制中枢</div>
-<div style="font-size: 12px; color: #888; margin-bottom: 30px; line-height: 1.6;">蓝色中枢 / 红色警戒 / 金色创造 / 冰蓝查看 / 紫色统计 / 绿爆回收</div>
-<button class="btn active" data-state="idle" onclick="switchState('idle', this)">1. 规整立方 (隐忍 / 默认)</button>
-<button class="btn" data-state="pyramid" onclick="switchState('pyramid', this)">2. 赤红棱锥 (删除 / 危险)</button>
-<div style="margin-top: 6px; margin-bottom: 4px; font-size: 12px; color: #666; font-weight: bold;">[ 页面背景库 ]</div>
-<button class="btn" data-state="create" onclick="switchState('create', this)">3. 金色散架构建态 (创造)</button>
-<button class="btn" data-state="view" onclick="switchState('view', this)">4. 深蓝真复制立方态 (查看)</button>
-<button class="btn" data-state="metrics" onclick="switchState('metrics', this)">5. 紫色圆环 (统计)</button>
-<div style="margin-top: 8px; margin-bottom: 4px; font-size: 12px; color: #666; font-weight: bold;">[ 圆环风格 ]</div>
-<div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
-<button class="btn active" data-metrics-theme="violet" style="padding: 10px 12px; font-size: 12px; border-color: rgba(170, 106, 255, 0.78);" onclick="setMetricsTheme('violet', this)">紫环</button>
+  <div class="sidebar glass-panel">
+    <div class="title">控制中枢</div>
+    <div class="sidebar-hint">蓝色中枢 / 红色警戒 / 金色创造 / 冰蓝查看 / 紫色统计 / 绿爆回收</div>
+    <button class="btn active" data-state="idle" onclick="switchState('idle', this)">1. 规整立方 (隐忍 / 默认)</button>
+    <button class="btn" data-state="pyramid" onclick="switchState('pyramid', this)">2. 赤红棱锥 (删除 / 危险)</button>
+    <div class="sidebar-section-label">[ 页面背景库 ]</div>
+    <button class="btn" data-state="create" onclick="switchState('create', this)">3. 金色散架构建态 (创造)</button>
+    <button class="btn" data-state="view" onclick="switchState('view', this)">4. 深蓝真复制立方态 (查看)</button>
+    <button class="btn" data-state="metrics" onclick="switchState('metrics', this)">5. 紫色圆环 (统计)</button>
+    <div class="sidebar-section-label metrics">[ 圆环风格 ]</div>
+    <div class="metrics-theme-list">
+      <button class="btn active metrics-theme-btn" data-metrics-theme="violet" onclick="setMetricsTheme('violet', this)">紫环</button>
+    </div>
+    <div class="sidebar-spacer"></div>
+    <button class="btn save-btn" onclick="triggerSave()">执行：保存设定 (绿色爆发)</button>
+  </div>
+  <div class="main-content"></div>
 </div>
-<div style="margin-top: auto;"></div>
-<button class="btn" style="border-color: rgba(0, 255, 170, 0.6); width: 100%;" onclick="triggerSave()">执行：保存设定 (绿色爆发)</button>
-</div>
-<div class="main-content"></div></div>
+
+
 <script>
+const CORE_BASE_CLASS = 'core';
+const STATE_CLASS_PREFIX = 'state-';
+const TRANSITION_CLASS = 'is-transitioning';
+const METRICS_FADE_CLASS = 'is-fading-to-metrics';
+const METRICS_ENTER_BRIDGE_DURATION = 130;
+const METRICS_EXIT_BRIDGE_DURATION = 340;
+
+
+
+function getStateClassName(geometry) {
+  return Array.from(geometry.classList).find(name => name.startsWith(STATE_CLASS_PREFIX)) || `${STATE_CLASS_PREFIX}idle`;
+}
+
+function clearGeometryTimers(geometry) {
+  if (geometry._transitionTimer) {
+    clearTimeout(geometry._transitionTimer);
+    geometry._transitionTimer = null;
+  }
+  if (geometry._phaseTimer) {
+    clearTimeout(geometry._phaseTimer);
+    geometry._phaseTimer = null;
+  }
+}
+
+function setCoreStateClass(geometry, stateName, { transitioning = false, fadingToMetrics = false } = {}) {
+  Array.from(geometry.classList)
+    .filter(name => name.startsWith(STATE_CLASS_PREFIX))
+    .forEach(name => geometry.classList.remove(name));
+
+  geometry.classList.add(CORE_BASE_CLASS, `${STATE_CLASS_PREFIX}${stateName}`);
+  geometry.classList.toggle(TRANSITION_CLASS, transitioning);
+  geometry.classList.toggle(METRICS_FADE_CLASS, fadingToMetrics);
+}
+
+function finishTransition(geometry, nextState) {
+  setCoreStateClass(geometry, nextState, { transitioning: false, fadingToMetrics: false });
+  geometry.dataset.targetState = nextState;
+  geometry._transitionTimer = null;
+  geometry._phaseTimer = null;
+}
+
+function clearSaveTimers(geometry) {
+  if (geometry._saveReturnTimer) {
+    clearTimeout(geometry._saveReturnTimer);
+    geometry._saveReturnTimer = null;
+  }
+  if (geometry._saveUnlockTimer) {
+    clearTimeout(geometry._saveUnlockTimer);
+    geometry._saveUnlockTimer = null;
+  }
+}
+
+function setActiveSidebarButton(selector, activeButton) {
+  document.querySelectorAll(selector).forEach(button => button.classList.remove('active'));
+  if (activeButton) activeButton.classList.add('active');
+}
+
+function isGeometrySaving(geometry) {
+  return !geometry || geometry.dataset.saving === '1';
+}
+
+function getTargetState(geometry) {
+  return geometry.dataset.targetState || getStateName(geometry);
+}
+
 function getStateName(geometry) {
-  return (Array.from(geometry.classList).find(name => name.startsWith('state-')) || 'state-idle').replace('state-', '');
+  return getStateClassName(geometry).replace(STATE_CLASS_PREFIX, '');
 }
 
 function applyTransitionState(geometry, nextState, duration = 1200) {
   if (!geometry) return;
-  const currentStateClass = Array.from(geometry.classList).find(name => name.startsWith('state-')) || 'state-idle';
+
+  const currentStateClass = getStateClassName(geometry);
+
   const currentState = currentStateClass.replace('state-', '');
   const targetState = geometry.dataset.targetState || currentState;
-  const normalizedCurrentState = currentState === 'metrics-enter' || currentState === 'metrics-exit' ? 'metrics' : currentState;
+  const normalizedCurrentState = currentState === 'metrics-exit' ? 'metrics' : currentState;
 
-  if ((normalizedCurrentState === nextState && !geometry.classList.contains('is-transitioning')) || targetState === nextState) {
+    if ((normalizedCurrentState === nextState && !geometry.classList.contains('is-transitioning')) || targetState === nextState) {
     return;
   }
 
   geometry.dataset.targetState = nextState;
-  if (geometry._transitionTimer) clearTimeout(geometry._transitionTimer);
-  if (geometry._phaseTimer) clearTimeout(geometry._phaseTimer);
+  clearGeometryTimers(geometry);
 
-  const enterMetrics = nextState === 'metrics' && normalizedCurrentState !== 'metrics';
+  geometry.classList.remove(METRICS_FADE_CLASS);
+
+    const enterMetrics = nextState === 'metrics' && normalizedCurrentState !== 'metrics';
   const exitMetrics = normalizedCurrentState === 'metrics' && nextState !== 'metrics';
-  const metricsBridgeDuration = 180;
+  const metricsBridgeDuration = enterMetrics
+    ? METRICS_ENTER_BRIDGE_DURATION
+    : METRICS_EXIT_BRIDGE_DURATION;
 
   if (enterMetrics) {
-    geometry.className = `core ${currentStateClass} is-entering-metrics`;
+
+    geometry.classList.add(METRICS_FADE_CLASS);
+    geometry.classList.remove(TRANSITION_CLASS);
     geometry._phaseTimer = setTimeout(() => {
+
       requestAnimationFrame(() => {
-        geometry.className = `core state-metrics is-transitioning`;
+        setCoreStateClass(geometry, 'metrics', { transitioning: true, fadingToMetrics: false });
         geometry._transitionTimer = setTimeout(() => {
-          geometry.className = `core state-metrics`;
-          geometry.dataset.targetState = nextState;
-          geometry._transitionTimer = null;
-          geometry._phaseTimer = null;
-        }, Math.max(280, duration - metricsBridgeDuration));
+          finishTransition(geometry, nextState);
+        }, Math.max(320, duration - metricsBridgeDuration));
       });
     }, metricsBridgeDuration);
+
     return;
   }
 
   if (exitMetrics) {
-    geometry.className = `core state-metrics-exit is-transitioning`;
+    setCoreStateClass(geometry, 'metrics-exit', { transitioning: true, fadingToMetrics: false });
+
     geometry._phaseTimer = setTimeout(() => {
       requestAnimationFrame(() => {
-        geometry.className = `core state-${nextState} is-transitioning`;
+        setCoreStateClass(geometry, nextState, { transitioning: true, fadingToMetrics: false });
         geometry._transitionTimer = setTimeout(() => {
-          geometry.className = `core state-${nextState}`;
-          geometry.dataset.targetState = nextState;
-          geometry._transitionTimer = null;
-          geometry._phaseTimer = null;
+          finishTransition(geometry, nextState);
         }, Math.max(0, duration - metricsBridgeDuration));
       });
     }, metricsBridgeDuration);
+
     return;
   }
 
-  geometry.className = `core ${currentStateClass} is-transitioning`;
+  setCoreStateClass(geometry, currentState, { transitioning: true, fadingToMetrics: false });
   requestAnimationFrame(() => {
-    geometry.className = `core state-${nextState} is-transitioning`;
+    setCoreStateClass(geometry, nextState, { transitioning: true, fadingToMetrics: false });
     geometry._transitionTimer = setTimeout(() => {
-      geometry.className = `core state-${nextState}`;
-      geometry.dataset.targetState = nextState;
-      // 动画完全结束后再解锁，降低切换闪烁
-      geometry._transitionTimer = null;
+      finishTransition(geometry, nextState);
     }, duration);
   });
+
+
 }
 
 function switchState(state, btn) {
   const geometry = document.getElementById('geometry');
-  if (!geometry || geometry.dataset.saving === '1') return;
+  if (isGeometrySaving(geometry)) return;
 
-  const activeState = geometry.dataset.targetState || getStateName(geometry);
+  const activeState = getTargetState(geometry);
   if (activeState === state) return;
 
   const transitionDuration = state === 'metrics' ? 620 : 1200;
-
-  // 极致性能：移除冗余的 JS 中间态，由 CSS 硬件加速自动处理平滑的补间动画，彻底杜绝闪烁。
-  applyTransitionState(geometry, state, transitionDuration); 
-
-
-  document.querySelectorAll('.sidebar .btn[data-state]').forEach(button => button.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  applyTransitionState(geometry, state, transitionDuration);
+  setActiveSidebarButton('.sidebar .btn[data-state]', btn);
 }
 
 function setMetricsTheme(theme, btn) {
@@ -1140,11 +1178,13 @@ function setMetricsTheme(theme, btn) {
   if (!geometry) return;
 
   geometry.dataset.metricsTheme = theme;
-  document.querySelectorAll('.sidebar .btn[data-metrics-theme]').forEach(button => button.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  setActiveSidebarButton('.sidebar .btn[data-metrics-theme]', btn);
 
-  if (geometry.dataset.saving === '1') return;
-  const activeState = geometry.dataset.targetState || getStateName(geometry);
+  if (isGeometrySaving(geometry)) return;
+
+  const activeState = getTargetState(geometry);
+
+
   if (activeState !== 'metrics') {
     const metricsBtn = document.querySelector('.sidebar .btn[data-state="metrics"]');
     switchState('metrics', metricsBtn);
@@ -1153,16 +1193,14 @@ function setMetricsTheme(theme, btn) {
 
 function triggerSave() {
   const geometry = document.getElementById('geometry');
-  if (!geometry || geometry.dataset.saving === '1') return;
+  if (isGeometrySaving(geometry)) return;
 
-  const previousState = geometry.dataset.targetState || getStateName(geometry);
+  const previousState = getTargetState(geometry);
   if (previousState === 'save') return;
 
   geometry.dataset.saving = '1';
   applyTransitionState(geometry, 'save', 110);
-
-  if (geometry._saveReturnTimer) clearTimeout(geometry._saveReturnTimer);
-  if (geometry._saveUnlockTimer) clearTimeout(geometry._saveUnlockTimer);
+  clearSaveTimers(geometry);
 
   geometry._saveReturnTimer = setTimeout(() => {
     applyTransitionState(geometry, previousState, 110);
@@ -1173,6 +1211,7 @@ function triggerSave() {
     }, 180);
   }, 2350);
 }
+
 </script>
 </body>
 </html>

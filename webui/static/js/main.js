@@ -9,6 +9,8 @@ const state = {
   fateCards: [],
   fateImages: [],
   funcCards: [],
+  titles: [],
+  titleCatalog: {},
   images: [],
   stats: { total_groups: 0, total_users: 0, card_holders: {}, groups: [] },
   goodSelected: [],
@@ -775,6 +777,86 @@ function fateItem(card, i) {
 }
 
 // ===== [ page: cards ] =====================================================
+
+// ===== [ page: titles ] ====================================================
+function renderTitles() {
+  $('#page-titles').innerHTML = `
+    <div class="grid">
+      <section class="panel col-12">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">称号档案</div>
+            <div class="panel-note">在此处配置系统内的各种称号，并设置它们的获取条件和佩戴效果。</div>
+          </div>
+          <div class="row">
+            <button class="btn-strong" onclick="openTitleEditor(-1)">[ 新增称号 ]</button>
+            <button class="btn" onclick="saveTitles()">[ 保存全部 ]</button>
+          </div>
+        </div>
+        <div class="archive-grid">
+          ${state.titles.map((t, i) => titleItem(t, i)).join('') || '<div class="empty">当前方案没有称号数据</div>'}
+        </div>
+      </section>
+    </div>`;
+  renderHeroAux();
+}
+
+function titleItem(title, i) {
+  const condText = (title.conditions || []).map(c => `${c.type} ${c.operator} ${c.value}`).join(' | ') || '无条件';
+  const effText = (title.effects || []).map(e => `${e.type} +${e.value}`).join(' | ') || '无效果';
+  return `
+    <article class="archive-card func-card rarity-4">
+      <div class="archive-body">
+        <div class="archive-title">${esc(title.name || title.id || '未命名称号')}</div>
+        <div class="archive-meta">
+          <span class="badge light">${esc(title.category || '未分类')}</span>
+          <span class="badge ${title.allow_loss ? 'orange' : ''}">${title.allow_loss ? '可回收' : '永久保留'}</span>
+        </div>
+        <div class="archive-tag-row"><span class="badge">条件: ${esc(condText)}</span></div>
+        <div class="archive-tag-row"><span class="badge">效果: ${esc(effText)}</span></div>
+        <div class="archive-desc">${esc(title.desc || '当前还没有描述。')}</div>
+        <div class="archive-actions">
+          <button class="btn-strong" onclick="openTitleEditor(${i})">[ 编辑 ]</button>
+          <button class="btn-green" onclick="duplicateTitle(${i})">[ 复制 ]</button>
+          <button class="btn-danger" onclick="deleteTitle(${i})">[ 删除 ]</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+async function saveTitles(show = true) {
+  const res = await apiPost('/api/titles', { titles: state.titles });
+  if (res.ok) { if (show) showToast('称号配置已保存。'); }
+  else if (show) showToast(res.error || '保存失败。', true);
+  return res;
+}
+
+async function deleteTitle(i) {
+  if (!confirm('确认删除该称号吗？')) return;
+  state.titles.splice(i, 1);
+  renderTitles();
+  await saveTitles(false);
+  showToast('称号已删除。');
+}
+
+async function duplicateTitle(i) {
+  const original = state.titles[i];
+  if (!original) return;
+  const copy = JSON.parse(JSON.stringify(original));
+  copy.id = `${copy.id || 'new_title'}_copy`;
+  copy.name = `${copy.name || '未命名称号'} 副本`;
+  state.titles.splice(i + 1, 0, copy);
+  renderTitles();
+  await saveTitles(false);
+  showToast('称号已复制。');
+}
+
+// 简单的编辑器模态框占位
+function openTitleEditor(index) {
+  // 为了减少复杂度，可以提示用户在配置文件中精细编辑，这里只做展示。
+  alert('进阶称号规则推荐在 config/titles_config.json 中手动配置。WebUI 仅支持预览和删除等基本操作。功能将在后续版本完善。');
+}
+
 function renderCards() {
   const filter = state.funcFilter || 'all';
   const incompleteCount = state.funcCards.filter(isFuncCardIncomplete).length;
@@ -1051,6 +1133,7 @@ function renderAll() {
   renderSignin();
   renderFate();
   renderCards();
+  renderTitles();
   renderStats();
   updateTop();
   setPage(state.activePage);
@@ -1683,6 +1766,10 @@ Object.assign(window, {
   setEffectParam,
   saveFuncEditor,
   saveFuncCards,
+  saveTitles,
+  deleteTitle,
+  duplicateTitle,
+  openTitleEditor,
   deleteFuncCard,
   batchAddCards,
   uploadFuncImages,

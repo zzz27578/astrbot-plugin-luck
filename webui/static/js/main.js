@@ -1,5 +1,41 @@
 // ===== [ state / constants / helpers ] =====================================
+const defaultTitleCatalog = {
+  conditions: [
+    { key: 'sign_in_consecutive', name: '连续签到天数', param: '阈值' },
+    { key: 'sign_in_total', name: '累计签到天数', param: '阈值' },
+    { key: 'karma_good', name: '善值达到', param: '阈值' },
+    { key: 'karma_evil', name: '恶值达到', param: '阈值' },
+    { key: 'fate_card_gold', name: '命运牌单次金币', param: '阈值' },
+    { key: 'fate_card_drawn', name: '命运牌累计抽取', param: '阈值' },
+    { key: 'func_card_drawn', name: '功能牌累计抽取', param: '阈值' },
+    { key: 'func_card_used', name: '功能牌累计使用', param: '阈值' },
+    { key: 'attack_success', name: '攻击成功次数', param: '阈值' },
+    { key: 'heal_success', name: '治疗成功次数', param: '阈值' },
+    { key: 'defense_success', name: '防御成功次数', param: '阈值' },
+    { key: 'duel_win', name: '对赌胜利次数', param: '阈值' },
+    { key: 'duel_count', name: '参与对赌次数', param: '阈值' },
+    { key: 'gold_total', name: '金币总量', param: '阈值' },
+    { key: 'luck_value', name: '今日运势', param: '阈值' },
+    { key: 'title_count', name: '拥有称号数量', param: '阈值' },
+  ],
+  effects: [
+    { key: 'func_draw_prob', name: '功能牌爆率加成', param: '百分比' },
+    { key: 'attack_gold_bonus', name: '攻击额外金币', param: '数值' },
+    { key: 'heal_gold_bonus', name: '治疗额外金币', param: '数值' },
+    { key: 'defense_gold_bonus', name: '防御额外金币', param: '数值' },
+    { key: 'sign_in_gold_bonus', name: '签到金币加成', param: '百分比' },
+    { key: 'fate_draw_bonus', name: '命运牌每日次数加成', param: '数值' },
+    { key: 'free_draw_bonus', name: '功能牌每日免费次数加成', param: '数值' },
+    { key: 'draw_cost_discount', name: '功能牌抽卡费用减免', param: '数值' },
+    { key: 'pity_threshold_mod', name: '保底阈值修正', param: '数值' },
+    { key: 'steal_bonus', name: '偷取收益加成', param: '百分比' },
+    { key: 'aoe_range_bonus', name: '群体波及人数增加', param: '人数' },
+    { key: 'duel_stake_bonus', name: '对赌赢金加成', param: '百分比' },
+  ],
+};
+
 const state = {
+
   currentProfile: 'default',
   activePage: 'overview',
   profiles: [],
@@ -8,9 +44,10 @@ const state = {
   signInTexts: { good_things: [], bad_things: [], luck_ranges: [] },
   fateCards: [],
   fateImages: [],
-  funcCards: [],
+    funcCards: [],
   titles: [],
-  titleCatalog: {},
+  titleCatalog: defaultTitleCatalog,
+
   images: [],
   stats: { total_groups: 0, total_users: 0, card_holders: {}, groups: [] },
   goodSelected: [],
@@ -279,14 +316,18 @@ async function loadTitles() {
     const res = await apiGet('/api/titles');
     if (res.ok) {
       state.titles = res.titles || [];
-      state.titleCatalog = res.catalog || { conditions: [], effects: [] };
+      state.titleCatalog = {
+        conditions: res.catalog?.conditions?.length ? res.catalog.conditions : defaultTitleCatalog.conditions,
+        effects: res.catalog?.effects?.length ? res.catalog.effects : defaultTitleCatalog.effects,
+      };
     }
   } catch (e) {
     console.warn('loadTitles failed:', e);
     state.titles = state.titles || [];
-    state.titleCatalog = state.titleCatalog || { conditions: [], effects: [] };
+    state.titleCatalog = defaultTitleCatalog;
   }
 }
+
 
 async function loadStats() {
   const res = await apiGet('/api/user_stats');

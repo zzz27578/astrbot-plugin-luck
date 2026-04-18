@@ -167,8 +167,24 @@ function showToast(text, bad = false) {
 function apiUrl(path) {
   return `${path}${path.includes('?') ? '&' : '?'}profile=${encodeURIComponent(state.currentProfile || 'default')}`;
 }
-const requestJson = async (path, options = {}) => (await fetch(apiUrl(path), options)).json();
+const requestJson = async (path, options = {}) => {
+  const response = await fetch(apiUrl(path), options);
+  const text = await response.text();
+  const contentType = response.headers.get('content-type') || '';
+
+  if (!contentType.includes('application/json')) {
+    const preview = text.slice(0, 120).replace(/\s+/g, ' ');
+    throw new Error(`接口未返回 JSON: ${path} [${response.status}] ${preview}`);
+  }
+
+  const data = JSON.parse(text);
+  if (!response.ok) {
+    throw new Error(data?.error || `请求失败: ${path} [${response.status}]`);
+  }
+  return data;
+};
 const apiGet = (path) => requestJson(path);
+
 const apiPost = (path, body) => requestJson(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const apiDelete = (path) => requestJson(path, { method: 'DELETE' });
 const apiDeleteProfileById = (profileId) => apiPost('/api/profile_remove', { profile_id: profileId });
@@ -256,12 +272,19 @@ async function loadCards() {
   if (b.ok) state.images = b.files || [];
 }
 async function loadTitles() {
-  const res = await apiGet('/api/titles');
-  if (res.ok) {
-    state.titles = res.titles || [];
-    state.titleCatalog = res.catalog || { conditions: [], effects: [] };
+  try {
+    const res = await apiGet('/api/titles');
+    if (res.ok) {
+      state.titles = res.titles || [];
+      state.titleCatalog = res.catalog || { conditions: [], effects: [] };
+    }
+  } catch (e) {
+    console.warn('loadTitles failed:', e);
+    state.titles = state.titles || [];
+    state.titleCatalog = state.titleCatalog || { conditions: [], effects: [] };
   }
 }
+
 async function loadStats() {
   const res = await apiGet('/api/user_stats');
   if (res.ok) state.stats = res.stats || { total_groups: 0, total_users: 0, card_holders: {}, groups: [] };

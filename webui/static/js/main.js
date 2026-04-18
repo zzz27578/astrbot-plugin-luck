@@ -1019,64 +1019,77 @@ function titleCatalogTip(kind, key) {
   return tips[key] || '这个项目可以直接用于称号配置。';
 }
 
-function renderTitleCatalogPickerList(kind, index, keyword = '') {
+function renderTitleCatalogPickerList(kind, index, groupFilter = '全部') {
   const wrap = $('#titleCatalogPickerList');
   if (!wrap) return;
   const catalog = kind === 'condition' ? (state.titleCatalog?.conditions || []) : (state.titleCatalog?.effects || []);
-  const query = String(keyword || '').trim().toLowerCase();
-  const filtered = catalog.filter(item => {
-    const text = `${item.name || ''} ${item.key || ''} ${titleCatalogGroup(kind, item.key)} ${titleCatalogTip(kind, item.key)}`.toLowerCase();
-    return !query || text.includes(query);
-  });
-  const grouped = filtered.reduce((acc, item) => {
-    const group = titleCatalogGroup(kind, item.key);
-    (acc[group] ||= []).push(item);
-    return acc;
-  }, {});
-  const groupNames = Object.keys(grouped);
+  const filtered = catalog.filter(item => groupFilter === '全部' || titleCatalogGroup(kind, item.key) === groupFilter);
 
-  wrap.innerHTML = groupNames.length ? groupNames.map(group => `
-    <div style="margin-bottom:16px;">
-      <div class="panel-title" style="font-size:14px;margin-bottom:8px;">${esc(group)}</div>
-      <div class="archive-grid">
-        ${grouped[group].map(item => `
-          <article class="archive-card func-card rarity-2">
-            <div class="archive-body">
-              <div class="archive-title">${esc(item.name)}</div>
-              <div class="archive-meta">
-                <span class="badge light">${esc(group)}</span>
-                <span class="badge">参数：${esc(item.param || '数值')}</span>
-              </div>
-              <div class="archive-desc">${esc(titleCatalogTip(kind, item.key))}</div>
-              <div class="archive-actions">
+  wrap.innerHTML = filtered.length ? `
+    <div style="overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:14px;">
+      <table style="width:100%;border-collapse:collapse;min-width:860px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">类别</th>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">名称</th>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">参数</th>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">用途说明</th>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(item => `
+            <tr>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">${esc(titleCatalogGroup(kind, item.key))}</td>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">
+                <div style="font-weight:700;">${esc(item.name)}</div>
+                <div class="helper" style="margin-top:4px;">键值：${esc(item.key)}</div>
+              </td>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">${esc(item.param || '数值')}</td>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">${esc(titleCatalogTip(kind, item.key))}</td>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">
                 <button class="btn-strong" type="button" onclick="chooseTitleCatalogItem('${kind}', ${index}, '${esc(item.key)}')">[ 选择这个 ]</button>
-              </div>
-            </div>
-          </article>
-        `).join('')}
-      </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
-  `).join('') : '<div class="empty">没有找到匹配项，换个关键词试试。</div>';
+  ` : '<div class="empty">当前类别下没有条目。</div>';
+}
+
+
+function titleCatalogGroups(kind) {
+  const catalog = kind === 'condition' ? (state.titleCatalog?.conditions || []) : (state.titleCatalog?.effects || []);
+  return ['全部', ...Array.from(new Set(catalog.map(item => titleCatalogGroup(kind, item.key))))];
+}
+
+function setTitleCatalogGroupFilter(kind, index, value) {
+  renderTitleCatalogPickerList(kind, index, value || '全部');
 }
 
 function openTitleCatalogPicker(kind, index) {
   const isCondition = kind === 'condition';
   const title = isCondition ? '选择获取条件' : '选择佩戴效果';
   const note = isCondition
-    ? '先按分组浏览，再用关键词搜索。点中后会自动回到称号编辑器。'
-    : '先按分组浏览，再用关键词搜索。点中后会自动回到称号编辑器。';
+    ? '默认会展示全部条件。你可以先看完整表，再按前面的类别筛选。'
+    : '默认会展示全部效果。你可以先看完整表，再按前面的类别筛选。';
+  const groups = titleCatalogGroups(kind);
   openDialog(title, `
     <div>
       <div class="panel-note" style="margin-bottom:12px;">${note}</div>
-      <div class="field" style="margin-bottom:12px;">
-        <label>搜索关键词</label>
-        <input class="input" id="titleCatalogSearch" placeholder="输入名字、用途，比如：签到、对赌、爆率、群体" oninput="renderTitleCatalogPickerList('${kind}', ${index}, this.value)">
+      <div class="field" style="margin-bottom:12px;max-width:260px;">
+        <label>类别筛选</label>
+        <select class="input" onchange="setTitleCatalogGroupFilter('${kind}', ${index}, this.value)">
+          ${groups.map(group => `<option value="${esc(group)}">${esc(group)}</option>`).join('')}
+        </select>
       </div>
       <div id="titleCatalogPickerList"></div>
       <div class="row" style="margin-top:14px;"><button class="btn" type="button" onclick="returnToTitleEditor()">[ 返回编辑器 ]</button></div>
     </div>`);
-  renderTitleCatalogPickerList(kind, index, '');
+  renderTitleCatalogPickerList(kind, index, '全部');
 }
+
 
 
 function chooseTitleCatalogItem(kind, index, key) {
@@ -2140,8 +2153,10 @@ Object.assign(window, {
     openTitleEditor,
     returnToTitleEditor,
     openTitleCatalogPicker,
+    setTitleCatalogGroupFilter,
     chooseTitleCatalogItem,
     renderTitleCatalogPickerList,
+
     saveTitleEditor,
 
     addTitleCondition,

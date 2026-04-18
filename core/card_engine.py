@@ -141,8 +141,14 @@ class CardEngine:
     async def execute_tags(self, source_data: dict, target_data: dict, tags: list, all_users: dict = None, source_uid: str = None) -> list:
         reports = []
         self.last_aoe_events = []
+
+
         is_attack_blocked = False
         is_aoe = any(t.startswith("aoe_") for t in tags)
+        title_effects = source_data.get("_title_effects", {})
+
+
+
 
         # ==========================================
         # 🛡️ 单体战术法则：护盾拦截与战损判定
@@ -172,9 +178,7 @@ class CardEngine:
         # ⚙️ 核心解析区：挨个执行标签
         # ==========================================
         target_name = target_data.get("name", "目标") if target_data else "目标"
-
         for tag in tags:
-            
             if tag.startswith("steal:"):
                 amount = int(tag.split(":")[1])
                 actual_steal = min(amount, max(0, target_data.get("total_gold", 0)))
@@ -201,13 +205,26 @@ class CardEngine:
                 else:
                     reports.append(f"🌫️ 你试图窃取 {target_name} 的命运牌，但对方当前没有可窃取加成。")
 
+
+
+
+
+
+
+                        
             elif tag.startswith("sac_steal:"):
+
                 _, cost_s, steal_s = tag.split(":")
+
                 cost = int(cost_s)
                 steal_val = int(steal_s)
+                steal_bonus_pct = int(title_effects.get("steal_bonus", 0) or 0)
+                if steal_bonus_pct > 0:
+                    steal_val = int(steal_val * (1 + steal_bonus_pct / 100))
 
                 # 防自爆：至少留 1 金币
                 if source_data.get("total_gold", 0) <= cost:
+
                     reports.append(f"🩸 你想发动【杀敌一千自损八百】掠夺，但金币不足（需要至少 {cost + 1} 金币）！")
                     continue
 
@@ -517,7 +534,7 @@ class CardEngine:
                         self.last_aoe_events.append({
                             "type": "aoe_damage",
                             "target_uid": uid,
-                            "target_name": t_name,
+                                                        "target_name": t_name,
                             "amount": shown_dmg,
                             "blocked": False,
                             "reflected": reflected,
@@ -526,6 +543,7 @@ class CardEngine:
                 reports.append(f"🏹 大军横扫全场！波及目标：{', '.join(hit_logs)}")
 
             # ----------------------------------------
+
             # 🏷️ 词库：aoe_heal (群体随机治疗)
             # ----------------------------------------
             elif tag.startswith("aoe_heal:"):

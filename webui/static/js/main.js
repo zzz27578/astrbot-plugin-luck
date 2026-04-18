@@ -30,8 +30,10 @@ const pageMeta = {
   signin: ['签到配置', '事件池、运势区间与预览集中排布，方便边改边看。'],
   fate: ['命运牌档案', '命运牌、资源图片与编辑器放在一起，减少来回跳转。'],
   cards: ['功能牌档案', '竖版卡片展示，按类型快速查看并编辑功能牌。'],
+  titles: ['称号档案', '配置称号的获取条件、效果与说明，支持按方案独立维护。'],
   stats: ['数据统计', '按方案查看群组、用户与持牌排行。'],
 };
+
 
 const rarityLabelMap = { 1: '普通', 2: '稀有', 3: '史诗', 4: '传说', 5: '神话' };
 const typeLabelMap = { attack: '攻击', heal: '辅助', defense: '防御' };
@@ -196,13 +198,17 @@ function ensureRuntime() {
     public_duel_max_stake: 200,
     enable_rarity_dedup: true,
     rarity_mode: 'default',
+    max_equipped_titles: 3,
     custom_rarity_weights: { rarity_1: 30, rarity_2: 30, rarity_3: 28, rarity_4: 11, rarity_5: 1 },
     economy_settings: { draw_probability: 5, free_daily_draw: 1, draw_cost: 20, pity_threshold: 10 }
   };
   c.func_cards_settings.custom_rarity_weights ||= { rarity_1: 30, rarity_2: 30, rarity_3: 28, rarity_4: 11, rarity_5: 1 };
   c.func_cards_settings.economy_settings ||= { draw_probability: 5, free_daily_draw: 1, draw_cost: 20, pity_threshold: 10 };
+  c.func_cards_settings.max_equipped_titles ||= 3;
   state.runtimeConfig = c;
 }
+
+
 
 function setDeep(obj, path, value) {
   const keys = path.split('.');
@@ -247,16 +253,25 @@ async function loadCards() {
   if (a.ok) state.funcCards = a.cards || [];
   if (b.ok) state.images = b.files || [];
 }
+async function loadTitles() {
+  const res = await apiGet('/api/titles');
+  if (res.ok) {
+    state.titles = res.titles || [];
+    state.titleCatalog = res.catalog || { conditions: [], effects: [] };
+  }
+}
 async function loadStats() {
   const res = await apiGet('/api/user_stats');
   if (res.ok) state.stats = res.stats || { total_groups: 0, total_users: 0, card_holders: {}, groups: [] };
 }
 async function refreshActiveProfileData() {
-  await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadStats()]);
+  await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadTitles(), loadStats()]);
 }
 async function refreshProfilesAndStats() {
   await Promise.all([loadProfiles(), loadStats()]);
 }
+
+
 
 async function loadAll(showMessage = false) {
   try {

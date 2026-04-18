@@ -53,12 +53,13 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     """处理 /luck 运势 逻辑 (彻底同步精准爆率)"""
     user_id = event.get_sender_id()
     user_name = event.get_sender_name()
-    
+
     today_dt = datetime.now()
     today = today_dt.strftime("%Y-%m-%d")
     yesterday = (today_dt - timedelta(days=1)).strftime("%Y-%m-%d")
 
     user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
     func_cards_enabled = config.get("func_cards_settings", {}).get("enable", True)
 
     if user_data.get("last_date") == today:
@@ -67,22 +68,19 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
         return
 
     titles = user_data.setdefault("titles", [])
-    lost_title = False
-    
+    equipped_titles = user_data.setdefault("equipped_titles", [])
+
     if user_data.get("last_date") == yesterday:
         user_data["consecutive_sign_ins"] = user_data.get("consecutive_sign_ins", 0) + 1
     else:
-        user_data["consecutive_sign_ins"] = 1 
-        if "勤勉之人" in titles:
-            titles.remove("勤勉之人")
-            lost_title = True
-            
-    consec_days = user_data["consecutive_sign_ins"]
+        user_data["consecutive_sign_ins"] = 1
 
+    consec_days = user_data["consecutive_sign_ins"]
     luck_val = random.randint(1, 100)
     user_data["today_luck_value"] = luck_val
     user_data["last_date"] = today
-    
+    user_data["total_sign_in_days"] = int(user_data.get("total_sign_in_days", 0) or 0) + 1
+
     base_reward = (luck_val - 1) // 10 + 1
     total_reward = base_reward
 
@@ -96,43 +94,37 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     streak_bonus_str = ""
     if consec_days > 3:
         total_reward += 5
-        streak_bonus_str = f" (含连签+5)"
-        
-    title_str = ""
-    if consec_days >= 7 and "勤勉之人" not in titles:
-        titles.append("勤勉之人")
-        if func_cards_enabled:
-            title_str = "\n🏅 达成伟业！获得称号：【勤勉之人】(特权：抽卡爆率永久+5%)"
-        else:
-            title_str = "\n🏅 达成伟业！获得称号：【勤勉之人】"
-    elif lost_title:
-        title_str = "\n🥀 连续签到中断... 天道收回了你的称号【勤勉之人】"
+        streak_bonus_str = " (含连签+5)"
 
-    # 善恶称号自动同步
-    karma_title_events = TitleEngine.sync_karma_titles(user_data)
-    for action, t_name in karma_title_events:
-        if action == "gained":
-            title_str += f"\n🏅 达成伟业！获得称号：【{t_name}】"
-            if t_name == "行善之人" and func_cards_enabled:
-                title_str += "（特权：抽卡爆率永久+5%）"
-            elif t_name == "邪恶之人":
-                title_str += "（特权：攻击牌命中额外获得10金币）"
-        else:
-            title_str += f"\n🥀 善恶流转... 称号【{t_name}】已撤销。"
+    sync_events = TitleEngine.sync_titles(user_data, config)
+    if not equipped_titles and titles:
+        max_slots = TitleEngine.get_max_equipped_titles(config)
+        user_data["equipped_titles"] = titles[:max_slots]
+
+    title_effects = TitleEngine.calculate_effects(user_data, config)
+    sign_bonus = int(title_effects.get("sign_in_gold_bonus", 0) or 0)
+    if sign_bonus:
+        total_reward += max(0, (total_reward * sign_bonus) // 100)
+
+    title_str = ""
+    for line in TitleEngine.format_title_event_lines(sync_events, config):
+        title_str += f"\n{line}"
 
     user_data["total_gold"] += total_reward
     await bank.save_user_data()
 
-    # 💡 核心修复：直接从传入的 config 字典中抓取你配置好的基础爆率！
     eco_cfg = config.get("func_cards_settings", {}).get("economy_settings", {})
     base_prob = eco_cfg.get("draw_probability", 5)
-    
+
     luck_mod = 0
-    if 51 <= luck_val <= 70: luck_mod = 2
-    elif 71 <= luck_val <= 90: luck_mod = 5
-    elif 91 <= luck_val <= 100: luck_mod = 10
-    
-    title_mod = TitleEngine.calculate_total_bonus_prob(titles)
+    if 51 <= luck_val <= 70:
+        luck_mod = 2
+    elif 71 <= luck_val <= 90:
+        luck_mod = 5
+    elif 91 <= luck_val <= 100:
+        luck_mod = 10
+
+    title_mod = TitleEngine.calculate_total_bonus_prob(user_data, config)
     total_prob = base_prob + luck_mod + title_mod
 
     current_rank = await calculate_rank(bank, user_id)
@@ -148,18 +140,24 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
         if pool:
             comment = random.choice(pool)
     if not comment:
-        if luck_val >= 91: comment = "天命之子！鸿运当头，此时不抽更待何时！" if func_cards_enabled else "天命之子！鸿运当头，今日诸事皆宜。"
-        elif luck_val >= 71: comment = "大吉。如有神助，爆率飙升。" if func_cards_enabled else "大吉。如有神助，宜乘势而为。"
-        elif luck_val >= 51: comment = "小吉。灵力涌动，爆率提升。" if func_cards_enabled else "小吉。灵力涌动，稳中有进。"
-        else: comment = "平平无奇。宜蛰伏蓄锐，莫生事端。"
+        if luck_val >= 91:
+            comment = "天命之子！鸿运当头，此时不抽更待何时！" if func_cards_enabled else "天命之子！鸿运当头，今日诸事皆宜。"
+        elif luck_val >= 71:
+            comment = "大吉。如有神助，爆率飙升。" if func_cards_enabled else "大吉。如有神助，宜乘势而为。"
+        elif luck_val >= 51:
+            comment = "小吉。灵力涌动，爆率提升。" if func_cards_enabled else "小吉。灵力涌动，稳中有进。"
+        else:
+            comment = "平平无奇。宜蛰伏蓄锐，莫生事端。"
 
     extra_line = ""
     if func_cards_enabled:
         extra_line = f"\n📈 今日精准出金率：{total_prob}% (基础{base_prob}% +运势{luck_mod}% +称号{title_mod}%)"
+    if sign_bonus:
+        extra_line += f"\n🏅 签到称号加成：+{sign_bonus}%"
 
     msg = (
         f"🔮 【{user_name} 的命运星象】\n"
-        f"🎲 运势：{luck_val}/100{' · '+rule_label if rule_label else ''} (+{total_reward}{streak_bonus_str})\n"
+        f"🎲 运势：{luck_val}/100{' · ' + rule_label if rule_label else ''} (+{total_reward}{streak_bonus_str})\n"
         f"💰 总金币：{user_data['total_gold']} (第 {current_rank} 位)\n"
         f"📅 连续签到：{consec_days} 天{title_str}\n"
         f"✅ 宜：{good_thing}\n"
@@ -169,6 +167,7 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
         f"{extra_line}"
     )
     yield event.plain_result(msg)
+
 
 # (排行榜逻辑保持不变，统一修改 name)
 async def handle_leaderboard(event: AstrMessageEvent, bank, board_length: int = 10):

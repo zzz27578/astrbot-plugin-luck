@@ -1,0 +1,106 @@
+[
+  {
+    "id": "diligent_signer",
+    "name": "勤勉之人",
+    "category": "签到",
+    "desc": "连续签到 7 天以上获得。天道酬勤，功能牌爆率提升。",
+    "allow_loss": true,
+    "conditions": [
+      {"type": "sign_in_consecutive", "operator": ">=", "value": 7}
+    ],
+    "effects": [
+      {"type": "func_draw_prob", "value": 5}
+    ]
+  },
+  {
+    "id": "kind_hearted",
+    "name": "行善之人",
+    "category": "善恶",
+    "desc": "善值达到 5 点以上获得。心存善念，功能牌爆率提升。",
+    "allow_loss": true,
+    "conditions": [
+      {"type": "karma_good", "operator": ">=", "value": 5}
+    ],
+    "effects": [
+      {"type": "func_draw_prob", "value": 5}
+    ]
+  },
+  {
+    "id": "evil_one",
+    "name": "邪恶之人",
+    "category": "善恶",
+    "desc": "恶值达到 5 点以上获得。佩戴时，攻击成功可额外获得金币。",
+    "allow_loss": true,
+    "conditions": [
+      {"type": "karma_evil", "operator": "<=", "value": -5}
+    ],
+    "effects": [
+      {"type": "attack_gold_bonus", "value": 10}
+    ]
+  },
+  {
+    "id": "fated_one",
+    "name": "天命之子",
+    "category": "命运牌",
+    "desc": "单次命运牌获得 25 金币以上时解锁。佩戴时命运牌每日次数 +1。",
+    "allow_loss": false,
+    "conditions": [
+      {"type": "fate_card_gold", "operator": ">=", "value": 25}
+    ],
+    "effects": [
+      {"type": "fate_draw_bonus", "value": 1}
+    ]
+  },
+  {
+    "id": "warlord",
+    "name": "乱世枭雄",
+    "category": "战斗",
+    "desc": "累计攻击成功 20 次。佩戴时，偷取类收益更强。",
+    "allow_loss": false,
+    "conditions": [
+      {"type": "attack_success", "operator": ">=", "value": 20}
+    ],
+    "effects": [
+      {"type": "steal_bonus", "value": 10}
+    ]
+  },
+  {
+    "id": "benevolent_healer",
+    "name": "仁心仁术",
+    "category": "战斗",
+    "desc": "累计治疗成功 10 次。佩戴时，治疗成功额外获得金币。",
+    "allow_loss": false,
+    "conditions": [
+      {"type": "heal_success", "operator": ">=", "value": 10}
+    ],
+    "effects": [
+      {"type": "heal_gold_bonus", "value": 5}
+    ]
+  },
+  {
+    "id": "collector",
+    "name": "收藏家",
+    "category": "收藏",
+    "desc": "累计抽到 20 张功能牌。佩戴时，每日免费抽取次数 +1。",
+    "allow_loss": false,
+    "conditions": [
+      {"type": "func_card_drawn", "operator": ">=", "value": 20}
+    ],
+    "effects": [
+      {"type": "free_draw_bonus", "value": 1}
+    ]
+  },
+  {
+    "id": "battle_hardened",
+    "name": "铜墙铁壁",
+    "category": "战斗",
+    "desc": "累计防御成功 5 次。佩戴时，防御成功额外获得金币。",
+    "allow_loss": false,
+    "conditions": [
+      {"type": "defense_success", "operator": ">=", "value": 5}
+    ],
+    "effects": [
+      {"type": "defense_gold_bonus", "value": 5}
+    ]
+  }
+]

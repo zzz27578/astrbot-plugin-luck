@@ -207,6 +207,15 @@
           }
         }
       },
+      "max_equipped_titles": {
+        "type": "int",
+        "description": "最多可佩戴称号数",
+        "default": 3,
+        "condition": {
+          "enable": true
+        },
+        "hint": "玩家可同时佩戴并生效的称号数量上限。超出的已拥有称号仍会保留，但不会生效。"
+      },
       "economy_settings": {
         "type": "object",
         "description": "💰 抽取与经济参数",

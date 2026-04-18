@@ -54,6 +54,7 @@ def get_base_storage_paths(plugin_name: str = PLUGIN_NAME) -> dict[str, Path]:
         "legacy_func_cards_file": CONFIG_DIR / "func_cards.json",
         "legacy_sign_in_texts_file": CONFIG_DIR / "sign_in_texts.json",
         "legacy_runtime_config_file": CONFIG_DIR / "webui_runtime_config.json",
+        "legacy_titles_config_file": CONFIG_DIR / "titles_config.json",
         "legacy_fate_assets_dir": LEGACY_ASSETS_DIR / "cards",
         "legacy_func_assets_dir": LEGACY_ASSETS_DIR / "func_cards",
     }
@@ -70,6 +71,7 @@ def get_profile_storage_paths(profile_name: str = DEFAULT_PROFILE_NAME, plugin_n
         "func_cards_file": profile_dir / "func_cards.json",
         "sign_in_texts_file": profile_dir / "sign_in_texts.json",
         "runtime_config_file": profile_dir / "webui_runtime_config.json",
+        "titles_config_file": profile_dir / "titles_config.json",
         "fate_assets_dir": profile_dir / "cards",
         "func_assets_dir": profile_dir / "func_cards",
         "func_cards_template_file": CONFIG_DIR / "func_cards.json",
@@ -154,6 +156,7 @@ def ensure_default_profile(plugin_name: str = PLUGIN_NAME) -> dict[str, Path]:
     _copy_file_if_needed(paths["legacy_func_cards_file"], paths["func_cards_file"])
     _copy_file_if_needed(paths["legacy_sign_in_texts_file"], paths["sign_in_texts_file"])
     _copy_file_if_needed(paths["legacy_runtime_config_file"], paths["runtime_config_file"])
+    _copy_file_if_needed(paths["legacy_titles_config_file"], paths["titles_config_file"])
     _copy_dir_if_needed(paths["legacy_fate_assets_dir"], paths["fate_assets_dir"])
     _copy_dir_if_needed(paths["legacy_func_assets_dir"], paths["func_assets_dir"])
     return paths

@@ -203,7 +203,7 @@ class LuckPlugin(Star):
                 yield res
             return
 
-        # ================= 📖 2. 菜单与帮助路由 =================
+                # ================= 📖 2. 菜单与帮助路由 =================
         if cmd_str in ["", "菜单", "功能菜单", "menu"]:
             async for res in self._show_menu(event):
                 yield res
@@ -214,6 +214,7 @@ class LuckPlugin(Star):
             return
 
         # ================= 📜 3. 基础运势签到路由 =================
+
         if re.match(r"^(运势|签到|今日运势|jrrp)$", cmd_str):
             if not current_config.get("sign_in_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 异世界星象观测台今日维护，基础签到暂未开放。")
@@ -222,7 +223,7 @@ class LuckPlugin(Star):
                 yield res
             return
 
-       # ================= 🏆 4. 风云排行榜路由 =================
+        # ================= 🏆 4. 风云排行榜路由 =================
         if re.match(r"^(排行榜|金币榜|财富榜|气运榜|运势榜)$", cmd_str):
             board_length = current_config.get("ui_settings", {}).get("board_length", 10)
             async for res in m_sign_in.handle_leaderboard(event, bank, board_length):
@@ -237,6 +238,25 @@ class LuckPlugin(Star):
             async for res in m_func_cards.handle_karma_leaderboard(event, bank, board_length):
                 yield res
             return
+
+
+        if cmd_str == "查看称号":
+            async for res in m_func_cards.handle_view_titles(event, bank, current_config):
+                yield res
+            return
+
+        if cmd_str.startswith("佩戴称号"):
+            title_name = cmd_str.replace("佩戴称号", "", 1).strip()
+            async for res in m_func_cards.handle_equip_title(event, bank, current_config, title_name):
+                yield res
+            return
+
+        if cmd_str.startswith("卸下称号"):
+            title_name = cmd_str.replace("卸下称号", "", 1).strip()
+            async for res in m_func_cards.handle_unequip_title(event, bank, current_config, title_name):
+                yield res
+            return
+
 
         # ================= 🎴 5. 命运牌抽换路由 =================
         if re.match(r"^(幸运牌|抽牌|抽卡|命运卡牌|换牌|换一张|换一张牌)$", cmd_str):
@@ -326,22 +346,25 @@ class LuckPlugin(Star):
                 yield res
             return
 
-        # ================= 🚫 兜底处理 =================
+                # ================= 🚫 兜底处理 =================
         yield event.plain_result(f"❓ 未知的异界法术：{cmd_str}\n发送「/luck 菜单」查看可用口令。")
 
     def _is_func_cards_command(self, cmd_str: str) -> bool:
+
         """判断是否为功能牌相关指令（用于总开关统一拦截）。"""
         if not cmd_str:
             return False
 
-        exact_cmds = {"善恶榜", "面板", "抽取功能牌", "功能牌", "确认"}
+        exact_cmds = {"善恶榜", "面板", "抽取功能牌", "功能牌", "确认", "查看称号"}
         if cmd_str in exact_cmds:
             return True
 
-        if cmd_str.startswith(("丢弃", "使用", "启用", "停用", "对赌", "加注")):
+        if cmd_str.startswith(("丢弃", "使用", "启用", "停用", "对赌", "加注", "佩戴称号", "卸下称号")):
             return True
 
         return False
+
+
 
    # ---------------- 👑 管理员私有方法 ----------------
     async def _handle_admin_add(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
@@ -418,7 +441,7 @@ class LuckPlugin(Star):
             abs_count = abs(add_count)
             yield event.plain_result(f"⚡ 天道裁决！\n已强行 {action_str} {target_name} {abs_count} 枚金币！\n💰 当前金币：{user_data['total_gold']}")
 
-    # ---------------- 📖 纯文本视图方法 ----------------
+        # ---------------- 📖 纯文本视图方法 ----------------
     async def _show_menu(self, event: AstrMessageEvent):
         current_config = self._last_runtime_config
         sign_enabled = current_config.get("sign_in_settings", {}).get("enable", True)
@@ -448,6 +471,9 @@ class LuckPlugin(Star):
             "【功能牌】",
             f"/luck 抽取功能牌  {'✅' if func_enabled else '❌'}",
             "/luck 面板",
+            "/luck 查看称号",
+            "/luck 佩戴称号 名称",
+            "/luck 卸下称号 名称",
             "/luck 善恶榜",
             "/luck 使用卡名@某人",
             "/luck 使用卡名随机",
@@ -498,6 +524,9 @@ class LuckPlugin(Star):
             f"• 系统状态：{'开启' if func_enabled else '关闭'}",
             "• 抽取功能牌 -> 抽牌",
             "• 面板 -> 看卡槽/状态",
+            "• 查看称号 -> 看已获称号与佩戴状态",
+            "• 佩戴称号 名称 -> 启用称号效果",
+            "• 卸下称号 名称 -> 关闭称号效果",
             "• 使用卡名@目标 -> 出牌",
             "• 启用/停用卡名 -> 防御牌",
             "• 丢弃卡名 -> 清卡槽",

@@ -9,9 +9,11 @@ import shutil
 from pathlib import Path
 from aiohttp import web
 
+from ..core.title_engine import TitleEngine
 from ..core.plugin_storage import (
     DEFAULT_PROFILE_NAME,
     PLUGIN_NAME,
+
     ensure_default_profile,
     ensure_profile_dirs,
     get_base_storage_paths,
@@ -42,7 +44,9 @@ STATIC_DIR = WEBUI_DIR / "static"
 DEFAULT_FUNC_CARDS_FILE = CONFIG_DIR / "func_cards.json"
 DEFAULT_FATE_CARDS_FILE = CONFIG_DIR / "cards_config.json"
 DEFAULT_RUNTIME_CONFIG_FILE = CONFIG_DIR / "webui_runtime_config.json"
+DEFAULT_TITLES_CONFIG_FILE = CONFIG_DIR / "titles_config.json"
 BUILTIN_DEFAULT_COPY_FROM = "__builtin_default__"
+
 BLANK_COPY_FROM = "__blank__"
 
 # 默认签到文案（fallback）
@@ -188,6 +192,11 @@ def _normalize_sign_in_texts(texts) -> dict:
     return result
 
 
+def _normalize_titles_config(titles) -> list:
+    return TitleEngine.normalize_titles(titles)
+
+
+
 def _ensure_profile_seed_data(profile_id: str):
     paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
     ensure_profile_dirs(profile_id, PLUGIN_NAME)
@@ -205,6 +214,12 @@ def _ensure_profile_seed_data(profile_id: str):
 
     if not paths["sign_in_texts_file"].exists() or not isinstance(_read_json(paths["sign_in_texts_file"], {}), dict) or not _read_json(paths["sign_in_texts_file"], {}):
         _atomic_write(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
+
+    if not paths["titles_config_file"].exists() or not isinstance(_read_json(paths["titles_config_file"], []), list):
+        _atomic_write(paths["titles_config_file"], _load_json_template(DEFAULT_TITLES_CONFIG_FILE, []))
+
+
+
 
 
 def _ensure_private_dirs():
@@ -320,7 +335,7 @@ def _default_runtime_config() -> dict:
             "enable": True,
             "daily_draw_limit": 3,
         },
-        "func_cards_settings": {
+                "func_cards_settings": {
             "enable": True,
             "enable_dice_cards": True,
             "enable_public_duel_mode": False,
@@ -342,7 +357,9 @@ def _default_runtime_config() -> dict:
                 "draw_cost": 20,
                 "pity_threshold": 10,
             },
+            "max_equipped_titles": 3,
         },
+
     }
 
 
@@ -352,6 +369,7 @@ def _seed_profile_from_builtin_defaults(paths: dict):
     _atomic_write(paths["func_cards_file"], _load_json_template(DEFAULT_FUNC_CARDS_FILE, []))
     _atomic_write(paths["fate_cards_file"], _load_json_template(DEFAULT_FATE_CARDS_FILE, []))
     _atomic_write(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
+    _atomic_write(paths["titles_config_file"], _load_json_template(DEFAULT_TITLES_CONFIG_FILE, []))
     _atomic_write(paths["runtime_config_file"], merged_runtime)
 
 
@@ -361,7 +379,10 @@ def _seed_blank_profile(paths: dict):
     _atomic_write(paths["func_cards_file"], [])
     _atomic_write(paths["fate_cards_file"], [])
     _atomic_write(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS)
+    _atomic_write(paths["titles_config_file"], _load_json_template(DEFAULT_TITLES_CONFIG_FILE, []))
     _atomic_write(paths["runtime_config_file"], merged_runtime)
+
+
 
 
 # ============================================================================== 
@@ -504,6 +525,27 @@ async def api_save_sign_in_texts(request):
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
+async def api_get_titles(request):
+    try:
+        paths = _get_request_profile_paths(request)
+        titles = _normalize_titles_config(_read_json(paths["titles_config_file"], []))
+        return web.json_response({"ok": True, "titles": titles, "catalog": TitleEngine.get_title_catalog()})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "titles": [], "catalog": TitleEngine.get_title_catalog()}, status=500)
+
+
+async def api_save_titles(request):
+    try:
+        body = await request.json()
+        titles = _normalize_titles_config(body.get("titles", []))
+        paths = _get_request_profile_paths(request)
+        _atomic_write(paths["titles_config_file"], titles)
+        return web.json_response({"ok": True, "titles": titles})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+
 async def api_get_user_stats(request):
     """按方案汇总只读用户数据，供概率分析和持牌检测用"""
     try:
@@ -644,6 +686,7 @@ async def api_create_profile(request):
         ensure_profile_dirs(profile_id, PLUGIN_NAME)
 
         if raw_copy_from == BUILTIN_DEFAULT_COPY_FROM:
+
             _seed_profile_from_builtin_defaults(paths)
         elif raw_copy_from == BLANK_COPY_FROM:
             _seed_blank_profile(paths)
@@ -651,10 +694,12 @@ async def api_create_profile(request):
             source_paths = get_profile_storage_paths(copy_from, PLUGIN_NAME)
             ensure_profile_dirs(copy_from, PLUGIN_NAME)
             _ensure_profile_seed_data(copy_from)
-            for key in ("func_cards_file", "fate_cards_file", "sign_in_texts_file", "runtime_config_file"):
-                data = _read_json(source_paths[key], [] if "cards" in key else {})
+            for key in ("func_cards_file", "fate_cards_file", "sign_in_texts_file", "runtime_config_file", "titles_config_file"):
+                data = _read_json(source_paths[key], [] if "cards" in key or "titles" in key else {})
                 _atomic_write(paths[key], data)
+
             for src_key, dst_key in (("func_assets_dir", "func_assets_dir"), ("fate_assets_dir", "fate_assets_dir")):
+
                 src_dir = source_paths[src_key]
                 dst_dir = paths[dst_key]
                 dst_dir.mkdir(parents=True, exist_ok=True)
@@ -890,7 +935,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     _ensure_profile_seed_data(DEFAULT_PROFILE_NAME)
     app = web.Application()
 
-    # API 路由
+        # API 路由
     app.router.add_get("/api/profile_overview", api_profile_overview)
     app.router.add_post("/api/profiles", api_create_profile)
     app.router.add_post("/api/profile_meta", api_update_profile_meta)
@@ -915,11 +960,15 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/func_cards", api_save_func_cards)
     app.router.add_get("/api/sign_in_texts", api_get_sign_in_texts)
     app.router.add_post("/api/sign_in_texts", api_save_sign_in_texts)
+    app.router.add_get("/api/titles", api_get_titles)
+    app.router.add_post("/api/titles", api_save_titles)
     app.router.add_get("/api/user_stats", api_get_user_stats)
     app.router.add_post("/api/upload_image", api_upload_image)
     app.router.add_get("/api/images", api_list_images)
     app.router.add_delete("/api/images/{filename}", api_delete_image)
     app.router.add_get("/api/check_missing_images", api_check_missing_images)
+
+
 
     # 图片访问
     app.router.add_get("/assets/{filename}", serve_image)

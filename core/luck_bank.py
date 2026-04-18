@@ -4,6 +4,30 @@ import asyncio
 import re
 from datetime import datetime, timedelta
 
+
+TITLE_STATS_DEFAULTS = {
+    "consecutive_sign_ins": 0,
+    "today_luck_value": 0,
+    "today_free_draws": 0,
+    "today_paid_draws": 0,
+    "last_func_draw_date": "",
+    "pure_dice_date": "",
+    "pure_dice_count": 0,
+    "total_sign_in_days": 0,
+    "total_func_cards_drawn": 0,
+    "total_func_cards_used": 0,
+    "total_attack_success": 0,
+    "total_heal_success": 0,
+    "total_defense_success": 0,
+    "total_duel_count": 0,
+    "total_duel_wins": 0,
+    "total_fate_card_draws": 0,
+    "max_fate_card_gold": 0,
+    "titles": [],
+    "equipped_titles": [],
+}
+
+
 class LuckBank:
     def __init__(self, data_path: str):
         """
@@ -113,6 +137,10 @@ class LuckBank:
             if "recent_drawn_cards" not in info:
                 info["recent_drawn_cards"] = []  # 近期出牌记录（去重用）
                 migrated = True
+            for key, default in TITLE_STATS_DEFAULTS.items():
+                if key not in info:
+                    info[key] = default.copy() if isinstance(default, list) else default
+                    migrated = True
             
             # 战报保鲜：只保留最近 3 天
             if self._prune_battle_logs(info, days=3):
@@ -148,7 +176,8 @@ class LuckBank:
                     "karma_value": 0,
                     "func_card_pity_count": 0,
                     "battle_logs": [],
-                    "recent_drawn_cards": []
+                    "recent_drawn_cards": [],
+                    **{k: (v.copy() if isinstance(v, list) else v) for k, v in TITLE_STATS_DEFAULTS.items()}
                 }
                 self._save_data_sync()
             else:
@@ -165,6 +194,8 @@ class LuckBank:
 
                 # 动态更新可能更改的群名片
                 self._data[user_id]["name"] = user_name
+                for key, default in TITLE_STATS_DEFAULTS.items():
+                    self._data[user_id].setdefault(key, default.copy() if isinstance(default, list) else default)
 
                 # 战报保鲜：只保留最近 3 天
                 if self._prune_battle_logs(self._data[user_id], days=3):
@@ -207,6 +238,13 @@ class LuckBank:
             if user_id in self._data:
                 self._data[user_id]["karma_value"] += amount
                 self._save_data_sync()
+
+    async def increment_stat(self, user_id: str, field: str, amount: int = 1):
+        async with self.lock:
+            if user_id not in self._data:
+                return
+            self._data[user_id][field] = int(self._data[user_id].get(field, 0) or 0) + int(amount)
+            self._save_data_sync()
 
     async def log_battle(self, user_id: str, message: str):
         """

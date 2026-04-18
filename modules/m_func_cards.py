@@ -45,6 +45,72 @@ DUEL_CONFIRM_WINDOW_SEC = 60
 DUEL_STAGE_DELAY_SEC = 1.6
 
 
+def _format_title_effect_desc(title_name: str, config: dict | None = None) -> str:
+    info = TitleEngine.get_title_info(title_name, config)
+    effects = TitleEngine.describe_effects(info.get("effects", []))
+    return "；".join(effects) if effects else (info.get("desc") or "无特殊效果")
+
+
+async def handle_view_titles(event: AstrMessageEvent, bank, config: dict):
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+    user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+    sync_events = TitleEngine.sync_titles(user_data, config)
+    owned = user_data.get("titles", [])
+    equipped = set(TitleEngine.get_equipped_titles(user_data, config))
+    max_count = TitleEngine.get_max_equipped_titles(config)
+    lines = [f"🏅 【{user_name} 的称号列表】", f"当前佩戴：{len(equipped)}/{max_count}", f"拥有总称号：{len(owned)}"]
+    if sync_events:
+        lines.extend(TitleEngine.format_title_event_lines(sync_events, config))
+    if not owned:
+        lines.append("你目前还没有获得任何称号。")
+    else:
+        for idx, title_name in enumerate(owned, 1):
+            status = "🟢已佩戴" if title_name in equipped else "⚪未佩戴"
+            lines.append(f"{idx}. [{title_name}] {status}")
+            lines.append(f"   效果：{_format_title_effect_desc(title_name, config)}")
+    await bank.save_user_data()
+    yield event.plain_result("\n".join(lines))
+
+
+async def handle_equip_title(event: AstrMessageEvent, bank, config: dict, title_name: str):
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+    user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+    owned = user_data.get("titles", [])
+    equipped = user_data.get("equipped_titles", [])
+    max_count = TitleEngine.get_max_equipped_titles(config)
+    if title_name not in owned:
+        yield event.plain_result(f"⚠️ 你尚未拥有称号【{title_name}】。可先发送 /luck 查看称号")
+        return
+    if title_name in equipped:
+        yield event.plain_result(f"ℹ️ 称号【{title_name}】已在佩戴中。")
+        return
+    if len(equipped) >= max_count:
+        yield event.plain_result(f"⚠️ 当前最多只能佩戴 {max_count} 个称号，请先卸下其他称号。")
+        return
+    equipped.append(title_name)
+    await bank.save_user_data()
+    yield event.plain_result(f"✅ 已佩戴称号【{title_name}】\n当前：{len(equipped)}/{max_count}")
+
+
+async def handle_unequip_title(event: AstrMessageEvent, bank, config: dict, title_name: str):
+    user_id = event.get_sender_id()
+    user_name = event.get_sender_name()
+    user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+    equipped = user_data.get("equipped_titles", [])
+    if title_name not in equipped:
+        yield event.plain_result(f"ℹ️ 称号【{title_name}】当前未佩戴。")
+        return
+    equipped.remove(title_name)
+    await bank.save_user_data()
+    yield event.plain_result(f"✅ 已卸下称号【{title_name}】")
+
+
+
 def _is_dice_card_by_tags(tags: list) -> bool:
     return any(str(t).startswith("dice_") or str(t).startswith("dice_rule:") for t in (tags or []))
 
@@ -331,19 +397,11 @@ def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: 
     return components
 
 
-def _build_karma_title_report(user_data: dict, func_cards_enabled: bool = True) -> str:
-    lines = []
-    for action, t_name in TitleEngine.sync_karma_titles(user_data):
-        if action == "gained":
-            line = f"\n🏅 达成伟业！获得称号：【{t_name}】"
-            if t_name == "行善之人" and func_cards_enabled:
-                line += "（特权：抽卡爆率永久+5%）"
-            elif t_name == "邪恶之人":
-                line += "（特权：攻击牌命中额外获得10金币）"
-            lines.append(line)
-        else:
-            lines.append(f"\n🥀 善恶流转... 称号【{t_name}】已撤销。")
-    return "".join(lines)
+def _build_karma_title_report(user_data: dict, config: dict | None = None) -> str:
+    sync_events = TitleEngine.sync_titles(user_data, config)
+    lines = TitleEngine.format_title_event_lines(sync_events, config)
+    return "".join(f"\n{line}" for line in lines)
+
 
 
 def _roll_duel_side(dice_engine: DiceEngine, user_data: dict, player_name: str) -> dict:
@@ -367,7 +425,7 @@ def _roll_duel_side(dice_engine: DiceEngine, user_data: dict, player_name: str) 
     }
 
 
-async def _resolve_public_duel_result(bank, session: dict) -> dict:
+async def _resolve_public_duel_result(bank, session: dict, config: dict) -> dict:
     challenger_uid = session["challenger_uid"]
     target_uid = session["target_uid"]
     challenger_name = session["challenger_name"]
@@ -387,15 +445,21 @@ async def _resolve_public_duel_result(bank, session: dict) -> dict:
     if c_final > t_final:
         transfer = min(stake, max(0, target_data.get("total_gold", 0)))
         target_data["total_gold"] -= transfer
-        challenger_data["total_gold"] += transfer
-        result_line = f"🏆 {challenger_name} 一把掀翻赌桌，卷走 {transfer} 金币！"
+        c_bonus_pct = int(TitleEngine.calculate_effects(challenger_data, config).get("duel_stake_bonus", 0) or 0)
+        bonus_gold = int(transfer * c_bonus_pct / 100) if c_bonus_pct > 0 else 0
+        challenger_data["total_gold"] += (transfer + bonus_gold)
+        bonus_msg = f"（含称号加成 +{bonus_gold}）" if bonus_gold > 0 else ""
+        result_line = f"🏆 {challenger_name} 一把掀翻赌桌，卷走 {transfer}{bonus_msg} 金币！"
         winner_uid = challenger_uid
         loser_uid = target_uid
     elif t_final > c_final:
         transfer = min(stake, max(0, challenger_data.get("total_gold", 0)))
         challenger_data["total_gold"] -= transfer
-        target_data["total_gold"] += transfer
-        result_line = f"🏆 {target_name} 当场反杀，反卷 {transfer} 金币！"
+        t_bonus_pct = int(TitleEngine.calculate_effects(target_data, config).get("duel_stake_bonus", 0) or 0)
+        bonus_gold = int(transfer * t_bonus_pct / 100) if t_bonus_pct > 0 else 0
+        target_data["total_gold"] += (transfer + bonus_gold)
+        bonus_msg = f"（含称号加成 +{bonus_gold}）" if bonus_gold > 0 else ""
+        result_line = f"🏆 {target_name} 当场反杀，反卷 {transfer}{bonus_msg} 金币！"
         winner_uid = target_uid
         loser_uid = challenger_uid
     else:
@@ -403,6 +467,7 @@ async def _resolve_public_duel_result(bank, session: dict) -> dict:
         result_line = "🤝 双方点数相同，赌桌僵住，这一局和了。"
         winner_uid = ""
         loser_uid = ""
+
 
     await bank.save_user_data()
 
@@ -426,9 +491,10 @@ async def calculate_rank(bank, user_id):
     return 999
 
 
-async def _resolve_duel(bank, session: dict, is_active_accept: bool) -> str:
+async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dict) -> str:
     """执行一场骰子对赌并返回播报文本。"""
     challenger_uid = session["challenger_uid"]
+
     target_uid = session["target_uid"]
     challenger_name = session["challenger_name"]
     target_name = session["target_name"]
@@ -469,25 +535,32 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool) -> str:
         reroll_msgs.append(f"🍀 {target_name} 触发【天命重投】！重投后点数：{t_final}")
 
     # 结算：平局不转移；纯水局（stake<=0）只播报胜负
-    result_line = ""
+        result_line = ""
     if c_final > t_final:
         if stake <= 0:
             result_line = f"🏆 {challenger_name} 胜出！"
         else:
             transfer = min(stake, max(0, target_data.get("total_gold", 0)))
             target_data["total_gold"] -= transfer
-            challenger_data["total_gold"] += transfer
-            result_line = f"🏆 {challenger_name} 胜出，卷走 {transfer} 金币！"
+            c_bonus_pct = int(TitleEngine.calculate_effects(challenger_data, config).get("duel_stake_bonus", 0) or 0)
+            bonus_gold = int(transfer * c_bonus_pct / 100) if c_bonus_pct > 0 else 0
+            challenger_data["total_gold"] += (transfer + bonus_gold)
+            bonus_msg = f"（含加成+{bonus_gold}）" if bonus_gold > 0 else ""
+            result_line = f"🏆 {challenger_name} 胜出，卷走 {transfer}{bonus_msg} 金币！"
     elif t_final > c_final:
         if stake <= 0:
             result_line = f"🏆 {target_name} 反杀成功！"
         else:
             transfer = min(stake, max(0, challenger_data.get("total_gold", 0)))
             challenger_data["total_gold"] -= transfer
-            target_data["total_gold"] += transfer
-            result_line = f"🏆 {target_name} 反杀成功，反卷 {transfer} 金币！"
+            t_bonus_pct = int(TitleEngine.calculate_effects(target_data, config).get("duel_stake_bonus", 0) or 0)
+            bonus_gold = int(transfer * t_bonus_pct / 100) if t_bonus_pct > 0 else 0
+            target_data["total_gold"] += (transfer + bonus_gold)
+            bonus_msg = f"（含加成+{bonus_gold}）" if bonus_gold > 0 else ""
+            result_line = f"🏆 {target_name} 反杀成功，反卷 {transfer}{bonus_msg} 金币！"
     else:
         result_line = "🤝 双方点数相同，本局和局。"
+
 
     await bank.save_user_data()
 
@@ -788,7 +861,9 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
     await bank.save_user_data()
     remain = max(0, daily_limit - int(user_data.get("pure_dice_count", 0)))
 
-    duel_result = await _resolve_public_duel_result(bank, session)
+    duel_result = await _resolve_public_duel_result(bank, session, config)
+
+
     challenger_name = session["challenger_name"]
     target_name = session["target_name"]
     stake = duel_result["stake"]
@@ -876,15 +951,24 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict):
         f"💰 金币总量：{gold} (位阶：第 {rank} 位)",
         f"⚖️ 善恶业报：{karma_str}"
     ]
-    
+
     titles = user_data.get("titles", [])
+    equipped_titles = set(TitleEngine.get_equipped_titles(user_data, config))
+    max_titles = TitleEngine.get_max_equipped_titles(config)
     if not titles:
         lines.append("🏅 当前称号：无名之辈")
     else:
-        lines.append("🏅 【拥有称号】")
+        lines.append(f"🏅 【称号】 已佩戴 {len(equipped_titles)}/{max_titles} · 共拥有 {len(titles)}")
         for t in titles:
-            t_info = TitleEngine.get_title_info(t)
-            lines.append(f"  ▪️ {t_info['name']} - {t_info['desc']}")
+            t_info = TitleEngine.get_title_info(t, config)
+            state = "🟢" if t in equipped_titles else "⚪"
+            lines.append(f"  {state} {t_info['name']} - {_format_title_effect_desc(t, config)}")
+
+
+
+
+            
+
             
     lines.append("━━━━━━━━━━━━━━")
     lines.append("🎭 【异界干涉状态】")
@@ -982,12 +1066,13 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict):
     yield event.plain_result("\n".join(lines))
 
 async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
-    # (此函数内部未涉及真名抓取，与之前相同，直接粘贴即可)
     user_id = event.get_sender_id()
     user_name = event.get_sender_name()
     today = datetime.now().strftime("%Y-%m-%d")
 
     user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+
     blocked_by = find_gate_block(user_data, GATE_DRAW_FUNC_CARD)
     if blocked_by:
         msg = format_gate_block_message(
@@ -1001,43 +1086,52 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
     if not cards_config:
         yield event.plain_result("⚠️ 功能牌卡池为空或配置无效，请检查功能牌池数据。")
         return
+
     eco_cfg = config.get("func_cards_settings", {}).get("economy_settings", {})
-    draw_cost = eco_cfg.get("draw_cost", 20)
-    free_daily = eco_cfg.get("free_daily_draw", 1)
-    base_prob = eco_cfg.get("draw_probability", 5)
-    pity_threshold = eco_cfg.get("pity_threshold", 10)
+    draw_cost = int(eco_cfg.get("draw_cost", 20) or 20)
+    free_daily = int(eco_cfg.get("free_daily_draw", 1) or 1)
+    base_prob = int(eco_cfg.get("draw_probability", 5) or 5)
+    pity_threshold = int(eco_cfg.get("pity_threshold", 10) or 10)
+
+    title_effects = TitleEngine.calculate_effects(user_data, config)
+    free_daily += int(title_effects.get("free_draw_bonus", 0) or 0)
+    draw_cost = max(0, draw_cost - int(title_effects.get("draw_cost_discount", 0) or 0))
+    pity_threshold = max(1, pity_threshold - int(title_effects.get("pity_threshold_mod", 0) or 0))
 
     if user_data.get("last_func_draw_date") != today:
         user_data["last_func_draw_date"] = today
         user_data["today_free_draws"] = free_daily
-        user_data["today_paid_draws"] = 0 
-    
+        user_data["today_paid_draws"] = 0
+
     inventory = user_data.get("inventory", [])
     if len(inventory) >= 3:
         yield event.plain_result("⚠️ 你的战术卡槽已满 (3/3)！请先使用或发送「/luck 丢弃 [卡名]」腾出空间。")
         return
 
     is_free = False
-    if user_data.get("today_free_draws", 0) > 0:
+    if int(user_data.get("today_free_draws", 0) or 0) > 0:
         user_data["today_free_draws"] -= 1
         is_free = True
     else:
-        if user_data.get("today_paid_draws", 0) >= 1:
+        if int(user_data.get("today_paid_draws", 0) or 0) >= 1:
             yield event.plain_result("⚠️ 天道法则限制：每天最多只能进行 1 次额外付费抽取。")
             return
         success = await bank.change_gold(user_id, -draw_cost)
         if not success:
             yield event.plain_result(f"📉 金币不足或已坠入深渊！每次额外抽取需要 {draw_cost} 金币。")
             return
-        user_data["today_paid_draws"] = user_data.get("today_paid_draws", 0) + 1
-        
-    luck_val = user_data.get("today_luck_value", 50) 
+        user_data["today_paid_draws"] = int(user_data.get("today_paid_draws", 0) or 0) + 1
+
+    luck_val = int(user_data.get("today_luck_value", 50) or 50)
     luck_mod = 0
-    if 51 <= luck_val <= 70: luck_mod = 2
-    elif 71 <= luck_val <= 90: luck_mod = 5
-    elif 91 <= luck_val <= 100: luck_mod = 10
-    
-    title_mod = TitleEngine.calculate_total_bonus_prob(user_data.get("titles", []))
+    if 51 <= luck_val <= 70:
+        luck_mod = 2
+    elif 71 <= luck_val <= 90:
+        luck_mod = 5
+    elif 91 <= luck_val <= 100:
+        luck_mod = 10
+
+    title_mod = TitleEngine.calculate_total_bonus_prob(user_data, config)
 
     now_ts = int(time.time())
     status_prob_mod = 0
@@ -1046,12 +1140,10 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
             continue
         status_prob_mod += int(st.get("func_draw_prob_mod", 0) or 0)
 
-    final_prob = base_prob + luck_mod + title_mod + status_prob_mod
-    final_prob = max(0, min(100, final_prob))
-    
-    current_pity = user_data.get("func_card_pity_count", 0)
+    final_prob = max(0, min(100, base_prob + luck_mod + title_mod + status_prob_mod))
+    current_pity = int(user_data.get("func_card_pity_count", 0) or 0)
     roll = random.randint(1, 100)
-    
+
     is_hit = False
     if current_pity + 1 >= pity_threshold:
         is_hit = True
@@ -1059,40 +1151,46 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
     elif roll <= final_prob:
         is_hit = True
         hit_reason = f"【星象共鸣·出金率 {final_prob}% 触发！】"
-    
+
     if not is_hit:
-        user_data["func_card_pity_count"] += 1
+        user_data["func_card_pity_count"] = current_pity + 1
         await bank.save_user_data()
         cost_str = f"消耗：免费抽取次数（下次 {draw_cost} 金币）" if is_free else f"消耗：{draw_cost} 金币"
-        yield event.plain_result(f"💨 法阵闪烁了一瞬，随后化为乌有...\n━━━━━━━━\n{cost_str}\n📈 祈愿保底进度：{user_data['func_card_pity_count']}/{pity_threshold}\n💡 当前你的出金率为：{final_prob}% (基础{base_prob}% +运势{luck_mod}% +称号{title_mod}% +状态{status_prob_mod}%)")
+        yield event.plain_result(
+            f"💨 法阵闪烁了一瞬，随后化为乌有...\n━━━━━━━━\n{cost_str}\n📈 祈愿保底进度：{user_data['func_card_pity_count']}/{pity_threshold}\n💡 当前你的出金率为：{final_prob}% (基础{base_prob}% +运势{luck_mod}% +称号{title_mod}% +状态{status_prob_mod}%)"
+        )
         return
 
-    user_data["func_card_pity_count"] = 0 
+    user_data["func_card_pity_count"] = 0
     rarity_map = {1: "⚪ 普通", 2: "🔵 稀有", 3: "🟣 史诗", 4: "🟡 传说", 5: "🔴 神话"}
 
     card = _pick_func_card(cards_config, config, user_data)
     if not card:
         yield event.plain_result("⚠️ 功能牌卡池为空，无法完成抽取。")
         return
+
     actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
-    
-    user_data["inventory"].append({
+    user_data.setdefault("inventory", []).append({
         "card_name": card["card_name"],
         "is_active": False,
         "is_broken": False
     })
+    user_data["total_func_cards_drawn"] = int(user_data.get("total_func_cards_drawn", 0) or 0) + 1
 
-    # 记录近期出牌（同档去重后台逻辑，窗口为最近 _DEDUP_WINDOW 次）
     recent = user_data.setdefault("recent_drawn_cards", [])
     recent.append(card["card_name"])
     if len(recent) > _DEDUP_WINDOW:
         user_data["recent_drawn_cards"] = recent[-_DEDUP_WINDOW:]
 
+    draw_events = TitleEngine.sync_titles(user_data, config)
     await bank.save_user_data()
 
     cost_str = f"消耗：免费抽取次数（下次 {draw_cost} 金币）" if is_free else f"消耗：{draw_cost} 金币"
     text = card.get("description", "一张神秘的战术卡")
-    res_text = f"✨ {hit_reason}\n你从虚空中凝结出了：\n【{actual_rarity_str}】{card['card_name']}\n━━━━━━━━\n📝 {text}\n{cost_str}\n🎴 当前卡槽：{len(user_data['inventory'])}/3"
+    title_hint = ""
+    if draw_events:
+        title_hint = "\n" + "\n".join(TitleEngine.format_title_event_lines(draw_events, config))
+    res_text = f"✨ {hit_reason}\n你从虚空中凝结出了：\n【{actual_rarity_str}】{card['card_name']}\n━━━━━━━━\n📝 {text}\n{cost_str}\n🎴 当前卡槽：{len(user_data['inventory'])}/3{title_hint}"
 
     img_filename = str(card.get("filename", "")).strip()
     img_path = ""
@@ -1112,6 +1210,8 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         if img_filename:
             res_text += f"\n⚠️ 卡图未找到：{img_filename}（已使用纯文本展示）"
         yield event.plain_result(res_text)
+
+
 
 async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: str):
     user_id = event.get_sender_id()
@@ -1161,7 +1261,10 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     target_card_name = match.group(1).strip()
 
     user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+
     blocked_by = find_gate_block(user_data, GATE_USE_CARD)
+
     if blocked_by:
         msg = format_gate_block_message(
             blocked_by,
@@ -1330,31 +1433,45 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             session = dict(PENDING_DUEL)
             _reset_pending_duel()
 
-        # 对赌牌消耗
+                # 对赌牌消耗
         inventory.pop(found_index)
 
-        report_str = await _resolve_duel(bank, session, is_active_accept=accepted)
+        report_str = await _resolve_duel(bank, session, accepted, config)
 
         if user_data.get("last_attack_date") != today:
+
             user_data["last_attack_date"] = today
             user_data["daily_attack_count"] = 1
             karma_report = "\n🩸 【天道法则】今日首次发起攻击，世界线已留下你的气息。"
         else:
+
             user_data["daily_attack_count"] += 1
             user_data["karma_value"] -= 1
             karma_report = "\n💀 【业报积累】今日连续发动攻击，善恶值 -1！"
+
         duel_evil_bonus = TitleEngine.calculate_total_attack_gold_bonus(user_data.get("titles", []))
         if duel_evil_bonus > 0:
+
+
             user_data["total_gold"] += duel_evil_bonus
             karma_report += f"\n😈 【邪恶之人】攻击奖励触发，额外获得 {duel_evil_bonus} 金币！"
-        karma_report += _build_karma_title_report(user_data, (config or {}).get("func_cards_settings", {}).get("enable", True))
+        karma_report += _build_karma_title_report(user_data, config)
+
+
 
         await bank.save_user_data()
         yield event.plain_result(
             f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{len(inventory)}/3"
         )
         return
-    evil_bonus = 0
+
+
+
+
+
+        evil_bonus = 0
+        title_effects = TitleEngine.calculate_effects(user_data, config)
+
     karma_report = ""
     if card_type == "attack":
         if user_data.get("last_attack_date") != today:
@@ -1365,19 +1482,32 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             user_data["daily_attack_count"] += 1
             user_data["karma_value"] -= 1
             karma_report = "\n💀 【业报积累】今日连续发动攻击，善恶值 -1！"
-        # 邪恶之人称号：使用功能牌攻击额外获得金币
-        evil_bonus = TitleEngine.calculate_total_attack_gold_bonus(user_data.get("titles", []))
+
+        evil_bonus = int(title_effects.get("attack_gold_bonus", 0) or 0)
         if evil_bonus > 0:
             user_data["total_gold"] += evil_bonus
-            karma_report += f"\n😈 【邪恶之人】攻击奖励触发，额外获得 {evil_bonus} 金币！"
-            
+            karma_report += f"\n😈 【称号加成】攻击奖励触发，额外获得 {evil_bonus} 金币！"
     elif card_type == "heal" and (target_id != user_id or is_aoe):
         user_data["karma_value"] += 1
         karma_report = "\n👼 【善意涌动】福泽四方，善恶值 +1！"
 
+    user_data["_title_effects"] = title_effects
     engine = CardEngine()
     battle_reports = await engine.execute_tags(user_data, target_data, tags, all_users, user_id)
-    karma_report += _build_karma_title_report(user_data, (config or {}).get("func_cards_settings", {}).get("enable", True))
+    user_data.pop("_title_effects", None)
+
+    user_data["total_func_cards_used"] = int(user_data.get("total_func_cards_used", 0) or 0) + 1
+    if card_type == "attack" and battle_reports:
+        user_data["total_attack_success"] = int(user_data.get("total_attack_success", 0) or 0) + 1
+    elif card_type == "heal" and battle_reports:
+        user_data["total_heal_success"] = int(user_data.get("total_heal_success", 0) or 0) + 1
+        heal_bonus = int(title_effects.get("heal_gold_bonus", 0) or 0)
+        if heal_bonus > 0:
+            user_data["total_gold"] += heal_bonus
+            karma_report += f"\n💚 【称号加成】治疗奖励触发，额外获得 {heal_bonus} 金币！"
+    karma_report += "".join(f"\n{line}" for line in TitleEngine.format_title_event_lines(TitleEngine.sync_titles(user_data, config), config))
+
+
 
     # AOE 施法者使用简报，避免日志过长；被波及者保留精准个人战报
     aoe_chain = None

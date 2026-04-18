@@ -904,10 +904,12 @@ function slugifyTitleId(text) {
 function renderTitleEditorConditions() {
   const wrap = $('#titleConditionList');
   if (!wrap || !state.titleDraft) return;
-  const options = (state.titleCatalog?.conditions || []).map(item => `<option value="${esc(item.key)}">${esc(item.name)}（${esc(item.param || '数值')}）</option>`).join('');
   wrap.innerHTML = state.titleDraft.conditions.map((cond, idx) => `
-    <div class="field-grid" style="grid-template-columns:minmax(0,1.6fr) 160px 140px 88px;gap:10px;align-items:end;margin-top:10px;">
-      <div class="field"><label>条件 ${idx + 1}</label><select class="input" onchange="setTitleConditionField(${idx}, 'type', this.value)">${options.replace(`value=\"${esc(cond.type)}\"`, `value=\"${esc(cond.type)}\" selected`)}</select></div>
+    <div class="field-grid" style="grid-template-columns:minmax(0,1.7fr) 160px 140px 88px;gap:10px;align-items:end;margin-top:10px;">
+      <div class="field">
+        <label>条件 ${idx + 1}</label>
+        <button class="btn" type="button" onclick="openTitleCatalogPicker('condition', ${idx})">[ 选择条件：${esc(titleConditionName(cond.type))} ]</button>
+      </div>
       <div class="field"><label>比较方式</label><select class="input" onchange="setTitleConditionField(${idx}, 'operator', this.value)">
         ${['>=', '>', '==', '<=', '<'].map(op => `<option value="${op}" ${cond.operator === op ? 'selected' : ''}>${titleOperatorName(op)}</option>`).join('')}
       </select></div>
@@ -920,15 +922,18 @@ function renderTitleEditorConditions() {
 function renderTitleEditorEffects() {
   const wrap = $('#titleEffectList');
   if (!wrap || !state.titleDraft) return;
-  const options = (state.titleCatalog?.effects || []).map(item => `<option value="${esc(item.key)}">${esc(item.name)}（${esc(item.param || '数值')}）</option>`).join('');
   wrap.innerHTML = state.titleDraft.effects.map((effect, idx) => `
-    <div class="field-grid" style="grid-template-columns:minmax(0,1.8fr) 160px 88px;gap:10px;align-items:end;margin-top:10px;">
-      <div class="field"><label>效果 ${idx + 1}</label><select class="input" onchange="setTitleEffectField(${idx}, 'type', this.value)">${options.replace(`value=\"${esc(effect.type)}\"`, `value=\"${esc(effect.type)}\" selected`)}</select></div>
+    <div class="field-grid" style="grid-template-columns:minmax(0,2fr) 160px 88px;gap:10px;align-items:end;margin-top:10px;">
+      <div class="field">
+        <label>效果 ${idx + 1}</label>
+        <button class="btn" type="button" onclick="openTitleCatalogPicker('effect', ${idx})">[ 选择效果：${esc(titleEffectName(effect.type))} ]</button>
+      </div>
       <div class="field"><label>数值</label><input class="input" type="number" value="${esc(effect.value ?? 0)}" onchange="setTitleEffectField(${idx}, 'value', this.value)"></div>
       <button class="btn-danger" type="button" onclick="removeTitleEffect(${idx})">删除</button>
     </div>
   `).join('');
 }
+
 
 function setTitleBasicField(field, value) {
   if (!state.titleDraft) return;
@@ -937,15 +942,182 @@ function setTitleBasicField(field, value) {
     return;
   }
   state.titleDraft[field] = value;
-  if (field === 'name' && !($('#titleId')?.dataset?.touched === '1')) {
+  if (field === 'name') {
     state.titleDraft.id = slugifyTitleId(value);
-    if ($('#titleId')) $('#titleId').value = state.titleDraft.id;
   }
 }
 
-function markTitleIdTouched() {
-  const el = $('#titleId');
-  if (el) el.dataset.touched = '1';
+
+function titleCatalogGroup(kind, key) {
+  const groups = kind === 'condition'
+    ? {
+        sign_in_consecutive: '签到成长',
+        sign_in_total: '签到成长',
+        luck_value: '签到成长',
+        karma_good: '善恶与倾向',
+        karma_evil: '善恶与倾向',
+        gold_total: '财富与库存',
+        title_count: '财富与库存',
+        fate_card_gold: '命运牌相关',
+        fate_card_drawn: '命运牌相关',
+        func_card_drawn: '功能牌相关',
+        func_card_used: '功能牌相关',
+        attack_success: '战斗表现',
+        heal_success: '战斗表现',
+        defense_success: '战斗表现',
+        duel_win: '战斗表现',
+        duel_count: '战斗表现',
+      }
+    : {
+        func_draw_prob: '抽卡收益',
+        free_draw_bonus: '抽卡收益',
+        draw_cost_discount: '抽卡收益',
+        pity_threshold_mod: '抽卡收益',
+        fate_draw_bonus: '抽卡收益',
+        attack_gold_bonus: '战斗收益',
+        heal_gold_bonus: '战斗收益',
+        defense_gold_bonus: '战斗收益',
+        steal_bonus: '战斗收益',
+        aoe_range_bonus: '战斗收益',
+        duel_stake_bonus: '战斗收益',
+        sign_in_gold_bonus: '签到收益',
+      };
+  return groups[key] || '其他';
+}
+
+function titleCatalogTip(kind, key) {
+  const tips = {
+    sign_in_consecutive: '适合做连续签到类称号，例如坚持 7 天、30 天。',
+    sign_in_total: '按累计签到天数解锁，适合长期成长型称号。',
+    karma_good: '用于善值路线称号，数值越高越偏正向。',
+    karma_evil: '用于恶值路线称号，数值越高越偏邪道。',
+    fate_card_gold: '检查命运牌单次拿到的最高金币。',
+    fate_card_drawn: '检查累计抽过多少次命运牌。',
+    func_card_drawn: '检查累计抽过多少次功能牌。',
+    func_card_used: '检查累计使用过多少次功能牌。',
+    attack_success: '适合战士、输出型称号。',
+    heal_success: '适合治疗、辅助型称号。',
+    defense_success: '适合护盾、防御型称号。',
+    duel_win: '适合赌徒、决斗王类型称号。',
+    duel_count: '按参与次数累计，不要求每次都赢。',
+    gold_total: '按当前持有金币判断，适合财富类称号。',
+    luck_value: '按今日运势值判断，适合幸运类称号。',
+    title_count: '按已拥有称号数量判断，适合收藏类称号。',
+    func_draw_prob: '提高功能牌爆率，最通用的增益之一。',
+    attack_gold_bonus: '攻击成功时额外获得金币。',
+    heal_gold_bonus: '治疗成功时额外获得金币。',
+    defense_gold_bonus: '防御成功时额外获得金币。',
+    sign_in_gold_bonus: '提升签到时拿到的金币百分比。',
+    fate_draw_bonus: '增加命运牌每日可抽次数。',
+    free_draw_bonus: '增加功能牌每日免费抽牌次数。',
+    draw_cost_discount: '降低功能牌抽卡花费。',
+    pity_threshold_mod: '调整保底阈值，负数通常更强。',
+    steal_bonus: '提升偷取类效果的实际收益。',
+    aoe_range_bonus: '让群体效果额外波及更多目标。',
+    duel_stake_bonus: '提升对赌获胜后的额外金币收益。',
+  };
+  return tips[key] || '这个项目可以直接用于称号配置。';
+}
+
+function renderTitleCatalogPickerList(kind, index, keyword = '') {
+  const wrap = $('#titleCatalogPickerList');
+  if (!wrap) return;
+  const catalog = kind === 'condition' ? (state.titleCatalog?.conditions || []) : (state.titleCatalog?.effects || []);
+  const query = String(keyword || '').trim().toLowerCase();
+  const filtered = catalog.filter(item => {
+    const text = `${item.name || ''} ${item.key || ''} ${titleCatalogGroup(kind, item.key)} ${titleCatalogTip(kind, item.key)}`.toLowerCase();
+    return !query || text.includes(query);
+  });
+  const grouped = filtered.reduce((acc, item) => {
+    const group = titleCatalogGroup(kind, item.key);
+    (acc[group] ||= []).push(item);
+    return acc;
+  }, {});
+  const groupNames = Object.keys(grouped);
+
+  wrap.innerHTML = groupNames.length ? groupNames.map(group => `
+    <div style="margin-bottom:16px;">
+      <div class="panel-title" style="font-size:14px;margin-bottom:8px;">${esc(group)}</div>
+      <div class="archive-grid">
+        ${grouped[group].map(item => `
+          <article class="archive-card func-card rarity-2">
+            <div class="archive-body">
+              <div class="archive-title">${esc(item.name)}</div>
+              <div class="archive-meta">
+                <span class="badge light">${esc(group)}</span>
+                <span class="badge">参数：${esc(item.param || '数值')}</span>
+              </div>
+              <div class="archive-desc">${esc(titleCatalogTip(kind, item.key))}</div>
+              <div class="archive-actions">
+                <button class="btn-strong" type="button" onclick="chooseTitleCatalogItem('${kind}', ${index}, '${esc(item.key)}')">[ 选择这个 ]</button>
+              </div>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    </div>
+  `).join('') : '<div class="empty">没有找到匹配项，换个关键词试试。</div>';
+}
+
+function openTitleCatalogPicker(kind, index) {
+  const isCondition = kind === 'condition';
+  const title = isCondition ? '选择获取条件' : '选择佩戴效果';
+  const note = isCondition
+    ? '先按分组浏览，再用关键词搜索。点中后会自动回到称号编辑器。'
+    : '先按分组浏览，再用关键词搜索。点中后会自动回到称号编辑器。';
+  openDialog(title, `
+    <div>
+      <div class="panel-note" style="margin-bottom:12px;">${note}</div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>搜索关键词</label>
+        <input class="input" id="titleCatalogSearch" placeholder="输入名字、用途，比如：签到、对赌、爆率、群体" oninput="renderTitleCatalogPickerList('${kind}', ${index}, this.value)">
+      </div>
+      <div id="titleCatalogPickerList"></div>
+      <div class="row" style="margin-top:14px;"><button class="btn" type="button" onclick="returnToTitleEditor()">[ 返回编辑器 ]</button></div>
+    </div>`);
+  renderTitleCatalogPickerList(kind, index, '');
+}
+
+
+function chooseTitleCatalogItem(kind, index, key) {
+  if (!state.titleDraft) return;
+  if (kind === 'condition' && state.titleDraft.conditions[index]) {
+    state.titleDraft.conditions[index].type = key;
+  }
+  if (kind === 'effect' && state.titleDraft.effects[index]) {
+    state.titleDraft.effects[index].type = key;
+  }
+  returnToTitleEditor();
+}
+
+function returnToTitleEditor() {
+  if (!state.titleDraft) return;
+  openDialog(state.editingTitleIndex >= 0 ? '编辑称号' : '新增称号', titleEditorHtml());
+  renderTitleEditorConditions();
+  renderTitleEditorEffects();
+}
+
+function titleEditorHtml() {
+  return `
+    <div>
+      <div class="field-grid" style="grid-template-columns:1fr 220px;gap:12px;align-items:end;">
+        <div class="field"><label>称号名称</label><input class="input" id="titleName" value="${esc(state.titleDraft?.name || '')}" oninput="setTitleBasicField('name', this.value)"></div>
+        <label class="check" style="margin-bottom:10px;"><input type="checkbox" ${(state.titleDraft?.allow_loss) ? 'checked' : ''} onchange="setTitleBasicField('allow_loss', this.checked)"><span>条件失效时自动撤销</span></label>
+      </div>
+      <div class="field-grid" style="grid-template-columns:1fr;gap:12px;margin-top:12px;align-items:end;">
+        <div class="field"><label>称号分类</label><input class="input" value="${esc(state.titleDraft?.category || '未分类')}" oninput="setTitleBasicField('category', this.value)"></div>
+      </div>
+      <div class="field" style="margin-top:12px;"><label>称号描述</label><textarea class="textarea" rows="3" oninput="setTitleBasicField('desc', this.value)">${esc(state.titleDraft?.desc || '')}</textarea></div>
+      <div class="panel-title" style="font-size:14px;margin-top:16px;">获取条件</div>
+      <div class="panel-note">全部条件同时满足时，玩家才会获得该称号。条件项很多时，点按钮单独弹出选择界面。</div>
+      <div id="titleConditionList"></div>
+      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleCondition()">[ 新增条件 ]</button></div>
+      <div class="panel-title" style="font-size:14px;margin-top:18px;">佩戴效果</div>
+      <div class="panel-note">玩家佩戴该称号后，以下效果会在玩法结算中生效。效果项很多时，点按钮单独弹出选择界面。</div>
+      <div id="titleEffectList"></div>
+      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleEffect()">[ 新增效果 ]</button></div>
+      <div class="row" style="margin-top:16px;"><button class="btn-strong" type="button" onclick="saveTitleEditor()">[ 保存称号 ]</button></div>
+    </div>`;
 }
 
 function addTitleCondition() {
@@ -953,6 +1125,7 @@ function addTitleCondition() {
   state.titleDraft.conditions.push({ type: state.titleCatalog?.conditions?.[0]?.key || 'sign_in_total', operator: '>=', value: 1 });
   renderTitleEditorConditions();
 }
+
 
 function removeTitleCondition(index) {
   if (!state.titleDraft) return;
@@ -988,30 +1161,11 @@ function openTitleEditor(index) {
   state.editingTitleIndex = index;
   state.titleDraft = cloneTitleDraft(index >= 0 ? state.titles[index] : createEmptyTitleDraft());
   if (!state.titleDraft.id) state.titleDraft.id = slugifyTitleId(state.titleDraft.name || 'title');
-  openDialog(index >= 0 ? '编辑称号' : '新增称号', `
-    <div>
-      <div class="field-grid" style="grid-template-columns:1.2fr 1fr;gap:12px;">
-        <div class="field"><label>称号名称</label><input class="input" id="titleName" value="${esc(state.titleDraft.name || '')}" oninput="setTitleBasicField('name', this.value)"></div>
-        <div class="field"><label>内部标识</label><input class="input" id="titleId" data-touched="0" value="${esc(state.titleDraft.id || '')}" oninput="markTitleIdTouched(); setTitleBasicField('id', this.value)"></div>
-      </div>
-      <div class="field-grid" style="grid-template-columns:1fr 220px;gap:12px;margin-top:12px;align-items:end;">
-        <div class="field"><label>称号分类</label><input class="input" value="${esc(state.titleDraft.category || '未分类')}" oninput="setTitleBasicField('category', this.value)"></div>
-        <label class="check" style="margin-bottom:10px;"><input type="checkbox" ${state.titleDraft.allow_loss ? 'checked' : ''} onchange="setTitleBasicField('allow_loss', this.checked)"><span>条件失效时自动撤销</span></label>
-      </div>
-      <div class="field" style="margin-top:12px;"><label>称号描述</label><textarea class="textarea" rows="3" oninput="setTitleBasicField('desc', this.value)">${esc(state.titleDraft.desc || '')}</textarea></div>
-      <div class="panel-title" style="font-size:14px;margin-top:16px;">获取条件</div>
-      <div class="panel-note">全部条件同时满足时，玩家才会获得该称号。</div>
-      <div id="titleConditionList"></div>
-      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleCondition()">[ 新增条件 ]</button></div>
-      <div class="panel-title" style="font-size:14px;margin-top:18px;">佩戴效果</div>
-      <div class="panel-note">玩家佩戴该称号后，以下效果会在玩法结算中生效。</div>
-      <div id="titleEffectList"></div>
-      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleEffect()">[ 新增效果 ]</button></div>
-      <div class="row" style="margin-top:16px;"><button class="btn-strong" type="button" onclick="saveTitleEditor()">[ 保存称号 ]</button></div>
-    </div>`);
+  openDialog(index >= 0 ? '编辑称号' : '新增称号', titleEditorHtml());
   renderTitleEditorConditions();
   renderTitleEditorEffects();
 }
+
 
 async function saveTitleEditor() {
   if (!state.titleDraft) return;
@@ -1027,8 +1181,10 @@ async function saveTitleEditor() {
   if (!payload.conditions.length) return showToast('至少需要一条获取条件。', true);
   if (!payload.effects.length) return showToast('至少需要一条佩戴效果。', true);
 
-  const duplicated = state.titles.some((item, idx) => idx !== state.editingTitleIndex && (item.id === payload.id || item.name === payload.name));
-  if (duplicated) return showToast('称号名称或内部标识重复，请调整。', true);
+    const duplicated = state.titles.some((item, idx) => idx !== state.editingTitleIndex && item.name === payload.name);
+  if (duplicated) return showToast('称号名称重复，请调整。', true);
+
+
 
   if (state.editingTitleIndex >= 0) state.titles[state.editingTitleIndex] = payload;
   else state.titles.push(payload);
@@ -1981,17 +2137,23 @@ Object.assign(window, {
   saveTitles,
   deleteTitle,
     duplicateTitle,
-  openTitleEditor,
-  saveTitleEditor,
-  addTitleCondition,
+    openTitleEditor,
+    returnToTitleEditor,
+    openTitleCatalogPicker,
+    chooseTitleCatalogItem,
+    renderTitleCatalogPickerList,
+    saveTitleEditor,
+
+    addTitleCondition,
+
   removeTitleCondition,
   setTitleConditionField,
   addTitleEffect,
   removeTitleEffect,
-  setTitleEffectField,
+    setTitleEffectField,
   setTitleBasicField,
-  markTitleIdTouched,
   deleteFuncCard,
+
 
   batchAddCards,
   uploadFuncImages,

@@ -15,10 +15,13 @@ const state = {
   stats: { total_groups: 0, total_users: 0, card_holders: {}, groups: [] },
   goodSelected: [],
   badSelected: [],
-  editingFuncIndex: -1,
+    editingFuncIndex: -1,
   editingFuncEffects: [],
   editingFateIndex: -1,
+  editingTitleIndex: -1,
+  titleDraft: null,
   justActivatedProfile: '',
+
   funcFilter: 'all',
 };
 
@@ -803,13 +806,14 @@ function fateItem(card, i) {
 
 // ===== [ page: titles ] ====================================================
 function renderTitles() {
+  const equippedLimit = state.runtimeConfig?.func_cards_settings?.max_equipped_titles ?? 3;
   $('#page-titles').innerHTML = `
     <div class="grid">
       <section class="panel col-12">
         <div class="panel-head">
           <div>
             <div class="panel-title">称号档案</div>
-            <div class="panel-note">在此处配置系统内的各种称号，并设置它们的获取条件和佩戴效果。</div>
+            <div class="panel-note">像配置功能牌一样，用中文可视化维护称号条件、效果与说明。当前最多可佩戴 ${equippedLimit} 个称号。</div>
           </div>
           <div class="row">
             <button class="btn-strong" onclick="openTitleEditor(-1)">[ 新增称号 ]</button>
@@ -824,19 +828,40 @@ function renderTitles() {
   renderHeroAux();
 }
 
+function titleConditionDict() {
+  return Object.fromEntries((state.titleCatalog?.conditions || []).map(item => [item.key, item]));
+}
+
+function titleEffectDict() {
+  return Object.fromEntries((state.titleCatalog?.effects || []).map(item => [item.key, item]));
+}
+
+function titleConditionName(key) {
+  return titleConditionDict()[key]?.name || key || '未设定条件';
+}
+
+function titleEffectName(key) {
+  return titleEffectDict()[key]?.name || key || '未设定效果';
+}
+
+function titleOperatorName(op) {
+  return ({ '>=': '大于等于', '>': '大于', '==': '等于', '<=': '小于等于', '<': '小于' })[op] || op || '>=';
+}
+
 function titleItem(title, i) {
-  const condText = (title.conditions || []).map(c => `${c.type} ${c.operator} ${c.value}`).join(' | ') || '无条件';
-  const effText = (title.effects || []).map(e => `${e.type} +${e.value}`).join(' | ') || '无效果';
+  const condText = (title.conditions || []).map(c => `${titleConditionName(c.type)} ${titleOperatorName(c.operator)} ${c.value}`).join('；') || '无条件';
+  const effText = (title.effects || []).map(e => `${titleEffectName(e.type)} ${Number(e.value || 0) >= 0 ? '+' : ''}${e.value}`).join('；') || '无效果';
   return `
     <article class="archive-card func-card rarity-4">
       <div class="archive-body">
         <div class="archive-title">${esc(title.name || title.id || '未命名称号')}</div>
         <div class="archive-meta">
           <span class="badge light">${esc(title.category || '未分类')}</span>
-          <span class="badge ${title.allow_loss ? 'orange' : ''}">${title.allow_loss ? '可回收' : '永久保留'}</span>
+          <span class="badge">ID: ${esc(title.id || '-')}</span>
+          <span class="badge ${title.allow_loss ? 'orange' : ''}">${title.allow_loss ? '条件失效可撤销' : '永久保留'}</span>
         </div>
-        <div class="archive-tag-row"><span class="badge">条件: ${esc(condText)}</span></div>
-        <div class="archive-tag-row"><span class="badge">效果: ${esc(effText)}</span></div>
+        <div class="archive-tag-row"><span class="badge">条件：${esc(condText)}</span></div>
+        <div class="archive-tag-row"><span class="badge">效果：${esc(effText)}</span></div>
         <div class="archive-desc">${esc(title.desc || '当前还没有描述。')}</div>
         <div class="archive-actions">
           <button class="btn-strong" onclick="openTitleEditor(${i})">[ 编辑 ]</button>
@@ -845,6 +870,173 @@ function titleItem(title, i) {
         </div>
       </div>
     </article>`;
+}
+
+function createEmptyTitleDraft() {
+  const firstCond = state.titleCatalog?.conditions?.[0]?.key || 'sign_in_total';
+  const firstEffect = state.titleCatalog?.effects?.[0]?.key || 'func_draw_prob';
+  return {
+    id: '',
+    name: '',
+    category: '未分类',
+    desc: '',
+    allow_loss: false,
+    conditions: [{ type: firstCond, operator: '>=', value: 1 }],
+    effects: [{ type: firstEffect, value: 5 }],
+  };
+}
+
+function cloneTitleDraft(source) {
+  const draft = JSON.parse(JSON.stringify(source || createEmptyTitleDraft()));
+  draft.conditions = Array.isArray(draft.conditions) && draft.conditions.length ? draft.conditions : [{ type: state.titleCatalog?.conditions?.[0]?.key || 'sign_in_total', operator: '>=', value: 1 }];
+  draft.effects = Array.isArray(draft.effects) && draft.effects.length ? draft.effects : [{ type: state.titleCatalog?.effects?.[0]?.key || 'func_draw_prob', value: 5 }];
+  return draft;
+}
+
+function slugifyTitleId(text) {
+  return String(text || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '_')
+    .replace(/^_+|_+$/g, '') || `title_${Date.now()}`;
+}
+
+function renderTitleEditorConditions() {
+  const wrap = $('#titleConditionList');
+  if (!wrap || !state.titleDraft) return;
+  const options = (state.titleCatalog?.conditions || []).map(item => `<option value="${esc(item.key)}">${esc(item.name)}（${esc(item.param || '数值')}）</option>`).join('');
+  wrap.innerHTML = state.titleDraft.conditions.map((cond, idx) => `
+    <div class="field-grid" style="grid-template-columns:minmax(0,1.6fr) 160px 140px 88px;gap:10px;align-items:end;margin-top:10px;">
+      <div class="field"><label>条件 ${idx + 1}</label><select class="input" onchange="setTitleConditionField(${idx}, 'type', this.value)">${options.replace(`value=\"${esc(cond.type)}\"`, `value=\"${esc(cond.type)}\" selected`)}</select></div>
+      <div class="field"><label>比较方式</label><select class="input" onchange="setTitleConditionField(${idx}, 'operator', this.value)">
+        ${['>=', '>', '==', '<=', '<'].map(op => `<option value="${op}" ${cond.operator === op ? 'selected' : ''}>${titleOperatorName(op)}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>目标值</label><input class="input" type="number" value="${esc(cond.value ?? 0)}" onchange="setTitleConditionField(${idx}, 'value', this.value)"></div>
+      <button class="btn-danger" type="button" onclick="removeTitleCondition(${idx})">删除</button>
+    </div>
+  `).join('');
+}
+
+function renderTitleEditorEffects() {
+  const wrap = $('#titleEffectList');
+  if (!wrap || !state.titleDraft) return;
+  const options = (state.titleCatalog?.effects || []).map(item => `<option value="${esc(item.key)}">${esc(item.name)}（${esc(item.param || '数值')}）</option>`).join('');
+  wrap.innerHTML = state.titleDraft.effects.map((effect, idx) => `
+    <div class="field-grid" style="grid-template-columns:minmax(0,1.8fr) 160px 88px;gap:10px;align-items:end;margin-top:10px;">
+      <div class="field"><label>效果 ${idx + 1}</label><select class="input" onchange="setTitleEffectField(${idx}, 'type', this.value)">${options.replace(`value=\"${esc(effect.type)}\"`, `value=\"${esc(effect.type)}\" selected`)}</select></div>
+      <div class="field"><label>数值</label><input class="input" type="number" value="${esc(effect.value ?? 0)}" onchange="setTitleEffectField(${idx}, 'value', this.value)"></div>
+      <button class="btn-danger" type="button" onclick="removeTitleEffect(${idx})">删除</button>
+    </div>
+  `).join('');
+}
+
+function setTitleBasicField(field, value) {
+  if (!state.titleDraft) return;
+  if (field === 'allow_loss') {
+    state.titleDraft.allow_loss = !!value;
+    return;
+  }
+  state.titleDraft[field] = value;
+  if (field === 'name' && !($('#titleId')?.dataset?.touched === '1')) {
+    state.titleDraft.id = slugifyTitleId(value);
+    if ($('#titleId')) $('#titleId').value = state.titleDraft.id;
+  }
+}
+
+function markTitleIdTouched() {
+  const el = $('#titleId');
+  if (el) el.dataset.touched = '1';
+}
+
+function addTitleCondition() {
+  if (!state.titleDraft) return;
+  state.titleDraft.conditions.push({ type: state.titleCatalog?.conditions?.[0]?.key || 'sign_in_total', operator: '>=', value: 1 });
+  renderTitleEditorConditions();
+}
+
+function removeTitleCondition(index) {
+  if (!state.titleDraft) return;
+  state.titleDraft.conditions.splice(index, 1);
+  if (!state.titleDraft.conditions.length) addTitleCondition();
+  else renderTitleEditorConditions();
+}
+
+function setTitleConditionField(index, field, value) {
+  if (!state.titleDraft?.conditions?.[index]) return;
+  state.titleDraft.conditions[index][field] = field === 'value' ? Number(value || 0) : value;
+}
+
+function addTitleEffect() {
+  if (!state.titleDraft) return;
+  state.titleDraft.effects.push({ type: state.titleCatalog?.effects?.[0]?.key || 'func_draw_prob', value: 5 });
+  renderTitleEditorEffects();
+}
+
+function removeTitleEffect(index) {
+  if (!state.titleDraft) return;
+  state.titleDraft.effects.splice(index, 1);
+  if (!state.titleDraft.effects.length) addTitleEffect();
+  else renderTitleEditorEffects();
+}
+
+function setTitleEffectField(index, field, value) {
+  if (!state.titleDraft?.effects?.[index]) return;
+  state.titleDraft.effects[index][field] = field === 'value' ? Number(value || 0) : value;
+}
+
+function openTitleEditor(index) {
+  state.editingTitleIndex = index;
+  state.titleDraft = cloneTitleDraft(index >= 0 ? state.titles[index] : createEmptyTitleDraft());
+  if (!state.titleDraft.id) state.titleDraft.id = slugifyTitleId(state.titleDraft.name || 'title');
+  openDialog(index >= 0 ? '编辑称号' : '新增称号', `
+    <div>
+      <div class="field-grid" style="grid-template-columns:1.2fr 1fr;gap:12px;">
+        <div class="field"><label>称号名称</label><input class="input" id="titleName" value="${esc(state.titleDraft.name || '')}" oninput="setTitleBasicField('name', this.value)"></div>
+        <div class="field"><label>内部标识</label><input class="input" id="titleId" data-touched="0" value="${esc(state.titleDraft.id || '')}" oninput="markTitleIdTouched(); setTitleBasicField('id', this.value)"></div>
+      </div>
+      <div class="field-grid" style="grid-template-columns:1fr 220px;gap:12px;margin-top:12px;align-items:end;">
+        <div class="field"><label>称号分类</label><input class="input" value="${esc(state.titleDraft.category || '未分类')}" oninput="setTitleBasicField('category', this.value)"></div>
+        <label class="check" style="margin-bottom:10px;"><input type="checkbox" ${state.titleDraft.allow_loss ? 'checked' : ''} onchange="setTitleBasicField('allow_loss', this.checked)"><span>条件失效时自动撤销</span></label>
+      </div>
+      <div class="field" style="margin-top:12px;"><label>称号描述</label><textarea class="textarea" rows="3" oninput="setTitleBasicField('desc', this.value)">${esc(state.titleDraft.desc || '')}</textarea></div>
+      <div class="panel-title" style="font-size:14px;margin-top:16px;">获取条件</div>
+      <div class="panel-note">全部条件同时满足时，玩家才会获得该称号。</div>
+      <div id="titleConditionList"></div>
+      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleCondition()">[ 新增条件 ]</button></div>
+      <div class="panel-title" style="font-size:14px;margin-top:18px;">佩戴效果</div>
+      <div class="panel-note">玩家佩戴该称号后，以下效果会在玩法结算中生效。</div>
+      <div id="titleEffectList"></div>
+      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleEffect()">[ 新增效果 ]</button></div>
+      <div class="row" style="margin-top:16px;"><button class="btn-strong" type="button" onclick="saveTitleEditor()">[ 保存称号 ]</button></div>
+    </div>`);
+  renderTitleEditorConditions();
+  renderTitleEditorEffects();
+}
+
+async function saveTitleEditor() {
+  if (!state.titleDraft) return;
+  const payload = cloneTitleDraft(state.titleDraft);
+  payload.name = String(payload.name || '').trim();
+  payload.id = slugifyTitleId(payload.id || payload.name || 'title');
+  payload.category = String(payload.category || '未分类').trim() || '未分类';
+  payload.desc = String(payload.desc || '').trim();
+  payload.conditions = (payload.conditions || []).filter(item => item?.type).map(item => ({ type: item.type, operator: item.operator || '>=', value: Number(item.value || 0) }));
+  payload.effects = (payload.effects || []).filter(item => item?.type).map(item => ({ type: item.type, value: Number(item.value || 0) }));
+
+  if (!payload.name) return showToast('称号名称不能为空。', true);
+  if (!payload.conditions.length) return showToast('至少需要一条获取条件。', true);
+  if (!payload.effects.length) return showToast('至少需要一条佩戴效果。', true);
+
+  const duplicated = state.titles.some((item, idx) => idx !== state.editingTitleIndex && (item.id === payload.id || item.name === payload.name));
+  if (duplicated) return showToast('称号名称或内部标识重复，请调整。', true);
+
+  if (state.editingTitleIndex >= 0) state.titles[state.editingTitleIndex] = payload;
+  else state.titles.push(payload);
+
+  closeDialog();
+  renderTitles();
+  await saveTitles(false);
+  showToast('称号已保存。');
 }
 
 async function saveTitles(show = true) {
@@ -874,11 +1066,6 @@ async function duplicateTitle(i) {
   showToast('称号已复制。');
 }
 
-// 简单的编辑器模态框占位
-function openTitleEditor(index) {
-  // 为了减少复杂度，可以提示用户在配置文件中精细编辑，这里只做展示。
-  alert('进阶称号规则推荐在 config/titles_config.json 中手动配置。WebUI 仅支持预览和删除等基本操作。功能将在后续版本完善。');
-}
 
 function renderCards() {
   const filter = state.funcFilter || 'all';
@@ -1722,8 +1909,10 @@ async function saveAllData() {
       saveGroupAccess(false),
       saveSignin(false),
       saveFateCards(false),
-      saveFuncCards(false),
+            saveFuncCards(false),
+      saveTitles(false),
     ]);
+
     const failed = results.find(res => !res?.ok);
     if (failed) {
       showToast(failed.error || '部分内容保存失败。', true);
@@ -1791,9 +1980,19 @@ Object.assign(window, {
   saveFuncCards,
   saveTitles,
   deleteTitle,
-  duplicateTitle,
+    duplicateTitle,
   openTitleEditor,
+  saveTitleEditor,
+  addTitleCondition,
+  removeTitleCondition,
+  setTitleConditionField,
+  addTitleEffect,
+  removeTitleEffect,
+  setTitleEffectField,
+  setTitleBasicField,
+  markTitleIdTouched,
   deleteFuncCard,
+
   batchAddCards,
   uploadFuncImages,
   deleteFuncImage,

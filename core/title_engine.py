@@ -26,8 +26,9 @@ class TitleEngine:
         "gold_total": "金币总量",
         "luck_value": "今日运势",
         "title_count": "拥有称号数量",
-    }
+        }
     EFFECT_LABELS = {
+
         "func_draw_prob": "功能牌爆率",
         "attack_gold_bonus": "攻击额外金币",
         "heal_gold_bonus": "治疗额外金币",
@@ -38,8 +39,10 @@ class TitleEngine:
         "draw_cost_discount": "抽卡费用减免",
         "pity_threshold_mod": "保底阈值修正",
         "steal_bonus": "偷取收益加成",
+        "aoe_range_bonus": "群体波及人数增加",
         "duel_stake_bonus": "对赌赢金加成",
     }
+
 
     @classmethod
     def ensure_user_title_fields(cls, user_data: dict) -> dict:
@@ -134,8 +137,10 @@ class TitleEngine:
                 {"key": "free_draw_bonus", "name": "功能牌每日免费次数加成", "param": "数值"},
                 {"key": "draw_cost_discount", "name": "功能牌抽卡费用减免", "param": "数值"},
                 {"key": "pity_threshold_mod", "name": "保底阈值修正", "param": "数值"},
-                {"key": "steal_bonus", "name": "偷取收益加成", "param": "百分比"},
+                                {"key": "steal_bonus", "name": "偷取收益加成", "param": "百分比"},
+                {"key": "aoe_range_bonus", "name": "群体波及人数增加", "param": "人数"},
                 {"key": "duel_stake_bonus", "name": "对赌赢金加成", "param": "百分比"},
+
             ],
         }
 
@@ -325,6 +330,10 @@ class TitleEngine:
                 lines.append(f"保底阈值修正 {value:+d}")
             elif eff_type == "steal_bonus":
                 lines.append(f"偷取收益 +{value}%")
+            elif eff_type == "aoe_range_bonus":
+                lines.append(f"群体波及人数 +{value}")
             elif eff_type == "duel_stake_bonus":
                 lines.append(f"对赌赢金 +{value}%")
+
+
         return lines

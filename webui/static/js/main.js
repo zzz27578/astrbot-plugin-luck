@@ -94,8 +94,9 @@ const effectCatalog = {
     { key: 'dice_rule', name: '骰子规则', params: ['规则键'] },
     { key: 'dice_duel', name: '对赌', params: ['底注'] }
   ],
-  heal: [
-    { key: 'cleanse', name: '净化', params: [] },
+    heal: [
+    { key: 'cleanse', name: '单体净化', params: [] },
+    { key: 'aoe_cleanse', name: '群体净化', params: ['人数'] },
     { key: 'aoe_heal', name: '群体回复', params: ['最小值', '最大值', '人数'] },
     { key: 'luck_bless', name: '好运加护', params: ['小时', '百分比'] },
     { key: 'fate_roulette', name: '命运转盘', params: [] },
@@ -104,8 +105,9 @@ const effectCatalog = {
   defense: [
     { key: 'add_shield', name: '护盾', params: [] },
     { key: 'thorn_armor', name: '反甲', params: ['小时', '反伤比例'] },
-    { key: 'cleanse', name: '净化', params: [] }
+    { key: 'cleanse', name: '单体净化', params: [] }
   ]
+
 };
 
 function effectToTag(effect) {
@@ -123,14 +125,18 @@ function effectToTag(effect) {
     case 'aoe_damage': return `aoe_damage:${p[0] || 0}:${p[1] || 0}:${p[2] || 0}`;
     case 'dice_rule': return `dice_rule:${p[0] || 'all_in_raid_v1'}`;
     case 'dice_duel': return `dice_duel:${p[0] || 20}`;
-    case 'cleanse': return 'cleanse';
+        case 'cleanse': return 'cleanse';
+    case 'aoe_cleanse': return `aoe_cleanse:${p[0] || 1}`;
     case 'aoe_heal': return `aoe_heal:${p[0] || 0}:${p[1] || 0}:${p[2] || 0}`;
+
     case 'luck_bless': return `luck_bless:${p[0] || 0}:${p[1] || 0}`;
     case 'fate_roulette': return 'fate_roulette';
     case 'dice_reroll_lowest_once': return 'dice_reroll_lowest_once';
     case 'add_shield': return 'add_shield';
-    case 'thorn_armor': return `thorn_armor:${p[0] || 0}:${p[1] || 0}`;
+        case 'thorn_armor': return `thorn_armor:${p[0] || 0}:${p[1] || 0}`;
+    case 'raw': return effect.raw || '';
     default: return '';
+
   }
 }
 
@@ -150,8 +156,10 @@ function tagToEffect(tag) {
   if (key === 'aoe_damage') return { key, params: [rest[0] || '', rest[1] || '', rest[2] || ''] };
   if (key === 'dice_rule') return { key, params: [rest.join(':') || 'all_in_raid_v1'] };
   if (key === 'dice_duel') return { key, params: [rest[0] || '20'] };
-  if (key === 'cleanse') return { key, params: [] };
+    if (key === 'cleanse') return { key, params: [] };
+  if (key === 'aoe_cleanse') return { key, params: [rest[0] || '1'] };
   if (key === 'aoe_heal') return { key, params: [rest[0] || '', rest[1] || '', rest[2] || ''] };
+
   if (key === 'luck_bless') return { key, params: [rest[0] || '', rest[1] || ''] };
   if (key === 'fate_roulette') return { key, params: [] };
   if (key === 'dice_reroll_lowest_once') return { key, params: [] };
@@ -184,8 +192,10 @@ function humanizeTag(tag) {
     case 'aoe_damage': return `群攻 ${p[0]}-${p[1]}，最多 ${p[2]} 人`;
     case 'dice_rule': return `骰子规则 ${p[0]}`;
     case 'dice_duel': return `对赌底注 ${p[0]}`;
-    case 'cleanse': return '净化负面状态';
+        case 'cleanse': return '单体净化负面状态';
+    case 'aoe_cleanse': return `群体净化，最多 ${p[0]} 人`;
     case 'aoe_heal': return `群体回复 ${p[0]}-${p[1]}，最多 ${p[2]} 人`;
+
     case 'luck_bless': return `${p[0]} 小时内爆率 +${p[1]}%`;
     case 'fate_roulette': return '命运转盘';
     case 'dice_reroll_lowest_once': return '最低点自动重投一次';
@@ -1960,6 +1970,15 @@ function normalizeEffectsForCard(card) {
 function renderEffectRows(type) {
   const list = state.editingFuncEffects || [];
   return list.map((effect, idx) => {
+    if (effect?.key === 'raw') {
+      return `
+        <div class="effect-row">
+          <div class="field"><label>效果类别</label><div class="tag-preview">未识别原始标签</div></div>
+          <div class="field"><label>效果摘要</label><div class="tag-preview">${esc(effect.raw || '原始标签')}</div></div>
+          <div class="field"><label>原始标签</label><input class="input" value="${esc(effect.raw || '')}" onchange="setEffectRaw(${idx}, this.value)"></div>
+          <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})">[ 删除效果 ]</button></div>
+        </div>`;
+    }
     const options = effectCatalog[type] || [];
     const chosen = options.find(o => o.key === effect.key) || options[0] || { key: '', params: [] };
     const params = chosen.params || [];
@@ -1972,6 +1991,7 @@ function renderEffectRows(type) {
       </div>`;
   }).join('');
 }
+
 
 function effectPreviewHtml() {
   const tags = state.editingFuncEffects.map(effectToTag).filter(Boolean);
@@ -2045,7 +2065,12 @@ function setEffectParam(idx, pidx, val) {
   state.editingFuncEffects[idx].params[pidx] = val;
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
+function setEffectRaw(idx, val) {
+  state.editingFuncEffects[idx] = { key: 'raw', raw: val };
+  $('#effectPreview').innerHTML = effectPreviewHtml();
+}
 async function saveFuncEditor() {
+
   const payload = {
     card_name: $('#funcName')?.value?.trim() || '未命名功能牌',
     type: $('#funcType')?.value || 'attack',
@@ -2185,8 +2210,10 @@ Object.assign(window, {
   addEffectRow,
   removeEffectRow,
   setEffectKey,
-  setEffectParam,
+    setEffectParam,
+  setEffectRaw,
   saveFuncEditor,
+
   saveFuncCards,
   saveTitles,
   deleteTitle,

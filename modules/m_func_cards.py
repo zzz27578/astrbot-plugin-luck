@@ -361,8 +361,12 @@ async def _has_enough_gold(bank, user_id: str, user_name: str, stake: int) -> bo
     return int(user_data.get("total_gold", 0)) >= int(stake)
 
 
-def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: list, is_heal: bool, karma_report: str, slot_len: int):
-    action_line = "🌿 范围援护落下，受益名单：" if is_heal else "🏹 范围轰炸命中，受创名单："
+def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: list, aoe_kind: str, karma_report: str, slot_len: int):
+    action_line = {
+        "heal": "🌿 范围援护落下，受益名单：",
+        "cleanse": "✨ 范围净化扩散，影响名单：",
+        "damage": "🏹 范围轰炸命中，受创名单：",
+    }.get(aoe_kind, "🏹 范围轰炸命中，受创名单：")
     components = [Plain(f"⚡ {user_name} 打出了 [{card_name}]！\n━━━━━━━━\n{action_line}")]
 
     if not aoe_events:
@@ -384,8 +388,11 @@ def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: 
 
             amount = int(aoe_event.get("amount", 0))
             blocked = bool(aoe_event.get("blocked", False))
-            if is_heal:
+            if aoe_kind == "heal":
                 components.append(Plain(f"（+{amount}）"))
+            elif aoe_kind == "cleanse":
+                removed_status = aoe_event.get("removed_status", "")
+                components.append(Plain(f"（净化 {removed_status}）" if removed_status else "（无负面可净化）"))
             elif blocked:
                 components.append(Plain("（🛡️护盾挡下）"))
             else:
@@ -395,6 +402,7 @@ def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: 
     tail += f"\n🎴 当前卡槽：{slot_len}/3"
     components.append(Plain(tail))
     return components
+
 
 
 def _build_karma_title_report(user_data: dict, config: dict | None = None) -> str:
@@ -1357,9 +1365,13 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         else:
             real_target_name = target_name or f"群友({target_id})"
 
-        target_data = await bank.get_user_data(target_id, real_target_name)
+            target_data = await bank.get_user_data(target_id, real_target_name)
+
     else:
         target_id = "AOE"
+        target_data = user_data
+
+
 
     # 🎲 天命重投：主动上状态，不走攻击结算
     if is_reroll_bless:
@@ -1509,11 +1521,17 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
 
 
-    # AOE 施法者使用简报，避免日志过长；被波及者保留精准个人战报
+        # AOE 施法者使用简报，避免日志过长；被波及者保留精准个人战报
     aoe_chain = None
     if is_aoe:
-        is_heal_aoe = any(t.startswith("aoe_heal:") for t in tags)
-        if is_heal_aoe:
+        aoe_kind = "damage"
+
+        if any(t.startswith("aoe_heal:") for t in tags):
+            aoe_kind = "heal"
+        elif any(t.startswith("aoe_cleanse:") for t in tags):
+            aoe_kind = "cleanse"
+
+        if aoe_kind == "heal":
             aoe_events = sorted(
                 engine.last_aoe_events,
                 key=lambda e: 0 if str(e.get("target_uid", "")) == str(user_id) else 1,
@@ -1521,13 +1539,22 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             affected_count = len(aoe_events)
             total_heal = sum(int(e.get("amount", 0)) for e in aoe_events)
             report_str = f"🌿 范围援助命中 {affected_count} 人（含自己），总恢复 {total_heal} 金币。"
+        elif aoe_kind == "cleanse":
+            aoe_events = sorted(
+                engine.last_aoe_events,
+                key=lambda e: 0 if str(e.get("target_uid", "")) == str(user_id) else 1,
+            )
+            affected_count = len(aoe_events)
+            cleaned_count = sum(1 for e in aoe_events if e.get("removed_status"))
+            report_str = f"✨ 群体净化影响 {affected_count} 人（含自己），实际解除 {cleaned_count} 个负面状态。"
         else:
             aoe_events = [e for e in engine.last_aoe_events if e.get("target_uid") != user_id]
             affected_count = len(aoe_events)
             blocked_count = sum(1 for e in aoe_events if e.get("blocked"))
             total_damage = sum(int(e.get("amount", 0)) for e in aoe_events)
             report_str = f"🏹 范围攻击命中 {affected_count} 人（免疫 {blocked_count} 人），总造成 {total_damage} 金币伤害。"
-        aoe_chain = _format_aoe_chain(user_id, user_name, target_card_name, aoe_events, is_heal_aoe, karma_report, len(inventory) - 1)
+        aoe_chain = _format_aoe_chain(user_id, user_name, target_card_name, aoe_events, aoe_kind, karma_report, len(inventory) - 1)
+
     else:
         report_str = "\n".join(battle_reports) if battle_reports else "💨 法术消散在风中，似乎什么也没发生..."
     

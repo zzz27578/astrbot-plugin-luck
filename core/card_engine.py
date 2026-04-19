@@ -125,8 +125,10 @@ class CardEngine:
             if st.get("expire_time", 0) <= now_ts:
                 continue
 
+                        
             ratio = int(st.get("thorn_ratio", 0))
             if ratio <= 0:
+
                 return 0
 
             reflect = max(0, damage_amount * ratio // 100)
@@ -136,14 +138,27 @@ class CardEngine:
                 target_data["total_gold"] += reflect
             return reflect
 
-        return 0
+
+
+    def _remove_one_negative_status(self, target_data: dict) -> dict | None:
+        statuses = target_data.get("statuses", []) if target_data else []
+        for i, st in enumerate(list(statuses)):
+            if not self._is_positive_status(st):
+                return statuses.pop(i)
+        return None
 
     async def execute_tags(self, source_data: dict, target_data: dict, tags: list, all_users: dict = None, source_uid: str = None) -> list:
+
+
+
         reports = []
         self.last_aoe_events = []
+        target_data = target_data or source_data
+
 
 
         is_attack_blocked = False
+
         is_aoe = any(t.startswith("aoe_") for t in tags)
         title_effects = source_data.get("_title_effects", {})
 
@@ -326,17 +341,16 @@ class CardEngine:
                 )
                 reports.append(f"🎭 命星偏移！你抽走了 {target_name} 的 {abs(percent)}% 功能牌爆率，持续 {hours} 小时。")
 
+                        
             elif tag == "cleanse":
-                statuses = target_data.get("statuses", [])
-                cleansed = False
-                for i, st in enumerate(statuses):
-                    if st.get("name") != "无懈可击":
-                        removed_st = statuses.pop(i)
-                        cleansed = True
-                        reports.append(f"✨ 施展神圣净化，解除了 {target_name} 的【{removed_st.get('name')}】状态！")
-                        break
-                if not cleansed:
-                    reports.append("✨ 施展了净化，但目标并未被负面状态缠身，法术消散。")
+                removed_st = self._remove_one_negative_status(target_data)
+                if removed_st:
+                    reports.append(f"✨ 单体净化生效，解除了 {target_name} 的【{removed_st.get('name')}】状态！")
+                else:
+                    reports.append(f"✨ 单体净化释放完成，但 {target_name} 当前没有可驱散的负面状态。")
+
+
+
 
             elif tag.startswith("luck_bless:"):
                 _, hours, percent = tag.split(":")
@@ -571,6 +585,45 @@ class CardEngine:
                         "blocked": False,
                     })
                     
-                reports.append(f"🍑 桃园结义，天降甘霖！受益目标：{', '.join(hit_logs)}")
+                            
+            elif tag.startswith("aoe_cleanse:"):
+                if not all_users or not source_uid:
+                    continue
+                _, count = tag.split(":")
+                count = max(1, int(count))
+
+                valid_targets = [uid for uid in all_users.keys() if uid != source_uid]
+                selected_others = random.sample(valid_targets, min(max(0, count - 1), len(valid_targets)))
+                selected = [source_uid] + selected_others
+
+                hit_logs = []
+
+                for uid in selected:
+                    t_data = all_users[uid]
+                    t_name = t_data.get("name", f"群友({uid})")
+                    removed = self._remove_one_negative_status(t_data)
+                    removed_name = removed.get("name", "") if removed else ""
+                    if removed_name:
+                        hit_logs.append(f"{t_name}(已净化 {removed_name})")
+                        self.last_aoe_events.append({
+                            "type": "aoe_cleanse",
+                            "target_uid": uid,
+                            "target_name": t_name,
+                            "amount": 1,
+                            "blocked": False,
+                            "removed_status": removed_name,
+                        })
+                    else:
+                        hit_logs.append(f"{t_name}(无负面)")
+                        self.last_aoe_events.append({
+                            "type": "aoe_cleanse",
+                            "target_uid": uid,
+                            "target_name": t_name,
+                            "amount": 0,
+                            "blocked": False,
+                            "removed_status": "",
+                        })
+
+                reports.append(f"✨ 群体净化扩散完成！影响目标：{', '.join(hit_logs)}")
 
         return reports

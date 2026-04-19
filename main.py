@@ -388,22 +388,34 @@ class LuckPlugin(Star):
             yield event.plain_result("⚡ 狂妄！你未拥有天道权限，无法篡改世界线！")
             return
 
-        # 2. 解析目标: 必须包含 @ 某人
+                # 2. 解析目标: 支持 @某人 或 全体成员
         target_id = None
         target_name = ""
-        for comp in event.get_messages():
-            if isinstance(comp, At):
-                target_id = str(comp.qq)
-                target_name = f"群友({target_id})"
-                break
-                
-        if not target_id:
-            yield event.plain_result("⚠️ 天道法则施放失败：必须 @ 一个明确的目标玩家。")
-            return
+        raw_text = event.message_str.replace("/luck", "").replace("增加", "", 1).strip()
+        target_scope = "single"
+
+        if raw_text.startswith(("全体成员", "全体", "全员")):
+            target_scope = "all"
+            target_name = "全体成员"
+            for alias in ("全体成员", "全体", "全员"):
+                if raw_text.startswith(alias):
+                    raw_text = raw_text[len(alias):].strip()
+                    break
+        else:
+            for comp in event.get_messages():
+                if isinstance(comp, At):
+                    target_id = str(comp.qq)
+                    target_name = f"群友({target_id})"
+                    break
+
+            if not target_id:
+                yield event.plain_result("⚠️ 天道法则施放失败：必须 @ 一个明确的目标玩家，或使用“全体成员”作为生效范围。")
+                return
+
+            raw_text = re.sub(r"@\S+", "", raw_text).strip()
 
         # 3. 解析类型和数量 (支持正负数)
-        raw_text = event.message_str.replace("/luck", "").replace("增加", "").strip()
-        raw_text = re.sub(r"@\S+", "", raw_text).strip()
+
         
         match = re.search(r"(命运牌|功能牌|金币|气运|运势)\s*(-?\d+)", raw_text)
         if not match:
@@ -413,33 +425,55 @@ class LuckPlugin(Star):
         card_type = match.group(1)
         add_count = int(match.group(2))
 
-        # 4. 调取档案并执行“资产篡改”
-        user_data = await bank.get_user_data(target_id, target_name)
-        
+                # 4. 调取档案并执行“资产篡改”
+        if target_scope == "all":
+            all_users = await bank.get_all_users()
+            if not all_users:
+                yield event.plain_result("⚠️ 当前尚无可发放福利的成员档案。")
+                return
+            target_users = [(uid, await bank.get_user_data(uid, data.get("name", f"群友({uid})"))) for uid, data in all_users.items()]
+        else:
+            target_users = [(target_id, await bank.get_user_data(target_id, target_name))]
+
+        affected_count = len(target_users)
+
         if card_type == "命运牌":
-            current_drawn = user_data.get("last_card_draw_count", 0)
-            user_data["last_card_draw_count"] = current_drawn - add_count
+            for _, user_data in target_users:
+                current_drawn = user_data.get("last_card_draw_count", 0)
+                user_data["last_card_draw_count"] = current_drawn - add_count
             await bank.save_user_data()
-            yield event.plain_result(f"✅ 天道意志降临！\n已为 {target_name} 补充了 {add_count} 次【命运牌】换牌机会！")
+            if target_scope == "all":
+                yield event.plain_result(f"✅ 天道意志降临！\n已为全体成员统一补充 {add_count} 次【命运牌】换牌机会！\n👥 生效人数：{affected_count}")
+            else:
+                yield event.plain_result(f"✅ 天道意志降临！\n已为 {target_name} 补充了 {add_count} 次【命运牌】换牌机会！")
             
         elif card_type == "功能牌":
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术功能牌系统未开启，无法调整功能牌次数。")
                 return
-            current_free = user_data.get("today_free_draws", 0)
-            user_data["today_free_draws"] = current_free + add_count
+            for _, user_data in target_users:
+                current_free = user_data.get("today_free_draws", 0)
+                user_data["today_free_draws"] = current_free + add_count
             await bank.save_user_data()
-            yield event.plain_result(f"✅ 天赐机缘！\n已为 {target_name} 额外发放了 {add_count} 次【功能牌】免费抽取机会！")
+            if target_scope == "all":
+                yield event.plain_result(f"✅ 天赐机缘！\n已为全体成员额外发放 {add_count} 次【功能牌】免费抽取机会！\n👥 生效人数：{affected_count}")
+            else:
+                yield event.plain_result(f"✅ 天赐机缘！\n已为 {target_name} 额外发放了 {add_count} 次【功能牌】免费抽取机会！")
             
         elif card_type in ["金币", "气运", "运势"]:
-            current_gold = user_data.get("total_gold", 0)
-            user_data["total_gold"] = current_gold + add_count
+            for _, user_data in target_users:
+                current_gold = user_data.get("total_gold", 0)
+                user_data["total_gold"] = current_gold + add_count
             await bank.save_user_data()
             
-            # 根据正负数动态改变文案
             action_str = "增加" if add_count >= 0 else "剥夺"
             abs_count = abs(add_count)
-            yield event.plain_result(f"⚡ 天道裁决！\n已强行 {action_str} {target_name} {abs_count} 枚金币！\n💰 当前金币：{user_data['total_gold']}")
+            if target_scope == "all":
+                yield event.plain_result(f"⚡ 天道裁决！\n已对全体成员统一{action_str} {abs_count} 枚金币！\n👥 生效人数：{affected_count}")
+            else:
+                user_data = target_users[0][1]
+                yield event.plain_result(f"⚡ 天道裁决！\n已强行 {action_str} {target_name} {abs_count} 枚金币！\n💰 当前金币：{user_data['total_gold']}")
+
 
         # ---------------- 📖 纯文本视图方法 ----------------
     async def _show_menu(self, event: AstrMessageEvent):

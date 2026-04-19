@@ -411,6 +411,51 @@ def _build_karma_title_report(user_data: dict, config: dict | None = None) -> st
     return "".join(f"\n{line}" for line in lines)
 
 
+def _sync_expired_defense_cards(user_data: dict, config: dict | None = None) -> bool:
+    inventory = user_data.get("inventory", [])
+    if not inventory:
+        return False
+
+        cards_config = load_func_cards_config(config)
+    status_names = {str(st.get("name", "")) for st in user_data.get("statuses", [])}
+    changed = False
+
+    for card in inventory:
+        if card.get("is_broken", False) or not card.get("is_active", False):
+            continue
+
+
+
+        card_name = card.get("card_name", "")
+        card_cfg = next((c for c in cards_config if c.get("card_name") == card_name), None)
+
+        if not card_cfg or card_cfg.get("type") != "defense":
+            continue
+
+
+        required_statuses = []
+        for tag in card_cfg.get("tags", []):
+
+            if tag == "add_shield":
+                required_statuses.append("无懈可击")
+            elif tag.startswith("thorn_armor:"):
+                required_statuses.append("反甲")
+
+        if required_statuses and not any(name in status_names for name in required_statuses):
+            card["is_active"] = False
+            card["is_broken"] = True
+            card["broken_reason"] = "状态到期"
+            changed = True
+
+
+
+
+    return changed
+
+
+
+
+
 
 def _roll_duel_side(dice_engine: DiceEngine, user_data: dict, player_name: str) -> dict:
     roll_ret = dice_engine.roll(count=1, sides=6)
@@ -996,11 +1041,18 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict):
             lines.append(f"  ▪️ [{st.get('name', '未知')}] - {st.get('desc', '')}")
             valid_statuses.append(st)
             
+            
     if len(valid_statuses) != len(statuses):
         user_data["statuses"] = valid_statuses
         await bank.save_user_data()
 
+
+    if _sync_expired_defense_cards(user_data, config):
+        await bank.save_user_data()
+
     if not valid_statuses:
+
+
         lines.append("  🎐 当前周身清明，无任何异样状态。")
     lines.append("━━━━━━━━━━━━━━")
     lines.append("🎲 【骰局状态】")
@@ -1043,7 +1095,7 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict):
     else:
         lines.extend(dice_status_lines)
 
-    lines.append("━━━━━━━━━━━━━━")
+        lines.append("━━━━━━━━━━━━━━")
     inventory = user_data.get("inventory", [])
     slot_count = len(inventory)
     lines.append(f"🎴 【战术卡槽】 ({slot_count}/3)")
@@ -1051,16 +1103,18 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict):
         if i < slot_count:
             card = inventory[i]
             card_name = card.get("card_name", "未知卡牌")
-            
+
             # 💡 战损系统面板渲染
             if card.get("is_broken", False):
-                status_tag = " (💔已销毁)"
+                reason = str(card.get("broken_reason", "") or "").strip()
+                status_tag = f" (💔已销毁：{reason})" if reason else " (💔已销毁)"
             else:
                 status_tag = " (🛡️已启用)" if card.get("is_active", False) else ""
-                
+
             lines.append(f"  {i+1}. [{card_name}]{status_tag}")
         else:
             lines.append(f"  {i+1}. [空]")
+
 
     lines.append("━━━━━━━━━━━━━━")
     lines.append("📜 【近期恩怨纪事（最近3天）】")
@@ -1177,12 +1231,15 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         yield event.plain_result("⚠️ 功能牌卡池为空，无法完成抽取。")
         return
 
-    actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
+        actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
     user_data.setdefault("inventory", []).append({
         "card_name": card["card_name"],
         "is_active": False,
-        "is_broken": False
+        "is_broken": False,
+        "broken_reason": "",
     })
+
+
     user_data["total_func_cards_drawn"] = int(user_data.get("total_func_cards_drawn", 0) or 0) + 1
 
     recent = user_data.setdefault("recent_drawn_cards", [])
@@ -1236,7 +1293,7 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
         yield event.plain_result(f"📭 {user_name}，你的战术卡槽空空如也，无牌可丢。")
         return
 
-    found_index = -1
+        found_index = -1
     for i, card in enumerate(inventory):
         if card.get("card_name") == target_card_name:
             found_index = i
@@ -1245,15 +1302,19 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
     if found_index != -1:
         discarded_card = inventory.pop(found_index)
         await bank.save_user_data()
-        
+
+
         status_note = ""
         if discarded_card.get("is_broken"):
-            status_note = " (清理了废铁)"
+
+            reason = str(discarded_card.get("broken_reason", "") or "").strip()
+            status_note = f" (清理了废铁：{reason})" if reason else " (清理了废铁)"
         elif discarded_card.get("is_active"):
             status_note = " (撤销了护盾阵眼)"
-            
+
         yield event.plain_result(f"🗑️ 你将 [{target_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{len(inventory)}/3")
     else:
+
         yield event.plain_result(f"❓ 你的卡槽中并未发现名为 [{target_card_name}] 的战术牌。")
 
 async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: dict = None):
@@ -1619,8 +1680,11 @@ async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_act
         return
 
     inventory = user_data.get("inventory", [])
+    if _sync_expired_defense_cards(user_data, config):
+        await bank.save_user_data()
 
     for card in inventory:
+
         if card.get("card_name") == target_card_name:
             
             # 💡 战损拦截：破烂的牌不能挂载

@@ -177,12 +177,15 @@ class CardEngine:
                             reports.append("🛡️ 铛！【无懈可击】触发，法术被完美抵挡，护盾碎裂！")
                             is_attack_blocked = True
                             
-                            # 💡 战损联动：去卡槽里把这张盾牌打碎
+                                                        # 💡 战损联动：去卡槽里把这张盾牌打碎
                             for card in target_data.get("inventory", []):
                                 if card.get("card_name") == "无懈可击" and card.get("is_active"):
                                     card["is_active"] = False
                                     card["is_broken"] = True  # 打上破碎标记
+                                    card["broken_reason"] = "护盾被击破"
                                     break
+
+
                             break
                     break
 
@@ -523,7 +526,9 @@ class CardEngine:
                                 if card.get("card_name") == "无懈可击" and card.get("is_active"):
                                     card["is_active"] = False
                                     card["is_broken"] = True
+                                    card["broken_reason"] = "护盾被击破"
                                     break
+
                             break
                             
                     if has_shield:

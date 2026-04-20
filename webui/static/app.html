@@ -5,38 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理中枢 - WULING_SYS</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=1776706514">
+  <link rel="stylesheet" href="/static/styles.css?v=1776707044">
 </head>
 <body class="chassis">
-  <div class="app-container">
+  <!-- 底层环境光与生命雷达网格 (为毛玻璃提供折射细节) -->
+  <div class="ambient-orb orb-1"></div>
+  <div class="ambient-orb orb-2"></div>
+  <div class="radar-grid"></div>
+
+  <div class="app-layout">
     
-    <!-- 明亮、干净、不压抑的全局顶部导航栏 -->
-    <header class="global-top-bar">
-      <div class="top-left">
-        <div class="top-brand">
-          <span class="logo-mark">///</span> 管理中枢
+    <!-- L型光幕之首：顶部横向护盾 -->
+    <header class="glass-top">
+      <div class="top-left-zone">
+        <div class="brand">
+          <span class="logo-mark">///</span>
+          <span class="big-title">管理中枢</span>
         </div>
         <nav class="top-nav">
-          <button class="top-btn active">首页</button>
-          <button class="top-btn">方案管理</button>
-          <button class="top-btn">设置</button>
-          <button class="top-btn">子系统</button>
+          <button class="top-btn active"><span class="btn-text">首页</span></button>
+          <button class="top-btn"><span class="btn-text">方案管理</span></button>
+          <button class="top-btn"><span class="btn-text">设置</span></button>
+          <button class="top-btn"><span class="btn-text">子系统</span></button>
         </nav>
       </div>
-      <div class="top-right">
+      
+      <div class="top-right-zone">
         <span class="chip">Ver. 5.4.0</span>
         <div class="top-status">
           <div class="blink-dot"></div>
           <span>SYS.OP.NOMINAL</span>
         </div>
       </div>
+      <!-- 底部流动的生化能量线 -->
+      <div class="energy-line-h"></div>
     </header>
 
-    <!-- 下方主工作区 -->
-    <div class="main-workspace">
-      
-      <!-- 左侧暗色控制台 (极致瘦身版) -->
-      <aside class="side">
+    <div class="layout-body">
+      <!-- L型光幕之尾：左侧纵向护盾 (极致瘦身) -->
+      <aside class="glass-side">
         <div class="side-nav">
           <div class="nav-title">// SEC_INDEX</div>
           <div class="nav-list">
@@ -81,12 +88,14 @@
         <div class="side-footer">
           <div class="subtle-label">[ ACTIVE_PROFILE ]</div>
           <div class="name" id="currentProfileName">加载中...</div>
-          <div class="helper">SYS_SYNC // 参数自动同步</div>
+          <div class="helper">SYS_SYNC // 参数已同步</div>
         </div>
+        <!-- 右侧流动的生化能量线 -->
+        <div class="energy-line-v"></div>
       </aside>
 
-      <!-- 右侧悬浮数据屏 (与顶部明亮导航融为一体) -->
-      <main class="main-shard">
+      <!-- 核心工作区：嵌合在L型护盾内的明亮数据屏 -->
+      <main class="main-shard clip-bevel-shard">
         <header class="shard-header">
           <div class="shard-header-content">
             <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
@@ -97,10 +106,10 @@
             <div class="hero-aux" id="heroAux"></div>
             <div class="toolbar-actions">
               <button class="btn action-btn outline-btn" id="reloadBtn">
-                  [ RELOAD ]
+                  <span class="btn-text">[ RELOAD ]</span>
               </button>
               <button class="btn action-btn solid-btn" id="saveAllBtn">
-                  SAVE_SYNC <span class="plus-mark">+</span>
+                  <span class="btn-text">SAVE_SYNC <span class="plus-mark">+</span></span>
               </button>
             </div>
           </div>
@@ -116,26 +125,27 @@
           <div class="page" id="page-stats"></div>
         </div>
       </main>
-
     </div>
   </div>
 
+  <!-- 模态框与提示 -->
   <div class="dialog" id="dialog">
     <div class="dialog-backdrop"></div>
-    <div class="dialog-card">
+    <div class="dialog-card clip-bevel-shard">
       <div class="dialog-head">
         <div>
           <div class="tiny">[ TERMINAL_EDITOR ]</div>
           <div class="dialog-title" id="dialogTitle">编辑器</div>
         </div>
-        <button class="btn outline-btn" id="closeDialogBtn">[ CLOSE ]</button>
+        <button class="btn outline-btn" id="closeDialogBtn">
+          <span class="btn-text">[ CLOSE ]</span>
+        </button>
       </div>
       <div id="dialogBody"></div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
-
   <script src="/static/js/main.js"></script>
 </body>
 </html>

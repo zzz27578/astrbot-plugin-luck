@@ -7,10 +7,12 @@
   --accent: #39e5b8;
   --accent-glow: rgba(57, 229, 184, 0.3);
   --on-accent: #002b21;
-  --shard-bg: #f5f7f6;
-  --shard-surface: #ffffff;
-  --shard-border: #d4ddd8;
-  --shard-text: #111413;
+  
+  /* 降压高级灰，不再刺眼纯白 */
+  --shard-bg: #e2e6e4; 
+  --shard-surface: #eaeeec; 
+  --shard-border: #c8d1cc;
+  --shard-text: #1b201e;
   --shard-text-muted: #5e6b64;
   --danger: #d93829;
   --font-headline: 'Space Grotesk', 'Source Han Sans SC', sans-serif;
@@ -77,10 +79,47 @@ body.chassis {
 .subtle-label { font-family: var(--font-headline); color: var(--accent); font-size: 10px; letter-spacing: 2px; }
 .side-footer .name { font-family: var(--font-headline); font-size: 16px; font-weight: 700; margin: 8px 0; color: var(--chassis-text); }
 .side-footer .helper { font-size: 10px; color: var(--chassis-text-muted); font-family: var(--font-headline); }
-.main-shard { flex: 1; margin: 32px 32px 32px 0; background: var(--shard-bg); color: var(--shard-text); display: flex; flex-direction: column; position: relative; z-index: 20; border: 1px solid var(--shard-border); box-shadow: 0 32px 64px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.5); }
-.clip-bevel-shard { clip-path: polygon(32px 0, 100% 0, 100% calc(100% - 32px), calc(100% - 32px) 100%, 0 100%, 0 32px); }
-.shard-header { padding: 32px 48px; border-bottom: 1px solid var(--shard-border); display: flex; justify-content: space-between; align-items: flex-end; background: var(--shard-surface); position: relative; }
-.shard-header::after { content: ''; position: absolute; left: 48px; bottom: -1px; width: 80px; height: 3px; background: var(--chassis-green); }
+.main-shard {
+  flex: 1;
+  /* 取消右侧和底部的边距，让白板无限延展 */
+  margin: 24px 0 0 0;
+  background: var(--shard-bg);
+  color: var(--shard-text);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 20;
+  border-top: 1px solid var(--shard-border);
+  border-left: 1px solid var(--shard-border);
+  /* 左侧加入极度柔和深邃的羽化阴影，抹平割裂感 */
+  box-shadow: -16px 16px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+/* 取消多余的切角，只保留左上角的一点点战术切角 */
+.clip-bevel-shard {
+  clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%, 0 16px);
+}
+.shard-header {
+  padding: 32px 48px;
+  border-bottom: 1px solid var(--shard-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  background: var(--shard-surface);
+  position: relative;
+  /* 头部增加微弱的噪点网格，压暗材质 */
+  background-image: radial-gradient(var(--shard-border) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.shard-header::after {
+  content: '';
+  position: absolute;
+  left: 48px;
+  bottom: -1px;
+  width: 120px;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
 .shard-header-content .kicker { font-family: var(--font-headline); font-size: 10px; color: var(--shard-text-muted); letter-spacing: 3px; margin-bottom: 8px; font-weight: 700; }
 .shard-header-content h1 { font-family: var(--font-headline); font-size: 32px; font-weight: 900; color: var(--shard-text); letter-spacing: -1px; }
 .shard-header-content p { font-size: 13px; color: var(--shard-text-muted); margin-top: 8px; font-weight: 500; }

@@ -5,102 +5,103 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>战术管理中枢 - WULING_SYS</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=1776703566">
+  <link rel="stylesheet" href="/static/styles.css?v=1776704230">
 </head>
-<body>
-  <div class="app">
+<body class="chassis">
+  <div class="app-container">
+    <!-- 左侧控制台（直接融入暗色底座） -->
     <aside class="side">
-      <!-- Top tactical decorations -->
+      <div class="side-header">
+            <!-- Top tactical decorations -->
       <div class="side-top-dec">
         <div class="blink-dot"></div>
         <span>SYS.OP.NOMINAL // UPLINK SECURE</span>
       </div>
 
-      <section class="block brand">
-        <div class="mini">[ ENDFIELD_WULING ARCHIVE ]</div>
-        <div class="big-wrap">
-          <div class="big">管理<br>中枢</div>
-        </div>
-        <div class="row">
+      <div class="brand-area">
+        <div class="mini-tag">[ ENDFIELD_WULING ARCHIVE ]</div>
+        <div class="big-title">管理<br>中枢</div>
+        <div class="version-row">
           <span class="chip">Ver. 5.4.0</span>
-          <span class="chip">[ CORE_TERMINAL ]</span>
+          <span class="chip">[ CORE ]</span>
         </div>
-      </section>
+      </div>
 
-      <section class="block nav">
-        <div class="nav-title">[ SEC_INDEX ]</div>
+            </div><!-- /side-header -->
+      <div class="side-nav">
+        <div class="nav-title">// SEC_INDEX</div>
         <div class="nav-list">
           <button class="nav-btn active" data-page="overview">
-            <div class="nav-btn-dec"></div>
-            总览与方案<small>PROFILE / ACCESS</small>
+            <span class="nav-text">总览与方案</span>
+            <span class="nav-sub">PROFILE / ACCESS</span>
+            <div class="nav-indicator"></div>
           </button>
           <button class="nav-btn" data-page="runtime">
-            <div class="nav-btn-dec"></div>
-            运行配置<small>RUNTIME / PROBABILITY</small>
+            <span class="nav-text">运行配置</span>
+            <span class="nav-sub">RUNTIME / PROBABILITY</span>
+            <div class="nav-indicator"></div>
           </button>
           <button class="nav-btn" data-page="signin">
-            <div class="nav-btn-dec"></div>
-            签到配置<small>SIGN_IN / FORECAST</small>
+            <span class="nav-text">签到配置</span>
+            <span class="nav-sub">SIGN_IN / FORECAST</span>
+            <div class="nav-indicator"></div>
           </button>
           <button class="nav-btn" data-page="fate">
-            <div class="nav-btn-dec"></div>
-            命运牌档案<small>FATE_MATRIX / ASSETS</small>
+            <span class="nav-text">命运牌档案</span>
+            <span class="nav-sub">FATE_MATRIX / ASSETS</span>
+            <div class="nav-indicator"></div>
           </button>
           <button class="nav-btn" data-page="cards">
-            <div class="nav-btn-dec"></div>
-            功能牌档案<small>FUNC_CARDS / EFFECTS</small>
+            <span class="nav-text">功能牌档案</span>
+            <span class="nav-sub">FUNC_CARDS / EFFECTS</span>
+            <div class="nav-indicator"></div>
           </button>
           <button class="nav-btn" data-page="titles">
-            <div class="nav-btn-dec"></div>
-            称号档案<small>TITLES / CONDITIONS</small>
+            <span class="nav-text">称号档案</span>
+            <span class="nav-sub">TITLES / CONDITIONS</span>
+            <div class="nav-indicator"></div>
           </button>
           <button class="nav-btn" data-page="stats">
-            <div class="nav-btn-dec"></div>
-            数据统计<small>DATA_STATS / RANKS</small>
+            <span class="nav-text">数据统计</span>
+            <span class="nav-sub">DATA_STATS / RANKS</span>
+            <div class="nav-indicator"></div>
           </button>
         </div>
-      </section>
+      </div>
 
-      <section class="block current">
+            <div class="side-footer">
         <div class="subtle-label">[ ACTIVE_PROFILE ]</div>
         <div class="name" id="currentProfileName">加载中...</div>
-        <div class="helper">GLOBAL_SYNC // 全局参数自动跟随当前活跃方案同步。</div>
-      </section>
-      <div class="side-edge"></div>
-      <div class="side-bottom-dec">
-         <span>WULING_TECH_SYS // 2026.0</span>
+        <div class="helper">SYS_SYNC // 参数自动跟随当前活跃方案。</div>
       </div>
     </aside>
 
-    <main class="main">
-      <!-- Adding a structural overlay shadow to bridge left and right -->
-      <div class="main-bridge-shadow"></div>
+    <!-- 贯穿左右的基准线，用于视觉缝合 -->
+    <div class="cross-axis-line"></div>
 
-      <div class="main-top-bar">
-         <div class="line-run"></div>
-         <span>DATA_STREAM_ACTIVE /// LOCATION: LOCALHOST</span>
-      </div>
-
-      <section class="hero">
-        <!-- Structural tech pattern in the hero -->
-        <div class="hero-tech-bg"></div>
-        <div class="hero-content">
-          <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
+    <!-- 右侧：悬浮嵌合的数据屏 (Data Shard) -->
+    <main class="main-shard clip-bevel-shard">
+      
+      <!-- 纯净的头部区域，不再有突兀的深色块或白条 -->
+      <header class="shard-header">
+        <div class="shard-header-content">
+                    <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
           <h1 id="heroTitle">总览与方案</h1>
           <p id="heroDesc">管理活跃协议配置与群组访问权限。</p>
         </div>
-        <div class="hero-side">
+        
+        <div class="shard-toolbar">
           <div class="hero-aux" id="heroAux"></div>
-          <div class="toolbar">
-            <button class="btn toolbar-btn refresh-btn tactical-corners" id="reloadBtn">
-                <span class="btn-icon">↻</span> RELOAD
+          <div class="toolbar-actions">
+            <button class="btn action-btn outline-btn" id="reloadBtn">
+                [ RELOAD ]
             </button>
-            <button class="btn btn-strong toolbar-btn save-btn clip-bevel" id="saveAllBtn">
-                SAVE_SYNC <span class="btn-dec">+</span>
+            <button class="btn action-btn solid-btn clip-bevel" id="saveAllBtn">
+                SAVE_SYNC <span class="plus-mark">+</span>
             </button>
           </div>
         </div>
-      </section>
+      </header>
 
       <section class="pages">
         <div class="page active" id="page-overview"></div>
@@ -114,14 +115,15 @@
     </main>
   </div>
 
-  <div class="dialog" id="dialog">
-    <div class="dialog-card clip-bevel-card tactical-corners-lg">
+    <div class="dialog" id="dialog">
+    <div class="dialog-backdrop"></div>
+    <div class="dialog-card clip-bevel-shard">
       <div class="dialog-head">
         <div>
           <div class="tiny">[ TERMINAL_EDITOR ]</div>
           <div class="dialog-title" id="dialogTitle">编辑器</div>
         </div>
-        <button class="btn tactical-corners" id="closeDialogBtn">[ CLOSE ]</button>
+        <button class="btn outline-btn" id="closeDialogBtn">[ CLOSE ]</button>
       </div>
       <div id="dialogBody"></div>
     </div>

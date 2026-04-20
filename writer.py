@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+import os
+
+html = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -89,4 +91,9 @@
 
   <script src="/static/js/main.js"></script>
 </body>
-</html>
+</html>"""
+
+with open('webui/static/app.html', 'w', encoding='utf-8') as f:
+    f.write(html)
+
+print('HTML written.')

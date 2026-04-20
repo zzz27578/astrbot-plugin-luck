@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Operator Roster - ENDFIELD_WULING</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error-container": "#93000a",
+                      "on-secondary-container": "#00705c",
+                      "tertiary-fixed-dim": "#accfb7",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-fixed-dim": "#45ddbc",
+                      "on-secondary": "#ffffff",
+                      "surface-container-highest": "#e1e3e2",
+                      "primary-fixed": "#d0e9d4",
+                      "on-secondary-fixed": "#002019",
+                      "primary-fixed-dim": "#b4cdb8",
+                      "on-primary-container": "#819986",
+                      "error-container": "#ffdad6",
+                      "surface-container-high": "#e6e9e8",
+                      "on-tertiary-fixed": "#012112",
+                      "tertiary": "#001c0e",
+                      "surface-bright": "#f8faf9",
+                      "primary": "#061b0e",
+                      "outline-variant": "#c3c8c1",
+                      "surface-container": "#eceeed",
+                      "on-surface-variant": "#434843",
+                      "secondary-container": "#65f7d5",
+                      "tertiary-fixed": "#c7ebd2",
+                      "on-error": "#ffffff",
+                      "secondary-fixed": "#68fad8",
+                      "inverse-primary": "#b4cdb8",
+                      "on-tertiary": "#ffffff",
+                      "surface-variant": "#e1e3e2",
+                      "on-surface": "#191c1c",
+                      "on-secondary-fixed-variant": "#005142",
+                      "surface-dim": "#d8dada",
+                      "surface-container-low": "#f2f4f3",
+                      "secondary": "#006b58",
+                      "primary-container": "#1b3022",
+                      "surface": "#f8faf9",
+                      "on-tertiary-container": "#799a85",
+                      "on-background": "#191c1c",
+                      "surface-tint": "#4d6453",
+                      "inverse-on-surface": "#eff1f0",
+                      "inverse-surface": "#2e3131",
+                      "on-primary-fixed": "#0b2013",
+                      "tertiary-container": "#123121",
+                      "on-tertiary-fixed-variant": "#2e4d3b",
+                      "on-primary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "background": "#f8faf9",
+                      "outline": "#737973",
+                      "on-primary-fixed-variant": "#364c3c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {},
+              "fontFamily": {
+                      "headline": [
+                              "Space Grotesk"
+                      ],
+                      "body": [
+                              "Inter"
+                      ],
+                      "label": [
+                              "Space Grotesk"
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .clip-bevel {
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+        .clip-bevel-card {
+            clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+        }
+        .ink-wash-bg {
+            background-image: radial-gradient(circle at 50% 50%, rgba(27, 48, 34, 0.03) 0%, transparent 70%);
+        }
+      </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body overflow-hidden h-screen flex flex-col relative ink-wash-bg">
+<!-- TopAppBar -->
+<header class="bg-white/80 backdrop-blur-xl dark:bg-zinc-950/80 docked full-width top-0 z-50 relative">
+<div class="flex justify-between items-center w-full px-6 py-4">
+<div class="flex items-center gap-4">
+<span class="text-xl font-black tracking-tighter text-emerald-950 dark:text-white font-headline">ENDFIELD_WULING</span>
+</div>
+<div class="flex items-center gap-6">
+<!-- Search on right -->
+<div class="relative border-b-2 border-primary w-64 flex items-center group">
+<span class="material-symbols-outlined text-primary text-sm absolute left-0">search</span>
+<input class="w-full bg-transparent border-none focus:ring-0 text-sm font-label uppercase tracking-widest text-primary pl-8 pr-2 py-1 placeholder-outline-variant" placeholder="QUERY_OPERATOR..." type="text"/>
+<span class="text-[10px] font-label text-primary absolute -top-4 left-0">SEC_SEARCH</span>
+</div>
+<div class="flex gap-4">
+<button class="hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors p-2 flex items-center justify-center">
+<span class="material-symbols-outlined text-emerald-950 dark:text-emerald-400">terminal</span>
+</button>
+<button class="hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors p-2 flex items-center justify-center">
+<span class="material-symbols-outlined text-emerald-950 dark:text-emerald-400">notifications_active</span>
+</button>
+<button class="hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors p-2 flex items-center justify-center">
+<span class="material-symbols-outlined text-emerald-950 dark:text-emerald-400">settings</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-emerald-950 h-[2px] w-full absolute bottom-0"></div>
+</header>
+<div class="flex flex-1 overflow-hidden h-full">
+<!-- SideNavBar -->
+<nav class="bg-emerald-950 dark:bg-black h-full w-64 rounded-none border-r-0 flex flex-col py-8 gap-2 shrink-0 z-40 relative hidden md:flex">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container border border-cyan-400/30 flex items-center justify-center overflow-hidden clip-bevel">
+<img alt="Authorized Operator Avatar" class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="close up portrait of a stern operator in dark tactical gear, high contrast lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXK3kMu9cUzeCj3nnFFbVRm4_0lXs2YnyKe0JismtfaLcuAht1uZqKzkSt1FUZ-4v4V5JQn6Hk1YijNDaLGPcB4UmwvT7G90utrYlnY7mV30IoR2FtO_-8rYxU715C3ZoW4u3DhvGQP_qWPJISXo8e7qeV09bnRiHntUDeIf5aqGB1u1kB8Y0AZ6MhGjBtQjJZmm2cmhTN6L0TVyv6Nxo6GV-mcdFxdDjIunJvf_SpT1LOTWhHo0tvC5Y268l62wHG7d696jbm71A"/>
+</div>
+<div>
+<div class="text-cyan-400 font-bold font-headline text-sm tracking-widest uppercase">OPERATOR_LOG</div>
+<div class="text-emerald-100/40 font-label text-[10px] tracking-widest uppercase mt-0.5">STATUS: ENCRYPTED</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-1 flex-1">
+<a class="text-emerald-100/60 hover:text-cyan-400 px-4 py-3 mx-2 font-['Space_Grotesk'] text-[11px] tracking-widest font-medium flex items-center gap-3 hover:bg-emerald-900 dark:hover:bg-zinc-800 transition-all hover:border-l-4 hover:border-cyan-400 hover:pl-6 group" href="#">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+                    DASHBOARD
+                </a>
+<a class="bg-cyan-400 text-emerald-950 font-bold clip-path-bevel px-4 py-3 mx-2 font-['Space_Grotesk'] text-[11px] tracking-widest flex items-center gap-3 clip-bevel relative" href="#">
+<span class="material-symbols-outlined text-[18px] text-emerald-950" style="font-variation-settings: 'FILL' 1;">id_card</span>
+                    CARD_REGISTRY
+                    <div class="absolute right-3 w-1.5 h-1.5 bg-emerald-950 rounded-none"></div>
+</a>
+<a class="text-emerald-100/60 hover:text-cyan-400 px-4 py-3 mx-2 font-['Space_Grotesk'] text-[11px] tracking-widest font-medium flex items-center gap-3 hover:bg-emerald-900 dark:hover:bg-zinc-800 transition-all hover:border-l-4 hover:border-cyan-400 hover:pl-6 group" href="#">
+<span class="material-symbols-outlined text-[18px]">military_tech</span>
+                    TACTICAL_OPS
+                </a>
+<a class="text-emerald-100/60 hover:text-cyan-400 px-4 py-3 mx-2 font-['Space_Grotesk'] text-[11px] tracking-widest font-medium flex items-center gap-3 hover:bg-emerald-900 dark:hover:bg-zinc-800 transition-all hover:border-l-4 hover:border-cyan-400 hover:pl-6 group" href="#">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+                    SECURITY_PROTO
+                </a>
+<a class="text-emerald-100/60 hover:text-cyan-400 px-4 py-3 mx-2 font-['Space_Grotesk'] text-[11px] tracking-widest font-medium flex items-center gap-3 hover:bg-emerald-900 dark:hover:bg-zinc-800 transition-all hover:border-l-4 hover:border-cyan-400 hover:pl-6 group" href="#">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+                    SYSTEM_LOGS
+                </a>
+</div>
+<div class="px-4 mt-auto">
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary font-label text-[11px] tracking-widest font-bold py-3 px-4 clip-bevel flex items-center justify-between border border-emerald-800 hover:border-cyan-400 transition-colors">
+                    INITIALIZE_SYNC
+                    <span class="material-symbols-outlined text-sm text-cyan-400">sync</span>
+</button>
+</div>
+<!-- Structural Tonal Shift Right Edge -->
+<div class="absolute right-0 top-0 w-1 h-full bg-emerald-900 dark:bg-zinc-900 opacity-50"></div>
+</nav>
+<!-- Main Canvas -->
+<main class="flex-1 flex overflow-hidden relative bg-surface-container-lowest">
+<!-- Background structural art -->
+<div class="absolute inset-0 pointer-events-none opacity-[0.03] overflow-hidden z-0">
+<svg height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<pattern height="40" id="grid" patternunits="userSpaceOnUse" width="40">
+<path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1B3022" stroke-width="0.5"></path>
+</pattern>
+</defs>
+<rect fill="url(#grid)" height="100%" width="100%"></rect>
+<!-- Abstract mountain silhouettes -->
+<path d="M-100,1000 L100,700 L300,850 L500,600 L800,900 L1200,500 L1500,800 L2000,1000 Z" fill="#1B3022" opacity="0.5"></path>
+<path d="M-50,1000 L200,800 L400,950 L700,650 L1000,950 L1300,600 L1700,900 L2000,1000 Z" fill="#1B3022" opacity="0.3"></path>
+</svg>
+</div>
+<!-- Operator Grid Area -->
+<div class="flex-1 overflow-y-auto p-8 z-10 custom-scrollbar">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h1 class="font-headline text-3xl font-black tracking-tighter text-primary uppercase">ROSTER_ACTIVE</h1>
+<p class="font-label text-xs tracking-widest text-outline uppercase mt-2">DEPLOYMENT STATUS: NOMINAL // 24 UNITS</p>
+</div>
+<div class="flex gap-2">
+<button class="w-8 h-8 flex items-center justify-center border border-outline-variant/30 text-primary hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center border border-outline-variant/30 text-primary hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-sm">sort</span>
+</button>
+</div>
+</div>
+<!-- Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+<!-- Operator Card 1 (Active/Selected) -->
+<div class="relative group cursor-pointer">
+<div class="absolute -inset-1 bg-secondary-fixed/20 blur-xl opacity-50 transition duration-500 group-hover:opacity-100"></div>
+<div class="bg-primary-container p-2 clip-bevel-card relative z-10 border border-secondary-fixed/50 flex flex-col aspect-[3/4]">
+<!-- Portrait Area -->
+<div class="flex-1 relative overflow-hidden clip-bevel-card bg-surface-container-highest">
+<img alt="Operator Portrait" class="w-full h-full object-cover mix-blend-luminosity opacity-90 group-hover:mix-blend-normal group-hover:opacity-100 transition-all duration-500 group-hover:scale-105" data-alt="cinematic portrait of a female sci-fi operator in technical gear, moody lighting, desaturated colors" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSW9yqfxPftyY85WxQ2Sw7md4xX6IufupuKH9-0SHoBPPlsup55bvyk4moIi7EXqZi2Cx1U0dApEQCmorhC-tmGLmFLrIhsxi1NhaLKts2Nm7h1s-nxENd0TOl8496YVvRyVbuyH0I9lLfioWV6x5vUXB8mkZr2NH2tuZvYvrXzFW2KNgRS8_FdKKyZMmSHDv9LyH3ON1bumfa-vlaC3V2Yxb6Xj6yoAdy1ncOv1c087pnpz2z20Qx9v_rCm9ll61zKSJSHY6IUVw"/>
+<div class="absolute top-2 left-2 bg-primary/80 backdrop-blur-md px-2 py-1 flex items-center gap-1 clip-bevel">
+<span class="material-symbols-outlined text-[10px] text-secondary-fixed">star</span>
+<span class="font-label text-[10px] text-secondary-fixed tracking-widest font-bold">6*</span>
+</div>
+<div class="absolute top-2 right-2 w-6 h-6 border border-secondary-fixed/50 flex items-center justify-center bg-primary/50 backdrop-blur-md">
+<span class="material-symbols-outlined text-[12px] text-secondary-fixed">local_fire_department</span>
+</div>
+</div>
+<!-- Info Block -->
+<div class="h-20 bg-primary mt-2 flex flex-col justify-center px-4 clip-bevel relative overflow-hidden">
+<div class="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-secondary-fixed/10 to-transparent"></div>
+<h3 class="font-headline text-lg font-bold text-secondary-fixed tracking-widest uppercase">CHEN</h3>
+<div class="flex justify-between items-center mt-1">
+<span class="font-label text-[10px] text-on-primary-container tracking-widest">LV.90 // ELITE 2</span>
+<span class="font-label text-[10px] text-secondary-fixed tracking-widest">VANGUARD</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Operator Card 2 -->
+<div class="relative group cursor-pointer">
+<div class="bg-primary-container p-2 clip-bevel-card relative z-10 border border-transparent group-hover:border-outline-variant/30 transition-colors flex flex-col aspect-[3/4] opacity-90 hover:opacity-100">
+<!-- Portrait Area -->
+<div class="flex-1 relative overflow-hidden clip-bevel-card bg-surface-container-highest">
+<img alt="Operator Portrait" class="w-full h-full object-cover mix-blend-luminosity opacity-70 group-hover:opacity-90 transition-all duration-500" data-alt="cinematic portrait of a male sci-fi operator in heavy tactical armor, dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvJSyhUTCovGHi23ZdhLFjzzg06BdNjzJzxIuyRoJKsGaomNWq0TRm2H9iNFLImDqyiLbTjiUcT_BTrGPuVFhAY3YPr81kuy-Ljnzk0rDZu3Bt11d2jAA62bsO13RoZ-WTN-AFqkur5NXAw8CnAc1y8UNp3et8SH2E1sAO6dEqHgw1_dfHL35sVSOSRhMqYGhiFP58HnrSPn2dNZbbDxx8oIrHznpqs1Sn4ejsjCqHbnAf18YyBMTL-OsDlgGm2cXOMi7s7kS5FYE"/>
+<div class="absolute top-2 left-2 bg-primary/80 backdrop-blur-md px-2 py-1 flex items-center gap-1 clip-bevel">
+<span class="material-symbols-outlined text-[10px] text-outline-variant">star</span>
+<span class="font-label text-[10px] text-outline-variant tracking-widest font-bold">5*</span>
+</div>
+<div class="absolute top-2 right-2 w-6 h-6 border border-outline-variant/30 flex items-center justify-center bg-primary/50 backdrop-blur-md">
+<span class="material-symbols-outlined text-[12px] text-outline-variant">shield</span>
+</div>
+</div>
+<!-- Info Block -->
+<div class="h-20 bg-primary mt-2 flex flex-col justify-center px-4 clip-bevel">
+<h3 class="font-headline text-lg font-bold text-outline-variant group-hover:text-secondary-fixed transition-colors tracking-widest uppercase">SILVERASH</h3>
+<div class="flex justify-between items-center mt-1">
+<span class="font-label text-[10px] text-on-primary-container tracking-widest">LV.80 // ELITE 2</span>
+<span class="font-label text-[10px] text-outline-variant tracking-widest">GUARD</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Operator Card 3 -->
+<div class="relative group cursor-pointer">
+<div class="bg-primary-container p-2 clip-bevel-card relative z-10 border border-transparent group-hover:border-outline-variant/30 transition-colors flex flex-col aspect-[3/4] opacity-90 hover:opacity-100">
+<!-- Portrait Area -->
+<div class="flex-1 relative overflow-hidden clip-bevel-card bg-surface-container-highest">
+<img alt="Operator Portrait" class="w-full h-full object-cover mix-blend-luminosity opacity-70 group-hover:opacity-90 transition-all duration-500" data-alt="cinematic portrait of a female sci-fi medic operator, stark white lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiymlgP1wUqbwmtHJ4IVj6wbnKliaMa15MvECgi7ZJ7Oo8Yxgppsjo9mDl41JkdkQRBHnr5IF1imJz2QQi98NzHQV59olI6tf0gzjHWGpujg6x77IeCeOwMXeIdyCwwkp6iiNdPfKGhtME-xbnRIU_fxHAGUy3YS66rj7IzC4iDhYq6g8WHgHSTFPGhCD_bkdAl9evbUFqrzu8nKuIwd4aHLSeMqowOccr60jog8JQYB8gxDgMSPVIyMaRAvyiP9IPseCdy7ndLOU"/>
+<div class="absolute top-2 left-2 bg-primary/80 backdrop-blur-md px-2 py-1 flex items-center gap-1 clip-bevel">
+<span class="material-symbols-outlined text-[10px] text-outline-variant">star</span>
+<span class="font-label text-[10px] text-outline-variant tracking-widest font-bold">6*</span>
+</div>
+<div class="absolute top-2 right-2 w-6 h-6 border border-outline-variant/30 flex items-center justify-center bg-primary/50 backdrop-blur-md">
+<span class="material-symbols-outlined text-[12px] text-outline-variant">healing</span>
+</div>
+</div>
+<!-- Info Block -->
+<div class="h-20 bg-primary mt-2 flex flex-col justify-center px-4 clip-bevel">
+<h3 class="font-headline text-lg font-bold text-outline-variant group-hover:text-secondary-fixed transition-colors tracking-widest uppercase">KAL'TSIT</h3>
+<div class="flex justify-between items-center mt-1">
+<span class="font-label text-[10px] text-on-primary-container tracking-widest">LV.90 // ELITE 2</span>
+<span class="font-label text-[10px] text-outline-variant tracking-widest">MEDIC</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Operator Card 4 -->
+<div class="relative group cursor-pointer">
+<div class="bg-primary-container p-2 clip-bevel-card relative z-10 border border-transparent group-hover:border-outline-variant/30 transition-colors flex flex-col aspect-[3/4] opacity-90 hover:opacity-100">
+<!-- Portrait Area -->
+<div class="flex-1 relative overflow-hidden clip-bevel-card bg-surface-container-highest">
+<img alt="Operator Portrait" class="w-full h-full object-cover mix-blend-luminosity opacity-70 group-hover:opacity-90 transition-all duration-500" data-alt="cinematic portrait of a male sci-fi sniper operator, holding a rifle, dark urban background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7vZANBNMILIFTaBFLicGHZPUZ1YALub-gHsyJLccO1op6bHgi3TW_NdVnjph2Y1JwZ0lAMFl6mq5uVfO9lte6sQG1ThfuRVI2OATQMw1vnrp7xhdd1hIwwBCy2W_XnzIMMj64ghhDUzhalRBeQ-xOjQQLK1zZhdkJys3hkwbb4dti2leNqV_VrbblkHqRNgKa_4lvSPvBC9gqg9Gu9rnu90gof545s600AfqK1d6ueUpXMjVrGGdf3JKdGxBLMPWxGEuAqeYNtD0"/>
+<div class="absolute top-2 left-2 bg-primary/80 backdrop-blur-md px-2 py-1 flex items-center gap-1 clip-bevel">
+<span class="material-symbols-outlined text-[10px] text-outline-variant">star</span>
+<span class="font-label text-[10px] text-outline-variant tracking-widest font-bold">5*</span>
+</div>
+<div class="absolute top-2 right-2 w-6 h-6 border border-outline-variant/30 flex items-center justify-center bg-primary/50 backdrop-blur-md">
+<span class="material-symbols-outlined text-[12px] text-outline-variant">my_location</span>
+</div>
+</div>
+<!-- Info Block -->
+<div class="h-20 bg-primary mt-2 flex flex-col justify-center px-4 clip-bevel">
+<h3 class="font-headline text-lg font-bold text-outline-variant group-hover:text-secondary-fixed transition-colors tracking-widest uppercase">EXECUTOR</h3>
+<div class="flex justify-between items-center mt-1">
+<span class="font-label text-[10px] text-on-primary-container tracking-widest">LV.60 // ELITE 1</span>
+<span class="font-label text-[10px] text-outline-variant tracking-widest">SNIPER</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Detail Right Panel -->
+<aside class="w-[400px] bg-surface-container-low border-l border-outline-variant/20 flex flex-col relative z-20 shrink-0 hidden xl:flex">
+<div class="p-8 flex-1 overflow-y-auto">
+<div class="flex justify-between items-start mb-6 border-b-2 border-primary pb-2">
+<div>
+<span class="font-label text-[10px] text-primary tracking-widest uppercase block mb-1">SELECTED_UNIT</span>
+<h2 class="font-headline text-2xl font-black text-primary tracking-tight uppercase">CHEN</h2>
+</div>
+<div class="bg-primary px-3 py-1 clip-bevel">
+<span class="font-label text-xs text-secondary-fixed tracking-widest font-bold">VANGUARD</span>
+</div>
+</div>
+<div class="mb-8 relative">
+<!-- Tech diagram decoration -->
+<div class="absolute right-0 top-0 opacity-10 pointer-events-none">
+<svg height="100" viewbox="0 0 100 100" width="100">
+<circle cx="50" cy="50" fill="none" r="40" stroke="#1B3022" stroke-dasharray="4 4" stroke-width="2"></circle>
+<line stroke="#1B3022" stroke-width="1" x1="50" x2="50" y1="10" y2="90"></line>
+<line stroke="#1B3022" stroke-width="1" x1="10" x2="90" y1="50" y2="50"></line>
+</svg>
+</div>
+<div class="space-y-4">
+<!-- Stat Row -->
+<div>
+<div class="flex justify-between font-label text-xs text-primary mb-1 uppercase tracking-widest">
+<span>HP_MAX</span>
+<span class="font-bold">2,450</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-none overflow-hidden">
+<div class="h-full bg-secondary-fixed w-[75%] relative">
+<div class="absolute right-0 top-0 bottom-0 w-4 bg-white/50"></div>
+</div>
+</div>
+</div>
+<!-- Stat Row -->
+<div>
+<div class="flex justify-between font-label text-xs text-primary mb-1 uppercase tracking-widest">
+<span>ATK_PWR</span>
+<span class="font-bold">680</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-none overflow-hidden">
+<div class="h-full bg-secondary-fixed w-[85%] relative">
+<div class="absolute right-0 top-0 bottom-0 w-4 bg-white/50"></div>
+</div>
+</div>
+</div>
+<!-- Stat Row -->
+<div>
+<div class="flex justify-between font-label text-xs text-primary mb-1 uppercase tracking-widest">
+<span>DEF_RTG</span>
+<span class="font-bold">340</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-none overflow-hidden">
+<div class="h-full bg-secondary-fixed w-[40%] relative">
+<div class="absolute right-0 top-0 bottom-0 w-4 bg-white/50"></div>
+</div>
+</div>
+</div>
+<!-- Stat Row -->
+<div>
+<div class="flex justify-between font-label text-xs text-primary mb-1 uppercase tracking-widest">
+<span>RESIST</span>
+<span class="font-bold">10</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-none overflow-hidden">
+<div class="h-full bg-secondary-fixed w-[15%] relative">
+<div class="absolute right-0 top-0 bottom-0 w-4 bg-white/50"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mb-6">
+<span class="font-label text-[10px] text-outline tracking-widest uppercase block mb-2">SKILL_SET</span>
+<div class="grid grid-cols-3 gap-2">
+<div class="aspect-square bg-surface border border-outline-variant/50 flex items-center justify-center relative group hover:border-secondary-fixed cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-secondary-fixed">bolt</span>
+<div class="absolute bottom-1 right-1 text-[8px] font-label text-outline font-bold">S1</div>
+</div>
+<div class="aspect-square bg-primary-container border border-secondary-fixed flex items-center justify-center relative cursor-pointer group">
+<div class="absolute inset-0 bg-secondary-fixed/10"></div>
+<span class="material-symbols-outlined text-secondary-fixed">swords</span>
+<div class="absolute bottom-1 right-1 text-[8px] font-label text-secondary-fixed font-bold">S2</div>
+</div>
+<div class="aspect-square bg-surface border border-outline-variant/50 flex items-center justify-center relative group hover:border-secondary-fixed cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-secondary-fixed">explosion</span>
+<div class="absolute bottom-1 right-1 text-[8px] font-label text-outline font-bold">S3</div>
+</div>
+</div>
+</div>
+<div>
+<span class="font-label text-[10px] text-outline tracking-widest uppercase block mb-2">BIO_PROFILE</span>
+<p class="text-xs text-on-surface-variant leading-relaxed">
+                             A highly trained combatant specializing in swift frontline engagements. Demonstrates exceptional proficiency with dual-wielding techniques and rapid deployment protocols. Psychological evaluation notes a stern demeanor but high reliability in crisis scenarios.
+                         </p>
+</div>
+</div>
+<div class="p-4 bg-surface border-t border-outline-variant/20">
+<button class="w-full bg-primary text-on-primary font-label text-xs tracking-widest font-bold py-3 px-4 clip-bevel hover:bg-primary-container transition-colors border border-transparent hover:border-secondary-fixed flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-sm text-secondary-fixed">add_circle</span>
+                        ASSIGN TO SQUAD
+                    </button>
+</div>
+</aside>
+</main>
+</div>
+</body></html>

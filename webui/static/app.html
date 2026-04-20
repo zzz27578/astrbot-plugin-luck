@@ -10,6 +10,12 @@
 <body>
   <div class="app">
     <aside class="side">
+      <!-- Top tactical decorations -->
+      <div class="side-top-dec">
+        <div class="blink-dot"></div>
+        <span>SYS.OP.NOMINAL // UPLINK SECURE</span>
+      </div>
+
       <section class="block brand">
         <div class="mini">[ ENDFIELD_WULING ARCHIVE ]</div>
         <div class="big-wrap">
@@ -17,34 +23,61 @@
         </div>
         <div class="row">
           <span class="chip">Ver. 5.4.0</span>
-          <span class="chip">[ 核心控制台 ]</span>
+          <span class="chip">[ CORE_TERMINAL ]</span>
         </div>
       </section>
 
       <section class="block nav">
         <div class="nav-title">[ SEC_INDEX ]</div>
         <div class="nav-list">
-          <button class="nav-btn active" data-page="overview">总览与方案<small>PROFILE / ACCESS</small></button>
-          <button class="nav-btn" data-page="runtime">运行配置<small>RUNTIME / PROBABILITY</small></button>
-          <button class="nav-btn" data-page="signin">签到配置<small>SIGN_IN / FORECAST</small></button>
-          <button class="nav-btn" data-page="fate">命运牌档案<small>FATE_MATRIX / ASSETS</small></button>
-          <button class="nav-btn" data-page="cards">功能牌档案<small>FUNC_CARDS / EFFECTS</small></button>
-          <button class="nav-btn" data-page="titles">称号档案<small>TITLES / CONDITIONS</small></button>
-          <button class="nav-btn" data-page="stats">数据统计<small>DATA_STATS / RANKS</small></button>
+          <button class="nav-btn active" data-page="overview">
+            <div class="nav-btn-dec"></div>
+            总览与方案<small>PROFILE / ACCESS</small>
+          </button>
+          <button class="nav-btn" data-page="runtime">
+            <div class="nav-btn-dec"></div>
+            运行配置<small>RUNTIME / PROBABILITY</small>
+          </button>
+          <button class="nav-btn" data-page="signin">
+            <div class="nav-btn-dec"></div>
+            签到配置<small>SIGN_IN / FORECAST</small>
+          </button>
+          <button class="nav-btn" data-page="fate">
+            <div class="nav-btn-dec"></div>
+            命运牌档案<small>FATE_MATRIX / ASSETS</small>
+          </button>
+          <button class="nav-btn" data-page="cards">
+            <div class="nav-btn-dec"></div>
+            功能牌档案<small>FUNC_CARDS / EFFECTS</small>
+          </button>
+          <button class="nav-btn" data-page="titles">
+            <div class="nav-btn-dec"></div>
+            称号档案<small>TITLES / CONDITIONS</small>
+          </button>
+          <button class="nav-btn" data-page="stats">
+            <div class="nav-btn-dec"></div>
+            数据统计<small>DATA_STATS / RANKS</small>
+          </button>
         </div>
       </section>
 
       <section class="block current">
         <div class="subtle-label">[ ACTIVE_PROFILE ]</div>
         <div class="name" id="currentProfileName">加载中...</div>
-        <div class="helper">全局参数自动跟随当前活跃方案同步。</div>
+        <div class="helper">GLOBAL_SYNC // 全局参数自动跟随当前活跃方案同步。</div>
       </section>
-      
-      <!-- Structural Tonal Shift Right Edge -->
       <div class="side-edge"></div>
+      <div class="side-bottom-dec">
+         <span>WULING_TECH_SYS // 2026.0</span>
+      </div>
     </aside>
 
     <main class="main">
+      <div class="main-top-bar">
+         <div class="line-run"></div>
+         <span>DATA_STREAM_ACTIVE /// LOCATION: LOCALHOST</span>
+      </div>
+
       <section class="hero">
         <div>
           <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
@@ -54,8 +87,12 @@
         <div class="hero-side">
           <div class="hero-aux" id="heroAux"></div>
           <div class="toolbar">
-            <button class="btn toolbar-btn refresh-btn" id="reloadBtn">RELOAD</button>
-            <button class="btn btn-strong toolbar-btn save-btn clip-bevel" id="saveAllBtn">SAVE_SYNC</button>
+            <button class="btn toolbar-btn refresh-btn tactical-corners" id="reloadBtn">
+                <span class="btn-icon">↻</span> RELOAD
+            </button>
+            <button class="btn btn-strong toolbar-btn save-btn clip-bevel" id="saveAllBtn">
+                SAVE_SYNC <span class="btn-dec">+</span>
+            </button>
           </div>
         </div>
       </section>
@@ -73,13 +110,13 @@
   </div>
 
   <div class="dialog" id="dialog">
-    <div class="dialog-card clip-bevel-card">
+    <div class="dialog-card clip-bevel-card tactical-corners-lg">
       <div class="dialog-head">
         <div>
           <div class="tiny">[ TERMINAL_EDITOR ]</div>
           <div class="dialog-title" id="dialogTitle">编辑器</div>
         </div>
-        <button class="btn" id="closeDialogBtn">[ CLOSE ]</button>
+        <button class="btn tactical-corners" id="closeDialogBtn">[ CLOSE ]</button>
       </div>
       <div id="dialogBody"></div>
     </div>

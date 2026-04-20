@@ -3,44 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>战术管理中枢 - WULING_SYS</title>
+  <title>管理中枢 - WULING_SYS</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=1776705538">
+  <link rel="stylesheet" href="/static/styles.css?v=1776706514">
 </head>
 <body class="chassis">
   <div class="app-container">
     
-    <!-- 新增：全局顶部导航栏 (填补黑边，承载大排版) -->
+    <!-- 明亮、干净、不压抑的全局顶部导航栏 -->
     <header class="global-top-bar">
-      <div class="top-brand">
-        <span class="logo-mark">///</span> WULING_SYS
+      <div class="top-left">
+        <div class="top-brand">
+          <span class="logo-mark">///</span> 管理中枢
+        </div>
+        <nav class="top-nav">
+          <button class="top-btn active">首页</button>
+          <button class="top-btn">方案管理</button>
+          <button class="top-btn">设置</button>
+          <button class="top-btn">子系统</button>
+        </nav>
       </div>
-      <nav class="top-nav">
-        <button class="top-btn active">首页</button>
-        <button class="top-btn">方案管理</button>
-        <button class="top-btn">设置</button>
-        <button class="top-btn">子系统</button>
-      </nav>
-      <div class="top-status">
-        <div class="blink-dot"></div>
-        <span>SYS.OP.NOMINAL</span>
+      <div class="top-right">
+        <span class="chip">Ver. 5.4.0</span>
+        <div class="top-status">
+          <div class="blink-dot"></div>
+          <span>SYS.OP.NOMINAL</span>
+        </div>
       </div>
     </header>
 
-    <!-- 下方主工作区 (左侧栏 + 右侧悬浮屏) -->
+    <!-- 下方主工作区 -->
     <div class="main-workspace">
       
-      <!-- 左侧控制台 -->
+      <!-- 左侧暗色控制台 (极致瘦身版) -->
       <aside class="side">
-        <div class="side-header">
-          <div class="mini-tag">ENDFIELD_ARCHIVE</div>
-          <div class="big-title">管理<br>中枢</div>
-          <div class="version-row">
-            <span class="chip">Ver. 5.4.0</span>
-            <span class="chip">[ CORE ]</span>
-          </div>
-        </div>
-
         <div class="side-nav">
           <div class="nav-title">// SEC_INDEX</div>
           <div class="nav-list">
@@ -85,15 +81,12 @@
         <div class="side-footer">
           <div class="subtle-label">[ ACTIVE_PROFILE ]</div>
           <div class="name" id="currentProfileName">加载中...</div>
-          <div class="helper">SYS_SYNC // 参数自动跟随当前活跃方案。</div>
+          <div class="helper">SYS_SYNC // 参数自动同步</div>
         </div>
       </aside>
 
-      <!-- 贯穿轴线调整到合适位置 -->
-      <div class="cross-axis-line"></div>
-
-      <!-- 右侧悬浮数据屏 -->
-      <main class="main-shard clip-bevel-shard">
+      <!-- 右侧悬浮数据屏 (与顶部明亮导航融为一体) -->
+      <main class="main-shard">
         <header class="shard-header">
           <div class="shard-header-content">
             <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
@@ -106,7 +99,7 @@
               <button class="btn action-btn outline-btn" id="reloadBtn">
                   [ RELOAD ]
               </button>
-              <button class="btn action-btn solid-btn clip-bevel" id="saveAllBtn">
+              <button class="btn action-btn solid-btn" id="saveAllBtn">
                   SAVE_SYNC <span class="plus-mark">+</span>
               </button>
             </div>
@@ -129,7 +122,7 @@
 
   <div class="dialog" id="dialog">
     <div class="dialog-backdrop"></div>
-    <div class="dialog-card clip-bevel-shard">
+    <div class="dialog-card">
       <div class="dialog-head">
         <div>
           <div class="tiny">[ TERMINAL_EDITOR ]</div>
@@ -141,7 +134,7 @@
     </div>
   </div>
 
-  <div class="toast clip-bevel" id="toast"></div>
+  <div class="toast" id="toast"></div>
 
   <script src="/static/js/main.js"></script>
 </body>

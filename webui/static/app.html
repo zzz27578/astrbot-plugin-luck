@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -10,25 +10,25 @@
 @charset 'UTF-8';
 
 :root {
-    /* Bio-Glass Theme (生化毛玻璃) - 降低黑色深度 */
-  --glass-base: rgba(30, 36, 33, 0.95); /* 提亮后的深灰绿 */
-  --glass-border: rgba(188, 196, 192, 0.15);
-  --chassis-text: #e0e6e3; /* 柔和的白色 */
+  /* Bio-Glass Theme (生化毛玻璃) - 深邃、沉稳的工业黑底 */
+  --glass-base: rgba(22, 26, 24, 0.98);
+  --glass-border: rgba(43, 176, 140, 0.25);
+  --chassis-text: #ffffff; 
   --chassis-text-muted: #8a9c94;
   
-  /* Accent (生命荧光青) - 减弱荧光感 */
+  /* Accent (统一生命青绿) - 全局呼吸光的源泉 */
   --accent: #2bb08c;
-  --accent-glow: rgba(43, 176, 140, 0.15);
+  --accent-glow: rgba(43, 176, 140, 0.35);
   --on-accent: #ffffff;
   
-  /* Shard Theme (嵌合数据屏：高级工业灰) - 压暗白色区域，减少割裂感 */
-  --shard-bg: #d4dad8;
-  --shard-surface: #dfe4e2;
-  --shard-border: #b8c2be;
-  --shard-text: #2f3633;
-  --shard-text-muted: #5e6b64;
+  /* Shard Theme (极致敞亮的高对比度明亮区) */
+  --shard-bg: #f4f6f5; /* 极其清透的微灰白底色，消除雾蒙蒙的脏感 */
+  --shard-surface: #ffffff; /* 绝对纯粹的纯白卡片表面，干脆利落 */
+  --shard-border: #c8d2ce; /* 更加清晰冷硬的金属边框 */
+  --shard-text: #080c0a; /* 近乎纯黑的高对比度正文 */
+  --shard-text-muted: #62736c;
   --danger: #d93829;
-  
+
   /* Fonts */
   --font-headline: 'Space Grotesk', 'Source Han Sans SC', sans-serif;
   --font-body: 'Inter', 'Source Han Sans SC', sans-serif;
@@ -86,12 +86,12 @@ body.chassis {
   justify-content: space-between;
   align-items: center;
   padding: 0 32px;
-  background: var(--glass-base);
+  background: var(--glass-base); /* 恢复深黑顶栏 */
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   position: relative;
   z-index: 50;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08); /* 减弱阴影 */
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
 /* 流动的生化脉冲横线 */
 .energy-line-h {
@@ -170,7 +170,7 @@ body.chassis {
   position: relative;
 }
 .glass-side {
-  width: 200px; /* 左侧缩进瘦身，减少冗余留白 */
+  width: 200px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -179,14 +179,15 @@ body.chassis {
   -webkit-backdrop-filter: blur(24px);
   position: relative;
   z-index: 40;
-  padding: 32px 0 24px 16px; /* 调整内边距，向左靠拢 */
+  padding: 32px 0 24px 16px;
 }
-/* 流动的生化脉冲竖线 */
+/* 生命荧光绿分割线与柔和过渡辉光 */
 .energy-line-v {
   position: absolute;
   top: 0; bottom: 0; right: 0; width: 1px;
-  background: var(--glass-border); /* 移除霓虹发光，改为精巧的结构线 */
-  box-shadow: none;
+  background: var(--accent-glow);
+  box-shadow: -2px 0 12px var(--accent-glow), 0 0 4px var(--accent);
+  z-index: 50;
 }
 
 .side-nav { flex: 1; padding-right: 16px; }
@@ -215,8 +216,8 @@ body.chassis {
   flex-direction: column;
   position: relative;
   z-index: 30;
-  /* 微微的内阴影，体现被L型护盾包裹的嵌合感 */
-  box-shadow: inset 12px 12px 24px rgba(0,0,0,0.03);
+  /* 宽广的青绿柔和内阴影，让黑白两界如同丝滑的能量层融合 */
+  box-shadow: inset 24px 0 48px -12px rgba(43, 176, 140, 0.15);
   overflow-y: auto;
 }
 
@@ -228,13 +229,23 @@ body.chassis {
   align-items: flex-end;
   background: var(--shard-surface);
   position: relative;
-  background-image: radial-gradient(rgba(184, 194, 190, 0.4) 1px, transparent 1px); /* 弱化网格 */
+  background-image: radial-gradient(rgba(184, 194, 190, 0.4) 1px, transparent 1px);
   background-size: 16px 16px;
   flex-shrink: 0;
 }
-.shard-header-content .kicker { font-family: var(--font-headline); font-size: 10px; color: var(--shard-text-muted); letter-spacing: 3px; margin-bottom: 8px; font-weight: 700; }
-.shard-header-content h1 { font-family: var(--font-headline); font-size: 32px; font-weight: 900; color: var(--shard-text); letter-spacing: -1px; }
-.shard-header-content p { font-size: 13px; color: var(--shard-text-muted); margin-top: 8px; font-weight: 500; }
+.shard-header-content .kicker { font-family: var(--font-headline); font-size: 11px; color: var(--shard-text-muted); letter-spacing: 4px; margin-bottom: 4px; font-weight: 800; display: block; }
+.shard-header-content h1 { 
+  font-family: var(--font-headline); 
+  font-size: 48px; /* 字体适度放大 */
+  font-weight: 900; 
+  color: var(--shard-text); 
+  letter-spacing: 12px; /* 拉开极大的字间距，与上方长长的英文等宽对齐 */
+  margin-bottom: 0; 
+  line-height: 1.1; 
+  margin-left: 4px; /* 补偿第一个字母字间距的左侧偏移 */
+}
+.shard-header-content p { font-size: 13px; color: var(--shard-text-muted); margin-top: 12px; font-weight: 500; display: block; }
+.shard-header-content p { display: none; }
 
 .shard-toolbar { display: flex; gap: 16px; align-items: center; }
 .toolbar-actions { display: flex; gap: 12px; }
@@ -271,20 +282,58 @@ body.chassis {
   border: 1px solid var(--shard-border);
   color: var(--shard-text);
 }
+.btn-text {
+  display: inline-block;
+  transition: all 0.3s ease;
+}
 .outline-btn:hover, .btn:hover {
-  border-color: rgba(57, 229, 184, 0.5);
-  background: rgba(57, 229, 184, 0.05);
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 8px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.outline-btn:hover .btn-text, .btn:hover .btn-text {
+  letter-spacing: 2px;
+  color: var(--accent);
+  animation: cyber-text-glitch 2.5s infinite;
+}
+.outline-btn:hover::before, .outline-btn:hover::after, .btn:hover::before, .btn:hover::after {
+  color: var(--accent);
+  animation: cyber-text-glitch 2.5s infinite;
 }
 .solid-btn, .btn-strong {
   background: var(--shard-text);
   border: 1px solid var(--shard-text);
   color: var(--shard-surface);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .solid-btn .plus-mark { color: var(--accent); margin-left: 6px; font-size: 14px; font-weight: 900; }
 .solid-btn:hover, .btn-strong:hover {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--shard-surface);
+  color: var(--accent);
   border-color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow), inset 0 0 12px var(--accent-glow);
+  transform: translateY(-2px);
+}
+.solid-btn:hover .btn-text, .btn-strong:hover .btn-text {
+  color: var(--accent);
+  letter-spacing: 2px;
+  animation: cyber-text-glitch 2.5s infinite;
+}
+.solid-btn:hover .plus-mark, .btn-strong:hover .plus-mark {
+  color: var(--accent);
+}
+.solid-btn:hover::before, .solid-btn:hover::after, .btn-strong:hover::before, .btn-strong:hover::after {
+  color: var(--accent);
+  animation: cyber-text-glitch 2.5s infinite;
+}
+@keyframes cyber-text-glitch {
+  0%, 100% { opacity: 1; text-shadow: 0 0 8px var(--accent-glow); }
+  92% { opacity: 1; text-shadow: 0 0 8px var(--accent-glow); }
+  93% { opacity: 0.3; text-shadow: none; }
+  94% { opacity: 1; text-shadow: 0 0 16px var(--accent); }
+  96% { opacity: 1; text-shadow: 0 0 8px var(--accent-glow); }
 }
 .btn-danger { color: var(--danger); border-color: rgba(217, 56, 41, 0.3); }
 .btn-danger:hover::before { color: var(--danger); }
@@ -299,16 +348,26 @@ body.chassis {
 
 /* 内部卡片与面板 */
 .panel {
-  background: var(--shard-surface);
+  background: var(--shard-surface); /* 绝对纯白 */
   border: 1px solid var(--shard-border);
-  padding: 24px;
+  padding: 32px;
   position: relative;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  overflow: hidden; /* 用于物理切割斜角 */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.02);
 }
-.panel-head { border-bottom: 2px solid var(--shard-text); padding-bottom: 12px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
-.panel-title { font-family: var(--font-headline); font-size: 18px; font-weight: 800; color: var(--shard-text); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
-.panel-title::before { content: '■'; font-size: 10px; color: var(--accent); }
-.panel-note { font-size: 12px; color: var(--shard-text-muted); margin-top: 8px; line-height: 1.6; }
+/* 物理级锐利金属斜切角（Bevel Cut），带实体切口边线 */
+.panel::after {
+  content: ''; position: absolute; top: -16px; right: -16px; width: 32px; height: 32px;
+  background: var(--shard-bg); /* 与外部环境同色，形成真实镂空切面 */
+  border-left: 1px solid var(--shard-border);
+  border-bottom: 1px solid var(--shard-border);
+  transform: rotate(45deg);
+  z-index: 10;
+}
+.panel-head { border-bottom: 1px solid var(--shard-border); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+.panel-title { font-family: var(--font-headline); font-size: 20px; font-weight: 800; color: var(--shard-text); display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
+.panel-title::before { content: ''; display: block; width: 4px; height: 16px; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.panel-note { font-size: 12px; color: var(--shard-text-muted); margin-top: 8px; line-height: 1.6; font-weight: 500; }
 
 .input, .textarea, .select {
   width: 100%;
@@ -337,12 +396,79 @@ body.chassis {
 
 .stack { display: grid; gap: 12px; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.profile-card, .event-item, .effect-row { background: var(--shard-surface); border: 1px solid var(--shard-border); padding: 16px 20px; transition: 0.2s; position: relative; }
-.profile-card:hover { border-color: rgba(57, 229, 184, 0.5); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(57, 229, 184, 0.05); }
-.profile-card.active { border-color: var(--accent); background: var(--shard-surface); box-shadow: inset 4px 0 0 var(--accent); }
-.profile-card h3 { font-family: var(--font-headline); font-size: 18px; font-weight: 800; color: var(--shard-text); margin-bottom: 4px; letter-spacing: -0.5px; }
+.event-item, .effect-row { background: var(--shard-surface); border: 1px solid var(--shard-border); padding: 16px 20px; transition: 0.2s; position: relative; }
+.profile-card {
+  background: var(--shard-surface); /* 绝对纯净的纯白色，拒绝雾蒙蒙 */
+  border: 1px solid var(--shard-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  padding: 24px;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  overflow: hidden; /* 配合切角与扫描线 */
+}
+.profile-main { flex: 1; position: relative; z-index: 2; }
+
+/* 右上角物理金属斜切边框 */
+.profile-card::after {
+  content: ''; position: absolute; top: -16px; right: -16px; width: 32px; height: 32px;
+  background: var(--shard-bg);
+  border-left: 1px solid var(--shard-border);
+  border-bottom: 1px solid var(--shard-border);
+  transform: rotate(45deg);
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.profile-card:hover { box-shadow: 0 12px 24px rgba(0,0,0,0.05); transform: translateY(-4px); border-color: #9ab0a6; }
+.profile-card:hover::after { border-color: #9ab0a6; }
+
+/* 启用状态 - 去掉杂色，启用纯白底与全局统一的青绿呼吸光 */
+.profile-card.active { 
+  border-color: var(--accent); 
+  background: var(--shard-surface); /* 保持纯白敞亮 */
+  animation: card-breathe 3.5s infinite ease-in-out; 
+}
+.profile-card.active:hover { transform: translateY(-4px); }
+.profile-card.active::after { 
+  border-color: var(--accent); 
+  box-shadow: -2px 2px 8px var(--accent-glow); 
+}
+
+@keyframes card-breathe {
+  0%, 100% { box-shadow: inset 0 0 0 1px var(--accent), 0 0 12px rgba(43, 176, 140, 0.1); }
+  50% { box-shadow: inset 0 0 0 1px var(--accent), 0 0 28px rgba(43, 176, 140, 0.4); border-color: #3ee0b5; }
+}
+
+/* 科幻激光扫描线（保持在白底上高亮清晰） */
+.profile-card.active::before { 
+  content: ''; position: absolute; top: 0; width: 2px; height: 100%; 
+  background: #21a366; 
+  box-shadow: -15px 0 25px 4px var(--accent-glow), -4px 0 8px var(--accent);
+  animation: scan-line-h 8s linear infinite; 
+  pointer-events: none; z-index: 11; border: none; transform: none;
+}
+.profile-card.active::after { display: none; }
+
+@keyframes scan-line-h { 
+  0% { left: -50px; opacity: 0; } 
+  5% { left: 0%; opacity: 1; } 
+  35% { left: 80%; opacity: 1; } /* 在靠近右侧区域时开始渐隐 */
+  45% { left: 100%; opacity: 0; } /* 缓慢淡出直到完全消失 */
+  100% { left: 100%; opacity: 0; } 
+}
+
+.profile-card h3 { font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: var(--shard-text); margin-bottom: 10px; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
 .profile-card .meta, .profile-card .helper { font-size: 12px; color: var(--shard-text-muted); margin-bottom: 12px; }
-.badge { display: inline-flex; padding: 4px 8px; font-family: var(--font-headline); font-size: 10px; font-weight: 700; letter-spacing: 1px; background: var(--shard-bg); border: 1px solid var(--shard-border); color: var(--shard-text); }
+.badge {
+  display: inline-flex; padding: 2px 8px; font-family: var(--font-headline); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.5px; background: transparent; border: 1px solid var(--shard-border);
+  color: var(--shard-text-muted); transition: all 0.2s ease; border-radius: 2px !important;
+}
+.badge.light { border-color: rgba(33, 163, 102, 0.4); color: #21a366; background: rgba(33, 163, 102, 0.05); }
+.badge.orange { border-color: rgba(243, 156, 18, 0.4); color: #f39c12; background: rgba(243, 156, 18, 0.05); }
 
 .toggle-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px; border: 1px solid var(--shard-border); background: var(--shard-surface); margin-bottom: 12px; transition: 0.2s; }
 .toggle-row:hover { border-color: rgba(57, 229, 184, 0.4); }
@@ -366,9 +492,40 @@ body.chassis {
 .archive-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px dashed var(--shard-border); }
 
 .overview-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
-.overview-stat { border: 1px solid var(--shard-border); background: var(--shard-surface); padding: 24px; border-top: 3px solid var(--shard-text); position: relative; transition: 0.2s; }
-.overview-stat:hover { border-top-color: var(--accent); background: rgba(57, 229, 184, 0.02); }
-.overview-stat b { font-family: var(--font-headline); font-size: 36px; font-weight: 900; color: var(--shard-text); display: block; margin-bottom: 4px; letter-spacing: -1px; }
+.overview-stat { border: 1px solid var(--shard-border); background: var(--shard-bg); padding: 20px; border-top: 2px solid transparent; transition: all 0.3s ease; display: flex; flex-direction: column; }
+.overview-stat:hover { border-top-color: #21a366; background: var(--shard-surface); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+.overview-stat b { font-family: var(--font-headline); font-size: 32px; font-weight: 800; color: var(--shard-text); display: block; margin-bottom: 4px; letter-spacing: -0.5px; }
+
+/* 工业风控制组件 */
+.switch-group { display: flex; border: 2px solid #a3b0ac; padding: 2px; gap: 2px; background: var(--shard-surface); width: 100%; }
+.mode-btn { flex: 1; border: none; background: transparent; color: var(--shard-text-muted); height: 34px; transition: all 0.2s ease; font-size: 12px; font-family: var(--font-headline); font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; padding: 0 4px; }
+.mode-btn.active { background: var(--shard-text); color: #ffffff; box-shadow: inset 0 0 0 1px var(--shard-text); }
+.mode-btn:hover:not(.active) { background: rgba(0,0,0,0.05); color: var(--shard-text); }
+.mode-btn:hover:not(.active) { color: var(--shard-text); background: rgba(255,255,255,0.2); }
+
+/* HUD 风格切换区 */
+.profile-hud-slot { display: flex; align-items: center; justify-content: flex-start; width: 140px; flex-shrink: 0; position: relative; z-index: 2; border-left: 1px solid rgba(0,0,0,0.05); padding-left: 24px; transition: 0.3s; }
+.profile-card:hover .profile-hud-slot { border-left-color: rgba(33, 163, 102, 0.2); }
+
+.hud-text { display: inline-block; width: 66px; text-align: left; }
+
+.hud-active-status { display: flex; align-items: center; gap: 12px; font-family: var(--font-headline); font-size: 14px; font-weight: 900; color: var(--accent); letter-spacing: 1px; padding: 0; text-shadow: 0 0 8px var(--accent-glow); }
+.hud-pulse { width: 10px; height: 10px; background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: hud-blink 1.5s infinite ease-in-out; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+@keyframes hud-blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+.hud-switch-btn { background: transparent; border: none; display: flex; align-items: center; gap: 12px; color: var(--shard-text-muted); cursor: pointer; transition: all 0.3s ease; font-family: var(--font-headline); font-weight: 900; letter-spacing: 1px; font-size: 14px; padding: 0; }
+.hud-arrow { width: 18px; height: 18px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateX(-8px); opacity: 0; }
+.profile-card:hover .hud-switch-btn { color: var(--shard-text); }
+.profile-card:hover .hud-arrow { transform: translateX(0); opacity: 1; color: var(--accent); }
+.hud-switch-btn:hover { color: var(--accent) !important; text-shadow: 0 0 8px var(--accent-glow); }
+.hud-switch-btn:hover .hud-arrow { transform: translateX(6px); }
+
+/* 动态充能特效按钮 */
+.profile-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; align-items: center; position: relative; z-index: 2; }
+.action-link { background: rgba(0,0,0,0.02); border: 1px solid transparent; color: var(--shard-text-muted); padding: 6px 16px; font-family: var(--font-headline); font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; letter-spacing: 1px; position: relative; overflow: hidden; z-index: 1; }
+.action-link::before { content: ''; position: absolute; top: 0; left: 0; width: 0%; height: 100%; background: var(--accent); transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); z-index: -1; }
+.action-link:hover { color: var(--on-accent); transform: scale(1.05); letter-spacing: 2px; box-shadow: 0 4px 12px var(--accent-glow); }
+.action-link:hover::before { width: 100%; }
 .overview-stat span { font-size: 11px; color: var(--shard-text-muted); letter-spacing: 2px; font-weight: 700; font-family: var(--font-headline); display: block; }
 
 .dialog { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; z-index: 100; }
@@ -492,21 +649,21 @@ body.chassis {
 
       <!-- 核心工作区：嵌合在L型护盾内的明亮数据屏 -->
       <main class="main-shard clip-bevel-shard">
-        <header class="shard-header">
-          <div class="shard-header-content">
-            <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
-            <h1 id="heroTitle">总览与方案</h1>
-            <p id="heroDesc">管理活跃协议配置与群组访问权限。</p>
-          </div>
+                <header class="shard-header">
+                  <div class="shard-header-content">
+                    <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
+                    <h1 id="heroTitle">总览与方案</h1>
+                    <p id="heroDesc">管理活跃协议配置与群组访问权限。</p>
+                  </div>
           <div class="shard-toolbar">
             <div class="hero-aux" id="heroAux"></div>
             <div class="toolbar-actions">
-              <button class="btn action-btn outline-btn" id="reloadBtn">
-                  <span class="btn-text">[ RELOAD ]</span>
-              </button>
-              <button class="btn action-btn solid-btn" id="saveAllBtn">
-                  <span class="btn-text">SAVE_SYNC <span class="plus-mark">+</span></span>
-              </button>
+                            <button class="btn action-btn outline-btn" id="reloadBtn">
+                                <span class="btn-text">刷新</span>
+                            </button>
+                            <button class="btn action-btn solid-btn" id="saveAllBtn">
+                                <span class="btn-text">保存</span>
+                            </button>
             </div>
           </div>
         </header>
@@ -1264,11 +1421,10 @@ function renderOverview() {
   const page = $('#page-overview');
   page.innerHTML = `
     <div class="grid">
-      <section class="panel col-8">
+            <section class="panel col-8">
         <div class="panel-head">
           <div>
             <div class="panel-title">方案管理</div>
-            <div class="panel-note">直接放在主界面。切换、重命名、绑定群号都在这里完成。</div>
           </div>
           <button class="btn-strong" onclick="openCreateProfileDialog()">[ 新建方案 ]</button>
         </div>
@@ -1280,35 +1436,31 @@ function renderOverview() {
             <article class="profile-card ${active ? 'active' : ''} ${justActivated ? 'just-activated' : ''}">
               <div class="profile-main">
                   <h3>${esc(p.display_name || p.profile_id)}</h3>
-                <div class="row" style="margin-bottom:4px;">
+                                <div class="row" style="margin-bottom:8px;">
                   ${p.is_default ? '<span class="badge light">默认方案</span>' : ''}
-                  <span class="badge">绑定群组 ${(p.group_count || 0)}</span>
+                  <span class="badge">已绑群组 ${(p.group_count || 0)}</span>
                 </div>
                 <div class="meta">用户 ${p.user_count || 0} ｜ 功能牌 ${p.func_card_count || 0} ｜ 命运牌 ${p.fate_card_count || 0}</div>
-                <div class="row" style="margin:4px 0;">
-                  ${(p.groups || []).slice(0, 3).map(g => `<span class="badge">群 ${esc(g)}</span>`).join('') || '<span class="helper">暂无绑定群组</span>'}
-                </div>
-                <div class="row">
-                  <button class="btn" onclick="editProfile('${esc(p.profile_id)}')">[ 编辑 ]</button>
-                  <button class="btn" onclick="bindGroupPrompt('${esc(p.profile_id)}')">[ 绑定群号 ]</button>
-                </div>
-                ${(p.groups || []).slice(0, 3).length ? `<div class="row" style="margin-top:4px;">${(p.groups || []).slice(0, 3).map(g => `<button class="btn-mini" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('')}</div>` : ''}
+                                <div class="profile-actions">
+                                  <button class="action-link" onclick="editProfile('${esc(p.profile_id)}')">编辑参数</button>
+                                  <button class="action-link" onclick="bindGroupPrompt('${esc(p.profile_id)}')">绑定群组</button>
+                                  ${(p.groups || []).length ? (p.groups || []).slice(0, 3).map(g => `<button class="action-link" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('') : ''}
+                                </div>
               </div>
-              <div class="profile-switch-slot">
-                <button class="profile-switch-btn" ${active ? 'disabled' : `onclick="useProfile('${esc(p.profile_id)}')"`}>
-                  ${active ? '使用中' : '切换'}
-                </button>
+                            <div class="profile-hud-slot">
+                ${active 
+                  ? '<div class="hud-active-status"><span class="hud-text">运行中</span><div class="hud-pulse"></div></div>' 
+                  : `<button class="hud-switch-btn" onclick="useProfile('${esc(p.profile_id)}')"><span class="hud-text">载入方案</span><svg class="hud-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`}
               </div>
             </article>`;
     }).join('')}
         </div>
       </section>
 
-      <section class="panel col-4">
+            <section class="panel col-4">
         <div class="panel-head">
           <div>
             <div class="panel-title">访问控制</div>
-            <div class="panel-note">黑名单与白名单互斥，只能有一种模式处于启用状态。</div>
           </div>
         </div>
         <div class="switch-group" style="margin-bottom:12px;">

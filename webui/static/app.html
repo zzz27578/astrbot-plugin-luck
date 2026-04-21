@@ -10,23 +10,23 @@
 @charset 'UTF-8';
 
 :root {
-  /* Bio-Glass Theme (生化毛玻璃) - 深邃、沉稳的工业黑底 */
-  --glass-base: rgba(22, 26, 24, 0.98);
-  --glass-border: rgba(43, 176, 140, 0.25);
-  --chassis-text: #ffffff; 
-  --chassis-text-muted: #8a9c94;
+  /* Bio-Industrial Theme - 极黑的冷峻装甲 */
+  --glass-base: #080a09;
+  --glass-border: rgba(26, 158, 94, 0.3);
+  --chassis-text: #e6ede9; 
+  --chassis-text-muted: #6e8076;
   
-  /* Accent (统一生命青绿) - 全局呼吸光的源泉 */
-  --accent: #2bb08c;
-  --accent-glow: rgba(43, 176, 140, 0.35);
+  /* Accent (幽影深绿) - 降低亮度，在黑底上呈现深邃、冷酷的工业仪表面板感 */
+  --accent: #1A9E5E;
+  --accent-glow: rgba(26, 158, 94, 0.4);
   --on-accent: #ffffff;
   
-  /* Shard Theme (极致敞亮的高对比度明亮区) */
-  --shard-bg: #f4f6f5; /* 极其清透的微灰白底色，消除雾蒙蒙的脏感 */
-  --shard-surface: #ffffff; /* 绝对纯粹的纯白卡片表面，干脆利落 */
-  --shard-border: #c8d2ce; /* 更加清晰冷硬的金属边框 */
-  --shard-text: #080c0a; /* 近乎纯黑的高对比度正文 */
-  --shard-text-muted: #62736c;
+  /* Shard Theme (纯净生机白) - 右侧的白底世界 */
+  --shard-bg: #f2f5f3; 
+  --shard-surface: #ffffff; 
+  --shard-border: #c2cfc8; 
+  --shard-text: #0d120f; 
+  --shard-text-muted: #5f7368;
   --danger: #d93829;
 
   /* Fonts */
@@ -286,54 +286,47 @@ body.chassis {
   display: inline-block;
   transition: all 0.3s ease;
 }
+/* 白底上的框架按钮：纯净无形变、绝对静止的色彩反馈 */
+.outline-btn, .btn {
+  transition: all 0.2s ease;
+}
 .outline-btn:hover, .btn:hover {
-  border-color: var(--accent);
-  background: var(--accent-glow);
-  color: var(--accent);
-  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 8px var(--accent-glow);
-  transform: translateY(-1px);
+  border-color: #21c476;
+  background: rgba(33, 196, 118, 0.05);
+  color: #21c476;
+  box-shadow: 0 4px 12px rgba(33, 196, 118, 0.1);
 }
 .outline-btn:hover .btn-text, .btn:hover .btn-text {
-  letter-spacing: 2px;
-  color: var(--accent);
-  animation: cyber-text-glitch 2.5s infinite;
+  color: #21c476;
 }
 .outline-btn:hover::before, .outline-btn:hover::after, .btn:hover::before, .btn:hover::after {
-  color: var(--accent);
-  animation: cyber-text-glitch 2.5s infinite;
+  color: #21c476;
 }
+
+/* 黑底上幽邃冷峻的悬浮（实心按钮）：绝对静止 */
 .solid-btn, .btn-strong {
   background: var(--shard-text);
   border: 1px solid var(--shard-text);
   color: var(--shard-surface);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.2s ease;
 }
 .solid-btn .plus-mark { color: var(--accent); margin-left: 6px; font-size: 14px; font-weight: 900; }
 .solid-btn:hover, .btn-strong:hover {
-  background: var(--shard-surface);
-  color: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 20px var(--accent-glow), inset 0 0 12px var(--accent-glow);
-  transform: translateY(-2px);
+  background: #050706; 
+  color: #1A9E5E; 
+  border-color: #1A9E5E;
+  box-shadow: inset 0 0 0 1px #1A9E5E;
 }
 .solid-btn:hover .btn-text, .btn-strong:hover .btn-text {
-  color: var(--accent);
-  letter-spacing: 2px;
-  animation: cyber-text-glitch 2.5s infinite;
+  color: #1A9E5E;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(26, 158, 94, 0.6);
 }
 .solid-btn:hover .plus-mark, .btn-strong:hover .plus-mark {
-  color: var(--accent);
+  color: #1A9E5E;
 }
 .solid-btn:hover::before, .solid-btn:hover::after, .btn-strong:hover::before, .btn-strong:hover::after {
-  color: var(--accent);
-  animation: cyber-text-glitch 2.5s infinite;
-}
-@keyframes cyber-text-glitch {
-  0%, 100% { opacity: 1; text-shadow: 0 0 8px var(--accent-glow); }
-  92% { opacity: 1; text-shadow: 0 0 8px var(--accent-glow); }
-  93% { opacity: 0.3; text-shadow: none; }
-  94% { opacity: 1; text-shadow: 0 0 16px var(--accent); }
-  96% { opacity: 1; text-shadow: 0 0 8px var(--accent-glow); }
+  color: #1A9E5E;
 }
 .btn-danger { color: var(--danger); border-color: rgba(217, 56, 41, 0.3); }
 .btn-danger:hover::before { color: var(--danger); }
@@ -398,7 +391,7 @@ body.chassis {
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .event-item, .effect-row { background: var(--shard-surface); border: 1px solid var(--shard-border); padding: 16px 20px; transition: 0.2s; position: relative; }
 .profile-card {
-  background: var(--shard-surface); /* 绝对纯净的纯白色，拒绝雾蒙蒙 */
+  background: var(--shard-surface); 
   border: 1px solid var(--shard-border);
   box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   padding: 24px;
@@ -407,57 +400,101 @@ body.chassis {
   display: flex;
   justify-content: space-between;
   gap: 20px;
-  overflow: hidden; /* 配合切角与扫描线 */
+  overflow: hidden; /* 为底层雷达网格准备上下文 */
 }
 .profile-main { flex: 1; position: relative; z-index: 2; }
 
-/* 右上角物理金属斜切边框 */
-.profile-card::after {
-  content: ''; position: absolute; top: -16px; right: -16px; width: 32px; height: 32px;
-  background: var(--shard-bg);
-  border-left: 1px solid var(--shard-border);
-  border-bottom: 1px solid var(--shard-border);
-  transform: rotate(45deg);
-  z-index: 10;
-  transition: all 0.3s ease;
+.profile-card:hover { 
+  box-shadow: 0 16px 32px rgba(0,0,0,0.06); 
+  border-color: #9ab0a6; 
 }
 
-.profile-card:hover { box-shadow: 0 12px 24px rgba(0,0,0,0.05); transform: translateY(-4px); border-color: #9ab0a6; }
-.profile-card:hover::after { border-color: #9ab0a6; }
-
-/* 启用状态 - 去掉杂色，启用纯白底与全局统一的青绿呼吸光 */
+/* 启用状态 - 纯净阳光绿 */
 .profile-card.active { 
-  border-color: var(--accent); 
-  background: var(--shard-surface); /* 保持纯白敞亮 */
-  animation: card-breathe 3.5s infinite ease-in-out; 
+  border-color: #22c55e; 
+  background: var(--shard-surface); 
+  animation: card-breathe-sunlight 4s infinite ease-in-out; 
 }
-.profile-card.active:hover { transform: translateY(-4px); }
-.profile-card.active::after { 
-  border-color: var(--accent); 
-  box-shadow: -2px 2px 8px var(--accent-glow); 
+/* 绝对静止，禁用任何上浮 */
+.profile-card.active:hover { border-color: #22c55e; }
+
+@keyframes card-breathe-sunlight {
+  0%, 100% { box-shadow: inset 0 0 0 1px #22c55e, 0 0 12px rgba(34, 197, 94, 0.05); }
+  50% { box-shadow: inset 0 0 0 1px #22c55e, 0 0 24px rgba(34, 197, 94, 0.15); border-color: #2ed16b; }
 }
 
-@keyframes card-breathe {
-  0%, 100% { box-shadow: inset 0 0 0 1px var(--accent), 0 0 12px rgba(43, 176, 140, 0.1); }
-  50% { box-shadow: inset 0 0 0 1px var(--accent), 0 0 28px rgba(43, 176, 140, 0.4); border-color: #3ee0b5; }
+/* 彻底重构：剥离扫描线，使用独立的绝对定位光束容器来运行动画，杜绝状态切换闪现 */
+/* 隐藏的底层生命绿数据网格（精准紧凑探照模式） */
+/* 底层静止的复合科幻雷达底纹（点阵 + 十字坐标，打破死板规整） */
+.profile-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* 使用多层背景叠加：极细点阵 + 大跨度十字准星 */
+  background-image: 
+    radial-gradient(rgba(34, 197, 94, 0.4) 1px, transparent 1px),
+    linear-gradient(rgba(34, 197, 94, 0.15) 1px, transparent 1px), 
+    linear-gradient(90deg, rgba(34, 197, 94, 0.15) 1px, transparent 1px);
+  background-size: 
+    12px 12px, 
+    48px 48px, 
+    48px 48px;
+  background-position: 
+    0 0, 
+    24px 24px, 
+    24px 24px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
 }
 
-/* 科幻激光扫描线（保持在白底上高亮清晰） */
-.profile-card.active::before { 
-  content: ''; position: absolute; top: 0; width: 2px; height: 100%; 
-  background: #21a366; 
-  box-shadow: -15px 0 25px 4px var(--accent-glow), -4px 0 8px var(--accent);
-  animation: scan-line-h 8s linear infinite; 
-  pointer-events: none; z-index: 11; border: none; transform: none;
+/* 只有卡片被启用时，才允许显现遮罩照亮的区域 */
+.profile-card.active::before {
+  opacity: 1;
+  /* 照亮 96px 宽（正好4个24px的格子）的带状区域 */
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, transparent 100%);
+  -webkit-mask-size: 96px 100%;
+  mask-size: 96px 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: grid-illuminate 6.8s linear infinite;
 }
-.profile-card.active::after { display: none; }
 
-@keyframes scan-line-h { 
-  0% { left: -50px; opacity: 0; } 
-  5% { left: 0%; opacity: 1; } 
-  35% { left: 80%; opacity: 1; } /* 在靠近右侧区域时开始渐隐 */
-  45% { left: 100%; opacity: 0; } /* 缓慢淡出直到完全消失 */
-  100% { left: 100%; opacity: 0; } 
+/* 极简、锋利的纯色激光刃 */
+.profile-card .scan-beam {
+  display: none;
+}
+.profile-card.active .scan-beam {
+  display: block;
+  position: absolute;
+  top: 0; 
+  bottom: 0;
+  left: 0;
+  width: 2px; 
+  background: #22c55e; 
+  box-shadow: 0 0 12px rgba(34, 197, 94, 1);
+  pointer-events: none; 
+  z-index: 11;
+  animation: beam-scan 6.8s linear infinite; /* 同步提速 */
+}
+
+/* 光条移动与平滑淡出动画 */
+@keyframes beam-scan {
+  0%   { transform: translateX(-50px); opacity: 0; }
+  5%   { transform: translateX(20px); opacity: 1; } /* 进场 */
+  75%  { transform: translateX(960px); opacity: 1; } /* 维持亮度直到靠近右侧边缘 */
+  85%  { transform: translateX(1100px); opacity: 0; } /* 平滑淡出完全隐入背景 */
+  100% { transform: translateX(1300px); opacity: 0; } /* 走完剩余路程 */
+}
+
+/* 光斑移动与平滑淡出动画：绝对死锁光条 */
+@keyframes grid-illuminate {
+  0%   { -webkit-mask-position: -97px 0; mask-position: -97px 0; opacity: 0; } /* 配合96px宽度，中心对齐光条 */
+  5%   { -webkit-mask-position: -27px 0; mask-position: -27px 0; opacity: 1; }
+  75%  { -webkit-mask-position: 913px 0; mask-position: 913px 0; opacity: 1; }
+  85%  { -webkit-mask-position: 1053px 0; mask-position: 1053px 0; opacity: 0; } /* 确保在这里就彻底淡出消失！ */
+  100% { -webkit-mask-position: 1253px 0; mask-position: 1253px 0; opacity: 0; }
 }
 
 .profile-card h3 { font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: var(--shard-text); margin-bottom: 10px; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
@@ -493,38 +530,48 @@ body.chassis {
 
 .overview-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
 .overview-stat { border: 1px solid var(--shard-border); background: var(--shard-bg); padding: 20px; border-top: 2px solid transparent; transition: all 0.3s ease; display: flex; flex-direction: column; }
-.overview-stat:hover { border-top-color: #21a366; background: var(--shard-surface); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+.overview-stat:hover { border-top-color: #22c55e; background: var(--shard-surface); box-shadow: 0 8px 24px rgba(0,0,0,0.04); transform: none; }
 .overview-stat b { font-family: var(--font-headline); font-size: 32px; font-weight: 800; color: var(--shard-text); display: block; margin-bottom: 4px; letter-spacing: -0.5px; }
 
 /* 工业风控制组件 */
-.switch-group { display: flex; border: 2px solid #a3b0ac; padding: 2px; gap: 2px; background: var(--shard-surface); width: 100%; }
-.mode-btn { flex: 1; border: none; background: transparent; color: var(--shard-text-muted); height: 34px; transition: all 0.2s ease; font-size: 12px; font-family: var(--font-headline); font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; padding: 0 4px; }
-.mode-btn.active { background: var(--shard-text); color: #ffffff; box-shadow: inset 0 0 0 1px var(--shard-text); }
-.mode-btn:hover:not(.active) { background: rgba(0,0,0,0.05); color: var(--shard-text); }
+.switch-group { display: flex; border: 1px solid var(--shard-border); padding: 2px; gap: 2px; background: #ffffff; width: 100%; border-radius: 4px; }
+.mode-btn { flex: 1; border: 1px solid transparent; background: transparent; color: var(--shard-text-muted); height: 34px; transition: all 0.2s ease; font-size: 12px; font-family: var(--font-headline); font-weight: 800; letter-spacing: 0.5px; white-space: nowrap; padding: 0 4px; border-radius: 2px; }
+/* 选中的模式：呈现出明亮、活力的生机反差 */
+.mode-btn.active { background: #22c55e; color: #ffffff; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25); border-color: #22c55e; transform: none; }
+.mode-btn:hover:not(.active) { background: rgba(34, 197, 94, 0.05); color: #22c55e; transform: none; }
 .mode-btn:hover:not(.active) { color: var(--shard-text); background: rgba(255,255,255,0.2); }
 
-/* HUD 风格切换区 */
-.profile-hud-slot { display: flex; align-items: center; justify-content: flex-start; width: 140px; flex-shrink: 0; position: relative; z-index: 2; border-left: 1px solid rgba(0,0,0,0.05); padding-left: 24px; transition: 0.3s; }
-.profile-card:hover .profile-hud-slot { border-left-color: rgba(33, 163, 102, 0.2); }
+/* HUD 风格切换区：极其严谨、无位移 */
+.profile-hud-slot { display: flex; align-items: center; justify-content: flex-start; width: 140px; flex-shrink: 0; position: relative; z-index: 2; border-left: 1px solid rgba(0,0,0,0.05); padding-left: 24px; transition: border-color 0.3s ease; }
+.profile-card:hover .profile-hud-slot { border-left-color: #22c55e; }
 
-.hud-text { display: inline-block; width: 66px; text-align: left; }
+.hud-text { display: inline-block; width: 66px; text-align: left; transition: color 0.3s ease; }
 
-.hud-active-status { display: flex; align-items: center; gap: 12px; font-family: var(--font-headline); font-size: 14px; font-weight: 900; color: var(--accent); letter-spacing: 1px; padding: 0; text-shadow: 0 0 8px var(--accent-glow); }
-.hud-pulse { width: 10px; height: 10px; background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: hud-blink 1.5s infinite ease-in-out; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
-@keyframes hud-blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+.hud-active-status { display: flex; align-items: center; gap: 12px; font-family: var(--font-headline); font-size: 14px; font-weight: 900; color: #22c55e; letter-spacing: 1px; padding: 0; }
+.hud-pulse { width: 8px; height: 8px; background: #22c55e; box-shadow: 0 0 8px #22c55e; animation: hud-blink 2s infinite ease-in-out; }
+@keyframes hud-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-.hud-switch-btn { background: transparent; border: none; display: flex; align-items: center; gap: 12px; color: var(--shard-text-muted); cursor: pointer; transition: all 0.3s ease; font-family: var(--font-headline); font-weight: 900; letter-spacing: 1px; font-size: 14px; padding: 0; }
-.hud-arrow { width: 18px; height: 18px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateX(-8px); opacity: 0; }
+.hud-switch-btn { background: transparent; border: none; display: flex; align-items: center; gap: 12px; color: var(--shard-text-muted); cursor: pointer; transition: color 0.2s ease; font-family: var(--font-headline); font-weight: 900; letter-spacing: 1px; font-size: 14px; padding: 0; }
+.hud-arrow { width: 18px; height: 18px; transition: opacity 0.3s ease; opacity: 0; }
 .profile-card:hover .hud-switch-btn { color: var(--shard-text); }
-.profile-card:hover .hud-arrow { transform: translateX(0); opacity: 1; color: var(--accent); }
-.hud-switch-btn:hover { color: var(--accent) !important; text-shadow: 0 0 8px var(--accent-glow); }
-.hud-switch-btn:hover .hud-arrow { transform: translateX(6px); }
+.profile-card:hover .hud-arrow { opacity: 1; color: #22c55e; }
+.hud-switch-btn:hover { color: #22c55e !important; }
+.hud-switch-btn:hover .hud-arrow { opacity: 1; color: #22c55e; }
 
 /* 动态充能特效按钮 */
 .profile-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; align-items: center; position: relative; z-index: 2; }
-.action-link { background: rgba(0,0,0,0.02); border: 1px solid transparent; color: var(--shard-text-muted); padding: 6px 16px; font-family: var(--font-headline); font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; letter-spacing: 1px; position: relative; overflow: hidden; z-index: 1; }
-.action-link::before { content: ''; position: absolute; top: 0; left: 0; width: 0%; height: 100%; background: var(--accent); transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); z-index: -1; }
-.action-link:hover { color: var(--on-accent); transform: scale(1.05); letter-spacing: 2px; box-shadow: 0 4px 12px var(--accent-glow); }
+.action-link { 
+  background: #ffffff; border: 1px solid #c8d2ce; color: var(--shard-text-muted); padding: 6px 14px; 
+  font-family: var(--font-headline); font-size: 12px; font-weight: 800; cursor: pointer; 
+  transition: all 0.2s ease; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; 
+  position: relative; z-index: 1; 
+}
+.action-link:hover { 
+  color: #22c55e; 
+  border-color: #22c55e; 
+  background: rgba(34, 197, 94, 0.05); 
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.2);
+}
 .action-link:hover::before { width: 100%; }
 .overview-stat span { font-size: 11px; color: var(--shard-text-muted); letter-spacing: 2px; font-weight: 700; font-family: var(--font-headline); display: block; }
 
@@ -1434,6 +1481,7 @@ function renderOverview() {
       const justActivated = state.justActivatedProfile === p.profile_id;
       return `
             <article class="profile-card ${active ? 'active' : ''} ${justActivated ? 'just-activated' : ''}">
+              <div class="scan-beam"></div>
               <div class="profile-main">
                   <h3>${esc(p.display_name || p.profile_id)}</h3>
                                 <div class="row" style="margin-bottom:8px;">

@@ -70,7 +70,15 @@ DEFAULT_SIGN_IN_TEXTS = {
         {"label": "平运", "min": 1, "max": 50, "gold_delta": 0, "comments": ["平平无奇。宜蛰伏蓄锐，莫生事端。", "天道轮回，蛰伏等待时机。"]},
         {"label": "小吉", "min": 51, "max": 70, "gold_delta": 0, "comments": ["小吉。灵力涌动，爆率提升。", "稳中有进，今日不宜冒进。"]},
         {"label": "大吉", "min": 71, "max": 90, "gold_delta": 0, "comments": ["大吉。如有神助，爆率飙升。", "今日气运高涨，宜乘势而为。"]},
-        {"label": "天命", "min": 91, "max": 100, "gold_delta": 0, "comments": ["天命之子！鸿运当头，此时不抽更待何时！", "星轨共鸣，今日诸事大吉！"]}
+                {"label": "天命", "min": 91, "max": 100, "gold_delta": 0, "comments": ["天命之子！鸿运当头，此时不抽更待何时！", "星轨共鸣，今日诸事大吉！"]}
+    ],
+    "enable_quote": True,
+    "enable_draw_prob": True,
+    "use_custom_quote": False,
+    "custom_quotes": [
+        "这虽然是游戏，但可不是闹着玩的。",
+        "风向转变的时候，有人筑墙，有人造风车。",
+        "真正的敏捷不是看你能跑多快，而是看你能多快改变方向。"
     ]
 }
 
@@ -174,20 +182,27 @@ def _normalize_sign_in_texts(texts) -> dict:
     if isinstance(legacy_comments, dict):
         result["luck_comments"] = legacy_comments
 
-    for item in data.get("luck_ranges", []) if isinstance(data.get("luck_ranges", []), list) else []:
-        if not isinstance(item, dict):
-            continue
+        for item in data.get("luck_ranges", []) if isinstance(data.get("luck_ranges", []), list) else []:
+            if not isinstance(item, dict):
+                continue
         min_val = _safe_int(item.get("min", 1), 1)
         max_val = _safe_int(item.get("max", 100), 100)
         if min_val > max_val:
             min_val, max_val = max_val, min_val
         result["luck_ranges"].append({
             "label": str(item.get("label", "") or "新区间").strip() or "新区间",
-            "min": min_val,
-            "max": max_val,
-            "gold_delta": _safe_int(item.get("gold_delta", 0), 0),
-            "comments": [str(x).strip() for x in item.get("comments", []) if str(x).strip()] if isinstance(item.get("comments", []), list) else [],
-        })
+                    "min": min_val,
+                    "max": max_val,
+                    "gold_delta": _safe_int(item.get("gold_delta", 0), 0),
+                    "comments": [str(x).strip() for x in item.get("comments", []) if str(x).strip()] if isinstance(item.get("comments", []), list) else [],
+                })
+
+    result["enable_quote"] = bool(data.get("enable_quote", True))
+    result["enable_draw_prob"] = bool(data.get("enable_draw_prob", True))
+    result["use_custom_quote"] = bool(data.get("use_custom_quote", False))
+    result["custom_quotes"] = [str(x).strip() for x in data.get("custom_quotes", []) if str(x).strip()]
+    if not result["custom_quotes"]:
+                result["custom_quotes"] = DEFAULT_SIGN_IN_TEXTS.get("custom_quotes", ["这虽然是游戏，但可不是闹着玩的。"])
 
     return result
 
@@ -354,9 +369,10 @@ def _default_runtime_config() -> dict:
                 "rarity_4": 11,
                 "rarity_5": 1,
             },
-            "economy_settings": {
+                        "economy_settings": {
                 "draw_probability": 5,
                 "free_daily_draw": 1,
+                "paid_daily_draw": 10,
                 "draw_cost": 20,
                 "pity_threshold": 10,
             },

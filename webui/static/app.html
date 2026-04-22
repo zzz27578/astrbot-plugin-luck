@@ -358,7 +358,7 @@ body.chassis {
   border: 1px solid var(--shard-border);
   padding: 32px;
   position: relative;
-  overflow: hidden; /* 用于物理切割斜角 */
+  overflow: visible; /* 用于物理切割斜角 */
   box-shadow: 0 8px 24px rgba(0,0,0,0.02);
 }
 /* 物理级锐利金属斜切角已移除 */
@@ -396,7 +396,13 @@ body.chassis {
 
 .stack { display: grid; gap: 12px; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.event-item, .effect-row { background: var(--shard-surface); border: 1px solid var(--shard-border); padding: 16px 20px; transition: 0.2s; position: relative; }
+.event-item { background: var(--shard-surface); border: 1px solid rgba(0,0,0,0.06); padding: 6px 12px; transition: 0.2s; position: relative; display: flex; align-items: center; gap: 12px; border-radius: 4px !important; margin-bottom: 8px; }
+.event-item:hover { border-color: var(--accent); background: rgba(26, 158, 94, 0.03); }
+.event-item .input { border: none; border-bottom: 1px dashed rgba(0,0,0,0.1); background: transparent; padding: 4px 0; font-size: 13px; }
+.event-item .input:focus { border-bottom-color: var(--accent); box-shadow: none; }
+.event-item .btn-danger { height: 26px; padding: 0 10px; font-size: 10px; opacity: 0.4; border-color: transparent; }
+.event-item:hover .btn-danger { opacity: 1; border-color: rgba(217, 56, 41, 0.3); }
+.effect-row { background: var(--shard-surface); border: 1px solid var(--shard-border); padding: 16px 20px; transition: 0.2s; position: relative; }
 .profile-card {
   background: var(--shard-surface); 
   border: 1px solid var(--shard-border);
@@ -632,6 +638,10 @@ body.chassis {
 .dialog-backdrop { position: absolute; inset: 0; background: rgba(4, 8, 6, 0.85); backdrop-filter: blur(12px); }
 .dialog-card { background: var(--shard-surface); border: 1px solid var(--accent); width: min(1000px, 100%); max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; z-index: 101; box-shadow: 0 0 64px rgba(57,229,184,0.15); transition: width 0.3s ease; }
 .dialog-card.dialog-small { width: min(640px, 100%); }
+/* 区间重叠报警动画 */
+@keyframes danger-glow { 0%, 100% { box-shadow: inset 0 0 0 1px var(--danger), 0 0 12px rgba(217, 56, 41, 0.1); border-color: var(--danger); } 50% { box-shadow: inset 0 0 0 1px var(--danger), 0 0 24px rgba(217, 56, 41, 0.4); border-color: #ff6b5b; } }
+.signin-range { transition: all 0.3s ease; }
+.signin-range.danger-pulse { animation: danger-glow 2s infinite ease-in-out; border-color: var(--danger) !important; }
 .dialog-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--shard-text); padding-bottom: 16px; margin-bottom: 32px; }
 .dialog-title { font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: var(--shard-text); text-transform: uppercase; }
 .tiny { font-family: var(--font-headline); font-size: 10px; color: var(--shard-text-muted); letter-spacing: 3px; margin-bottom: 8px; font-weight: 700; }
@@ -739,6 +749,29 @@ body.chassis {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--shard-border); border-radius: 2px !important; box-shadow: none; }
 ::-webkit-scrollbar-thumb:hover { background: #ffffff; }
+
+/* 运行配置优化 */
+.runtime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; margin-top: 12px; }
+.config-block { transition: all 0.3s ease; position: relative; padding-bottom: 24px; border-bottom: 1px dashed var(--shard-border); margin-bottom: 24px; }
+.config-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.config-block.locked { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+.config-block.locked::after { content: ''; position: absolute; inset: 0; z-index: 10; }
+.config-kicker { font-family: var(--font-headline); font-size: 15px; color: var(--shard-text); letter-spacing: 1px; font-weight: 900; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.config-kicker::before { content: ''; display: block; width: 4px; height: 14px; background: var(--shard-text); }
+
+/* 权重分析器：左边填数字，右边图表与数值展示 */
+.rarity-weight-layout { display: flex; gap: 40px; align-items: stretch; background: var(--shard-bg); border: 1px solid var(--shard-border); padding: 24px; border-top: 3px solid var(--shard-text); margin-top: 16px; }
+.rarity-weight-fields { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; align-content: start; }
+.rarity-ring-wrap { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 24px; border-left: 1px dashed var(--shard-border); padding-left: 40px; }
+.rarity-ring { width: 140px; height: 140px; border-radius: 50% !important; position: relative; transition: background 0.4s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+.rarity-ring-center { position: absolute; inset: 12px; background: var(--shard-bg); border-radius: 50% !important; display: flex; align-items: center; justify-content: center; text-align: center; }
+.rarity-ring-center b { font-size: 28px; font-weight: 900; color: var(--shard-text); display: block; letter-spacing: -1px; line-height: 1; }
+.rarity-ring-center span { font-size: 10px; color: var(--shard-text-muted); font-weight: 700; margin-top: 6px; letter-spacing: 1px; }
+.rarity-legend { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.rarity-legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--shard-text); border-bottom: 1px solid rgba(0,0,0,0.04); padding-bottom: 8px; }
+.rarity-dot-wrap { display: flex; align-items: center; gap: 10px; }
+.rarity-dot { width: 10px; height: 10px; background: var(--dot-color); border-radius: 50% !important; }
+.rarity-pct { color: var(--accent); font-family: var(--font-headline); font-weight: 900; font-size: 14px; }
 
 </style>
 </head>
@@ -1089,7 +1122,7 @@ const state = {
   profiles: [],
   runtimeConfig: {},
   groupAccess: { mode: 'off', blacklist: [], whitelist: [] },
-  signInTexts: { good_things: [], bad_things: [], luck_ranges: [] },
+  signInTexts: { good_things: [], bad_things: [], luck_ranges: [], enable_quote: true, enable_draw_prob: true, use_custom_quote: false, custom_quotes: [] },
   fateCards: [],
   fateImages: [],
     funcCards: [],
@@ -1316,10 +1349,10 @@ function ensureRuntime() {
     rarity_mode: 'default',
     max_equipped_titles: 3,
     custom_rarity_weights: { rarity_1: 30, rarity_2: 30, rarity_3: 28, rarity_4: 11, rarity_5: 1 },
-    economy_settings: { draw_probability: 5, free_daily_draw: 1, draw_cost: 20, pity_threshold: 10 }
+        economy_settings: { draw_probability: 5, free_daily_draw: 1, paid_daily_draw: 10, draw_cost: 20, pity_threshold: 10 }
   };
   c.func_cards_settings.custom_rarity_weights ||= { rarity_1: 30, rarity_2: 30, rarity_3: 28, rarity_4: 11, rarity_5: 1 };
-  c.func_cards_settings.economy_settings ||= { draw_probability: 5, free_daily_draw: 1, draw_cost: 20, pity_threshold: 10 };
+  c.func_cards_settings.economy_settings ||= { draw_probability: 5, free_daily_draw: 1, paid_daily_draw: 10, draw_cost: 20, pity_threshold: 10 };
   c.func_cards_settings.max_equipped_titles ||= 3;
   state.runtimeConfig = c;
 }
@@ -1468,19 +1501,26 @@ function buildRarityWeightPreview() {
   };
 }
 function updateRarityChart() {
-  const ring = $('#rarityRing');
-  const legend = $('#rarityLegend');
-  const total = $('#rarityWeightTotal');
-  if (!ring || !legend || !total) return;
+  const container = $('#weightAnalyzer');
+  if (!container) return;
   const preview = buildRarityWeightPreview();
-  ring.style.background = preview.ringBackground;
-  total.textContent = String(preview.total || 0);
-  legend.innerHTML = preview.items.map(item => `
+  
+  const legendHtml = preview.items.map(item => `
     <div class="rarity-legend-item">
-      <span class="rarity-dot" style="--dot-color:${item.color}"></span>
-      <span>${item.label}</span>
-      <span>${item.value} / ${item.percent.toFixed(1)}%</span>
-    </div>`).join('');
+      <div class="rarity-dot-wrap">
+        <span class="rarity-dot" style="--dot-color:${item.color}"></span>
+        <span>${item.label}</span>
+      </div>
+      <span class="rarity-pct">${item.percent.toFixed(1)}%</span>
+    </div>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="rarity-ring" style="background:${preview.ringBackground};">
+      <div class="rarity-ring-center"><div><b>${preview.total}</b><span>权重总和</span></div></div>
+    </div>
+    <div class="rarity-legend">${legendHtml}</div>
+  `;
 }
 function buildFuncTypeDistribution() {
   const items = Object.entries(funcTypePalette).map(([key, meta]) => {
@@ -1531,6 +1571,24 @@ function confirmBatchEventAdd(kind) {
   closeDialog();
   renderSignin();
   showToast('批量文案已写入。');
+}
+
+function openCustomQuoteDialog() {
+  openDialog('编辑自定义名言', `
+    <div>
+      <div class="panel-note" style="margin-bottom:12px;">每行填写一条名言。系统在签到时将从中随机抽取。</div>
+      <div class="field"><textarea class="textarea" id="customQuoteInput" style="min-height:300px;">${esc((state.signInTexts.custom_quotes || []).join('\n'))}</textarea></div>
+      <div class="row" style="margin-top:16px;"><button class="btn-strong" onclick="confirmCustomQuoteEdit()"><span class="btn-text">保存自定义名言</span></button></div>
+    </div>`, 'small');
+}
+
+function confirmCustomQuoteEdit() {
+  const raw = $('#customQuoteInput')?.value || '';
+  const list = raw.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+  state.signInTexts.custom_quotes = list;
+  closeDialog();
+  renderSignin();
+  showToast('自定义名言已保存。');
 }
 function setEventText(kind, idx, value) {
   const target = kind === 'good' ? state.signInTexts.good_things : state.signInTexts.bad_things;
@@ -1701,61 +1759,53 @@ function renderRuntime() {
         ${toggleBox('同稀有度优先不重复', '开启后，抽到功能牌时会尽量避免连续给出同稀有度重复内容。', 'func_cards_settings.enable_rarity_dedup', f.enable_rarity_dedup)}
       </section>
 
-      <section class="panel col-8">
+            <section class="panel col-8">
         <div class="panel-head">
           <div>
             <div class="panel-title">参数配置</div>
-            <div class="panel-note">稀有度名称已改为：普通 / 稀有 / 史诗 / 传说 / 神话。</div>
+            <div class="panel-note">左侧总开关未开启时，右侧对应参数区域将锁定变灰不可编辑。输入框已适配工业紧凑布局。</div>
           </div>
           <button class="btn-strong" onclick="saveRuntime()"><span class="btn-text">保存运行配置</span></button>
         </div>
 
-        <div class="runtime-split">
-          <div class="config-block ${fateEnabled ? '' : 'locked'}">
-            ${numField('命运牌每日上限', 'fate_cards_settings.daily_draw_limit', c.fate_cards_settings.daily_draw_limit, !fateEnabled)}
-          </div>
-          <div class="config-block ${funcEnabled ? '' : 'locked'}">
-            ${selectField('稀有度模式', 'func_cards_settings.rarity_mode', f.rarity_mode, [['default', '默认'], ['custom', '自定义']], !funcEnabled)}
+                <div class="config-block ${fateEnabled ? '' : 'locked'}">
+          <div class="config-kicker">命运牌模块</div>
+          <div class="runtime-grid">
+            ${numField('命运牌每日换牌上限', 'fate_cards_settings.daily_draw_limit', c.fate_cards_settings.daily_draw_limit, !fateEnabled)}
           </div>
         </div>
 
-        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">公开对赌配置</div><div class="panel-note">把对赌次数与赌注范围放到同一行，方便整体调整。</div></div></div>
-        <div class="runtime-three config-block ${duelEnabled ? '' : 'locked'}">
-          ${numField('对赌每日次数', 'func_cards_settings.public_duel_daily_limit', f.public_duel_daily_limit, !duelEnabled)}
-          ${numField('最小赌注', 'func_cards_settings.public_duel_min_stake', f.public_duel_min_stake, !duelEnabled)}
-          ${numField('最大赌注', 'func_cards_settings.public_duel_max_stake', f.public_duel_max_stake, !duelEnabled)}
-        </div>
-
-        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">抽卡经济</div><div class="panel-note">上排控制掉率与免费次数，下排控制单次消耗与保底。</div></div></div>
-        <div class="runtime-split config-block ${funcEnabled ? '' : 'locked'}">
-          ${numField('基础掉率', 'func_cards_settings.economy_settings.draw_probability', e.draw_probability, !funcEnabled)}
-          ${numField('每日免费抽取', 'func_cards_settings.economy_settings.free_daily_draw', e.free_daily_draw, !funcEnabled)}
-          ${numField('超出免费后的单次消耗', 'func_cards_settings.economy_settings.draw_cost', e.draw_cost, !funcEnabled)}
-          ${numField('保底次数', 'func_cards_settings.economy_settings.pity_threshold', e.pity_threshold, !funcEnabled)}
-        </div>
-
-        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">稀有度权重</div><div class="panel-note">左侧逐项输入，右侧实时预览各稀有度占比。</div></div></div>
-        <div class="rarity-weight-layout config-block ${weightEnabled ? '' : 'locked'}">
-          <div class="rarity-weight-fields">
-            ${numField('普通', 'func_cards_settings.custom_rarity_weights.rarity_1', w.rarity_1, !weightEnabled)}
-            ${numField('稀有', 'func_cards_settings.custom_rarity_weights.rarity_2', w.rarity_2, !weightEnabled)}
-            ${numField('史诗', 'func_cards_settings.custom_rarity_weights.rarity_3', w.rarity_3, !weightEnabled)}
-            ${numField('传说', 'func_cards_settings.custom_rarity_weights.rarity_4', w.rarity_4, !weightEnabled)}
-            ${numField('神话', 'func_cards_settings.custom_rarity_weights.rarity_5', w.rarity_5, !weightEnabled)}
+                <div class="config-block ${funcEnabled ? '' : 'locked'}">
+          <div class="config-kicker">功能牌经济</div>
+          <div class="runtime-grid">
+            ${numField('基础掉率 (%)', 'func_cards_settings.economy_settings.draw_probability', e.draw_probability, !funcEnabled)}
+            ${numField('每日免费抽取', 'func_cards_settings.economy_settings.free_daily_draw', e.free_daily_draw, !funcEnabled)}
+            ${numField('每日付费抽取', 'func_cards_settings.economy_settings.paid_daily_draw', e.paid_daily_draw, !funcEnabled)}
+            ${numField('单次消耗 (金币)', 'func_cards_settings.economy_settings.draw_cost', e.draw_cost, !funcEnabled)}
+            ${numField('保底次数', 'func_cards_settings.economy_settings.pity_threshold', e.pity_threshold, !funcEnabled)}
           </div>
-          <div class="rarity-ring-wrap">
-            <div class="rarity-ring" id="rarityRing" style="background:${preview.ringBackground};">
-              <div class="rarity-ring-center"><div><b id="rarityWeightTotal">${preview.total}</b><span>权重总值</span></div></div>
+        </div>
+
+        <div class="config-block ${duelEnabled ? '' : 'locked'}">
+          <div class="config-kicker">公开对赌</div>
+          <div class="runtime-grid">
+            ${numField('对赌每日次数', 'func_cards_settings.public_duel_daily_limit', f.public_duel_daily_limit, !duelEnabled)}
+            ${numField('最小赌注', 'func_cards_settings.public_duel_min_stake', f.public_duel_min_stake, !duelEnabled)}
+            ${numField('最大赌注', 'func_cards_settings.public_duel_max_stake', f.public_duel_max_stake, !duelEnabled)}
+          </div>
+        </div>
+
+        <div class="config-block ${weightEnabled ? '' : 'locked'}">
+          <div class="config-kicker">稀有度权重</div>
+          <div class="rarity-weight-layout">
+            <div class="rarity-weight-fields">
+              ${numField('普通权重', 'func_cards_settings.custom_rarity_weights.rarity_1', w.rarity_1, !weightEnabled)}
+              ${numField('稀有权重', 'func_cards_settings.custom_rarity_weights.rarity_2', w.rarity_2, !weightEnabled)}
+              ${numField('史诗权重', 'func_cards_settings.custom_rarity_weights.rarity_3', w.rarity_3, !weightEnabled)}
+              ${numField('传说权重', 'func_cards_settings.custom_rarity_weights.rarity_4', w.rarity_4, !weightEnabled)}
+              ${numField('神话权重', 'func_cards_settings.custom_rarity_weights.rarity_5', w.rarity_5, !weightEnabled)}
             </div>
-            <div class="rarity-legend-title">实时概率分布</div>
-            <div class="rarity-legend" id="rarityLegend">
-              ${preview.items.map(item => `
-                <div class="rarity-legend-item">
-                  <span class="rarity-dot" style="--dot-color:${item.color}"></span>
-                  <span>${item.label}</span>
-                  <span>${item.value} / ${item.percent.toFixed(1)}%</span>
-                </div>`).join('')}
-            </div>
+            <div class="rarity-ring-wrap" id="weightAnalyzer"></div>
           </div>
         </div>
       </section>
@@ -1778,73 +1828,123 @@ function renderSignin() {
   const ranges = state.signInTexts.luck_ranges || [];
   $('#page-signin').innerHTML = `
     <div class="grid signin-layout">
-      <section class="panel col-7">
+      <section class="panel col-12" style="padding-bottom: 16px;">
         <div class="panel-head">
           <div>
             <div class="panel-title">事件文本池</div>
-            <div class="panel-note">签到预览会按“宜 / 忌”格式生成，这里直接维护对应文案。</div>
+            <div class="panel-note">左侧宜项，右侧忌项。集中管理签到时可能触发的每日事件。</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn-strong" onclick="saveSignin()"><span class="btn-text">保存配置</span></button>
           </div>
         </div>
-        <div class="signin-columns">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+          <!-- 宜项 -->
           <div>
-            <div class="signin-list-head">
-              <div class="signin-list-title">宜项列表</div>
-              <div class="signin-actions">
-                <button class="btn" onclick="openBatchEventDialog('good')"><span class="btn-text">批量增加宜项</span></button>
-                <button class="btn-danger" onclick="deleteSelectedEvents('good')"><span class="btn-text">批量删除已勾选</span></button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div class="config-kicker" style="margin: 0;">宜项列表</div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-mini outline-btn" onclick="openBatchEventDialog('good')"><span class="btn-text">批量添加</span></button>
+                <button class="btn-mini btn-danger" onclick="deleteSelectedEvents('good')"><span class="btn-text">删除选中</span></button>
               </div>
             </div>
-            <div class="event-list">
-              ${(state.signInTexts.good_things || []).map((item, i) => eventItem('good', item, i)).join('') || '<div class="empty">暂无宜项文本</div>'}
+            <div class="event-list" style="max-height: 280px; overflow-y: auto; padding-right: 8px;">
+              ${(state.signInTexts.good_things || []).map((item, i) => eventItem('good', item, i)).join('') || '<div class="empty" style="padding:12px;">暂无文本</div>'}
             </div>
-            <div class="row" style="margin-top:8px;">
-              <button class="btn" onclick="addSingleEvent('good')"><span class="btn-text">增加一条宜项</span></button>
+            <div class="row" style="margin-top:12px;">
+              <button class="btn outline-btn" style="width: 100%;" onclick="addSingleEvent('good')"><span class="btn-text">+ 增加宜项</span></button>
             </div>
           </div>
+          <!-- 忌项 -->
           <div>
-            <div class="signin-list-head">
-              <div class="signin-list-title">忌项列表</div>
-              <div class="signin-actions">
-                <button class="btn" onclick="openBatchEventDialog('bad')"><span class="btn-text">批量增加忌项</span></button>
-                <button class="btn-danger" onclick="deleteSelectedEvents('bad')"><span class="btn-text">批量删除已勾选</span></button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div class="config-kicker" style="margin: 0;">忌项列表</div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-mini outline-btn" onclick="openBatchEventDialog('bad')"><span class="btn-text">批量添加</span></button>
+                <button class="btn-mini btn-danger" onclick="deleteSelectedEvents('bad')"><span class="btn-text">删除选中</span></button>
               </div>
             </div>
-            <div class="event-list">
-              ${(state.signInTexts.bad_things || []).map((item, i) => eventItem('bad', item, i)).join('') || '<div class="empty">暂无忌项文本</div>'}
+            <div class="event-list" style="max-height: 280px; overflow-y: auto; padding-right: 8px;">
+              ${(state.signInTexts.bad_things || []).map((item, i) => eventItem('bad', item, i)).join('') || '<div class="empty" style="padding:12px;">暂无文本</div>'}
             </div>
-            <div class="row" style="margin-top:8px;">
-              <button class="btn" onclick="addSingleEvent('bad')"><span class="btn-text">增加一条忌项</span></button>
+            <div class="row" style="margin-top:12px;">
+              <button class="btn outline-btn" style="width: 100%;" onclick="addSingleEvent('bad')"><span class="btn-text">+ 增加忌项</span></button>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="panel col-5">
+      <section class="panel col-8">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">运势区间</div>
+            <div class="panel-note">定义玩家在不同运气区间内会抽到什么评价和获得额外多少金币。</div>
+          </div>
+          <button class="btn outline-btn" onclick="addRange()"><span class="btn-text">新增区间</span></button>
+        </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          ${ranges.map((r, i) => `
+            <div class="signin-range" style="background: var(--shard-bg); border: 1px solid var(--shard-border); padding: 16px; display: flex; flex-direction: column;">
+              <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                <div class="field" style="flex: 1;"><label>标签</label><input class="input" style="padding: 8px 12px;" value="${esc(r.label || '')}" onchange="setRange(${i}, 'label', this.value)"></div>
+                <div class="field" style="width: 64px;"><label>金币修正</label><input class="input" style="padding: 8px;" type="number" value="${esc(r.gold_delta ?? 0)}" onchange="setRange(${i}, 'gold_delta', Number(this.value))"></div>
+              </div>
+              <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                <div class="field" style="flex: 1;"><label>最小值</label><input class="input" style="padding: 8px 12px;" type="number" value="${esc(r.min ?? 0)}" onchange="setRange(${i}, 'min', Number(this.value))"></div>
+                <div style="display:flex; align-items:flex-end; padding-bottom:8px; color:var(--shard-text-muted);">-</div>
+                <div class="field" style="flex: 1;"><label>最大值</label><input class="input" style="padding: 8px 12px;" type="number" value="${esc(r.max ?? 0)}" onchange="setRange(${i}, 'max', Number(this.value))"></div>
+              </div>
+              <div class="field" style="flex: 1; margin-bottom: 12px;">
+                <label>点评文案（每行一条）</label>
+                <textarea class="textarea" style="min-height: 60px; padding: 8px 12px;" onchange="setRangeComments(${i}, this.value)">${esc((r.comments || []).join('\n'))}</textarea>
+              </div>
+              <button class="btn-danger icon-btn" style="align-self: flex-end; padding: 0 8px; height: 26px; border-color:transparent; background:transparent;" onclick="removeRange(${i})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <span style="margin-left: 4px; font-size:11px;">删除</span>
+              </button>
+            </div>`).join('') || '<div class="empty">暂无运势区间</div>'}
+        </div>
+      </section>
+
+            <section class="panel col-4" style="display: flex; flex-direction: column;">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">全局附加选项</div>
+            <div class="panel-note">控制签到时额外展示的信息。</div>
+          </div>
+        </div>
+        <div style="margin-bottom: 24px; display: grid; gap: 12px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" ${state.signInTexts.enable_draw_prob ? 'checked' : ''} onchange="state.signInTexts.enable_draw_prob=this.checked; renderSignin();">
+            <span style="font-size:13px; font-weight:700;">展示今日爆率算力</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" ${state.signInTexts.enable_quote ? 'checked' : ''} onchange="state.signInTexts.enable_quote=this.checked; renderSignin();">
+            <span style="font-size:13px; font-weight:700;">展示末尾名言</span>
+          </label>
+          ${state.signInTexts.enable_quote ? `
+            <div style="padding-left: 24px; border-left: 2px solid var(--shard-border); margin-left: 8px; display: grid; gap: 12px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" ${state.signInTexts.use_custom_quote ? 'checked' : ''} onchange="state.signInTexts.use_custom_quote=this.checked; renderSignin();">
+                <span style="font-size:12px; color:var(--shard-text-muted); font-weight:700;">使用自定义词库 (不调用网络一言)</span>
+              </label>
+              ${state.signInTexts.use_custom_quote ? `
+                <button class="btn outline-btn btn-mini" style="width: fit-content;" onclick="openCustomQuoteDialog()"><span class="btn-text">编辑自定义词库 (${(state.signInTexts.custom_quotes || []).length} 条)</span></button>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+
         <div class="panel-head">
           <div>
             <div class="panel-title">签到预览</div>
-            <div class="panel-note">按 QQ 内实际生成习惯分行显示，方便直接比对最终效果。</div>
+            <div class="panel-note">点击生成按钮可实时查看终端在QQ内的排版效果。</div>
           </div>
-          <button class="btn-strong" onclick="saveSignin()"><span class="btn-text">保存签到配置</span></button>
         </div>
-        <div class="row" style="margin-bottom:10px;">
-          <button class="btn-strong" onclick="previewSignin()"><span class="btn-text">生成签到预览</span></button>
+        <div class="tag-preview signin-preview" id="signinPreview" style="flex: 1; white-space: pre-wrap; text-align: left; background: #080a09; color: #e6ede9; border: 1px solid rgba(26, 158, 94, 0.3); padding: 20px; font-family: var(--font-body); font-size: 13px; line-height: 1.8; box-shadow: inset 0 0 24px rgba(0,0,0,0.5); min-height: 160px;">
+          <span style="color:#6e8076;">// 尚未生成预览。</span>
         </div>
-        <div class="tag-preview signin-preview" id="signinPreview">尚未生成预览。</div>
-        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">运势区间</div><div class="panel-note">标签、数值区间和点评文案会直接影响预览结果。</div></div><button class="btn" onclick="addRange()"><span class="btn-text">新增区间</span></button></div>
-        <div class="stack">
-          ${ranges.map((r, i) => `
-            <div class="profile-card signin-range">
-              <div class="field-grid four">
-                <div class="field"><label>标签</label><input class="input" value="${esc(r.label || '')}" onchange="setRange(${i}, 'label', this.value)"></div>
-                <div class="field"><label>最小值</label><input class="input" type="number" value="${esc(r.min ?? 0)}" onchange="setRange(${i}, 'min', Number(this.value))"></div>
-                <div class="field"><label>最大值</label><input class="input" type="number" value="${esc(r.max ?? 0)}" onchange="setRange(${i}, 'max', Number(this.value))"></div>
-                <div class="field"><label>金币修正</label><input class="input" type="number" value="${esc(r.gold_delta ?? 0)}" onchange="setRange(${i}, 'gold_delta', Number(this.value))"></div>
-              </div>
-              <div class="field" style="margin-top:10px;"><label>点评文案（每行一条）</label><textarea class="textarea" onchange="setRangeComments(${i}, this.value)">${esc((r.comments || []).join('\n'))}</textarea></div>
-              <div class="row" style="margin-top:10px;"><button class="btn-danger" onclick="removeRange(${i})"><span class="btn-text">删除区间</span></button></div>
-            </div>`).join('') || '<div class="empty">暂无运势区间</div>'}
-        </div>
+        <button class="btn-strong" style="margin-top: 16px; width: 100%;" onclick="previewSignin()"><span class="btn-text">重新生成终端预测</span></button>
       </section>
     </div>`;
 }
@@ -1852,7 +1952,13 @@ function renderSignin() {
 function eventItem(kind, item, i) {
   const checked = (kind === 'good' ? state.goodSelected : state.badSelected).includes(i) ? 'checked' : '';
   const placeholder = kind === 'good' ? '输入宜项文案' : '输入忌项文案';
-  return `<div class="event-item"><input class="event-check" type="checkbox" ${checked} onchange="toggleEventSelect('${kind}', ${i}, this.checked)"><input class="input" id="eventInput-${kind}-${i}" value="${esc(item)}" placeholder="${placeholder}" oninput="setEventText('${kind}', ${i}, this.value)"><button class="btn-danger" onclick="removeEvent('${kind}', ${i})"><span class="btn-text">删除</span></button></div>`;
+  return `<div class="event-item">
+    <input class="event-check" type="checkbox" ${checked} onchange="toggleEventSelect('${kind}', ${i}, this.checked)">
+    <input class="input" id="eventInput-${kind}-${i}" value="${esc(item)}" placeholder="${placeholder}" oninput="setEventText('${kind}', ${i}, this.value)">
+    <button class="btn-danger icon-btn" onclick="removeEvent('${kind}', ${i})">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+  </div>`;
 }
 
 // ===== [ page: fate ] ======================================================
@@ -2926,9 +3032,30 @@ function removeRange(i) {
   state.signInTexts.luck_ranges.splice(i, 1);
   renderSignin();
 }
-function setRange(i, key, value) { state.signInTexts.luck_ranges[i][key] = value; }
+function checkRangeOverlap() {
+  const ranges = state.signInTexts.luck_ranges || [];
+  let hasOverlap = false;
+  const els = $$('.signin-range');
+  els.forEach(el => el.classList.remove('danger-pulse'));
+  for (let i = 0; i < ranges.length; i++) {
+    for (let j = i + 1; j < ranges.length; j++) {
+      const r1 = ranges[i]; const r2 = ranges[j];
+      if (Math.max(r1.min, r2.min) <= Math.min(r1.max, r2.max)) {
+        hasOverlap = true;
+        if (els[i]) els[i].classList.add('danger-pulse');
+        if (els[j]) els[j].classList.add('danger-pulse');
+      }
+    }
+  }
+  return hasOverlap;
+}
+function setRange(i, key, value) { 
+  state.signInTexts.luck_ranges[i][key] = value;
+  if (key === 'min' || key === 'max') checkRangeOverlap();
+}
 function setRangeComments(i, value) { state.signInTexts.luck_ranges[i].comments = value.split(/\r?\n/).map(v => v.trim()).filter(Boolean); }
-function previewSignin() {
+async function previewSignin() {
+  if (checkRangeOverlap()) return showToast('运势区间存在重叠，请修正变红的区间！', true);
   const ranges = state.signInTexts.luck_ranges || [];
   if (!ranges.length) return showToast('请先配置运势区间。', true);
   const range = ranges[Math.floor(Math.random() * ranges.length)];
@@ -2936,6 +3063,29 @@ function previewSignin() {
   const good = (state.signInTexts.good_things || [])[Math.floor(Math.random() * Math.max(1, state.signInTexts.good_things.length))] || '暂无宜项';
   const bad = (state.signInTexts.bad_things || [])[Math.floor(Math.random() * Math.max(1, state.signInTexts.bad_things.length))] || '暂无忌项';
   const score = Math.floor(Math.random() * Math.max(1, (range.max ?? 100) - (range.min ?? 1) + 1)) + (range.min ?? 1);
+  
+  let extraLines = [];
+  if (state.signInTexts.enable_draw_prob) {
+    extraLines.push(`今日爆率｜+${Math.floor(Math.random() * 5)}%`);
+  }
+  if (state.signInTexts.enable_quote) {
+    let quote = '';
+    if (state.signInTexts.use_custom_quote) {
+      const quotes = state.signInTexts.custom_quotes || [];
+      quote = quotes.length ? quotes[Math.floor(Math.random() * quotes.length)] : '（暂无自定义名言）';
+    } else {
+      try {
+        $('#signinPreview').textContent = '正在连线 Hitokoto 获取一言...';
+        const res = await fetch('https://v1.hitokoto.cn?c=a&c=b&c=c&c=d&c=i');
+        const data = await res.json();
+        quote = data.hitokoto + (data.from ? ` —— ${data.from}` : '');
+      } catch (e) {
+        quote = '（获取网络一言失败）';
+      }
+    }
+    extraLines.push(`\n${quote}`);
+  }
+
   $('#signinPreview').textContent = [
     `今日运势｜${range.label || '未知'}`,
     `数值｜${score}`,
@@ -2943,9 +3093,11 @@ function previewSignin() {
     `点评｜${comment}`,
     `宜｜${good}`,
     `忌｜${bad}`,
+    ...extraLines
   ].join('\n');
 }
 async function saveSignin(show = true) {
+  if (checkRangeOverlap()) return showToast('保存失败：运势区间存在重叠。', true);
   const res = await apiPost('/api/sign_in_texts', { texts: state.signInTexts });
   if (res.ok) {
     if (show) showToast('签到配置已保存。');

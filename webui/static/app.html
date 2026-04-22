@@ -361,15 +361,7 @@ body.chassis {
   overflow: hidden; /* 用于物理切割斜角 */
   box-shadow: 0 8px 24px rgba(0,0,0,0.02);
 }
-/* 物理级锐利金属斜切角（Bevel Cut），带实体切口边线 */
-.panel::after {
-  content: ''; position: absolute; top: -16px; right: -16px; width: 32px; height: 32px;
-  background: var(--shard-bg); /* 与外部环境同色，形成真实镂空切面 */
-  border-left: 1px solid var(--shard-border);
-  border-bottom: 1px solid var(--shard-border);
-  transform: rotate(45deg);
-  z-index: 10;
-}
+/* 物理级锐利金属斜切角已移除 */
 .panel-head { border-bottom: 1px solid var(--shard-border); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
 .panel-title { font-family: var(--font-headline); font-size: 20px; font-weight: 800; color: var(--shard-text); display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
 .panel-title::before { content: ''; display: block; width: 4px; height: 16px; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
@@ -1003,16 +995,7 @@ body.chassis {
       try { body = JSON.parse(init.body); } catch (_) {}
     }
 
-    if (method === 'GET' && path === '/api/profile_overview') {
-      const pList = clone(store.profiles).map(p => {
-        p.group_count = (p.groups || []).length;
-        p.user_count = store.stats.total_users || 0;
-        p.func_card_count = store.func_cards.length;
-        p.fate_card_count = store.fate_cards.length;
-        return p;
-      });
-      return jsonResponse({ ok: true, profiles: pList });
-    }
+        if (method === 'GET' && path === '/api/profile_overview') return jsonResponse({ ok: true, profiles: clone(store.profiles) });
     if (method === 'GET' && path === '/api/runtime_config') return jsonResponse({ ok: true, config: clone(store.runtime_config) });
     if (method === 'GET' && path === '/api/group_access') return jsonResponse({ ok: true, config: clone(store.group_access) });
     if (method === 'GET' && path === '/api/sign_in_texts') return jsonResponse({ ok: true, texts: clone(store.sign_in_texts) });
@@ -1430,16 +1413,10 @@ async function loadAll(showMessage = false) {
 }
 
 function animateCurrentProfileLabel(nextName) {
-  const wrap = $('.current');
   const el = $('#currentProfileName');
-  if (!wrap || !el) return;
+  if (!el) return;
   if (el.textContent === nextName) return;
-  wrap.classList.remove('changing');
-  void wrap.offsetWidth;
   el.textContent = nextName;
-  wrap.classList.add('changing');
-  clearTimeout(animateCurrentProfileLabel.timer);
-  animateCurrentProfileLabel.timer = setTimeout(() => wrap.classList.remove('changing'), 360);
 }
 function updateTop() {
   animateCurrentProfileLabel(getProfileName());

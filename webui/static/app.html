@@ -772,9 +772,9 @@ body.chassis {
 .kpi-hardcore { background: #080a09; border: 1px solid rgba(255, 255, 255, 0.05); color: #fff; padding: 20px; position: relative; overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; }
 .kpi-hardcore:hover { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 12px 32px rgba(0,0,0,0.15); transform: translateY(-2px); }
 .kpi-hardcore::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--kpi-color, var(--accent)); box-shadow: 0 0 12px var(--kpi-color, var(--accent)); }
-.kpi-hardcore-title { font-family: var(--font-headline); font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 2px; display: flex; justify-content: space-between; }
+.kpi-hardcore-title { font-family: var(--font-headline); font-size: 12px; color: rgba(255,255,255,0.72); letter-spacing: 2px; display: flex; justify-content: space-between; }
 .kpi-hardcore-value { font-family: var(--font-headline); font-size: 36px; font-weight: 900; color: #ffffff; margin: 8px 0; line-height: 1; text-shadow: 0 0 12px rgba(255,255,255,0.1); }
-.kpi-hardcore-sub { font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 700; }
+.kpi-hardcore-sub { font-size: 11px; color: rgba(255,255,255,0.62); font-weight: 700; }
 
 /* 群组负荷监测器 */
 .server-rack { display: flex; flex-direction: column; gap: 12px; }
@@ -940,7 +940,11 @@ body.chassis {
           </div>
         </header>
 
+                <div class="pages" id="homePages" style="display:none; padding: 0;">
+                  <div class="page active" id="page-home" style="display:block;"></div>
+                </div>
                 <div class="pages" id="configPages">
+
           <div class="page active" id="page-overview"></div>
           <div class="page" id="page-runtime"></div>
           <div class="page" id="page-signin"></div>
@@ -1189,7 +1193,7 @@ const state = {
   titleCatalog: defaultTitleCatalog,
 
   images: [],
-  stats: { total_groups: 0, total_users: 0, total_gold: 0, total_cards_issued: 0, total_sign_ins: 0, rarity_distribution: {}, wealth_leaderboard: [], groups: [] },
+  stats: { total_groups: 0, total_users: 0, active_users: 0, total_gold: 0, total_cards_issued: 0, total_sign_ins: 0, rarity_distribution: {}, wealth_leaderboard: [], groups: [], card_holders: {}, title_holders: {} },
   statsViewProfile: 'default',
   goodSelected: [],
   badSelected: [],
@@ -1380,23 +1384,40 @@ const apiDelete = (path) => requestJson(path, { method: 'DELETE' });
 const apiDeleteProfileById = (profileId) => apiPost('/api/profile_remove', { profile_id: profileId });
 
 function setTopView(view) {
-  $$('.top-btn').forEach(btn => btn.classList.toggle('active', btn.textContent.includes(view === 'config' ? '方案管理' : (view === 'stats' ? '数据大盘' : '首页'))));
-  if (view === 'stats') {
-    $('.glass-side').style.display = 'none';
-    $('#configPages').style.display = 'none';
-    $('#statsPages').style.display = 'block';
-    $('#heroTitle').textContent = '全域数据与生态监控';
-    $('#heroDesc').textContent = '直观查阅各节点活跃度、卡池真实分布与经济状态图表，独立切换，不影响当前正在编辑的方案。';
-    $('.toolbar-actions').style.display = 'none';
-    renderGlobalStats();
-  } else {
+    $$('.top-btn').forEach(btn => {
+      const text = btn.textContent.trim();
+      btn.classList.toggle('active', (view === 'home' && text === '首页') || (view === 'config' && text === '方案管理') || (view === 'stats' && text === '数据大盘'));
+    });
+    if (view === 'home') {
+      $('.glass-side').style.display = 'none';
+      $('#homePages').style.display = 'block';
+      $('#configPages').style.display = 'none';
+      $('#statsPages').style.display = 'none';
+      $('.toolbar-actions').style.display = 'none';
+      $('#heroTitle').textContent = '首页';
+      $('#heroDesc').textContent = '查看系统概览入口，并从顶部导航快速进入方案管理或数据大盘。';
+      renderHome();
+      return;
+    }
+    if (view === 'stats') {
+      $('.glass-side').style.display = 'none';
+      $('#homePages').style.display = 'none';
+      $('#configPages').style.display = 'none';
+      $('#statsPages').style.display = 'block';
+      $('#heroTitle').textContent = '全域数据与生态监控';
+      $('#heroDesc').textContent = '直观查阅各节点活跃度、卡池真实分布与经济状态图表，独立切换，不影响当前正在编辑的方案。';
+      $('.toolbar-actions').style.display = 'none';
+      renderGlobalStats();
+      return;
+    }
     $('.glass-side').style.display = 'flex';
+    $('#homePages').style.display = 'none';
     $('#configPages').style.display = 'block';
     $('#statsPages').style.display = 'none';
     $('.toolbar-actions').style.display = 'flex';
     setPage(state.activePage);
   }
-}
+
   
 function setPage(page) {
   state.activePage = page;
@@ -1500,15 +1521,15 @@ async function loadTitles() {
 }
 
 
-async function loadStats() {
-  const res = await apiGet('/api/user_stats');
-  if (res.ok) state.stats = res.stats || { total_groups: 0, total_users: 0, card_holders: {}, groups: [] };
-}
+async function loadStats(profileId = state.currentProfile) {
+    const res = await apiGet(`/api/user_stats?profile=${encodeURIComponent(profileId)}`);
+    if (res.ok) state.stats = res.stats || { total_groups: 0, total_users: 0, active_users: 0, total_gold: 0, total_cards_issued: 0, total_sign_ins: 0, rarity_distribution: {}, wealth_leaderboard: [], groups: [], card_holders: {}, title_holders: {} };
+  }
 async function refreshActiveProfileData() {
   await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadTitles(), loadStats()]);
 }
 async function refreshProfilesAndStats() {
-  await Promise.all([loadProfiles(), loadStats()]);
+  await Promise.all([loadProfiles(), loadStats(state.statsViewProfile || state.currentProfile)]);
 }
 
 async function changeStatsProfile(pid) {
@@ -2632,32 +2653,58 @@ function buildFuncRarityDistribution() {
 }
 
 // ===== [ page: stats ] =====================================================
+function renderHome() {
+  $('#page-home').innerHTML = `
+    <div class="grid" style="padding:32px 48px;">
+      <section class="panel col-12" style="padding:40px; border-left:4px solid var(--accent);">
+        <div class="tiny" style="color:var(--accent);">[ WULING LUCK RANK CONTROL ]</div>
+        <div style="font-family:var(--font-headline); font-size:34px; font-weight:900; color:var(--shard-text); margin-top:12px;">首页</div>
+        <div class="panel-note" style="margin-top:12px; max-width:780px; line-height:1.9; font-size:13px;">
+          方案相关内容已独立归入“方案管理”。
+          你可以在顶部导航进入数据大盘查看跨方案统计，也可以返回方案管理继续编辑当前方案，不会再被统计页的查看动作影响。
+        </div>
+      </section>
+      <section class="panel col-4" style="padding:24px;">
+        <div class="panel-title">方案管理</div>
+        <div class="panel-note" style="margin-top:8px;">总览、运行配置、签到配置、命运牌、功能牌、称号全部都在这里。</div>
+      </section>
+      <section class="panel col-4" style="padding:24px;">
+        <div class="panel-title">数据大盘</div>
+        <div class="panel-note" style="margin-top:8px;">查看稀有度分布、功能牌持有排行、群组活跃度、财富排行和称号拥有统计。</div>
+      </section>
+      <section class="panel col-4" style="padding:24px;">
+        <div class="panel-title">当前编辑方案</div>
+        <div class="panel-note" style="margin-top:8px;">${esc(getProfileName())}</div>
+      </section>
+    </div>`;
+}
+
 function renderGlobalStats() {
+
   const wealthBoard = state.stats.wealth_leaderboard || [];
   const groups = state.stats.groups || [];
+  const cardHolders = Object.entries(state.stats.card_holders || {}).sort((a, b) => b[1] - a[1]);
+  const titleHolders = Object.entries(state.stats.title_holders || {}).sort((a, b) => b[1] - a[1]);
 
   const profileOptions = state.profiles.map(p => `<option value='${esc(p.profile_id)}' ${p.profile_id === state.statsViewProfile ? 'selected' : ''}>${esc(p.display_name)}</option>`).join('');
 
-    const kpis = [
-    { label: '系统发行总资产', value: state.stats.total_gold || 0, color: '#f39c12' },
-    { label: '累计处理签到数', value: state.stats.total_sign_ins || 0, color: '#1A9E5E' },
-    { label: '功能牌真实产出量', value: state.stats.total_cards_issued || 0, color: '#58a7ff' },
-    { label: '活跃节点接入', value: state.stats.total_groups || 0, color: '#9f6cff' },
+  const kpis = [
+    { label: '系统发行总资产', value: state.stats.total_gold || 0, color: '#f39c12', sub: '金币总量' },
+    { label: '累计处理签到数', value: state.stats.total_sign_ins || 0, color: '#1A9E5E', sub: '签到调用总次数' },
+    { label: '功能牌真实产出量', value: state.stats.total_cards_issued || 0, color: '#58a7ff', sub: '玩家当前持有总量' },
+    { label: '活跃人数', value: state.stats.active_users || 0, color: '#9f6cff', sub: '至少签到过一次的用户' },
   ];
 
   const rankColor = (idx) => idx === 0 ? '#ffc107' : idx === 1 ? '#9e9e9e' : idx === 2 ? '#cd7f32' : 'var(--shard-text-muted)';
-  
   const wealthHtml = wealthBoard.map((h, idx) => `
-    <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.04); transition: 0.2s; cursor: default;"
-         onmouseover="this.style.background='rgba(0,0,0,0.02)'" onmouseout="this.style.background='transparent'">
+    <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.04);">
       <div style="width: 32px; font-family: var(--font-headline); font-weight: 900; color: ${rankColor(idx)};">${idx + 1}</div>
       <div style="flex: 1; font-weight: 700; color: var(--shard-text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${esc(h.uid)}</div>
       <div style="font-size: 11px; font-weight: 700; color: var(--shard-text-muted); width: 80px; text-align: right;">持牌: ${h.cards}</div>
       <div style="font-family: var(--font-headline); font-weight: 900; color: var(--accent); width: 80px; text-align: right;">${h.gold}</div>
     </div>
-  `).join('') || '<div class="empty" style="padding: 32px;">经济池尚未激活</div>';
+  `).join('') || '<div class="empty" style="padding: 32px;">暂无财富统计</div>';
 
-    /* 柱状图：群组活跃度(按签到数) */
   const maxSignIns = Math.max(1, ...groups.map(g => g.group_sign_ins || 0));
   const barChartHtml = groups.map(g => {
     const p = ((g.group_sign_ins || 0) / maxSignIns) * 100;
@@ -2665,12 +2712,11 @@ function renderGlobalStats() {
       <div class="bar-row">
         <div class="bar-label" title="${esc(g.group_id)}">${esc(g.group_id)}</div>
         <div class="bar-track"><div class="bar-fill" style="width: ${p}%;"></div></div>
-        <div class="bar-value">${g.group_sign_ins || 0} 次</div>
+        <div class="bar-value">${g.group_sign_ins || 0}</div>
       </div>
     `;
   }).join('') || '<div class="empty">无群组数据</div>';
 
-  /* 环形图：玩家手中真实稀有度分布 */
   const rDist = state.stats.rarity_distribution || {};
   const rData = [
     { label: '普通', count: rDist['1'] || 0, color: '#6f7d8e' },
@@ -2689,18 +2735,27 @@ function renderGlobalStats() {
   }) : ['rgba(0,0,0,0.05) 0% 100%'];
   const rBg = `conic-gradient(${rSegments.join(', ')})`;
 
+  const hotCardsHtml = cardHolders.slice(0, 10).map(([name, count], idx) => `
+    <div class="lb-row"><div class="lb-rank">#${idx + 1}</div><div class="lb-name" title="${esc(name)}">${esc(name)}</div><div class="lb-score">${count}</div></div>
+  `).join('') || '<div class="empty" style="padding:24px;">暂无功能牌持有统计</div>';
+
+  const coldCardsHtml = [...cardHolders].reverse().slice(0, 10).map(([name, count], idx) => `
+    <div class="lb-row"><div class="lb-rank">#${idx + 1}</div><div class="lb-name" title="${esc(name)}">${esc(name)}</div><div class="lb-score">${count}</div></div>
+  `).join('') || '<div class="empty" style="padding:24px;">暂无冷门牌统计</div>';
+
+  const titleStatsHtml = titleHolders.slice(0, 10).map(([name, count], idx) => `
+    <div class="lb-row"><div class="lb-rank">#${idx + 1}</div><div class="lb-name" title="${esc(name)}">${esc(name)}</div><div class="lb-score">${count}</div></div>
+  `).join('') || '<div class="empty" style="padding:24px;">暂无称号拥有统计</div>';
+
   $('#page-global-stats').innerHTML = `
     <div class="grid" style="padding: 32px 48px;">
-      
       <section class="col-12 stats-header" style="margin-bottom: 12px;">
         <div>
           <div class="tiny" style="color: var(--accent);">[ GLOBAL TELEMETRY & ECONOMY ]</div>
           <div style="font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: var(--shard-text);">全域大盘监测</div>
         </div>
         <div>
-          <select class="select" style="width:240px; background:var(--shard-bg); border-color:var(--shard-border);" onchange="changeStatsProfile(this.value)">
-            ${profileOptions}
-          </select>
+          <select class="select" style="width:240px; background:var(--shard-bg); border-color:var(--shard-border);" onchange="changeStatsProfile(this.value)">${profileOptions}</select>
         </div>
       </section>
 
@@ -2708,7 +2763,8 @@ function renderGlobalStats() {
         ${kpis.map(k => `
           <article class="kpi-hardcore" style="--kpi-color: ${k.color}; padding: 16px 20px;">
             <div class="kpi-hardcore-title"><span>${k.label}</span></div>
-            <div class="kpi-hardcore-value" style="font-size: 28px; margin-top: 12px;">${k.value}</div>
+            <div class="kpi-hardcore-value" style="font-size: 28px; margin-top: 10px;">${k.value}</div>
+            <div class="kpi-hardcore-sub">${k.sub}</div>
           </article>
         `).join('')}
       </section>
@@ -2716,56 +2772,63 @@ function renderGlobalStats() {
       <section class="col-4 chart-box" style="padding: 0; display: flex; flex-direction: column;">
         <div style="padding: 24px 24px 16px; border-bottom: 1px solid rgba(0,0,0,0.06);">
           <div class="chart-title">财富排行榜</div>
-          <div class="chart-note" style="margin-bottom: 0;">系统总资产垄断者名录（按持有金币倒序）。</div>
+          <div class="chart-note" style="margin-bottom: 0;">按金币持有量倒序。</div>
         </div>
-        <div style="flex: 1; max-height: 400px; overflow-y: auto; background: var(--shard-surface);">
-          ${wealthHtml}
-        </div>
+        <div style="flex: 1; max-height: 400px; overflow-y: auto; background: var(--shard-surface);">${wealthHtml}</div>
       </section>
 
       <section class="col-4 chart-box">
-        <div class="chart-title">群组活跃度引擎</div>
-        <div class="chart-note">各群组累计完成的生物签到总频次占比演算。</div>
-        <div class="bar-chart-wrap" style="max-height: 360px; overflow-y: auto; padding-right: 12px;">
-          ${barChartHtml}
-        </div>
+        <div class="chart-title">群组活跃度图表</div>
+        <div class="chart-note">按累计签到次数统计每个群组的调用强度。</div>
+        <div class="bar-chart-wrap" style="max-height: 360px; overflow-y: auto; padding-right: 12px;">${barChartHtml}</div>
       </section>
 
       <section class="col-4 chart-box">
-        <div class="chart-title">玩家持卡光谱</div>
-        <div class="chart-note">系统从玩家背包中实时侦测到的所有功能牌稀有度构成（产出真实分布）。</div>
+        <div class="chart-title">持有功能牌稀有度分布</div>
+        <div class="chart-note">玩家当前背包里的功能牌真实稀有度构成。</div>
         <div class="dist-ring-wrap">
-          <div class="dist-ring" style="background: ${rBg};">
+          <div class="dist-ring" style="background: ${rBg}; position: relative;">
             <div style="position:absolute; inset:20px; background:var(--shard-surface); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-direction:column;">
               <b style="font-family:var(--font-headline); font-size:24px; font-weight:900; color:var(--shard-text);">${rTotal}</b>
-              <span style="font-size:10px; font-weight:700; color:var(--shard-text-muted);">流通总数</span>
+              <span style="font-size:10px; font-weight:700; color:var(--shard-text-muted);">持有总数</span>
             </div>
           </div>
           <div class="dist-legend">
             ${rData.map(item => {
               const p = rTotal > 0 ? ((item.count / rTotal) * 100).toFixed(1) : '0.0';
-              return `
-                <div class="dist-item-row">
-                  <span class="dist-dot" style="--dot-color:${item.color};"></span>
-                  <span>${item.label}</span>
-                  <span class="dist-pct">${item.count} / ${p}%</span>
-                </div>
-              `;
+              return `<div class="dist-item-row"><span class="dist-dot" style="--dot-color:${item.color};"></span><span>${item.label}</span><span class="dist-pct">${item.count} / ${p}%</span></div>`;
             }).join('')}
           </div>
         </div>
       </section>
 
+      <section class="col-4 chart-box" style="padding:0; display:flex; flex-direction:column;">
+        <div style="padding: 24px 24px 16px; border-bottom: 1px solid rgba(0,0,0,0.06);">
+          <div class="chart-title">功能牌持有次数排行榜</div>
+          <div class="chart-note" style="margin-bottom:0;">被玩家持有次数最多的功能牌。</div>
+        </div>
+        <div style="max-height:320px; overflow-y:auto;">${hotCardsHtml}</div>
+      </section>
+
+      <section class="col-4 chart-box" style="padding:0; display:flex; flex-direction:column;">
+        <div style="padding: 24px 24px 16px; border-bottom: 1px solid rgba(0,0,0,0.06);">
+          <div class="chart-title">功能牌持有次数倒序榜</div>
+          <div class="chart-note" style="margin-bottom:0;">最少被持有的功能牌。</div>
+        </div>
+        <div style="max-height:320px; overflow-y:auto;">${coldCardsHtml}</div>
+      </section>
+
+      <section class="col-4 chart-box" style="padding:0; display:flex; flex-direction:column;">
+        <div style="padding: 24px 24px 16px; border-bottom: 1px solid rgba(0,0,0,0.06);">
+          <div class="chart-title">称号拥有统计</div>
+          <div class="chart-note" style="margin-bottom:0;">当前方案下称号被拥有的次数。</div>
+        </div>
+        <div style="max-height:320px; overflow-y:auto;">${titleStatsHtml}</div>
+      </section>
     </div>
   `;
-
-  // 触发进度条动画
-  setTimeout(() => {
-    $$('#page-global-stats .bar-fill').forEach(el => {
-      el.style.width = el.style.width; // Force reflow if needed
-    });
-  }, 50);
 }
+
 
 function renderAll() {
   renderOverview();

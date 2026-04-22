@@ -316,6 +316,9 @@ def _collect_profile_stats(profile_id: str) -> dict:
         "profile_id": profile_id,
         "display_name": meta.get("display_name") or profile_id,
         "cover_image": meta.get("cover_image", ""),
+        "desc": meta.get("desc", ""),
+        "tags": meta.get("tags", []),
+
         "groups": groups,
         "group_count": len(groups),
         "user_count": total_users,
@@ -708,8 +711,12 @@ async def api_create_profile(request):
                         if item.is_file():
                             shutil.copy2(item, dst_dir / item.name)
 
-        _save_profile_meta(profile_id, {"display_name": name, "cover_image": ""})
-        return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
+        desc = str(body.get("desc", "")).strip()
+                tags = body.get("tags", [])
+                if not isinstance(tags, list): tags = []
+                tags = [str(t).strip() for t in tags if str(t).strip()]
+                _save_profile_meta(profile_id, {"display_name": name, "cover_image": "", "desc": desc, "tags": tags})
+                return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
@@ -728,11 +735,17 @@ async def api_update_profile_meta(request):
 
         name = str(body.get("display_name", "")).strip()
         cover_image = str(body.get("cover_image", "")).strip()
+        desc = str(body.get("desc", "")).strip()
+        tags = body.get("tags", [])
+        if not isinstance(tags, list): tags = []
+        tags = [str(t).strip() for t in tags if str(t).strip()]
         if not name:
             return web.json_response({"ok": False, "error": "display_name required"}, status=400)
         meta = _get_profile_meta(profile_id)
         meta["display_name"] = name
         meta["cover_image"] = cover_image
+        meta["desc"] = desc
+        meta["tags"] = tags
         _save_profile_meta(profile_id, meta)
         return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
     except Exception as e:

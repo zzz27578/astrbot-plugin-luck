@@ -10,6 +10,7 @@
 @charset 'UTF-8';
 
 :root {
+  
   /* Bio-Industrial Theme - 极黑的冷峻装甲 */
   --glass-base: #080a09;
   --glass-border: rgba(26, 158, 94, 0.3);
@@ -251,7 +252,7 @@ body.chassis {
 .toolbar-actions { display: flex; gap: 12px; }
 
 /* 全局通用按钮也加入 [ ] 悬浮效果 */
-.action-btn, .btn, .btn-strong, .btn-danger, .btn-mini, .mode-btn {
+.action-btn, .btn, .btn-strong, .btn-danger, .btn-green, .btn-mini, .mode-btn {
   font-family: var(--font-headline);
   font-size: 11px;
   font-weight: 800;
@@ -265,17 +266,22 @@ body.chassis {
   transition: 0.2s;
   position: relative;
 }
-.btn::before, .btn::after {
+.action-btn::before, .action-btn::after,
+.btn::before, .btn::after,
+.btn-strong::before, .btn-strong::after,
+.btn-danger::before, .btn-danger::after,
+.btn-green::before, .btn-green::after,
+.btn-mini::before, .btn-mini::after {
   position: absolute;
   color: var(--accent);
   opacity: 0;
   transition: 0.2s ease-out;
   font-weight: 900;
 }
-.btn::before { content: '['; left: -8px; }
-.btn::after { content: ']'; right: -8px; }
-.btn:hover::before { left: 4px; opacity: 1; }
-.btn:hover::after { right: 4px; opacity: 1; }
+.action-btn::before, .btn::before, .btn-strong::before, .btn-danger::before, .btn-green::before, .btn-mini::before { content: '['; left: -8px; }
+.action-btn::after, .btn::after, .btn-strong::after, .btn-danger::after, .btn-green::after, .btn-mini::after { content: ']'; right: -8px; }
+.action-btn:hover::before, .btn:hover::before, .btn-strong:hover::before, .btn-danger:hover::before, .btn-green:hover::before, .btn-mini:hover::before { left: 4px; opacity: 1; }
+.action-btn:hover::after, .btn:hover::after, .btn-strong:hover::after, .btn-danger:hover::after, .btn-green:hover::after, .btn-mini:hover::after { right: 4px; opacity: 1; }
 
 .outline-btn, .btn {
   background: transparent;
@@ -304,12 +310,19 @@ body.chassis {
 }
 
 /* 黑底上幽邃冷峻的悬浮（实心按钮）：绝对静止 */
-.solid-btn, .btn-strong {
+.solid-btn, .btn-strong, .btn-green {
   background: var(--shard-text);
   border: 1px solid var(--shard-text);
   color: var(--shard-surface);
   transition: all 0.2s ease;
 }
+.btn-green { background: rgba(34, 197, 94, 0.1); color: #1A9E5E; border-color: #1A9E5E; }
+.btn-green:hover { background: #1A9E5E; color: #fff; border-color: #1A9E5E; }
+.btn-green:hover::before, .btn-green:hover::after { color: #fff; }
+.icon-btn:hover { background: transparent; }
+.icon-btn:hover svg { stroke: var(--danger); }
+.icon-btn::before, .icon-btn::after { display: none !important; }
+
 .solid-btn .plus-mark { color: var(--accent); margin-left: 6px; font-size: 14px; font-weight: 900; }
 .solid-btn:hover, .btn-strong:hover {
   background: #050706; 
@@ -372,14 +385,16 @@ body.chassis {
   outline: none;
   font-family: var(--font-body);
   font-size: 13px;
-  transition: 0.2s;
+  transition: all 0.3s ease;
   font-weight: 500;
 }
 .textarea { min-height: 100px; resize: vertical; }
+/* 统一的输入框生机绿高亮反馈，移除油腻感 */
 .input:focus, .textarea:focus, .select:focus {
-  border-bottom-color: var(--accent);
+  border-color: #c8d2ce;
+  border-bottom-color: #22c55e;
   background: var(--shard-surface);
-  box-shadow: inset 0 -4px 0 rgba(57, 229, 184, 0.1);
+  box-shadow: inset 0 -2px 8px rgba(34, 197, 94, 0.1);
 }
 .field { display: grid; gap: 8px; }
 .field label { font-family: var(--font-headline); font-size: 10px; font-weight: 800; color: var(--shard-text-muted); letter-spacing: 1px; text-transform: uppercase; }
@@ -529,17 +544,62 @@ body.chassis {
 .archive-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px dashed var(--shard-border); }
 
 .overview-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
-.overview-stat { border: 1px solid var(--shard-border); background: var(--shard-bg); padding: 20px; border-top: 2px solid transparent; transition: all 0.3s ease; display: flex; flex-direction: column; }
-.overview-stat:hover { border-top-color: #22c55e; background: var(--shard-surface); box-shadow: 0 8px 24px rgba(0,0,0,0.04); transform: none; }
-.overview-stat b { font-family: var(--font-headline); font-size: 32px; font-weight: 800; color: var(--shard-text); display: block; margin-bottom: 4px; letter-spacing: -0.5px; }
+/* 极简、冷酷的数据统计面板 */
+.overview-stat { 
+  background: var(--shard-surface); 
+  border: 1px solid var(--shard-border);
+  padding: 20px; 
+  position: relative;
+  transition: all 0.3s ease; 
+  display: flex; 
+  flex-direction: column;
+  overflow: hidden;
+}
+/* 顶部的指示器状态灯 */
+.overview-stat::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--shard-border);
+  transition: all 0.3s ease;
+}
+.overview-stat:hover { 
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04); 
+  border-color: #9ab0a6;
+}
+/* 悬浮点亮生机绿指示灯 */
+.overview-stat:hover::before {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+.overview-stat b { 
+  font-family: var(--font-headline); 
+  font-size: 36px; 
+  font-weight: 900; 
+  color: var(--shard-text); 
+  display: block; 
+  margin-bottom: 4px; 
+  letter-spacing: -1px; 
+}
+.overview-stat span { font-weight: 700; letter-spacing: 1px; color: var(--shard-text-muted); }
 
 /* 工业风控制组件 */
-.switch-group { display: flex; border: 1px solid var(--shard-border); padding: 2px; gap: 2px; background: #ffffff; width: 100%; border-radius: 4px; }
-.mode-btn { flex: 1; border: 1px solid transparent; background: transparent; color: var(--shard-text-muted); height: 34px; transition: all 0.2s ease; font-size: 12px; font-family: var(--font-headline); font-weight: 800; letter-spacing: 0.5px; white-space: nowrap; padding: 0 4px; border-radius: 2px; }
-/* 选中的模式：呈现出明亮、活力的生机反差 */
-.mode-btn.active { background: #22c55e; color: #ffffff; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25); border-color: #22c55e; transform: none; }
-.mode-btn:hover:not(.active) { background: rgba(34, 197, 94, 0.05); color: #22c55e; transform: none; }
-.mode-btn:hover:not(.active) { color: var(--shard-text); background: rgba(255,255,255,0.2); }
+/* 访问控制面板的模式开关组 */
+.switch-group { display: flex; border: 1px solid var(--shard-border); padding: 2px; gap: 2px; background: var(--shard-bg); width: 100%; }
+.mode-btn { 
+  flex: 1; border: 1px solid transparent; background: transparent; color: var(--shard-text-muted); 
+  height: 36px; transition: all 0.2s ease; font-size: 12px; font-family: var(--font-headline); 
+  font-weight: 800; letter-spacing: 0.5px; white-space: nowrap; padding: 0 4px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+/* 选中时，呈现绝对静止的机甲扣合切角与生机高亮 */
+.mode-btn.active { 
+  background: #22c55e; color: #ffffff; 
+  border-color: #22c55e; transform: none; 
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.mode-btn:hover:not(.active) { background: rgba(34, 197, 94, 0.08); color: #22c55e; transform: none; }
 
 /* HUD 风格切换区：极其严谨、无位移 */
 .profile-hud-slot { display: flex; align-items: center; justify-content: flex-start; width: 140px; flex-shrink: 0; position: relative; z-index: 2; border-left: 1px solid rgba(0,0,0,0.05); padding-left: 24px; transition: border-color 0.3s ease; }
@@ -578,7 +638,8 @@ body.chassis {
 .dialog { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; z-index: 100; }
 .dialog.show { display: flex; }
 .dialog-backdrop { position: absolute; inset: 0; background: rgba(4, 8, 6, 0.85); backdrop-filter: blur(12px); }
-.dialog-card { background: var(--shard-surface); border: 1px solid var(--accent); width: min(1000px, 100%); max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; z-index: 101; box-shadow: 0 0 64px rgba(57,229,184,0.15); }
+.dialog-card { background: var(--shard-surface); border: 1px solid var(--accent); width: min(1000px, 100%); max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; z-index: 101; box-shadow: 0 0 64px rgba(57,229,184,0.15); transition: width 0.3s ease; }
+.dialog-card.dialog-small { width: min(640px, 100%); }
 .dialog-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--shard-text); padding-bottom: 16px; margin-bottom: 32px; }
 .dialog-title { font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: var(--shard-text); text-transform: uppercase; }
 .tiny { font-family: var(--font-headline); font-size: 10px; color: var(--shard-text-muted); letter-spacing: 3px; margin-bottom: 8px; font-weight: 700; }
@@ -598,6 +659,88 @@ body.chassis {
 .group-entry, .leaderboard-item { border: 1px solid var(--shard-border); background: var(--shard-surface); padding: 16px; margin-bottom: 12px; transition: 0.2s; }
 .group-entry:hover, .leaderboard-item:hover { border-color: var(--accent); transform: translateX(4px); background: rgba(57, 229, 184, 0.02); }
 .pool-card { border: 1px solid var(--shard-border); background: var(--shard-surface); padding: 24px; border-top: 4px solid var(--shard-text); }
+/* Custom Select Dropdown (Copy Source) */
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+.custom-select-trigger {
+  width: 100%;
+  border: 1px solid var(--shard-border);
+  border-bottom: 2px solid var(--shard-text-muted);
+  background: var(--shard-bg);
+  color: var(--shard-text);
+  padding: 12px 16px;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.custom-select-trigger::after {
+  content: '▼';
+  font-size: 10px;
+  color: var(--shard-text-muted);
+  transition: transform 0.3s ease;
+}
+.custom-select.open .custom-select-trigger {
+  border-color: #c8d2ce;
+  border-bottom-color: #22c55e;
+  background: var(--shard-surface);
+  box-shadow: inset 0 -2px 8px rgba(34, 197, 94, 0.1);
+}
+.custom-select.open .custom-select-trigger::after {
+  transform: rotate(180deg);
+}
+.custom-select-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--shard-surface);
+  border: 1px solid var(--shard-border);
+  border-top: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  z-index: 100;
+  display: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.custom-select.open .custom-select-menu {
+  display: block;
+  animation: slideDown 0.2s ease-out forwards;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.custom-select-option {
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--shard-text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.custom-select-option:hover {
+  background: rgba(34, 197, 94, 0.05);
+  color: #1A9E5E;
+}
+.custom-select-option.active {
+  background: rgba(34, 197, 94, 0.1);
+  color: #1A9E5E;
+  border-left: 2px solid #1A9E5E;
+}
 
 /* 🔥 亮色脉冲进度条 */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -686,8 +829,8 @@ body.chassis {
         </div>
 
         <div class="side-footer">
-          <div class="subtle-label">[ ACTIVE_PROFILE ]</div>
-          <div class="name" id="currentProfileName">加载中...</div>
+          <div class="subtle-label">[ 选中方案 ]</div>
+                    <div class="name" id="currentProfileName">准备中</div>
           <div class="helper">SYS_SYNC // 参数已同步</div>
         </div>
         <!-- 右侧流动的生化能量线 -->
@@ -700,7 +843,7 @@ body.chassis {
                   <div class="shard-header-content">
                     <div class="kicker">[ TERRA WEB UI / ARCHIVE CONTROL ]</div>
                     <h1 id="heroTitle">总览与方案</h1>
-                    <p id="heroDesc">管理活跃协议配置与群组访问权限。</p>
+                    <p id="heroDesc">管理活跃协议配置并查看全局统计数据。</p>
                   </div>
           <div class="shard-toolbar">
             <div class="hero-aux" id="heroAux"></div>
@@ -737,8 +880,8 @@ body.chassis {
           <div class="tiny">[ TERMINAL_EDITOR ]</div>
           <div class="dialog-title" id="dialogTitle">编辑器</div>
         </div>
-        <button class="btn outline-btn" id="closeDialogBtn">
-          <span class="btn-text">[ CLOSE ]</span>
+        <button class="btn outline-btn icon-btn" id="closeDialogBtn" style="padding: 0 10px; border-color: transparent;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--shard-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
       <div id="dialogBody"></div>
@@ -860,7 +1003,16 @@ body.chassis {
       try { body = JSON.parse(init.body); } catch (_) {}
     }
 
-    if (method === 'GET' && path === '/api/profile_overview') return jsonResponse({ ok: true, profiles: clone(store.profiles) });
+    if (method === 'GET' && path === '/api/profile_overview') {
+      const pList = clone(store.profiles).map(p => {
+        p.group_count = (p.groups || []).length;
+        p.user_count = store.stats.total_users || 0;
+        p.func_card_count = store.func_cards.length;
+        p.fate_card_count = store.fate_cards.length;
+        return p;
+      });
+      return jsonResponse({ ok: true, profiles: pList });
+    }
     if (method === 'GET' && path === '/api/runtime_config') return jsonResponse({ ok: true, config: clone(store.runtime_config) });
     if (method === 'GET' && path === '/api/group_access') return jsonResponse({ ok: true, config: clone(store.group_access) });
     if (method === 'GET' && path === '/api/sign_in_texts') return jsonResponse({ ok: true, texts: clone(store.sign_in_texts) });
@@ -886,7 +1038,7 @@ body.chassis {
     }
     if (method === 'POST' && path === '/api/profile_meta') {
       const item = store.profiles.find(p => p.profile_id === body.profile_id);
-      if (item) item.display_name = body.display_name || item.display_name;
+      if (item) { item.display_name = body.display_name || item.display_name; item.desc = body.desc || ''; item.tags = body.tags || []; }
       return jsonResponse({ ok: true });
     }
     if (method === 'POST' && path === '/api/profile_remove') {
@@ -980,7 +1132,7 @@ const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
 const pageMeta = {
-  overview: ['总览与方案', '把方案、访问控制与核心信息放在同一屏内，切换顺手，状态清晰。'],
+  overview: ['总览与方案', '把方案与核心信息放在同一屏内，随时掌握系统活跃状态。'],
   runtime: ['运行配置', '保留完整功能，但让高频参数调整更轻松、更直观。'],
   signin: ['签到配置', '事件池、运势区间与预览集中排布，方便边改边看。'],
   fate: ['命运牌档案', '命运牌、资源图片与编辑器放在一起，减少来回跳转。'],
@@ -1390,7 +1542,7 @@ function openBatchEventDialog(kind) {
   openDialog(`批量增加${label}`, `
     <div>
       <div class="field"><label>${label}文案（每行一条）</label><textarea class="textarea" id="batchEventInput" style="min-height:220px;"></textarea></div>
-      <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="confirmBatchEventAdd('${kind}')">[ 写入${label} ]</button></div>
+      <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="confirmBatchEventAdd('${kind}')"><span class="btn-text">写入${label}</span></button></div>
     </div>`, 'create');
 }
 function confirmBatchEventAdd(kind) {
@@ -1466,16 +1618,20 @@ function setFuncFilter(value) {
 // ===== [ page: overview ] ==================================================
 function renderOverview() {
   const page = $('#page-overview');
+  const activeProfileData = state.profiles.find(p => p.profile_id === state.currentProfile) || state.profiles[0] || {};
   page.innerHTML = `
     <div class="grid">
-            <section class="panel col-8">
+      <section class="panel col-8">
         <div class="panel-head">
           <div>
             <div class="panel-title">方案管理</div>
           </div>
-          <button class="btn-strong" onclick="openCreateProfileDialog()">[ 新建方案 ]</button>
+          <div class="toolbar-actions">
+            <button class="btn" onclick="editProfile('${esc(activeProfileData.profile_id)}')"><span class="btn-text">编辑当前方案</span></button>
+            <button class="btn-strong" onclick="openCreateProfileDialog()"><span class="btn-text">新建方案</span></button>
+          </div>
         </div>
-        <div class="profile-list">
+        <div class="profile-list" style="display: grid; gap: 16px;">
           ${state.profiles.map(p => {
       const active = p.profile_id === state.currentProfile;
       const justActivated = state.justActivatedProfile === p.profile_id;
@@ -1483,56 +1639,63 @@ function renderOverview() {
             <article class="profile-card ${active ? 'active' : ''} ${justActivated ? 'just-activated' : ''}">
               <div class="scan-beam"></div>
               <div class="profile-main">
-                  <h3>${esc(p.display_name || p.profile_id)}</h3>
-                                <div class="row" style="margin-bottom:8px;">
-                  ${p.is_default ? '<span class="badge light">默认方案</span>' : ''}
-                  <span class="badge">已绑群组 ${(p.group_count || 0)}</span>
+                <h3>${esc(p.display_name || p.profile_id)}</h3>
+                
+                <!-- 固定高度占位区，避免跳跃 -->
+                <div style="min-height: 48px;">
+                                    <div class="panel-note" style="margin-top:0; margin-bottom:8px; color:var(--shard-text-muted); min-height: 18px;">
+                    ${ p.desc ? esc(p.desc) : '<span style="opacity:0.3;">这里空空如也</span>' }
+                  </div>
+                  <div class="row" style="min-height: 22px;">
+                    ${p.is_default ? '<span class="badge light">默认方案</span>' : ''}
+                    <span class="badge">已绑群组 ${(p.groups || []).length}</span>
+                    ${(p.tags || []).map(t => `<span class="badge">${esc(t)}</span>`).join('')}
+                  </div>
                 </div>
-                <div class="meta">用户 ${p.user_count || 0} ｜ 功能牌 ${p.func_card_count || 0} ｜ 命运牌 ${p.fate_card_count || 0}</div>
-                                <div class="profile-actions">
-                                  <button class="action-link" onclick="editProfile('${esc(p.profile_id)}')">编辑参数</button>
-                                  <button class="action-link" onclick="bindGroupPrompt('${esc(p.profile_id)}')">绑定群组</button>
-                                  ${(p.groups || []).length ? (p.groups || []).slice(0, 3).map(g => `<button class="action-link" onclick="unbindGroup('${esc(p.profile_id)}','${esc(g)}')">解绑 ${esc(g)}</button>`).join('') : ''}
-                                </div>
+
+                <div class="meta" style="font-size:12px; font-weight:700; color:var(--shard-text); display:flex; align-items:center; gap:12px; margin-top:12px; margin-bottom:0;">
+                   <span>用户 ${p.user_count || 0}</span>
+                   <span style="color:var(--accent);">■</span>
+                   <span>功能牌 ${p.func_card_count || 0}</span>
+                   <span style="color:var(--accent);">■</span>
+                   <span>命运牌 ${p.fate_card_count || 0}</span>
+                </div>
               </div>
-                            <div class="profile-hud-slot">
+              <div class="profile-hud-slot">
                 ${active 
-                  ? '<div class="hud-active-status"><span class="hud-text">运行中</span><div class="hud-pulse"></div></div>' 
-                  : `<button class="hud-switch-btn" onclick="useProfile('${esc(p.profile_id)}')"><span class="hud-text">载入方案</span><svg class="hud-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`}
+                  ? '<div class="hud-active-status"><span class="hud-text">当前选中</span><div class="hud-pulse"></div></div>' 
+                  : `<button class="hud-switch-btn" onclick="useProfile('${esc(p.profile_id)}')"><span class="hud-text">切换至此</span><svg class="hud-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`}
               </div>
             </article>`;
     }).join('')}
         </div>
       </section>
 
-            <section class="panel col-4">
+      <section class="panel col-4">
         <div class="panel-head">
           <div>
-            <div class="panel-title">访问控制</div>
+            <div class="panel-title">群组接入</div>
+            <div class="panel-note">为当前选中的方案 [ ${esc(activeProfileData.display_name || '')} ] 绑定群组。</div>
           </div>
         </div>
-        <div class="switch-group" style="margin-bottom:12px;">
-          <button class="mode-btn ${state.groupAccess.mode === 'off' ? 'active' : ''}" onclick="setAccessMode('off')">关闭限制</button>
-          <button class="mode-btn black ${state.groupAccess.mode === 'blacklist' ? 'active' : ''}" onclick="setAccessMode('blacklist')">黑名单模式</button>
-          <button class="mode-btn white ${state.groupAccess.mode === 'whitelist' ? 'active' : ''}" onclick="setAccessMode('whitelist')">白名单模式</button>
+        <div class="field" style="margin-bottom:16px;">
+          <label>绑定新群组</label>
+          <div style="display:flex; gap:8px;">
+            <input class="input" id="newBindGroupId" placeholder="输入群号" style="flex: 1;">
+            <button class="btn-strong" style="flex-shrink: 0; white-space: nowrap; width: 80px;" onclick="bindGroupFromPanel('${esc(activeProfileData.profile_id)}')"><span class="btn-text">绑定</span></button>
+          </div>
         </div>
-        ${state.groupAccess.mode === 'blacklist' ? `
-        <div class="field" style="margin-bottom:10px;">
-          <label>黑名单群号（每行一个）</label>
-          <textarea class="textarea" id="blacklistInput">${esc((state.groupAccess.blacklist || []).join('\n'))}</textarea>
-        </div>` : ''}
-        ${state.groupAccess.mode === 'whitelist' ? `
-        <div class="field">
-          <label>白名单群号（每行一个）</label>
-          <textarea class="textarea" id="whitelistInput">${esc((state.groupAccess.whitelist || []).join('\n'))}</textarea>
-        </div>` : ''}
-        <div class="row" style="margin-top:10px;">
-          <button class="btn-strong" onclick="saveGroupAccess()">[ 保存访问控制 ]</button>
-        </div>
-        <div class="overview-stats">
-          <div class="overview-stat"><b id="quickProfileCount">${state.profiles.length || 0}</b><span>方案数量</span></div>
-          <div class="overview-stat"><b id="quickGroupCount">${state.stats.total_groups || 0}</b><span>群组总量</span></div>
-          <div class="overview-stat"><b id="quickUserCount">${state.stats.total_users || 0}</b><span>用户总量</span></div>
+        <div class="field"><label>已绑群组 ( ${(activeProfileData.groups || []).length} )</label></div>
+        <div class="stack" style="max-height: 400px; overflow-y: auto; gap:8px; margin-top:8px;">
+          ${(activeProfileData.groups || []).length === 0 ? '<div class="empty">暂未绑定任何群组</div>' : ''}
+          ${(activeProfileData.groups || []).map(g => `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--shard-bg); border:1px solid var(--shard-border); padding:8px 12px;">
+              <span style="font-family:var(--font-headline); font-weight:700;">${esc(g)}</span>
+              <button class="btn-danger icon-btn" style="height:28px; padding:0 8px; border-color:transparent; background:transparent;" onclick="unbindGroup('${esc(activeProfileData.profile_id)}','${esc(g)}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          `).join('')}
         </div>
       </section>
     </div>`;
@@ -1567,7 +1730,7 @@ function renderRuntime() {
             <div class="panel-title">参数配置</div>
             <div class="panel-note">稀有度名称已改为：普通 / 稀有 / 史诗 / 传说 / 神话。</div>
           </div>
-          <button class="btn-strong" onclick="saveRuntime()">[ 保存运行配置 ]</button>
+          <button class="btn-strong" onclick="saveRuntime()"><span class="btn-text">保存运行配置</span></button>
         </div>
 
         <div class="runtime-split">
@@ -1650,30 +1813,30 @@ function renderSignin() {
             <div class="signin-list-head">
               <div class="signin-list-title">宜项列表</div>
               <div class="signin-actions">
-                <button class="btn" onclick="openBatchEventDialog('good')">[ 批量增加宜项 ]</button>
-                <button class="btn-danger" onclick="deleteSelectedEvents('good')">[ 批量删除已勾选 ]</button>
+                <button class="btn" onclick="openBatchEventDialog('good')"><span class="btn-text">批量增加宜项</span></button>
+                <button class="btn-danger" onclick="deleteSelectedEvents('good')"><span class="btn-text">批量删除已勾选</span></button>
               </div>
             </div>
             <div class="event-list">
               ${(state.signInTexts.good_things || []).map((item, i) => eventItem('good', item, i)).join('') || '<div class="empty">暂无宜项文本</div>'}
             </div>
             <div class="row" style="margin-top:8px;">
-              <button class="btn" onclick="addSingleEvent('good')">[ 增加一条宜项 ]</button>
+              <button class="btn" onclick="addSingleEvent('good')"><span class="btn-text">增加一条宜项</span></button>
             </div>
           </div>
           <div>
             <div class="signin-list-head">
               <div class="signin-list-title">忌项列表</div>
               <div class="signin-actions">
-                <button class="btn" onclick="openBatchEventDialog('bad')">[ 批量增加忌项 ]</button>
-                <button class="btn-danger" onclick="deleteSelectedEvents('bad')">[ 批量删除已勾选 ]</button>
+                <button class="btn" onclick="openBatchEventDialog('bad')"><span class="btn-text">批量增加忌项</span></button>
+                <button class="btn-danger" onclick="deleteSelectedEvents('bad')"><span class="btn-text">批量删除已勾选</span></button>
               </div>
             </div>
             <div class="event-list">
               ${(state.signInTexts.bad_things || []).map((item, i) => eventItem('bad', item, i)).join('') || '<div class="empty">暂无忌项文本</div>'}
             </div>
             <div class="row" style="margin-top:8px;">
-              <button class="btn" onclick="addSingleEvent('bad')">[ 增加一条忌项 ]</button>
+              <button class="btn" onclick="addSingleEvent('bad')"><span class="btn-text">增加一条忌项</span></button>
             </div>
           </div>
         </div>
@@ -1685,13 +1848,13 @@ function renderSignin() {
             <div class="panel-title">签到预览</div>
             <div class="panel-note">按 QQ 内实际生成习惯分行显示，方便直接比对最终效果。</div>
           </div>
-          <button class="btn-strong" onclick="saveSignin()">[ 保存签到配置 ]</button>
+          <button class="btn-strong" onclick="saveSignin()"><span class="btn-text">保存签到配置</span></button>
         </div>
         <div class="row" style="margin-bottom:10px;">
-          <button class="btn-strong" onclick="previewSignin()">[ 生成签到预览 ]</button>
+          <button class="btn-strong" onclick="previewSignin()"><span class="btn-text">生成签到预览</span></button>
         </div>
         <div class="tag-preview signin-preview" id="signinPreview">尚未生成预览。</div>
-        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">运势区间</div><div class="panel-note">标签、数值区间和点评文案会直接影响预览结果。</div></div><button class="btn" onclick="addRange()">[ 新增区间 ]</button></div>
+        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">运势区间</div><div class="panel-note">标签、数值区间和点评文案会直接影响预览结果。</div></div><button class="btn" onclick="addRange()"><span class="btn-text">新增区间</span></button></div>
         <div class="stack">
           ${ranges.map((r, i) => `
             <div class="profile-card signin-range">
@@ -1702,7 +1865,7 @@ function renderSignin() {
                 <div class="field"><label>金币修正</label><input class="input" type="number" value="${esc(r.gold_delta ?? 0)}" onchange="setRange(${i}, 'gold_delta', Number(this.value))"></div>
               </div>
               <div class="field" style="margin-top:10px;"><label>点评文案（每行一条）</label><textarea class="textarea" onchange="setRangeComments(${i}, this.value)">${esc((r.comments || []).join('\n'))}</textarea></div>
-              <div class="row" style="margin-top:10px;"><button class="btn-danger" onclick="removeRange(${i})">[ 删除区间 ]</button></div>
+              <div class="row" style="margin-top:10px;"><button class="btn-danger" onclick="removeRange(${i})"><span class="btn-text">删除区间</span></button></div>
             </div>`).join('') || '<div class="empty">暂无运势区间</div>'}
         </div>
       </section>
@@ -1712,7 +1875,7 @@ function renderSignin() {
 function eventItem(kind, item, i) {
   const checked = (kind === 'good' ? state.goodSelected : state.badSelected).includes(i) ? 'checked' : '';
   const placeholder = kind === 'good' ? '输入宜项文案' : '输入忌项文案';
-  return `<div class="event-item"><input class="event-check" type="checkbox" ${checked} onchange="toggleEventSelect('${kind}', ${i}, this.checked)"><input class="input" id="eventInput-${kind}-${i}" value="${esc(item)}" placeholder="${placeholder}" oninput="setEventText('${kind}', ${i}, this.value)"><button class="btn-danger" onclick="removeEvent('${kind}', ${i})">[ 删除 ]</button></div>`;
+  return `<div class="event-item"><input class="event-check" type="checkbox" ${checked} onchange="toggleEventSelect('${kind}', ${i}, this.checked)"><input class="input" id="eventInput-${kind}-${i}" value="${esc(item)}" placeholder="${placeholder}" oninput="setEventText('${kind}', ${i}, this.value)"><button class="btn-danger" onclick="removeEvent('${kind}', ${i})"><span class="btn-text">删除</span></button></div>`;
 }
 
 // ===== [ page: fate ] ======================================================
@@ -1727,10 +1890,10 @@ function renderFate() {
             <div class="panel-note">上传图片后可用“检测未完成编辑的牌”把未完善的牌直接置顶。</div>
           </div>
           <div class="row">
-            <button class="btn-strong" onclick="openFateEditor(-1)">[ 新增命运牌 ]</button>
-            <button class="btn" onclick="uploadFateImages()">[ 批量上传图片 ]</button>
-            <button class="btn-danger" onclick="detectIncompleteFateCards()">[ 检测未完成编辑的牌 ]</button>
-            <button class="btn" onclick="saveFateCards()">[ 保存全部 ]</button>
+            <button class="btn-strong" onclick="openFateEditor(-1)"><span class="btn-text">新增命运牌</span></button>
+            <button class="btn" onclick="uploadFateImages()"><span class="btn-text">批量上传图片</span></button>
+            <button class="btn-danger" onclick="detectIncompleteFateCards()"><span class="btn-text">检测未完成编辑的牌</span></button>
+            <button class="btn" onclick="saveFateCards()"><span class="btn-text">保存全部</span></button>
           </div>
         </div>
         <div class="archive-grid">
@@ -1754,9 +1917,9 @@ function fateItem(card, i) {
           ${incomplete ? '<span class="badge">未完成</span>' : ''}
         </div>
         <div class="archive-actions">
-          <button class="btn-strong" onclick="openFateEditor(${i})">[ 编辑 ]</button>
-          <button class="btn-green" onclick="duplicateFateCard(${i})">[ 复制 ]</button>
-          <button class="btn-danger" onclick="deleteFateCard(${i})">[ 删除 ]</button>
+          <button class="btn-strong" onclick="openFateEditor(${i})"><span class="btn-text">编辑</span></button>
+          <button class="btn-green" onclick="duplicateFateCard(${i})"><span class="btn-text">复制</span></button>
+          <button class="btn-danger" onclick="deleteFateCard(${i})"><span class="btn-text">删除</span></button>
         </div>
       </div>
     </article>`;
@@ -1776,8 +1939,8 @@ function renderTitles() {
             <div class="panel-note">像配置功能牌一样，用中文可视化维护称号条件、效果与说明。当前最多可佩戴 ${equippedLimit} 个称号。</div>
           </div>
           <div class="row">
-            <button class="btn-strong" onclick="openTitleEditor(-1)">[ 新增称号 ]</button>
-            <button class="btn" onclick="saveTitles()">[ 保存全部 ]</button>
+            <button class="btn-strong" onclick="openTitleEditor(-1)"><span class="btn-text">新增称号</span></button>
+            <button class="btn" onclick="saveTitles()"><span class="btn-text">保存全部</span></button>
           </div>
         </div>
         <div class="archive-grid">
@@ -1824,9 +1987,9 @@ function titleItem(title, i) {
         <div class="archive-tag-row"><span class="badge">效果：${esc(effText)}</span></div>
         <div class="archive-desc">${esc(title.desc || '当前还没有描述。')}</div>
         <div class="archive-actions">
-          <button class="btn-strong" onclick="openTitleEditor(${i})">[ 编辑 ]</button>
-          <button class="btn-green" onclick="duplicateTitle(${i})">[ 复制 ]</button>
-          <button class="btn-danger" onclick="deleteTitle(${i})">[ 删除 ]</button>
+          <button class="btn-strong" onclick="openTitleEditor(${i})"><span class="btn-text">编辑</span></button>
+          <button class="btn-green" onclick="duplicateTitle(${i})"><span class="btn-text">复制</span></button>
+          <button class="btn-danger" onclick="deleteTitle(${i})"><span class="btn-text">删除</span></button>
         </div>
       </div>
     </article>`;
@@ -1868,7 +2031,7 @@ function renderTitleEditorConditions() {
     <div class="field-grid" style="grid-template-columns:minmax(0,1.7fr) 160px 140px 88px;gap:10px;align-items:end;margin-top:10px;">
       <div class="field">
         <label>条件 ${idx + 1}</label>
-        <button class="btn" type="button" onclick="openTitleCatalogPicker('condition', ${idx})">[ 选择条件：${esc(titleConditionName(cond.type))} ]</button>
+        <button class="btn" type="button" onclick="openTitleCatalogPicker('condition', ${idx})"><span class="btn-text">选择条件：${esc(titleConditionName(cond.type))}</span></button>
       </div>
       <div class="field"><label>比较方式</label><select class="input" onchange="setTitleConditionField(${idx}, 'operator', this.value)">
         ${['>=', '>', '==', '<=', '<'].map(op => `<option value="${op}" ${cond.operator === op ? 'selected' : ''}>${titleOperatorName(op)}</option>`).join('')}
@@ -1886,7 +2049,7 @@ function renderTitleEditorEffects() {
     <div class="field-grid" style="grid-template-columns:minmax(0,2fr) 160px 88px;gap:10px;align-items:end;margin-top:10px;">
       <div class="field">
         <label>效果 ${idx + 1}</label>
-        <button class="btn" type="button" onclick="openTitleCatalogPicker('effect', ${idx})">[ 选择效果：${esc(titleEffectName(effect.type))} ]</button>
+        <button class="btn" type="button" onclick="openTitleCatalogPicker('effect', ${idx})"><span class="btn-text">选择效果：${esc(titleEffectName(effect.type))}</span></button>
       </div>
       <div class="field"><label>数值</label><input class="input" type="number" value="${esc(effect.value ?? 0)}" onchange="setTitleEffectField(${idx}, 'value', this.value)"></div>
       <button class="btn-danger" type="button" onclick="removeTitleEffect(${idx})">删除</button>
@@ -2008,7 +2171,7 @@ function renderTitleCatalogPickerList(kind, index, groupFilter = '全部') {
               <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">${esc(item.param || '数值')}</td>
               <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">${esc(titleCatalogTip(kind, item.key))}</td>
               <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">
-                <button class="btn-strong" type="button" onclick="chooseTitleCatalogItem('${kind}', ${index}, '${esc(item.key)}')">[ 选择这个 ]</button>
+                <button class="btn-strong" type="button" onclick="chooseTitleCatalogItem('${kind}', ${index}, '${esc(item.key)}')"><span class="btn-text">选择这个</span></button>
               </td>
             </tr>
           `).join('')}
@@ -2045,7 +2208,7 @@ function openTitleCatalogPicker(kind, index) {
         </select>
       </div>
       <div id="titleCatalogPickerList"></div>
-      <div class="row" style="margin-top:14px;"><button class="btn" type="button" onclick="returnToTitleEditor()">[ 返回编辑器 ]</button></div>
+      <div class="row" style="margin-top:14px;"><button class="btn" type="button" onclick="returnToTitleEditor()"><span class="btn-text">返回编辑器</span></button></div>
     </div>`);
   renderTitleCatalogPickerList(kind, index, '全部');
 }
@@ -2084,12 +2247,12 @@ function titleEditorHtml() {
       <div class="panel-title" style="font-size:14px;margin-top:16px;">获取条件</div>
       <div class="panel-note">全部条件同时满足时，玩家才会获得该称号。条件项很多时，点按钮单独弹出选择界面。</div>
       <div id="titleConditionList"></div>
-      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleCondition()">[ 新增条件 ]</button></div>
+      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleCondition()"><span class="btn-text">新增条件</span></button></div>
       <div class="panel-title" style="font-size:14px;margin-top:18px;">佩戴效果</div>
       <div class="panel-note">玩家佩戴该称号后，以下效果会在玩法结算中生效。效果项很多时，点按钮单独弹出选择界面。</div>
       <div id="titleEffectList"></div>
-      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleEffect()">[ 新增效果 ]</button></div>
-      <div class="row" style="margin-top:16px;"><button class="btn-strong" type="button" onclick="saveTitleEditor()">[ 保存称号 ]</button></div>
+      <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleEffect()"><span class="btn-text">新增效果</span></button></div>
+      <div class="row" style="margin-top:16px;"><button class="btn-strong" type="button" onclick="saveTitleEditor()"><span class="btn-text">保存称号</span></button></div>
     </div>`;
 }
 
@@ -2215,10 +2378,10 @@ function renderCards() {
             <div class="panel-note">用下拉筛选不同类型的牌，稀有度边缘会发出更明显的淡光。</div>
           </div>
           <div class="row">
-            <button class="btn-strong" onclick="openFuncEditor(-1)">[ 新增功能牌 ]</button>
-            <button class="btn" onclick="batchAddCards()">[ 批量添加 ]</button>
-            <button class="btn" onclick="uploadFuncImages()">[ 批量上传图片 ]</button>
-            <button class="btn" onclick="saveFuncCards()">[ 保存全部 ]</button>
+            <button class="btn-strong" onclick="openFuncEditor(-1)"><span class="btn-text">新增功能牌</span></button>
+            <button class="btn" onclick="batchAddCards()"><span class="btn-text">批量添加</span></button>
+            <button class="btn" onclick="uploadFuncImages()"><span class="btn-text">批量上传图片</span></button>
+            <button class="btn" onclick="saveFuncCards()"><span class="btn-text">保存全部</span></button>
           </div>
         </div>
         <div class="filter-bar">
@@ -2242,9 +2405,9 @@ function renderCards() {
                 <div class="archive-body">
                   <div class="pending-caption">这张图片还没有被任何功能牌使用。</div>
                   <div class="archive-actions">
-                    <button class="btn-green" onclick="openFuncEditorFromImage('${esc(file)}')">[ 编辑 ]</button>
-                    <button class="btn" onclick="openFuncEditorFromImage('${esc(file)}')">[ 建牌 ]</button>
-                    <button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')">[ 删除 ]</button>
+                    <button class="btn-green" onclick="openFuncEditorFromImage('${esc(file)}')"><span class="btn-text">编辑</span></button>
+                    <button class="btn" onclick="openFuncEditorFromImage('${esc(file)}')"><span class="btn-text">建牌</span></button>
+                    <button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')"><span class="btn-text">删除</span></button>
                   </div>
             </div>
               </article>`).join('') || '<div class="empty">当前没有待建档图片</div>'}
@@ -2274,9 +2437,9 @@ function funcItem(card, i) {
         <div class="archive-tag-row">${tags}</div>
         <div class="archive-desc">${esc(card.description || '当前还没有描述。')}</div>
         <div class="archive-actions">
-          <button class="btn-strong" onclick="openFuncEditor(${i})">[ 编辑 ]</button>
-          <button class="btn-green" onclick="duplicateFuncCard(${i})">[ 复制 ]</button>
-          <button class="btn-danger" onclick="deleteFuncCard(${i})">[ 删除 ]</button>
+          <button class="btn-strong" onclick="openFuncEditor(${i})"><span class="btn-text">编辑</span></button>
+          <button class="btn-green" onclick="duplicateFuncCard(${i})"><span class="btn-text">复制</span></button>
+          <button class="btn-danger" onclick="deleteFuncCard(${i})"><span class="btn-text">删除</span></button>
         </div>
       </div>
     </article>`;
@@ -2498,34 +2661,35 @@ async function useProfile(id) {
 async function editProfile(id) {
   const current = state.profiles.find(p => p.profile_id === id);
   state.editingProfileId = id;
+    const tagsStr = (current?.tags || []).join(', ');
   openDialog('编辑方案', `
     <div>
       <div>
         <div class="field">
           <label>方案名称</label><input class="input" id="newProfileName" value="${esc(current?.display_name || '')}">
         </div>
-        <div class="field" style="margin-top:12px;"><label>绑定群号（每行一个）</label><textarea class="textarea" id="editProfileGroups">${esc((current?.groups || []).join('\n'))}</textarea></div>
-        <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveProfileEdit()">[ 保存方案 ]</button><button class="btn-danger" onclick="deleteProfileConfirm()">[ 删除方案 ]</button></div>
+        <div class="field" style="margin-top:12px;">
+          <label>方案备注</label><textarea class="textarea" id="editProfileDesc" rows="2" placeholder="给这个方案写点说明...">${esc(current?.desc || '')}</textarea>
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label>词条展示（多个词条用逗号隔开）</label><input class="input" id="editProfileTags" value="${esc(tagsStr)}" placeholder="例如：赛季一,高难度">
+        </div>
+                <div class="row" style="margin-top:20px;"><button class="btn-strong" onclick="saveProfileEdit()"><span class="btn-text">保存方案</span></button><button class="btn-danger" onclick="deleteProfileConfirm()"><span class="btn-text">删除方案</span></button></div>
       </div>
-    </div>`, 'create');
+    </div>`, 'small');
 }
 
 async function saveProfileEdit() {
   const id = state.editingProfileId;
-  const current = state.profiles.find(p => p.profile_id === id);
   const name = $('#newProfileName')?.value?.trim();
-  const groupLines = ($('#editProfileGroups')?.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+  const desc = $('#editProfileDesc')?.value?.trim() || '';
+  const tagsRaw = $('#editProfileTags')?.value || '';
+  const tags = tagsRaw.split(/[,，]/).map(v => v.trim()).filter(Boolean);
+
   if (!id || !name) return showToast('方案名称不能为空。', true);
-  const res = await apiPost('/api/profile_meta', { profile_id: id, display_name: name, cover_image: '' });
+  const res = await apiPost('/api/profile_meta', { profile_id: id, display_name: name, cover_image: '', desc, tags });
   if (!res.ok) return showToast(res.error || '保存失败。', true);
-  const before = new Set(current?.groups || []);
-  const after = new Set(groupLines);
-  for (const gid of before) {
-    if (!after.has(gid)) await apiPost('/api/profile_unbind_group', { profile_id: id, group_id: gid });
-  }
-  for (const gid of after) {
-    if (!before.has(gid)) await apiPost('/api/profile_bind_group', { profile_id: id, group_id: gid });
-  }
+
   closeDialog();
   await refreshProfilesAndStats();
   renderAll();
@@ -2551,6 +2715,22 @@ async function deleteProfileConfirm() {
   } catch (e) {
     console.error(e);
     showToast(`删除失败：${e?.message || e}`, true);
+  }
+}
+
+async function bindGroupFromPanel(id) {
+  const input = $('#newBindGroupId');
+  const gid = input?.value?.trim();
+  if (!gid) return showToast('请输入群号。', true);
+  if (!/^\d+$/.test(gid)) return showToast('群号格式无效。', true);
+  const res = await apiPost('/api/profile_bind_group', { profile_id: id, group_id: gid });
+  if (res.ok) {
+    if (input) input.value = '';
+    await refreshProfilesAndStats();
+    renderAll();
+    showToast('群号绑定成功。');
+  } else {
+    showToast(res.error || '绑定失败。', true);
   }
 }
 
@@ -2585,7 +2765,8 @@ function openDialog(title, html, mode = '') {
   $('#dialogTitle').textContent = title;
   $('#dialogBody').innerHTML = html;
   $('#dialog').classList.add('show');
-  $('#dialog .dialog-card').classList.toggle('create-mode', mode === 'create');
+  $('#dialog .dialog-card').classList.toggle('create-mode', mode === 'create' || mode === 'small');
+  $('#dialog .dialog-card').classList.toggle('dialog-small', mode === 'small');
 }
 function closeDialog() {
   $('#dialog').classList.remove('show');
@@ -2631,24 +2812,34 @@ function selectCustomOption(wrapperId, event) {
 }
 function openCreateProfileDialog() {
   const selectedCopyFrom = state.currentProfile || state.profiles[0]?.profile_id || '__builtin_default__';
-  openDialog('新建方案', `
-    <div>
+    openDialog('新建方案', `
       <div>
-        <div class="field"><label>方案名称</label><input class="input" id="newProfileName"></div>
+        <div>
+          <div class="field"><label>方案名称</label><input class="input" id="newProfileName"></div>
         <div class="field-grid" style="margin-top:12px;grid-template-columns:minmax(0,1fr) 160px;align-items:end;">
           <div class="field"><label>复制来源</label>${renderCopySourceSelect('copyFromSelect', 'copyFrom', selectedCopyFrom)}</div>
-          <div class="field"><label>快捷创建</label><button class="btn" onclick="createBuiltinDefaultProfile()">[ 新建默认配置 ]</button></div>
-        </div>
-        <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="createProfileConfirm()">[ 确认创建 ]</button></div>
+          <div class="field"><label>快捷创建</label><button class="btn" onclick="createBuiltinDefaultProfile()"><span class="btn-text">新建默认配置</span></button></div>
+                  </div>
+                  <div class="field" style="margin-top:12px;">
+                    <label>方案备注</label><textarea class="textarea" id="newProfileDesc" rows="2" placeholder="给这个新方案写点说明..."></textarea>
+                  </div>
+                  <div class="field" style="margin-top:12px;">
+                    <label>词条展示（用逗号隔开）</label><input class="input" id="newProfileTags" placeholder="例如：第一赛季,高难度">
+                  </div>
+                  <div class="row" style="margin-top:16px;"><button class="btn-strong" onclick="createProfileConfirm()"><span class="btn-text">确认创建</span></button></div>
       </div>
-    </div>`, 'create');
+    </div>`, 'small');
 }
 
 async function createProfileConfirm() {
   const name = $('#newProfileName')?.value?.trim();
   const copy_from = $('#copyFrom')?.value || 'default';
+  const desc = $('#newProfileDesc')?.value?.trim() || '';
+  const tagsRaw = $('#newProfileTags')?.value || '';
+  const tags = tagsRaw.split(/[,，]/).map(v => v.trim()).filter(Boolean);
+
   if (!name) return showToast('方案名称不能为空。', true);
-  const res = await apiPost('/api/profiles', { name, copy_from });
+  const res = await apiPost('/api/profiles', { name, copy_from, desc, tags });
   if (res.ok) {
     closeDialog();
     await loadProfiles();
@@ -2798,7 +2989,7 @@ function openFateEditor(index) {
           <div class="field"><label>金币值</label><input class="input" type="number" id="fateGold" value="${esc(card.gold ?? 0)}"></div>
         </div>
         <div class="field" style="margin-top:12px;"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}"></div>
-        <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFateEditor()">[ 写入命运牌 ]</button></div>
+        <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFateEditor()"><span class="btn-text">写入命运牌</span></button></div>
       </div>
       <div>
         <div class="panel-title" style="font-size:14px;margin-bottom:10px;">可用图片</div>
@@ -2885,7 +3076,7 @@ function renderEffectRows(type) {
           <div class="field"><label>效果类别</label><div class="tag-preview">未识别原始标签</div></div>
           <div class="field"><label>效果摘要</label><div class="tag-preview">${esc(effect.raw || '原始标签')}</div></div>
           <div class="field"><label>原始标签</label><input class="input" value="${esc(effect.raw || '')}" onchange="setEffectRaw(${idx}, this.value)"></div>
-          <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})">[ 删除效果 ]</button></div>
+          <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})"><span class="btn-text">删除效果</span></button></div>
         </div>`;
     }
     const options = effectCatalog[type] || [];
@@ -2896,7 +3087,7 @@ function renderEffectRows(type) {
         <div class="field"><label>效果类别</label><select class="select" onchange="setEffectKey(${idx}, this.value)">${options.map(o => `<option value="${esc(o.key)}" ${o.key === effect.key ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></div>
         <div class="field"><label>效果摘要</label><div class="tag-preview">${esc(effectLabel(effect))}</div></div>
         <div class="field"><label>参数</label><div class="field-grid ${params.length >= 3 ? 'three' : params.length === 2 ? '' : ''}">${params.map((name, pi) => `<input class="input" placeholder="${esc(name)}" value="${esc(effect.params?.[pi] || '')}" onchange="setEffectParam(${idx}, ${pi}, this.value)">`).join('') || '<div class="helper">此效果无额外参数</div>'}</div></div>
-        <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})">[ 删除效果 ]</button></div>
+        <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})"><span class="btn-text">删除效果</span></button></div>
       </div>`;
   }).join('');
 }
@@ -2928,10 +3119,10 @@ function funcEditorHtml(card, type) {
           <div class="field"><label>图片文件名</label><input class="input" id="funcFilename" value="${esc(card.filename || '')}"></div>
         </div>
         <div class="field" style="margin-top:12px;"><label>描述</label><textarea class="textarea" id="funcDesc">${esc(card.description || '')}</textarea></div>
-        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">效果引导</div><div class="panel-note">先选大类，再选效果，再填参数。会自动转成标签，但展示给你的都是中文。</div></div><button class="btn" onclick="addEffectRow()">[ 新增效果 ]</button></div>
+        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">效果引导</div><div class="panel-note">先选大类，再选效果，再填参数。会自动转成标签，但展示给你的都是中文。</div></div><button class="btn" onclick="addEffectRow()"><span class="btn-text">新增效果</span></button></div>
         <div class="effect-builder" id="effectBuilder">${renderEffectRows(type)}</div>
         <div class="field" style="margin-top:12px;"><label>标签预览</label><div class="tag-preview" id="effectPreview">${effectPreviewHtml()}</div></div>
-        <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFuncEditor()">[ 写入功能牌 ]</button></div>
+        <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFuncEditor()"><span class="btn-text">写入功能牌</span></button></div>
       </div>
       <div>
         <div class="panel-title" style="font-size:14px;margin-bottom:10px;">图像库</div>
@@ -3050,7 +3241,7 @@ async function saveAllData() {
   try {
     const results = await Promise.all([
       saveRuntime(false),
-      saveGroupAccess(false),
+      
       saveSignin(false),
       saveFateCards(false),
             saveFuncCards(false),
@@ -3089,6 +3280,7 @@ function bindEvents() {
 Object.assign(window, {
   useProfile,
   bindGroupPrompt,
+  bindGroupFromPanel,
   unbindGroup,
   openCreateProfileDialog,
   createProfileConfirm,

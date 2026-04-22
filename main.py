@@ -92,6 +92,34 @@ def _extract_group_id(event: AstrMessageEvent) -> str | None:
     return None
 
 
+def _normalize_luck_command(raw_text: str) -> str | None:
+    """仅兼容前后空白与全角空格，不放宽到普通聊天可误触的程度。"""
+    text = str(raw_text or "").replace("\u3000", " ").strip()
+    if not text:
+        return ""
+    match = re.match(r"^/luck(?:\s+(.*))?$", text, flags=re.IGNORECASE)
+    if not match:
+        return None
+    cmd = (match.group(1) or "").replace("\u3000", " ")
+    cmd = re.sub(r"\s+", " ", cmd).strip()
+    return cmd
+
+
+def _extract_at_target(event: AstrMessageEvent) -> tuple[str | None, str | None]:
+    for comp in event.get_messages():
+        if isinstance(comp, At):
+            qq = getattr(comp, "qq", None)
+            if qq:
+                qq_str = str(qq).strip()
+                if qq_str:
+                    return qq_str, f"群友({qq_str})"
+    return None, None
+
+
+
+    
+
+
 def _load_group_access_config(plugin_name: str = PLUGIN_NAME) -> dict:
     default_cfg = {"mode": "off", "blacklist": [], "whitelist": []}
     try:
@@ -111,6 +139,8 @@ def _load_group_access_config(plugin_name: str = PLUGIN_NAME) -> dict:
         }
     except Exception:
         return default_cfg
+
+
 
 
 def _is_group_access_allowed(group_id: str, plugin_name: str = PLUGIN_NAME) -> bool:
@@ -169,9 +199,9 @@ class LuckPlugin(Star):
             self._bank_cache[group_key] = LuckBank(str(runtime_ctx["luck_data_file"]))
         return self._bank_cache[group_key], merged_config
 
-    # 🟢 绝对前缀拦截器：只认 /luck，无视后面的空格
-    @filter.regex(r"^/luck\s*(.*)$", priority=1000)
+    @filter.regex(r"^\s*/luck(?:\s+.*)?$", priority=1000)
     async def luck_gateway(self, event: AstrMessageEvent):
+
         # 第一时间阻断事件，防止底层聊天 AI 抢答
         event.stop_event()
         group_id = _extract_group_id(event)
@@ -186,11 +216,14 @@ class LuckPlugin(Star):
 
         user_id = event.get_sender_id()
         user_name = event.get_sender_name()
-        
-        # 提取纯净指令
-        match = re.match(r"^/luck\s*(.*)$", event.get_message_str())
-        cmd_str = match.group(1).strip() if match else ""
+
+        raw_message = event.get_message_str()
+        cmd_str = _normalize_luck_command(raw_message)
+        if cmd_str is None:
+            return
+
         func_cards_enabled = current_config.get("func_cards_settings", {}).get("enable", True)
+
 
         # ================= 🚧 0. 功能牌总开关统一拦截 =================
         if not func_cards_enabled and self._is_func_cards_command(cmd_str):
@@ -259,6 +292,7 @@ class LuckPlugin(Star):
 
 
         # ================= 🎴 5. 命运牌抽换路由 =================
+
         if re.match(r"^(幸运牌|抽牌|抽卡|命运卡牌|换牌|换一张|换一张牌)$", cmd_str):
             if not current_config.get("fate_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 命运卡牌池已被天道封锁，暂未开放。")
@@ -269,14 +303,24 @@ class LuckPlugin(Star):
                 yield res
             return
 
-        # ================= ⚔️ 6. 战术功能牌路由 =================
-        if cmd_str == "面板":
+                # ================= ⚔️ 6. 战术功能牌路由 =================
+
+        if cmd_str == "面板" or cmd_str.startswith("面板@") or cmd_str.startswith("面板 @"):
+
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放，面板无法观测。")
                 return
-            async for res in m_func_cards.handle_panel(event, bank, current_config):
+            target_id = None
+            target_name = None
+            if cmd_str != "面板":
+                target_id, target_name = _extract_at_target(event)
+                if not target_id:
+                    yield event.plain_result("⚠️ 查看他人面板时，请使用 /luck 面板@某人 或 /luck 面板 @某人。")
+                    return
+            async for res in m_func_cards.handle_panel(event, bank, current_config, target_id=target_id, target_name=target_name):
                 yield res
             return
+
             
         if cmd_str == "抽取功能牌":
             if not current_config.get("func_cards_settings", {}).get("enable", True):
@@ -356,13 +400,14 @@ class LuckPlugin(Star):
             return False
 
         exact_cmds = {"善恶榜", "面板", "抽取功能牌", "功能牌", "确认", "查看称号"}
-        if cmd_str in exact_cmds:
+        if cmd_str in exact_cmds or cmd_str.startswith("面板@") or cmd_str.startswith("面板 @"):
             return True
 
         if cmd_str.startswith(("丢弃", "使用", "启用", "停用", "对赌", "加注", "佩戴称号", "卸下称号")):
             return True
 
         return False
+
 
 
 
@@ -505,6 +550,8 @@ class LuckPlugin(Star):
             "【功能牌】",
             f"/luck 抽取功能牌  {'✅' if func_enabled else '❌'}",
             "/luck 面板",
+            "/luck 面板@某人",
+
             "/luck 查看称号",
             "/luck 佩戴称号 名称",
             "/luck 卸下称号 名称",
@@ -558,6 +605,8 @@ class LuckPlugin(Star):
             f"• 系统状态：{'开启' if func_enabled else '关闭'}",
             "• 抽取功能牌 -> 抽牌",
             "• 面板 -> 看卡槽/状态",
+            "• 面板@某人 -> 查看对方个人面板",
+
             "• 查看称号 -> 看已获称号与佩戴状态",
             "• 佩戴称号 名称 -> 启用称号效果",
             "• 卸下称号 名称 -> 关闭称号效果",

@@ -986,12 +986,16 @@ async def handle_karma_leaderboard(event: AstrMessageEvent, bank, board_length: 
 
 
 # ================= 🎴 核心功能卡牌逻辑 =================
-async def handle_panel(event: AstrMessageEvent, bank, config: dict):
-    user_id = event.get_sender_id()
-    user_name = event.get_sender_name()
+async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: str | None = None, target_name: str | None = None):
+    viewer_id = event.get_sender_id()
+    viewer_name = event.get_sender_name()
+
+    user_id = target_id or viewer_id
+    user_name = target_name or viewer_name
 
     user_data = await bank.get_user_data(user_id, user_name)
     rank = await calculate_rank(bank, user_id)
+
     panel_title = config.get("ui_settings", {}).get("panel_title", "【个人状态观测仪】")
 
     gold = user_data.get("total_gold", 0)

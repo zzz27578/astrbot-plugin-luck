@@ -572,8 +572,15 @@ async def api_get_user_stats(request):
         stats = {
             "total_groups": 0,
             "total_users": 0,
-            "card_holders": {},
+            "active_users": 0,
+            "total_gold": 0,
+            "total_cards_issued": 0,
+            "total_sign_ins": 0,
+            "rarity_distribution": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0},
+            "wealth_leaderboard": [],
             "groups": [],
+            "card_holders": {},
+            "title_holders": {},
             "profile_id": profile_id,
         }
         if not GROUP_DATA_DIR.exists():
@@ -588,17 +595,71 @@ async def api_get_user_stats(request):
             data = _read_json(group_dir / "luck_data.json", {})
             if not isinstance(data, dict):
                 continue
+            
             stats["total_groups"] += 1
-            stats["groups"].append({"group_id": group_dir.name, "user_count": len(data)})
+            group_gold = 0
+            group_cards = 0
+            group_sign_ins = 0
+            
+            for uid, info in data.items():
+                gold = _safe_int(info.get("gold", 0), 0)
+                sign_ins = _safe_int(info.get("sign_in_count", 0), 0)
+                inventory = info.get("inventory", [])
+                cards_count = len(inventory) if isinstance(inventory, list) else 0
+                
+                stats["total_gold"] += gold
+                stats["total_cards_issued"] += cards_count
+                stats["total_sign_ins"] += sign_ins
+                group_gold += gold
+                group_cards += cards_count
+                group_sign_ins += sign_ins
+                
+                if sign_ins > 0:
+                    stats["active_users"] += 1
+
+                for card in inventory:
+                    if isinstance(card, dict):
+                        cname = str(card.get("card_name", "")).strip()
+                        if cname:
+                            stats["card_holders"][cname] = stats["card_holders"].get(cname, 0) + 1
+
+                        r = str(card.get("rarity", 1))
+                        if r in stats["rarity_distribution"]:
+                            stats["rarity_distribution"][r] += 1
+                        else:
+                            stats["rarity_distribution"]["1"] += 1
+                            
+                titles = info.get("titles", [])
+                if isinstance(titles, list):
+                    for t in titles:
+                        tname = str(t.get("name", t) if isinstance(t, dict) else t).strip()
+                        if tname:
+                            stats["title_holders"][tname] = stats["title_holders"].get(tname, 0) + 1
+
+                stats["wealth_leaderboard"].append({
+                    "uid": str(uid),
+                    "gold": gold,
+                    "cards": cards_count
+                })
+                
+            stats["groups"].append({
+                "group_id": group_dir.name, 
+                "user_count": len(data),
+                "group_gold": group_gold,
+                "group_sign_ins": group_sign_ins
+            })
             stats["total_users"] += len(data)
-            for _, info in data.items():
-                for card in info.get("inventory", []):
-                    name = card.get("card_name", "")
-                    if name:
-                        stats["card_holders"][name] = stats["card_holders"].get(name, 0) + 1
+            
+        # 财富排行榜排序并截取 Top 50
+        stats["wealth_leaderboard"].sort(key=lambda x: x["gold"], reverse=True)
+        stats["wealth_leaderboard"] = stats["wealth_leaderboard"][:50]
+        
+        # 群组排行榜按总金币或活跃度排序
+        stats["groups"].sort(key=lambda x: x["group_gold"], reverse=True)
+        
         return web.json_response({"ok": True, "stats": stats})
     except Exception as e:
-        return web.json_response({"ok": False, "error": str(e), "stats": {"total_groups": 0, "total_users": 0, "card_holders": {}, "groups": [], "profile_id": DEFAULT_PROFILE_NAME}}, status=500)
+        return web.json_response({"ok": False, "error": str(e), "stats": {"total_groups": 0, "total_users": 0, "total_gold": 0, "total_cards_issued": 0, "wealth_leaderboard": [], "groups": [], "profile_id": DEFAULT_PROFILE_NAME}}, status=500)
 
 
 async def api_upload_image(request):

@@ -2235,15 +2235,16 @@ function renderFate() {
       <section class="panel col-12 fate-main">
         <div class="panel-head">
                     <div>
-            <div class="panel-title">命运牌档案</div>
-            <div class="panel-note">上传图片后可用顶部红按钮把缺名称的命运牌直接置顶。</div>
-          </div>
+                      <div class="panel-title">命运牌档案</div>
+                      <div class="panel-note">上传图片后可用顶部红按钮把缺名称的命运牌直接置顶。利用懒狗模式可批量快速生成随机牌。</div>
+                    </div>
                     <div class="row">
-            <button class="btn-strong" onclick="openFateEditor(-1)"><span class="btn-text">新增命运牌</span></button>
-            <button class="btn" onclick="uploadFateImages()"><span class="btn-text">批量上传图片</span></button>
-            <button class="btn-danger ${state.fatePinMissingName ? 'glow-red' : ''}" onclick="bringNamelessFateCardsToFront()"><span class="btn-text">缺名称置顶</span></button>
-            <button class="btn" onclick="saveFateCards()"><span class="btn-text">保存全部</span></button>
-          </div>
+                      <button class="btn-green" onclick="openLazyBatchDialog('fate')"><span class="btn-text">懒狗模式</span></button>
+                      <button class="btn-strong" onclick="openFateEditor(-1)"><span class="btn-text">新增命运牌</span></button>
+                      <button class="btn" onclick="uploadFateImages()"><span class="btn-text">批量上传图片</span></button>
+                      <button class="btn-danger ${state.fatePinMissingName ? 'glow-red' : ''}" onclick="bringNamelessFateCardsToFront()"><span class="btn-text">缺名称置顶</span></button>
+                      <button class="btn" onclick="saveFateCards()"><span class="btn-text">保存全部</span></button>
+                    </div>
         </div>
                 <div class="filter-bar">
           <div class="filter-search">
@@ -2769,10 +2770,10 @@ function renderCards() {
             <div class="panel-title">功能牌档案</div>
             <div class="panel-note">支持搜索、分类筛选、自定义分类与未完成牌置顶；同一张牌可同时拥有攻击 / 辅助 / 防御等多种效果。</div>
           </div>
-          <div class="row">
+                    <div class="row">
             <button class="btn-green" onclick="openEffectGlossary()"><span class="btn-text">查看功能词条</span></button>
+            <button class="btn-green" onclick="openLazyBatchDialog('func')"><span class="btn-text">懒狗模式</span></button>
             <button class="btn-strong" onclick="openFuncEditor(-1)"><span class="btn-text">新增功能牌</span></button>
-            <button class="btn" onclick="batchAddCards()"><span class="btn-text">批量添加</span></button>
             <button class="btn" onclick="uploadFuncImages()"><span class="btn-text">批量上传图片</span></button>
             <button class="btn" onclick="saveFuncCards()"><span class="btn-text">保存全部</span></button>
           </div>
@@ -3706,6 +3707,100 @@ async function batchAddCards() {
   await saveFuncCards(false);
   showToast('批量添加完成。');
 }
+function openLazyBatchDialog(kind) {
+  const title = kind === 'fate' ? '命运牌懒狗生成' : '功能牌懒狗生成';
+  let extraFields = '';
+  if (kind === 'fate') {
+    extraFields = `
+      <div class="field-grid">
+        <div class="field"><label>金币下限</label><input type="number" class="input" id="lazyGoldMin" value="-20"></div>
+        <div class="field"><label>金币上限</label><input type="number" class="input" id="lazyGoldMax" value="100"></div>
+      </div>
+    `;
+  } else {
+    const catOptions = getFuncCategoryOptions();
+    extraFields = `
+      <div class="field-grid">
+        <div class="field"><label>稀有度上限</label><input type="number" class="input" id="lazyMaxRarity" value="5" max="5" min="1"></div>
+        <div class="field"><label>最大词条数</label><input type="number" class="input" id="lazyMaxTags" value="2" min="1"></div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label>允许的类别</label>
+        <div class="category-suggest-row">
+          ${['attack', 'heal', 'defense'].map(k => `<label style="cursor:pointer;"><input type="checkbox" class="lazy-type-check" value="${k}" checked> ${categoryLabel(k)}</label>`).join('&nbsp;&nbsp;')}
+        </div>
+      </div>
+    `;
+  }
+
+  openDialog(title, `
+    <div>
+      <div class="panel-note" style="margin-bottom:16px;">将按照你的配置在本地临时生成一批草稿牌。你可以预览后统一保存或撤销。如果本地图库不足将自动尝试调用外部二次元图片接口。</div>
+      <div class="field-grid">
+        <div class="field"><label>生成数量</label><input type="number" class="input" id="lazyCount" value="3" min="1" max="10"></div>
+      </div>
+      <div style="margin-top:12px;">${extraFields}</div>
+      <div class="field" style="margin-top:16px;">
+        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyGenPic" checked><span>自动绑定图片（优先已有图库）</span></label>
+        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyGenText" checked><span>自动生成文案</span></label>
+        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyPreferLocal" checked><span>优先复用本地已有图片</span></label>
+        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyAllowRemote" checked><span>本地不足时调用外部图源</span></label>
+      </div>
+      <div class="row" style="margin-top:20px;">
+        <button class="btn-strong" onclick="executeLazyBatch('${kind}')"><span class="btn-text">开始生成</span></button>
+      </div>
+    </div>
+  `, 'small');
+}
+
+async function executeLazyBatch(kind) {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.innerHTML = '生成中，请耐心等待...';
+  
+  const count = Number($('#lazyCount')?.value || 1);
+  const gen_pic = $('#lazyGenPic')?.checked;
+  const gen_text = $('#lazyGenText')?.checked;
+  const prefer_local = $('#lazyPreferLocal')?.checked;
+  const allow_remote = $('#lazyAllowRemote')?.checked;
+
+  let payload = { count, gen_pic, gen_text, prefer_local, allow_remote };
+  let endpoint = '';
+
+  if (kind === 'fate') {
+    endpoint = '/api/lazy/batch_fate';
+    payload.gold_min = Number($('#lazyGoldMin')?.value || -20);
+    payload.gold_max = Number($('#lazyGoldMax')?.value || 100);
+  } else {
+    endpoint = '/api/lazy/batch_func';
+    payload.max_rarity = Number($('#lazyMaxRarity')?.value || 5);
+    payload.max_tags = Number($('#lazyMaxTags')?.value || 2);
+    const types = Array.from(document.querySelectorAll('.lazy-type-check:checked')).map(el => el.value);
+    payload.allowed_types = types.length ? types : ['attack', 'heal', 'defense'];
+  }
+
+  try {
+    const res = await apiPost(endpoint, payload);
+    if (!res.ok) throw new Error(res.error || '生成失败');
+    
+    if (kind === 'fate') {
+      state.fateCards.unshift(...res.cards);
+      await saveFateCards(false);
+      renderFate();
+    } else {
+      state.funcCards.unshift(...res.cards);
+      await saveFuncCards(false);
+      await refreshCardAssets(false);
+    }
+    closeDialog();
+    showToast(`成功生成 ${res.cards.length} 张牌并已置顶加入牌库！`);
+  } catch(e) {
+    showToast(e.message, true);
+    btn.disabled = false;
+    btn.innerHTML = '重试';
+  }
+}
+
 async function uploadFuncImages() {
   return uploadImages('/api/upload_image', loadCards, renderCards, '功能牌图片批量上传完成。');
 }
@@ -3825,10 +3920,11 @@ Object.assign(window, {
   removeTitleEffect,
     setTitleEffectField,
   setTitleBasicField,
-  deleteFuncCard,
+    deleteFuncCard,
 
+  openLazyBatchDialog,
+  executeLazyBatch,
 
-  batchAddCards,
   uploadFuncImages,
   deleteFuncImage,
   deleteFateImage,

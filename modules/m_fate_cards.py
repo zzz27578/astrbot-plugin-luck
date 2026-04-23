@@ -6,6 +6,12 @@ from astrbot.api.event import AstrMessageEvent
 from astrbot.api.message_components import Plain, Image
 from ..core.logic_gate import find_gate_block, format_gate_block_message, GATE_DRAW_FATE_CARD
 from ..core.title_engine import TitleEngine
+from ..core.lazy_engine import (
+    is_fate_super_lazy_enabled,
+    generate_super_lazy_fate_card,
+    resolve_fate_card,
+)
+
 
 
 
@@ -28,6 +34,7 @@ def load_cards_config(config: dict | None = None):
             except Exception:
                 gold = 0
             normalized.append({
+                "name": str(card.get("name", "") or "").strip() or "未命名命运牌",
                 "text": str(card.get("text", "一张神秘的卡牌") or "一张神秘的卡牌"),
                 "gold": gold,
                 "filename": str(card.get("filename", "") or ""),
@@ -45,6 +52,7 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max
     if not cards_config:
         yield event.plain_result("⚠️ 异世界的卡池空空如也，请联系天道配置命运牌池数据。")
         return
+
 
     user_data = await bank.get_user_data(user_id, user_name)
     TitleEngine.ensure_user_title_fields(user_data)
@@ -74,6 +82,7 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max
     card = random.choice(cards_config)
     img_filename = card.get("filename", "")
     text = card.get("text", "一张神秘的卡牌")
+
     value = int(card.get("gold", card.get("value", 0)) or 0)
 
     img_path = config.get("_storage_paths", {}).get("fate_assets_dir") / img_filename

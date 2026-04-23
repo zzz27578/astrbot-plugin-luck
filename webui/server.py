@@ -6,10 +6,21 @@ import json
 import asyncio
 import tempfile
 import shutil
+import random
+import re
+import uuid
+from urllib.parse import urlparse
 from pathlib import Path
-from aiohttp import web
+from aiohttp import web, ClientSession, ClientTimeout
 
 from ..core.title_engine import TitleEngine
+from ..core.lazy_engine import (
+    build_fate_draft,
+    build_func_draft,
+    _choose_local_image,
+    fetch_pure_quote,
+    fetch_random_waifu_image,
+)
 from ..core.plugin_storage import (
     DEFAULT_PROFILE_NAME,
     PLUGIN_NAME,
@@ -83,6 +94,10 @@ DEFAULT_SIGN_IN_TEXTS = {
 }
 
 
+_LAZY_HTTP_TIMEOUT = ClientTimeout(total=15)
+_LAZY_ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+
+
 def _atomic_write(path: Path, data):
     """原子写入：先写临时文件再替换，防止写到一半损坏"""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -141,6 +156,7 @@ def _normalize_fate_cards(cards) -> list:
         if not isinstance(card, dict):
             continue
         normalized.append({
+            "name": str(card.get("name", "") or "").strip() or "未命名命运牌",
             "text": str(card.get("text", "") or "一张神秘的卡牌").strip() or "一张神秘的卡牌",
             "gold": _safe_int(card.get("gold", card.get("value", 0)), 0),
             "filename": Path(str(card.get("filename", "") or "")).name,
@@ -349,13 +365,22 @@ def _default_runtime_config() -> dict:
             "enable": True,
             "port": 4399,
         },
-        "fate_cards_settings": {
+        "sign_in_settings": {
+            "enable": True,
+        },
+                "fate_cards_settings": {
             "enable": True,
             "daily_draw_limit": 3,
+            "enable_lazy_match": False,
+            "enable_super_lazy": False,
+            "super_lazy_gold_min": 0,
+            "super_lazy_gold_max": 50,
         },
                 "func_cards_settings": {
-            "enable": True,
-            "enable_dice_cards": True,
+                    "enable": True,
+                    "enable_lazy_match": False,
+                    "enable_super_lazy": False,
+                    "enable_dice_cards": True,
             "enable_public_duel_mode": False,
             "public_duel_daily_limit": 3,
             "public_duel_min_stake": 10,
@@ -402,11 +427,263 @@ def _seed_blank_profile(paths: dict):
     _atomic_write(paths["runtime_config_file"], merged_runtime)
 
 
+def _get_request_runtime_config(request) -> tuple[dict, dict]:
+    paths = _get_request_profile_paths(request)
+    current = _read_json(paths["runtime_config_file"], {})
+    merged = _deep_merge_dict(_default_runtime_config(), current if isinstance(current, dict) else {})
+    return paths, merged
+
+
+def _lazy_title_from_text(text: str, prefix: str, fallback: str, max_len: int = 12) -> str:
+    raw = re.split(r"[。！？!?\n，,：:；;、|/\\-]", str(text or "").strip())[0].strip()
+    raw = re.sub(r"\s+", "", raw)
+    raw = raw[:max_len] if raw else ""
+    return f"{prefix}{raw}" if raw else fallback
+
+
+def _pick_image_suffix(url: str, content_type: str = "") -> str:
+    suffix = Path(urlparse(url).path).suffix.lower()
+    if suffix in _LAZY_ALLOWED_IMAGE_EXTS:
+        return suffix
+    content_type = (content_type or "").lower()
+    if "png" in content_type:
+        return ".png"
+    if "gif" in content_type:
+        return ".gif"
+    if "webp" in content_type:
+        return ".webp"
+    return ".jpg"
+
+
+async def _fetch_json_url(session: ClientSession, url: str) -> dict | list:
+    async with session.get(url, headers={"User-Agent": "luck_rank_webui/1.0"}) as resp:
+        if resp.status != 200:
+            raise RuntimeError(f"HTTP {resp.status}")
+        return await resp.json(content_type=None)
+
+
+def _extract_quote_text(payload) -> str:
+    if isinstance(payload, dict):
+        for key in ("hitokoto", "data", "text", "msg", "content", "sentence"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        for value in payload.values():
+            if isinstance(value, (dict, list)):
+                nested = _extract_quote_text(value)
+                if nested:
+                    return nested
+    elif isinstance(payload, list):
+        for item in payload:
+            nested = _extract_quote_text(item)
+            if nested:
+                return nested
+    elif isinstance(payload, str) and payload.strip():
+        return payload.strip()
+    return ""
+
+
+def _extract_image_url(payload) -> str:
+    if isinstance(payload, dict):
+        direct = payload.get("url")
+        if isinstance(direct, str) and direct.strip():
+            return direct.strip()
+        results = payload.get("results")
+        if isinstance(results, list):
+            for item in results:
+                if isinstance(item, dict):
+                    candidate = item.get("url")
+                    if isinstance(candidate, str) and candidate.strip():
+                        return candidate.strip()
+        for value in payload.values():
+            if isinstance(value, (dict, list)):
+                nested = _extract_image_url(value)
+                if nested:
+                    return nested
+    elif isinstance(payload, list):
+        for item in payload:
+            nested = _extract_image_url(item)
+            if nested:
+                return nested
+    return ""
+
+
+async def _fetch_lazy_quote(session: ClientSession) -> dict:
+    source = "hitokoto"
+    url = "https://v1.hitokoto.cn"
+    try:
+        payload = await _fetch_json_url(session, url)
+        text = _extract_quote_text(payload)
+        if text:
+            return {"text": text, "source": source, "source_url": url}
+        raise RuntimeError("hitokoto: empty")
+    except Exception as exc:
+        raise RuntimeError(f"{source}: {exc}")
+
+
+
+async def _fetch_lazy_image_url(session: ClientSession) -> dict:
+    sources = [
+        ("waifu.pics", "https://api.waifu.pics/sfw/waifu"),
+        ("nekos.best", "https://nekos.best/api/v2/neko"),
+    ]
+    errors = []
+    for source, url in sources:
+        try:
+            payload = await _fetch_json_url(session, url)
+            image_url = _extract_image_url(payload)
+            if image_url:
+                return {"url": image_url, "source": source, "source_url": url}
+            errors.append(f"{source}: empty")
+        except Exception as exc:
+            errors.append(f"{source}: {exc}")
+    raise RuntimeError("; ".join(errors) or "image source unavailable")
+
+
+async def _download_lazy_image(session: ClientSession, image_url: str, target_dir: Path, prefix: str) -> str:
+    target_dir.mkdir(parents=True, exist_ok=True)
+    async with session.get(image_url, headers={"User-Agent": "luck_rank_webui/1.0"}) as resp:
+        if resp.status != 200:
+            raise RuntimeError(f"image download failed: HTTP {resp.status}")
+        content = await resp.read()
+        if len(content) < 32:
+            raise RuntimeError("image content too small")
+        suffix = _pick_image_suffix(image_url, resp.headers.get("Content-Type", ""))
+        filename = f"{prefix}_{uuid.uuid4().hex[:12]}{suffix}"
+        (target_dir / filename).write_bytes(content)
+        return filename
+
+
+async def api_lazy_match(request):
+    try:
+        body = await request.json() if request.can_read_body else {}
+        if not isinstance(body, dict):
+            body = {}
+        paths, _ = _get_request_runtime_config(request)
+        
+        kind = str(body.get("kind", "")).strip()
+        if kind not in ("fate", "func"):
+            return web.json_response({"ok": False, "error": "invalid kind"}, status=400)
+
+        card = body.get("card", {})
+        gen_pic = bool(body.get("gen_pic", True))
+        gen_text = bool(body.get("gen_text", True))
+        prefer_local = bool(body.get("prefer_local", True))
+        allow_remote = bool(body.get("allow_remote", True))
+
+        if kind == "fate":
+            target_dir = paths["fate_assets_dir"]
+            name = card.get("name", "")
+            text = card.get("text", "")
+            filename = card.get("filename", "")
+            if gen_text and not text:
+                text = await fetch_pure_quote()
+                card["text"] = text
+                if not name:
+                    card["name"] = f"命运·{text[:8]}"
+            if gen_pic and not filename:
+                if prefer_local:
+                    filename = _choose_local_image(target_dir, [name, text])
+                if not filename and allow_remote:
+                    try:
+                        filename = await fetch_random_waifu_image(target_dir, "fate")
+                    except Exception:
+                        pass
+                if not filename and not prefer_local:
+                    filename = _choose_local_image(target_dir, [name, text])
+                card["filename"] = filename
+        else:
+            target_dir = paths["func_assets_dir"]
+            name = card.get("card_name", "")
+            desc = card.get("description", "")
+            filename = card.get("filename", "")
+            if gen_pic and not filename:
+                if prefer_local:
+                    filename = _choose_local_image(target_dir, [name, desc])
+                if not filename and allow_remote:
+                    try:
+                        filename = await fetch_random_waifu_image(target_dir, "func")
+                    except Exception:
+                        pass
+                if not filename and not prefer_local:
+                    filename = _choose_local_image(target_dir, [name, desc])
+                card["filename"] = filename
+        
+        return web.json_response({"ok": True, "card": card})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_lazy_batch_fate(request):
+    try:
+        body = await request.json() if request.can_read_body else {}
+        if not isinstance(body, dict):
+            body = {}
+        paths, runtime_cfg = _get_request_runtime_config(request)
+        if not runtime_cfg.get("fate_cards_settings", {}).get("enable", True):
+            return web.json_response({"ok": False, "error": "命运牌模块未开启。"}, status=403)
+
+        count = max(1, min(10, _safe_int(body.get("count", 1))))
+        gold_min = _safe_int(body.get("gold_min", -20), -20)
+        gold_max = _safe_int(body.get("gold_max", 100), 100)
+        gen_pic = bool(body.get("gen_pic", True))
+        gen_text = bool(body.get("gen_text", True))
+        prefer_local = bool(body.get("prefer_local", True))
+        allow_remote = bool(body.get("allow_remote", True))
+
+        results = []
+        for _ in range(count):
+            draft = await build_fate_draft(
+                paths["fate_assets_dir"],
+                gold_min, gold_max, gen_pic, gen_text, prefer_local, allow_remote
+            )
+            results.append(draft)
+        
+        return web.json_response({"ok": True, "cards": results})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_lazy_batch_func(request):
+    try:
+        body = await request.json() if request.can_read_body else {}
+        if not isinstance(body, dict):
+            body = {}
+        paths, runtime_cfg = _get_request_runtime_config(request)
+        if not runtime_cfg.get("func_cards_settings", {}).get("enable", True):
+            return web.json_response({"ok": False, "error": "功能牌模块未开启。"}, status=403)
+
+        count = max(1, min(10, _safe_int(body.get("count", 1))))
+        allowed_types = body.get("allowed_types")
+        if not isinstance(allowed_types, list):
+            allowed_types = ["attack", "heal", "defense"]
+        max_rarity = max(1, min(5, _safe_int(body.get("max_rarity", 5), 5)))
+        max_tags = max(1, _safe_int(body.get("max_tags", 2), 2))
+        max_effect_val = _safe_int(body.get("max_effect_val", 50), 50)
+        
+        gen_pic = bool(body.get("gen_pic", True))
+        gen_text = bool(body.get("gen_text", True))
+        prefer_local = bool(body.get("prefer_local", True))
+        allow_remote = bool(body.get("allow_remote", True))
+
+        results = []
+        for _ in range(count):
+            draft = await build_func_draft(
+                paths["func_assets_dir"],
+                allowed_types, max_rarity, max_tags, max_effect_val,
+                gen_pic, gen_text, prefer_local, allow_remote
+            )
+            results.append(draft)
+
+        return web.json_response({"ok": True, "cards": results})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
 # ============================================================================== 
 # API 路由处理
 # ==============================================================================
+
 
 async def api_get_runtime_config(request):
     try:
@@ -1040,6 +1317,9 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/group_access", api_save_group_access)
     app.router.add_get("/api/runtime_config", api_get_runtime_config)
     app.router.add_post("/api/runtime_config", api_save_runtime_config)
+    app.router.add_post("/api/lazy/quote", api_lazy_quote)
+    app.router.add_post("/api/lazy/fate_card", api_lazy_fate_card)
+    app.router.add_post("/api/lazy/func_card", api_lazy_func_card)
     app.router.add_get("/api/fate_cards", api_get_fate_cards)
     app.router.add_post("/api/fate_cards", api_save_fate_cards)
     app.router.add_post("/api/upload_fate_image", api_upload_fate_image)

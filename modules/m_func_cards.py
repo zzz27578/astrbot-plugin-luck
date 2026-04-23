@@ -17,6 +17,12 @@ from ..core.logic_gate import (
     GATE_USE_CARD,
     GATE_TOGGLE_CARD,
 )
+from ..core.lazy_engine import (
+    is_func_super_lazy_enabled,
+    generate_super_lazy_func_card,
+    resolve_func_card,
+)
+
 
 # ================= 🎲 骰局会话状态（全局单局） =================
 PENDING_DUEL = {
@@ -1147,11 +1153,11 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         )
         yield event.plain_result(msg)
         return
+        cards_config = load_func_cards_config(config)
+        if not cards_config:
+            yield event.plain_result("⚠️ 功能牌卡池为空或配置无效，请检查功能牌池数据。")
+            return
 
-    cards_config = load_func_cards_config(config)
-    if not cards_config:
-        yield event.plain_result("⚠️ 功能牌卡池为空或配置无效，请检查功能牌池数据。")
-        return
 
     eco_cfg = config.get("func_cards_settings", {}).get("economy_settings", {})
     draw_cost = int(eco_cfg.get("draw_cost", 20) or 20)
@@ -1235,7 +1241,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         yield event.plain_result("⚠️ 功能牌卡池为空，无法完成抽取。")
         return
 
-        actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
+    actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
     user_data.setdefault("inventory", []).append({
         "card_name": card["card_name"],
         "is_active": False,

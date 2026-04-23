@@ -516,6 +516,7 @@ body.chassis {
   display: inline-flex; padding: 2px 8px; font-family: var(--font-headline); font-size: 11px; font-weight: 700;
   letter-spacing: 0.5px; background: transparent; border: 1px solid var(--shard-border);
   color: var(--shard-text-muted); transition: all 0.2s ease; border-radius: 2px !important;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .badge.light { border-color: rgba(33, 163, 102, 0.4); color: #21a366; background: rgba(33, 163, 102, 0.05); }
 .badge.orange { border-color: rgba(243, 156, 18, 0.4); color: #f39c12; background: rgba(243, 156, 18, 0.05); }
@@ -536,9 +537,13 @@ body.chassis {
 .archive-cover { aspect-ratio: 3/4; background: var(--shard-bg); border-bottom: 1px solid var(--shard-border); padding: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
 .archive-cover::after { content: 'IMG_DATA'; position: absolute; font-family: var(--font-headline); font-size: 10px; font-weight: 700; color: rgba(0,0,0,0.05); letter-spacing: 2px; }
 .archive-cover img { width: 100%; height: 100%; object-fit: cover; border: 1px solid var(--shard-border); z-index: 1; position: relative; }
-.archive-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-.archive-title { font-family: var(--font-headline); font-size: 16px; font-weight: 800; color: var(--shard-text); }
-.archive-desc { font-size: 12px; color: var(--shard-text-muted); background: var(--shard-bg); padding: 12px; border: 1px solid var(--shard-border); line-height: 1.5; }
+.archive-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+.archive-title { font-family: var(--font-headline); font-size: 16px; font-weight: 800; color: var(--shard-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.archive-desc { font-size: 12px; color: var(--shard-text-muted); background: var(--shard-bg); padding: 12px; border: 1px solid var(--shard-border); line-height: 1.6; overflow: auto; max-height: 88px; min-height: 88px; word-break: break-word; scrollbar-width: thin; scrollbar-color: rgba(33, 163, 102, 0.28) transparent; }
+.archive-desc::-webkit-scrollbar, .archive-scroll-chip::-webkit-scrollbar { width: 4px; height: 4px; }
+.archive-desc::-webkit-scrollbar-track, .archive-scroll-chip::-webkit-scrollbar-track { background: transparent; }
+.archive-desc::-webkit-scrollbar-thumb, .archive-scroll-chip::-webkit-scrollbar-thumb { background: rgba(33, 163, 102, 0.22); border-radius: 999px; }
+.archive-desc::-webkit-scrollbar-thumb:hover, .archive-scroll-chip::-webkit-scrollbar-thumb:hover { background: rgba(33, 163, 102, 0.36); }
 .archive-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px dashed var(--shard-border); }
 
 .overview-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
@@ -636,8 +641,25 @@ body.chassis {
 .dialog { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; z-index: 100; }
 .dialog.show { display: flex; }
 .dialog-backdrop { position: absolute; inset: 0; background: rgba(4, 8, 6, 0.85); backdrop-filter: blur(12px); }
-.dialog-card { background: var(--shard-surface); border: 1px solid var(--accent); width: min(1000px, 100%); max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; z-index: 101; box-shadow: 0 0 64px rgba(57,229,184,0.15); transition: width 0.3s ease; }
+.dialog-card { background: var(--shard-surface); border: 1px solid var(--accent); width: min(960px, 100%); max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; z-index: 101; box-shadow: 0 0 64px rgba(57,229,184,0.15); transition: width 0.3s ease; }
 .dialog-card.dialog-small { width: min(640px, 100%); }
+.dialog-card.dialog-editor { width: min(820px, 100%); }
+.dialog-card.dialog-glossary { width: min(1040px, 100%); height: 88vh; max-height: 88vh; overflow: hidden; display: flex; flex-direction: column; }
+.dialog-card.dialog-glossary #dialogBody { flex: 1; min-height: 0; overflow: hidden; }
+.glossary-shell { height: 100%; min-height: 620px; overflow-y: auto; padding-right: 6px; }
+.editor-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr); gap: 24px; align-items: start; }
+.editor-stack { display: grid; gap: 16px; }
+.editor-side { border-left: 1px solid var(--shard-border); padding-left: 24px; min-width: 0; }
+.editor-side .asset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.editor-compact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.check-strong { display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 14px; border: 1px solid var(--shard-border); background: var(--shard-bg); color: var(--shard-text); font-size: 13px; font-weight: 700; }
+.check-strong input[type="checkbox"] { width: 18px; height: 18px; accent-color: #1A9E5E; }
+@media (max-width: 900px) {
+  .dialog-card.dialog-editor { width: min(96vw, 100%); padding: 28px; }
+  .editor-split { grid-template-columns: 1fr; }
+  .editor-side { border-left: none; padding-left: 0; border-top: 1px solid var(--shard-border); padding-top: 20px; }
+  .editor-side .asset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 /* 区间重叠报警动画 */
 @keyframes danger-glow { 0%, 100% { box-shadow: inset 0 0 0 1px var(--danger), 0 0 12px rgba(217, 56, 41, 0.1); border-color: var(--danger); } 50% { box-shadow: inset 0 0 0 1px var(--danger), 0 0 24px rgba(217, 56, 41, 0.4); border-color: #ff6b5b; } }
 .signin-range { transition: all 0.3s ease; }
@@ -654,7 +676,61 @@ body.chassis {
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .asset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .tag-preview, .empty { background: var(--shard-bg); border: 1px dashed var(--shard-border); padding: 24px; text-align: center; font-size: 13px; color: var(--shard-text-muted); font-weight: 500; }
-.filter-bar { display: flex; gap: 16px; align-items: center; padding: 16px; background: var(--shard-surface); border: 1px solid var(--shard-border); margin-bottom: 20px; }
+.filter-bar { display: grid; gap: 12px; padding: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(242,245,243,0.96)); border: 1px solid var(--shard-border); margin-bottom: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.65); }
+.filter-search { position: relative; }
+.filter-search .input { padding-left: 42px; }
+.filter-search::before { content: '⌕'; position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--shard-text-muted); font-size: 16px; font-weight: 700; pointer-events: none; }
+.filter-row-main { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; }
+.filter-chip-group { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.filter-chip { background: transparent; border: 1px solid var(--shard-border); color: var(--shard-text-muted); height: 34px; padding: 0 14px; font-family: var(--font-headline); font-size: 11px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.2s ease; }
+.filter-chip:hover { border-color: #21c476; color: #21c476; background: rgba(33, 196, 118, 0.05); }
+.filter-chip.active { background: var(--shard-text); color: var(--shard-surface); border-color: var(--shard-text); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
+.filter-chip.filter-chip-add { border-color: rgba(26, 158, 94, 0.35); color: #1A9E5E; background: rgba(26, 158, 94, 0.05); }
+.filter-chip.filter-chip-add:hover { border-color: #1A9E5E; color: #1A9E5E; background: rgba(26, 158, 94, 0.10); }
+.filter-side-info { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-end; }
+.effect-dual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.effect-param-grid { display: grid; gap: 12px; }
+.glossary-fold { border: 1px solid var(--shard-border); background: var(--shard-surface); margin-bottom: 14px; }
+.glossary-fold summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: var(--shard-bg); font-family: var(--font-headline); font-size: 14px; font-weight: 800; color: var(--shard-text); }
+.glossary-fold summary::-webkit-details-marker { display: none; }
+.glossary-arrow { transition: transform 0.2s ease; color: var(--shard-text-muted); }
+.glossary-fold[open] .glossary-arrow { transform: rotate(180deg); }
+.glossary-list { display: grid; gap: 0; border-top: 1px solid var(--shard-border); }
+.glossary-item { padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.glossary-item:last-child { border-bottom: none; }
+.glossary-title { font-family: var(--font-headline); font-size: 13px; font-weight: 800; color: var(--shard-text); display: flex; gap: 8px; align-items: center; }
+.glossary-desc { margin-top: 8px; font-size: 12px; line-height: 1.7; color: var(--shard-text-muted); }
+.glossary-param { margin-top: 8px; font-size: 11px; color: var(--accent); font-weight: 700; }
+.category-suggest-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.category-chip { padding: 4px 10px; border: 1px solid var(--shard-border); background: var(--shard-bg); color: var(--shard-text-muted); font-size: 11px; font-weight: 700; }
+@media (max-width: 900px) {
+  .effect-dual-grid { grid-template-columns: 1fr; }
+}
+.filter-summary { font-family: var(--font-headline); font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--shard-text-muted); padding: 0 2px; }
+.btn-danger.glow-red, .btn.glow-red { border-color: rgba(217, 56, 41, 0.45); color: var(--danger); }
+.btn-danger.glow-red:hover, .btn.glow-red:hover { background: rgba(217, 56, 41, 0.08); border-color: var(--danger); color: var(--danger); }
+@keyframes unfinished-red-glow { 0%, 100% { box-shadow: 0 0 0 rgba(217,56,41,0), 0 0 0 rgba(217,56,41,0); } 50% { box-shadow: 0 0 0 1px rgba(217,56,41,0.6), 0 0 22px rgba(217,56,41,0.38); } }
+.func-card.incomplete-pinned { animation: unfinished-red-glow 1.6s ease-in-out infinite; border-color: rgba(217,56,41,0.6); }
+.func-card.incomplete-pinned::before { border-color: var(--danger); width: 24px; height: 24px; }
+.archive-card.func-card { overflow: visible; }
+.archive-meta, .archive-tag-row { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.archive-scroll-chip { display: inline-block; max-width: 100%; max-height: 42px; overflow: auto; padding: 6px 10px; font-family: var(--font-headline); font-size: 11px; font-weight: 700; letter-spacing: 0.5px; background: var(--shard-bg); border: 1px solid var(--shard-border); color: var(--shard-text-muted); line-height: 1.4; word-break: break-word; scrollbar-width: thin; scrollbar-color: rgba(33, 163, 102, 0.28) transparent; }
+.archive-scroll-chip.soft-badge { background: transparent; }
+.func-card.rarity-1 { border-color: rgba(111, 125, 142, 0.45); box-shadow: 0 0 0 1px rgba(111, 125, 142, 0.16), 0 0 18px rgba(111, 125, 142, 0.10); }
+.func-card.rarity-2 { border-color: rgba(88, 167, 255, 0.45); box-shadow: 0 0 0 1px rgba(88, 167, 255, 0.18), 0 0 20px rgba(88, 167, 255, 0.12); }
+.func-card.rarity-3 { border-color: rgba(159, 108, 255, 0.48); box-shadow: 0 0 0 1px rgba(159, 108, 255, 0.18), 0 0 22px rgba(159, 108, 255, 0.16); }
+.func-card.rarity-4 { border-color: rgba(255, 191, 95, 0.52); box-shadow: 0 0 0 1px rgba(255, 191, 95, 0.20), 0 0 24px rgba(255, 191, 95, 0.18); }
+.func-card.rarity-5 { border-color: rgba(255, 112, 120, 0.6); box-shadow: 0 0 0 1px rgba(255, 112, 120, 0.24), 0 0 28px rgba(255, 112, 120, 0.22); }
+.rarity-badge.rarity-1 { border-color: rgba(111, 125, 142, 0.45); color: #6f7d8e; background: rgba(111, 125, 142, 0.08); }
+.rarity-badge.rarity-2 { border-color: rgba(88, 167, 255, 0.5); color: #58a7ff; background: rgba(88, 167, 255, 0.08); }
+.rarity-badge.rarity-3 { border-color: rgba(159, 108, 255, 0.52); color: #9f6cff; background: rgba(159, 108, 255, 0.08); }
+.rarity-badge.rarity-4 { border-color: rgba(255, 191, 95, 0.56); color: #d4911d; background: rgba(255, 191, 95, 0.10); }
+.rarity-badge.rarity-5 { border-color: rgba(255, 112, 120, 0.62); color: #df4c57; background: rgba(255, 112, 120, 0.10); }
+.title-badge-strong { border-color: rgba(217, 56, 41, 0.32); color: #b3473e; background: rgba(217, 56, 41, 0.06); }
+@media (max-width: 900px) {
+  .filter-row-main { flex-direction: column; align-items: stretch; }
+  .filter-side-info { justify-content: flex-start; }
+}
 .stats-profile-bar { border-bottom: 2px solid var(--shard-text); padding-bottom: 16px; margin-bottom: 24px; }
 .stats-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .stats-kpi { border: 1px solid var(--shard-border); background: var(--shard-surface); padding: 20px; border-top: 3px solid var(--shard-text); position: relative; }
@@ -1204,7 +1280,12 @@ const state = {
   titleDraft: null,
   justActivatedProfile: '',
 
-  funcFilter: 'all',
+    funcFilter: 'all',
+  funcSearchKeyword: '',
+    funcPinIncomplete: false,
+  funcCustomCategories: [],
+  fateSearchKeyword: '',
+  fatePinMissingName: false,
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -1224,35 +1305,65 @@ const pageMeta = {
 const rarityLabelMap = { 1: '普通', 2: '稀有', 3: '史诗', 4: '传说', 5: '神话' };
 const typeLabelMap = { attack: '攻击', heal: '辅助', defense: '防御' };
 const effectCatalog = {
-  attack: [
-    { key: 'steal', name: '偷取金币', params: ['数值'] },
-    { key: 'freeze', name: '冻结', params: ['小时'] },
-    { key: 'silence', name: '沉默', params: ['小时'] },
-    { key: 'seal_draw_all', name: '封锁抽牌', params: ['小时'] },
-    { key: 'luck_drain', name: '抽取爆率', params: ['小时', '百分比'] },
-    { key: 'steal_fate', name: '偷取命运收益', params: [] },
-    { key: 'borrow_blade', name: '借刀伤害', params: ['最小值', '最大值'] },
-    { key: 'bounty_mark', name: '悬赏印记', params: ['小时', '追加金币'] },
-    { key: 'strip_buff_gain', name: '夺取增益并加爆率', params: ['百分比', '小时'] },
-    { key: 'aoe_damage', name: '群体攻击', params: ['最小值', '最大值', '人数'] },
-    { key: 'dice_rule', name: '骰子规则', params: ['规则键'] },
-    { key: 'dice_duel', name: '对赌', params: ['底注'] }
+    attack: [
+    { key: 'steal', name: '偷取金币', params: ['数值'], desc: '直接从目标身上偷走指定数量的金币。若目标身上有“悬赏印记”，还会额外再掉一次金币；若目标挂着反甲，你自己还会被反伤。' },
+    { key: 'freeze', name: '冻结', params: ['小时'], desc: '让目标在持续时间内同时不能抽命运牌、抽功能牌、使用功能牌、启用或停用功能牌。也就是抽牌和出牌都被一起封住。' },
+    { key: 'silence', name: '沉默', params: ['小时'], desc: '让目标在持续时间内不能使用功能牌，但仍然可以抽牌，也不影响启用或停用防御牌。它只封“出牌”，不封“抽牌”。' },
+    { key: 'seal_draw_all', name: '封锁抽牌', params: ['小时'], desc: '让目标在持续时间内不能抽命运牌，也不能抽功能牌；但仍然可以使用手里已有的功能牌。它只封“抽牌”，不封“出牌”。' },
+    { key: 'luck_drain', name: '抽取爆率', params: ['小时', '百分比'], desc: '把目标的功能牌爆率降低指定百分比，同时把同样数值加到你自己身上，持续指定小时数。属于一吸一涨的爆率转移。' },
+    { key: 'steal_fate', name: '偷取命运收益', params: [], desc: '把目标最近一次命运牌结算得到的金币收益偷过来，然后把目标那份“最近命运收益”清空。若目标最近没有命运收益，就会落空。' },
+    { key: 'borrow_blade', name: '借刀伤害', params: ['最小值', '最大值'], desc: '随机找一个第三方群友背锅，对目标造成一段随机金币伤害。伤害值在最小值到最大值之间浮动。' },
+    { key: 'bounty_mark', name: '悬赏印记', params: ['小时', '追加金币'], desc: '给目标挂上悬赏印记。持续期间内，只要目标再吃到金币类攻击，就会额外再掉一次指定金币，并把这笔钱送给攻击者。' },
+    { key: 'strip_buff_gain', name: '夺取增益并加爆率', params: ['百分比', '小时'], desc: '移除目标身上 1 个正面状态，然后给你自己附加功能牌爆率提升，持续指定小时数。是拆增益加自强化的反制型效果。' },
+    { key: 'aoe_damage', name: '群体攻击', params: ['最小值', '最大值', '人数'], desc: '从全群里随机抽最多指定人数作为目标，对每个人分别造成一段随机金币伤害。会被“无懈可击”护盾完整挡掉，破盾但不掉钱。' },
+    { key: 'dice_rule', name: '骰子规则', params: ['规则键'], desc: '触发一套指定的骰子规则，具体效果由规则键决定，属于给骰子玩法挂特殊结算。' },
+    { key: 'dice_duel', name: '对赌', params: ['底注'], desc: '向目标发起一次带底注的骰子对赌，双方确认后按骰点结算输赢和金币转移。' }
   ],
-    heal: [
-    { key: 'cleanse', name: '单体净化', params: [] },
-    { key: 'aoe_cleanse', name: '群体净化', params: ['人数'] },
-    { key: 'aoe_heal', name: '群体回复', params: ['最小值', '最大值', '人数'] },
-    { key: 'luck_bless', name: '好运加护', params: ['小时', '百分比'] },
-    { key: 'fate_roulette', name: '命运转盘', params: [] },
-    { key: 'dice_reroll_lowest_once', name: '最低点重投一次', params: [] }
+  heal: [
+    { key: 'cleanse', name: '单体净化', params: [], desc: '移除目标身上 1 个负面状态。只会清负面，不会误删护盾、反甲、好运加护这类正面状态。' },
+    { key: 'aoe_cleanse', name: '群体净化', params: ['人数'], desc: '随机净化最多指定人数，每个人各移除 1 个负面状态。若对方本来没有负面状态，就不会发生额外效果。' },
+    { key: 'aoe_heal', name: '群体回复', params: ['最小值', '最大值', '人数'], desc: '包含施法者自己在内，对最多指定人数分别随机增加金币。自己必定吃到，剩余名额再从群里随机抽。' },
+    { key: 'luck_bless', name: '好运加护', params: ['小时', '百分比'], desc: '给自己附加一个持续状态，在指定小时内提高功能牌爆率。只加你自己，不会加给目标。' },
+    { key: 'fate_roulette', name: '命运转盘', params: [], desc: '触发 5 选 1 的随机结果：可能加金币、送护盾、送爆率加成、加金币并净化，也可能反噬自己扣金币。整体上偏正面，但不是百分百稳赚。' },
+    { key: 'dice_reroll_lowest_once', name: '最低点重投一次', params: [], desc: '给自己挂上“天命重投”。之后 24 小时内，只要骰子掷出最低点 1，就会自动重投一次，然后这个状态被消耗掉。' }
   ],
   defense: [
-    { key: 'add_shield', name: '护盾', params: [] },
-    { key: 'thorn_armor', name: '反甲', params: ['小时', '反伤比例'] },
-    { key: 'cleanse', name: '单体净化', params: [] }
+    { key: 'add_shield', name: '护盾', params: [], desc: '挂上“无懈可击”护盾，可抵挡 1 次带伤害、偷取或控制性质的法术。护盾触发后会直接破碎，同时对应防御牌也会损坏。' },
+    { key: 'thorn_armor', name: '反甲', params: ['小时', '反伤比例'], desc: '挂上持续反甲。期间如果你被金币类伤害打中，攻击者会按设定比例被反伤，并把对应金币返还给你。' },
+    { key: 'cleanse', name: '单体净化', params: [], desc: '作为防守向手段时，它的作用还是净化 1 个负面状态，本质和辅助分类里的单体净化一致。' }
   ]
-
 };
+const effectGroupLabelMap = { attack: '攻击', heal: '辅助', defense: '防御' };
+
+function effectCatalogEntries() {
+  return Object.entries(effectCatalog).flatMap(([group, items]) => items.map(item => ({ ...item, group })));
+}
+function getEffectMeta(key, groupHint = '') {
+  if (groupHint && effectCatalog[groupHint]) {
+    const found = effectCatalog[groupHint].find(item => item.key === key);
+    if (found) return { ...found, group: groupHint };
+  }
+  return effectCatalogEntries().find(item => item.key === key) || null;
+}
+function getEffectGroupByKey(key, fallback = 'attack') {
+  return getEffectMeta(key)?.group || fallback;
+}
+function getFuncCategoryOptions() {
+  return Array.from(new Set([
+    ...Object.keys(typeLabelMap),
+    ...state.funcCustomCategories,
+    ...state.funcCards.map(card => String(card.type || '').trim()).filter(Boolean),
+  ])).filter(Boolean).map(value => ({ value, label: categoryLabel(value) }));
+}
+function mergeFuncCustomCategories(values = []) {
+  state.funcCustomCategories = Array.from(new Set([
+    ...state.funcCustomCategories,
+    ...values.map(v => String(v || '').trim()).filter(Boolean),
+  ]));
+}
+function categoryLabel(value) {
+  return typeLabelMap[value] || value || '未分类';
+}
 
 function effectToTag(effect) {
   const p = effect.params || [];
@@ -1315,7 +1426,7 @@ function tagToEffect(tag) {
 function effectLabel(effect) {
   if (!effect) return '未识别效果';
   if (effect.key === 'raw') return `原始标签：${effect.raw}`;
-  const dict = [...effectCatalog.attack, ...effectCatalog.heal, ...effectCatalog.defense].find(x => x.key === effect.key);
+  const dict = getEffectMeta(effect.key, effect.group);
   return dict?.name || effect.key;
 }
 
@@ -1502,6 +1613,8 @@ async function loadCards() {
   const [a, b] = await Promise.all([apiGet('/api/func_cards'), apiGet('/api/images')]);
   if (a.ok) state.funcCards = a.cards || [];
   if (b.ok) state.images = b.files || [];
+  mergeFuncCustomCategories(state.funcCards.map(card => card.type));
+  clearFuncIncompletePinState();
 }
 async function loadTitles() {
   try {
@@ -1719,7 +1832,6 @@ async function duplicateFateCard(i) {
   const original = state.fateCards[i];
   if (!original) return;
   const copy = JSON.parse(JSON.stringify(original));
-  copy.text = `${copy.text || '未命名命运牌'} 副本`;
   state.fateCards.splice(i + 1, 0, copy);
   renderFate();
   await saveFateCards(false);
@@ -1729,30 +1841,70 @@ async function duplicateFuncCard(i) {
   const original = state.funcCards[i];
   if (!original) return;
   const copy = JSON.parse(JSON.stringify(original));
-  copy.card_name = `${copy.card_name || '未命名功能牌'} 副本`;
   state.funcCards.splice(i + 1, 0, copy);
   renderCards();
   await saveFuncCards(false);
   showToast('功能牌已复制。');
 }
+function isFateCardMissingName(card) {
+  return !(card?.name || '').trim();
+}
 function isFateCardIncomplete(card) {
-  return !(card.text || '').trim() || !card.filename || !state.fateImages.includes(card.filename);
+  return isFateCardMissingName(card) || !(card.text || '').trim() || !card.filename || !state.fateImages.includes(card.filename);
 }
 function ensureFateDraftCards() {
   const boundFiles = new Set(state.fateCards.map(card => card.filename).filter(Boolean));
   state.fateImages.filter(file => !boundFiles.has(file)).forEach(file => {
-    state.fateCards.push({ text: '', gold: 0, filename: file });
+    state.fateCards.push({ name: '', text: '', gold: 0, filename: file });
   });
 }
-function detectIncompleteFateCards() {
-  ensureFateDraftCards();
-  state.fateCards.sort((a, b) => Number(isFateCardIncomplete(b)) - Number(isFateCardIncomplete(a)));
+function bringNamelessFateCardsToFront() {
+  const count = state.fateCards.filter(isFateCardMissingName).length;
+  if (!count) return showToast('当前没有缺名称的命运牌。');
+  state.fatePinMissingName = true;
   renderFate();
-  const pendingCount = state.fateCards.filter(isFateCardIncomplete).length;
-  showToast(pendingCount ? `已置顶 ${pendingCount} 张未完成命运牌。` : '当前没有未完成的命运牌。');
+  showToast(`已将 ${count} 张缺名称命运牌置顶显示。`);
 }
 function isFuncCardIncomplete(card) {
   return !(card.card_name || '').trim() || !card.filename || !state.images.includes(card.filename) || !(card.description || '').trim() || !(card.tags || []).length;
+}
+function isFuncCardMatched(card, keyword) {
+  const kw = String(keyword || '').trim().toLowerCase();
+  if (!kw) return true;
+  const pool = [
+    card.card_name || '',
+    card.description || '',
+    categoryLabel(card.type) || '',
+    rarityLabelMap[Number(card.rarity) || 1] || '',
+    ...(card.tags || []).map(tag => humanizeTag(tag)),
+  ].join(' ').toLowerCase();
+  return pool.includes(kw);
+}
+function isFateCardMatched(card, keyword) {
+  const kw = String(keyword || '').trim().toLowerCase();
+  if (!kw) return true;
+  return [card.name || '', card.text || '', String(card.gold ?? ''), card.filename || ''].join(' ').toLowerCase().includes(kw);
+}
+function setFateSearchKeyword(value) {
+  state.fateSearchKeyword = value || '';
+  renderFate();
+}
+function clearFateNamePinState() {
+  state.fatePinMissingName = false;
+}
+function setFuncSearchKeyword(value) {
+  state.funcSearchKeyword = value || '';
+  renderCards();
+}
+function clearFuncIncompletePinState() {
+  state.funcPinIncomplete = false;
+}
+function bringIncompleteFuncCardsToFront() {
+  const count = state.funcCards.filter(isFuncCardIncomplete).length;
+  if (!count) return showToast('当前没有未完成的功能牌。');
+  state.funcPinIncomplete = true;
+  renderCards();
+  showToast(`已将 ${count} 张未完成功能牌置顶显示。`);
 }
 function setFuncFilter(value) {
   state.funcFilter = value || 'all';
@@ -2072,23 +2224,40 @@ function eventItem(kind, item, i) {
 // ===== [ page: fate ] ======================================================
 function renderFate() {
   ensureFateDraftCards();
+  const keyword = state.fateSearchKeyword || '';
+  const namelessCount = state.fateCards.filter(isFateCardMissingName).length;
+  let visibleCards = state.fateCards.map((card, i) => ({ card, i })).filter(({ card }) => isFateCardMatched(card, keyword));
+  if (state.fatePinMissingName) {
+    visibleCards = visibleCards.slice().sort((a, b) => Number(isFateCardMissingName(b.card)) - Number(isFateCardMissingName(a.card)));
+  }
   $('#page-fate').innerHTML = `
     <div class="grid">
       <section class="panel col-12 fate-main">
         <div class="panel-head">
-          <div>
+                    <div>
             <div class="panel-title">命运牌档案</div>
-            <div class="panel-note">上传图片后可用“检测未完成编辑的牌”把未完善的牌直接置顶。</div>
+            <div class="panel-note">上传图片后可用顶部红按钮把缺名称的命运牌直接置顶。</div>
           </div>
-          <div class="row">
+                    <div class="row">
             <button class="btn-strong" onclick="openFateEditor(-1)"><span class="btn-text">新增命运牌</span></button>
             <button class="btn" onclick="uploadFateImages()"><span class="btn-text">批量上传图片</span></button>
-            <button class="btn-danger" onclick="detectIncompleteFateCards()"><span class="btn-text">检测未完成编辑的牌</span></button>
+            <button class="btn-danger ${state.fatePinMissingName ? 'glow-red' : ''}" onclick="bringNamelessFateCardsToFront()"><span class="btn-text">缺名称置顶</span></button>
             <button class="btn" onclick="saveFateCards()"><span class="btn-text">保存全部</span></button>
           </div>
         </div>
+                <div class="filter-bar">
+          <div class="filter-search">
+            <input class="input" placeholder="搜索名称、文案、金币值或图片文件名" value="${esc(keyword)}" oninput="setFateSearchKeyword(this.value)">
+          </div>
+                    <div class="filter-row-main">
+            <div class="filter-side-info">
+              <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
+              <div class="filter-summary">缺名称牌数 ${namelessCount}</div>
+            </div>
+          </div>
+        </div>
         <div class="archive-grid">
-          ${state.fateCards.map((card, i) => fateItem(card, i)).join('') || '<div class="empty">暂无命运牌</div>'}
+          ${visibleCards.map(({ card, i }) => fateItem(card, i)).join('') || '<div class="empty">暂无命运牌</div>'}
         </div>
       </section>
     </div>`;
@@ -2102,11 +2271,13 @@ function fateItem(card, i) {
     <article class="archive-card${incomplete ? ' incomplete' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="命运牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
-        <div class="archive-title">${esc(card.text || '未命名命运牌')}</div>
+        <div class="archive-title">${esc(card.name || '未命名命运牌')}</div>
         <div class="archive-meta">
           <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
+          <span class="badge">${esc(card.filename || '未绑定图片')}</span>
           ${incomplete ? '<span class="badge">未完成</span>' : ''}
         </div>
+        <div class="archive-desc">${esc(card.text || '当前还没有文案。')}</div>
         <div class="archive-actions">
           <button class="btn-strong" onclick="openFateEditor(${i})"><span class="btn-text">编辑</span></button>
           <button class="btn-green" onclick="duplicateFateCard(${i})"><span class="btn-text">复制</span></button>
@@ -2171,11 +2342,10 @@ function titleItem(title, i) {
         <div class="archive-title">${esc(title.name || title.id || '未命名称号')}</div>
         <div class="archive-meta">
           <span class="badge light">${esc(title.category || '未分类')}</span>
-          <span class="badge">ID: ${esc(title.id || '-')}</span>
-          <span class="badge ${title.allow_loss ? 'orange' : ''}">${title.allow_loss ? '条件失效可撤销' : '永久保留'}</span>
+          <span class="badge ${title.allow_loss ? 'title-badge-strong' : ''}">${title.allow_loss ? '条件失效可撤销' : '永久保留'}</span>
         </div>
-        <div class="archive-tag-row"><span class="badge">条件：${esc(condText)}</span></div>
-        <div class="archive-tag-row"><span class="badge">效果：${esc(effText)}</span></div>
+        <div class="archive-tag-row"><div class="archive-scroll-chip">条件：${esc(condText)}</div></div>
+        <div class="archive-tag-row"><div class="archive-scroll-chip">效果：${esc(effText)}</div></div>
         <div class="archive-desc">${esc(title.desc || '当前还没有描述。')}</div>
         <div class="archive-actions">
           <button class="btn-strong" onclick="openTitleEditor(${i})"><span class="btn-text">编辑</span></button>
@@ -2419,31 +2589,29 @@ function chooseTitleCatalogItem(kind, index, key) {
 
 function returnToTitleEditor() {
   if (!state.titleDraft) return;
-  openDialog(state.editingTitleIndex >= 0 ? '编辑称号' : '新增称号', titleEditorHtml());
+  openDialog(state.editingTitleIndex >= 0 ? '编辑称号' : '新增称号', titleEditorHtml(), 'editor');
   renderTitleEditorConditions();
   renderTitleEditorEffects();
 }
 
 function titleEditorHtml() {
   return `
-    <div>
-      <div class="field-grid" style="grid-template-columns:1fr 220px;gap:12px;align-items:end;">
+    <div class="editor-stack">
+      <div class="editor-compact-grid" style="align-items:end;">
         <div class="field"><label>称号名称</label><input class="input" id="titleName" value="${esc(state.titleDraft?.name || '')}" oninput="setTitleBasicField('name', this.value)"></div>
-        <label class="check" style="margin-bottom:10px;"><input type="checkbox" ${(state.titleDraft?.allow_loss) ? 'checked' : ''} onchange="setTitleBasicField('allow_loss', this.checked)"><span>条件失效时自动撤销</span></label>
+        <label class="check-strong"><input type="checkbox" ${(state.titleDraft?.allow_loss) ? 'checked' : ''} onchange="setTitleBasicField('allow_loss', this.checked)"><span>条件失效时自动撤销</span></label>
       </div>
-      <div class="field-grid" style="grid-template-columns:1fr;gap:12px;margin-top:12px;align-items:end;">
-        <div class="field"><label>称号分类</label><input class="input" value="${esc(state.titleDraft?.category || '未分类')}" oninput="setTitleBasicField('category', this.value)"></div>
-      </div>
-      <div class="field" style="margin-top:12px;"><label>称号描述</label><textarea class="textarea" rows="3" oninput="setTitleBasicField('desc', this.value)">${esc(state.titleDraft?.desc || '')}</textarea></div>
-      <div class="panel-title" style="font-size:14px;margin-top:16px;">获取条件</div>
+      <div class="field"><label>称号分类</label><input class="input" value="${esc(state.titleDraft?.category || '未分类')}" oninput="setTitleBasicField('category', this.value)"></div>
+      <div class="field"><label>称号描述</label><textarea class="textarea" rows="3" oninput="setTitleBasicField('desc', this.value)">${esc(state.titleDraft?.desc || '')}</textarea></div>
+      <div class="panel-title" style="font-size:14px;margin-top:4px;">获取条件</div>
       <div class="panel-note">全部条件同时满足时，玩家才会获得该称号。条件项很多时，点按钮单独弹出选择界面。</div>
       <div id="titleConditionList"></div>
       <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleCondition()"><span class="btn-text">新增条件</span></button></div>
-      <div class="panel-title" style="font-size:14px;margin-top:18px;">佩戴效果</div>
+      <div class="panel-title" style="font-size:14px;margin-top:8px;">佩戴效果</div>
       <div class="panel-note">玩家佩戴该称号后，以下效果会在玩法结算中生效。效果项很多时，点按钮单独弹出选择界面。</div>
       <div id="titleEffectList"></div>
       <div class="row" style="margin-top:10px;"><button class="btn" type="button" onclick="addTitleEffect()"><span class="btn-text">新增效果</span></button></div>
-      <div class="row" style="margin-top:16px;"><button class="btn-strong" type="button" onclick="saveTitleEditor()"><span class="btn-text">保存称号</span></button></div>
+      <div class="row" style="margin-top:8px;"><button class="btn-strong" type="button" onclick="saveTitleEditor()"><span class="btn-text">保存称号</span></button></div>
     </div>`;
 }
 
@@ -2488,7 +2656,7 @@ function openTitleEditor(index) {
   state.editingTitleIndex = index;
   state.titleDraft = cloneTitleDraft(index >= 0 ? state.titles[index] : createEmptyTitleDraft());
   if (!state.titleDraft.id) state.titleDraft.id = slugifyTitleId(state.titleDraft.name || 'title');
-  openDialog(index >= 0 ? '编辑称号' : '新增称号', titleEditorHtml());
+  openDialog(index >= 0 ? '编辑称号' : '新增称号', titleEditorHtml(), 'editor');
   renderTitleEditorConditions();
   renderTitleEditorEffects();
 }
@@ -2542,7 +2710,6 @@ async function duplicateTitle(i) {
   if (!original) return;
   const copy = JSON.parse(JSON.stringify(original));
   copy.id = `${copy.id || 'new_title'}_copy`;
-  copy.name = `${copy.name || '未命名称号'} 副本`;
   state.titles.splice(i + 1, 0, copy);
   renderTitles();
   await saveTitles(false);
@@ -2550,25 +2717,61 @@ async function duplicateTitle(i) {
 }
 
 
+function openEffectGlossary() {
+  openDialog('功能词条库', `
+    <div class="glossary-shell">
+      <div class="panel-note" style="margin-bottom:14px;">词条说明按实际代码逻辑写清楚了。默认折叠，点右侧箭头再展开看具体内容。</div>
+      ${Object.entries(effectCatalog).map(([group, items], idx) => `
+        <details class="glossary-fold" ${idx === 0 ? 'open' : ''}>
+          <summary>
+            <span>${esc(effectGroupLabelMap[group] || group)}词条</span>
+            <span class="glossary-arrow">▾</span>
+          </summary>
+          <div class="glossary-list">
+            ${items.map(item => `
+              <article class="glossary-item">
+                <div class="glossary-title"><span>${esc(item.name)}</span><span class="badge">${esc(effectGroupLabelMap[group] || group)}</span></div>
+                <div class="glossary-desc">${esc(item.desc || '暂无说明')}</div>
+                <div class="glossary-param">${item.params?.length ? `参数：${esc(item.params.join(' / '))}` : '参数：无额外参数'}</div>
+              </article>`).join('')}
+          </div>
+        </details>`).join('')}
+    </div>`, 'glossary');
+}
+function createFuncCategoryPrompt() {
+  const name = prompt('请输入新的功能牌分类名称');
+  const value = String(name || '').trim();
+  if (!value) return;
+  mergeFuncCustomCategories([value]);
+  state.funcFilter = value;
+  renderCards();
+  showToast(`已新增分类：${value}`);
+}
+
 function renderCards() {
   const filter = state.funcFilter || 'all';
+  const keyword = state.funcSearchKeyword || '';
   const incompleteCount = state.funcCards.filter(isFuncCardIncomplete).length;
   const unusedImages = state.images.filter(file => !state.funcCards.some(card => card.filename === file));
-  const filteredEntries = state.funcCards.map((card, index) => ({ card, index })).filter(({ card }) => {
-    const type = card.type || 'attack';
-    if (filter === 'all') return true;
-    if (filter === 'other') return !Object.keys(funcTypePalette).includes(type);
-    return type === filter;
+  const categoryOptions = getFuncCategoryOptions();
+  let filteredEntries = state.funcCards.map((card, index) => ({ card, index })).filter(({ card }) => {
+    const type = String(card.type || 'attack').trim();
+    if (filter !== 'all' && type !== filter) return false;
+    return isFuncCardMatched(card, keyword);
   });
+  if (state.funcPinIncomplete) {
+    filteredEntries = filteredEntries.slice().sort((a, b) => Number(isFuncCardIncomplete(b.card)) - Number(isFuncCardIncomplete(a.card)));
+  }
   $('#page-cards').innerHTML = `
     <div class="grid">
       <section class="panel col-12">
         <div class="panel-head">
           <div>
             <div class="panel-title">功能牌档案</div>
-            <div class="panel-note">用下拉筛选不同类型的牌，稀有度边缘会发出更明显的淡光。</div>
+            <div class="panel-note">支持搜索、分类筛选、自定义分类与未完成牌置顶；同一张牌可同时拥有攻击 / 辅助 / 防御等多种效果。</div>
           </div>
           <div class="row">
+            <button class="btn-green" onclick="openEffectGlossary()"><span class="btn-text">查看功能词条</span></button>
             <button class="btn-strong" onclick="openFuncEditor(-1)"><span class="btn-text">新增功能牌</span></button>
             <button class="btn" onclick="batchAddCards()"><span class="btn-text">批量添加</span></button>
             <button class="btn" onclick="uploadFuncImages()"><span class="btn-text">批量上传图片</span></button>
@@ -2576,15 +2779,21 @@ function renderCards() {
           </div>
         </div>
         <div class="filter-bar">
-          <div class="filter-bar-title">类型筛选</div>
-          <select class="select filter-select" onchange="setFuncFilter(this.value)">
-            <option value="all" ${filter === 'all' ? 'selected' : ''}>全部</option>
-            <option value="attack" ${filter === 'attack' ? 'selected' : ''}>攻击</option>
-            <option value="heal" ${filter === 'heal' ? 'selected' : ''}>辅助</option>
-            <option value="defense" ${filter === 'defense' ? 'selected' : ''}>防御</option>
-            <option value="other" ${filter === 'other' ? 'selected' : ''}>其他</option>
-          </select>
-          <div class="filter-summary">当前显示 ${filteredEntries.length} / ${state.funcCards.length} ｜ 未完成 ${incompleteCount} 张</div>
+          <div class="filter-search">
+            <input class="input" placeholder="搜索牌名、描述、效果、稀有度或分类" value="${esc(keyword)}" oninput="setFuncSearchKeyword(this.value)">
+          </div>
+          <div class="filter-row-main">
+            <div class="filter-chip-group">
+              <button class="filter-chip ${filter === 'all' ? 'active' : ''}" onclick="setFuncFilter('all')">全部</button>
+                            ${categoryOptions.map(item => `<button class="filter-chip ${filter === item.value ? 'active' : ''}" onclick="setFuncFilter('${esc(item.value)}')">${esc(item.label)}</button>`).join('')}
+              <button class="filter-chip filter-chip-add" onclick="createFuncCategoryPrompt()">新增类别</button>
+            </div>
+            <div class="filter-side-info">
+              <div class="filter-summary">当前显示 ${filteredEntries.length} / ${state.funcCards.length}</div>
+              <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
+              <button class="${state.funcPinIncomplete ? 'btn-danger' : 'btn'} ${state.funcPinIncomplete ? 'glow-red' : ''}" onclick="bringIncompleteFuncCardsToFront()"><span class="btn-text">未完成置顶</span></button>
+            </div>
+          </div>
         </div>
         ${filter === 'all' ? `
         <div class="archive-index-group" style="margin-bottom:14px;">
@@ -2615,15 +2824,17 @@ function renderCards() {
 function funcItem(card, i) {
   const has = card.filename && state.images.includes(card.filename);
   const src = has ? `/assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
-  const tags = (card.tags || []).slice(0, 4).map(tag => `<span class="badge">${esc(humanizeTag(tag))}</span>`).join('') || '<span class="helper">未设定效果</span>';
+  const rarity = Number(card.rarity) || 1;
+  const tags = (card.tags || []).slice(0, 4).map(tag => `<div class="archive-scroll-chip soft-badge">${esc(humanizeTag(tag))}</div>`).join('') || '<span class="helper">未设定效果</span>';
   return `
-    <article class="archive-card func-card rarity-${Number(card.rarity) || 1}">
+    <article class="archive-card func-card rarity-${rarity} ${state.funcPinIncomplete && isFuncCardIncomplete(card) ? 'incomplete-pinned' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="功能牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
         <div class="archive-title">${esc(card.card_name || '未命名功能牌')}</div>
         <div class="archive-meta">
-          <span class="badge light">${esc(rarityLabelMap[Number(card.rarity) || 1] || '普通')}</span>
-          <span class="badge">${esc(typeLabelMap[card.type] || '未分类')}</span>
+          <span class="badge rarity-badge rarity-${rarity}">${esc(rarityLabelMap[rarity] || '普通')}</span>
+          <span class="badge">${esc(categoryLabel(card.type))}</span>
+          ${isFuncCardIncomplete(card) ? '<span class="badge title-badge-strong">未完成</span>' : ''}
         </div>
         <div class="archive-tag-row">${tags}</div>
         <div class="archive-desc">${esc(card.description || '当前还没有描述。')}</div>
@@ -2969,10 +3180,14 @@ function openDialog(title, html, mode = '') {
   $('#dialog').classList.add('show');
   $('#dialog .dialog-card').classList.toggle('create-mode', mode === 'create' || mode === 'small');
   $('#dialog .dialog-card').classList.toggle('dialog-small', mode === 'small');
+  $('#dialog .dialog-card').classList.toggle('dialog-editor', mode === 'editor');
+  $('#dialog .dialog-card').classList.toggle('dialog-glossary', mode === 'glossary');
 }
 function closeDialog() {
   $('#dialog').classList.remove('show');
   $('#dialog .dialog-card').classList.remove('create-mode');
+  $('#dialog .dialog-card').classList.remove('dialog-editor');
+  $('#dialog .dialog-card').classList.remove('dialog-glossary');
 }
 
 function copySourceChoices() {
@@ -3228,29 +3443,35 @@ async function saveSignin(show = true) {
 
 function openFateEditor(index) {
   state.editingFateIndex = index;
-  const card = index >= 0 ? JSON.parse(JSON.stringify(state.fateCards[index])) : { text: '', gold: 0, filename: '' };
+  const card = index >= 0 ? JSON.parse(JSON.stringify(state.fateCards[index])) : { name: '', text: '', gold: 0, filename: '' };
   openDialog(index >= 0 ? '编辑命运牌' : '新增命运牌', `
-    <div class="split">
-      <div>
+    <div class="editor-split">
+      <div class="editor-stack">
         <div class="field-grid">
-          <div class="field"><label>文案</label><input class="input" id="fateText" value="${esc(card.text || '')}"></div>
+          <div class="field"><label>名称</label><input class="input" id="fateName" value="${esc(card.name || '')}"></div>
           <div class="field"><label>金币值</label><input class="input" type="number" id="fateGold" value="${esc(card.gold ?? 0)}"></div>
         </div>
-        <div class="field" style="margin-top:12px;"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}"></div>
-        <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFateEditor()"><span class="btn-text">写入命运牌</span></button></div>
+        <div class="field"><label>文案</label><textarea class="textarea" id="fateText">${esc(card.text || '')}</textarea></div>
+        <div class="field"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}"></div>
+        <div class="row"><button class="btn-strong" onclick="saveFateEditor()"><span class="btn-text">写入命运牌</span></button></div>
       </div>
-      <div>
+      <div class="editor-side">
         <div class="panel-title" style="font-size:14px;margin-bottom:10px;">可用图片</div>
         <div class="asset-grid">${state.fateImages.map(file => `<div class="asset-item"><div class="thumb"><img src="/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('fateFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
       </div>
-    </div>`);
+    </div>`, 'editor');
 }
 function pickFile(id, value) {
   const el = document.getElementById(id);
   if (el) el.value = value;
 }
 async function saveFateEditor() {
-  const payload = { text: $('#fateText')?.value?.trim() || '未命名命运牌', gold: Number($('#fateGold')?.value || 0), filename: $('#fateFilename')?.value?.trim() || '' };
+  const payload = {
+    name: $('#fateName')?.value?.trim() || '未命名命运牌',
+    text: $('#fateText')?.value?.trim() || '',
+    gold: Number($('#fateGold')?.value || 0),
+    filename: $('#fateFilename')?.value?.trim() || ''
+  };
   if (state.editingFateIndex >= 0) state.fateCards[state.editingFateIndex] = payload;
   else state.fateCards.push(payload);
   closeDialog();
@@ -3260,6 +3481,7 @@ async function saveFateEditor() {
 async function saveFateCards(show = true) {
   const res = await apiPost('/api/fate_cards', { cards: state.fateCards });
   if (res.ok) {
+    clearFateNamePinState();
     if (show) showToast('命运牌已保存。');
   } else if (show) {
     showToast(res.error || '保存失败。', true);
@@ -3311,31 +3533,44 @@ async function uploadFateImages() {
 
 function normalizeEffectsForCard(card) {
   const tags = card?.tags || [];
-  const parsed = tags.map(tagToEffect).filter(Boolean);
-  return parsed.length ? parsed : [{ key: card?.type === 'defense' ? 'add_shield' : card?.type === 'heal' ? 'cleanse' : 'steal', params: [] }];
+  const parsed = tags.map(tagToEffect).filter(Boolean).map(effect => {
+    if (effect.key === 'raw') return effect;
+    return { ...effect, group: effect.group || getEffectGroupByKey(effect.key, 'attack') };
+  });
+  return parsed.length ? parsed : [{ group: 'attack', key: 'steal', params: [] }];
 }
 
-function renderEffectRows(type) {
+function renderEffectRows() {
   const list = state.editingFuncEffects || [];
   return list.map((effect, idx) => {
     if (effect?.key === 'raw') {
       return `
         <div class="effect-row">
-          <div class="field"><label>效果类别</label><div class="tag-preview">未识别原始标签</div></div>
-          <div class="field"><label>效果摘要</label><div class="tag-preview">${esc(effect.raw || '原始标签')}</div></div>
-          <div class="field"><label>原始标签</label><input class="input" value="${esc(effect.raw || '')}" onchange="setEffectRaw(${idx}, this.value)"></div>
-          <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})"><span class="btn-text">删除效果</span></button></div>
+          <div class="effect-dual-grid">
+            <div class="field"><label>效果类型</label><div class="tag-preview">未识别原始标签</div></div>
+            <div class="field"><label>效果词条</label><div class="tag-preview">${esc(effect.raw || '原始标签')}</div></div>
+          </div>
+          <div class="effect-param-grid">
+            <div class="field"><label>原始标签</label><input class="input" value="${esc(effect.raw || '')}" onchange="setEffectRaw(${idx}, this.value)"></div>
+            <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})"><span class="btn-text">删除效果</span></button></div>
+          </div>
         </div>`;
     }
-    const options = effectCatalog[type] || [];
-    const chosen = options.find(o => o.key === effect.key) || options[0] || { key: '', params: [] };
+    const group = effect.group || 'attack';
+    const options = effectCatalog[group] || [];
+    const chosen = options.find(o => o.key === effect.key) || options[0] || { key: '', params: [], desc: '' };
     const params = chosen.params || [];
     return `
       <div class="effect-row">
-        <div class="field"><label>效果类别</label><select class="select" onchange="setEffectKey(${idx}, this.value)">${options.map(o => `<option value="${esc(o.key)}" ${o.key === effect.key ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></div>
-        <div class="field"><label>效果摘要</label><div class="tag-preview">${esc(effectLabel(effect))}</div></div>
-        <div class="field"><label>参数</label><div class="field-grid ${params.length >= 3 ? 'three' : params.length === 2 ? '' : ''}">${params.map((name, pi) => `<input class="input" placeholder="${esc(name)}" value="${esc(effect.params?.[pi] || '')}" onchange="setEffectParam(${idx}, ${pi}, this.value)">`).join('') || '<div class="helper">此效果无额外参数</div>'}</div></div>
-        <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})"><span class="btn-text">删除效果</span></button></div>
+        <div class="effect-dual-grid">
+          <div class="field"><label>效果类型</label><select class="select" onchange="setEffectGroup(${idx}, this.value)">${Object.entries(effectGroupLabelMap).map(([value, label]) => `<option value="${value}" ${value === group ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
+          <div class="field"><label>具体词条</label><select class="select" onchange="setEffectKey(${idx}, this.value)">${options.map(o => `<option value="${esc(o.key)}" ${o.key === chosen.key ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>效果说明</label><div class="tag-preview">${esc(chosen.desc || effectLabel(effect))}</div></div>
+        <div class="effect-param-grid">
+          <div class="field"><label>参数</label><div class="field-grid ${params.length >= 3 ? 'three' : ''}">${params.map((name, pi) => `<input class="input" placeholder="${esc(name)}" value="${esc(effect.params?.[pi] || '')}" onchange="setEffectParam(${idx}, ${pi}, this.value)">`).join('') || '<div class="helper">此效果无额外参数</div>'}</div></div>
+          <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})"><span class="btn-text">删除效果</span></button></div>
+        </div>
       </div>`;
   }).join('');
 }
@@ -3350,62 +3585,63 @@ function openFuncEditor(index) {
   state.editingFuncIndex = index;
   const card = index >= 0 ? JSON.parse(JSON.stringify(state.funcCards[index])) : { card_name: '', type: 'attack', rarity: 1, filename: '', description: '', tags: [] };
   state.editingFuncEffects = normalizeEffectsForCard(card);
-  const type = card.type || 'attack';
-  openDialog(index >= 0 ? '编辑功能牌' : '新增功能牌', funcEditorHtml(card, type));
+  mergeFuncCustomCategories(card.type ? [card.type] : []);
+  openDialog(index >= 0 ? '编辑功能牌' : '新增功能牌', funcEditorHtml(card), 'editor');
 }
 
-function funcEditorHtml(card, type) {
+function funcEditorHtml(card) {
+  const categories = getFuncCategoryOptions();
   return `
-    <div class="split">
-      <div>
+    <div class="editor-split">
+      <div class="editor-stack">
         <div class="field-grid">
           <div class="field"><label>卡牌名称</label><input class="input" id="funcName" value="${esc(card.card_name || '')}"></div>
           <div class="field"><label>稀有度</label><select class="select" id="funcRarity">${Object.entries(rarityLabelMap).map(([v, t]) => `<option value="${v}" ${Number(card.rarity) === Number(v) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
         </div>
-        <div class="field-grid" style="margin-top:12px;">
-          <div class="field"><label>大类</label><select class="select" id="funcType" onchange="changeFuncType(this.value)">${Object.entries(typeLabelMap).map(([v, t]) => `<option value="${v}" ${type === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+        <div class="field-grid">
+          <div class="field"><label>分类</label><select class="select" id="funcType">${categories.map(item => `<option value="${esc(item.value)}" ${String(card.type || 'attack') === String(item.value) ? 'selected' : ''}>${esc(item.label)}</option>`).join('')}</select></div>
           <div class="field"><label>图片文件名</label><input class="input" id="funcFilename" value="${esc(card.filename || '')}"></div>
         </div>
-        <div class="field" style="margin-top:12px;"><label>描述</label><textarea class="textarea" id="funcDesc">${esc(card.description || '')}</textarea></div>
-        <div class="panel-head" style="margin-top:14px;"><div><div class="panel-title">效果引导</div><div class="panel-note">先选大类，再选效果，再填参数。会自动转成标签，但展示给你的都是中文。</div></div><button class="btn" onclick="addEffectRow()"><span class="btn-text">新增效果</span></button></div>
-        <div class="effect-builder" id="effectBuilder">${renderEffectRows(type)}</div>
-        <div class="field" style="margin-top:12px;"><label>标签预览</label><div class="tag-preview" id="effectPreview">${effectPreviewHtml()}</div></div>
-        <div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="saveFuncEditor()"><span class="btn-text">写入功能牌</span></button></div>
+        <div class="field">
+          <label>已有分类参考</label>
+          <div class="category-suggest-row">${categories.map(item => `<span class="category-chip">${esc(item.label)}</span>`).join('') || '<span class="helper">暂无分类</span>'}</div>
+        </div>
+        <div class="field"><label>描述</label><textarea class="textarea" id="funcDesc">${esc(card.description || '')}</textarea></div>
+        <div class="panel-head" style="margin-top:2px;"><div><div class="panel-title">效果引导</div><div class="panel-note">上面“分类”只负责归档展示。下面每条效果都可以独立选择攻击 / 辅助 / 防御，所以同一张牌可以同时拥有多种效果。</div></div><button class="btn" onclick="addEffectRow()"><span class="btn-text">新增效果</span></button></div>
+        <div class="effect-builder" id="effectBuilder">${renderEffectRows()}</div>
+        <div class="field"><label>标签预览</label><div class="tag-preview" id="effectPreview">${effectPreviewHtml()}</div></div>
+        <div class="row"><button class="btn-strong" onclick="saveFuncEditor()"><span class="btn-text">写入功能牌</span></button></div>
       </div>
-      <div>
+      <div class="editor-side">
         <div class="panel-title" style="font-size:14px;margin-bottom:10px;">图像库</div>
         <div class="asset-grid">${state.images.map(file => `<div class="asset-item"><div class="thumb"><img src="/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('funcFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
       </div>
     </div>`;
 }
 
-function changeFuncType(type) {
-  const options = effectCatalog[type] || [];
-  state.editingFuncEffects = [{ key: options[0]?.key || '', params: [] }];
-  const name = $('#funcName')?.value || '';
-  const rarity = $('#funcRarity')?.value || 1;
-  const filename = $('#funcFilename')?.value || '';
-  const description = $('#funcDesc')?.value || '';
-  $('#dialogBody').innerHTML = funcEditorHtml({ card_name: name, rarity: Number(rarity), filename, description }, type);
+function setEffectGroup(idx, group) {
+  const options = effectCatalog[group] || [];
+  state.editingFuncEffects[idx] = { group, key: options[0]?.key || '', params: [] };
+  $('#effectBuilder').innerHTML = renderEffectRows();
+  $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function addEffectRow() {
-  const type = $('#funcType')?.value || 'attack';
-  const key = effectCatalog[type]?.[0]?.key || '';
-  state.editingFuncEffects.push({ key, params: [] });
-  $('#effectBuilder').innerHTML = renderEffectRows(type);
+  const group = 'attack';
+  const key = effectCatalog[group]?.[0]?.key || '';
+  state.editingFuncEffects.push({ group, key, params: [] });
+  $('#effectBuilder').innerHTML = renderEffectRows();
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function removeEffectRow(idx) {
   state.editingFuncEffects.splice(idx, 1);
-  const type = $('#funcType')?.value || 'attack';
-  if (!state.editingFuncEffects.length) state.editingFuncEffects.push({ key: effectCatalog[type][0].key, params: [] });
-  $('#effectBuilder').innerHTML = renderEffectRows(type);
+  if (!state.editingFuncEffects.length) state.editingFuncEffects.push({ group: 'attack', key: effectCatalog.attack[0].key, params: [] });
+  $('#effectBuilder').innerHTML = renderEffectRows();
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function setEffectKey(idx, key) {
-  state.editingFuncEffects[idx] = { key, params: [] };
-  const type = $('#funcType')?.value || 'attack';
-  $('#effectBuilder').innerHTML = renderEffectRows(type);
+  const group = state.editingFuncEffects[idx]?.group || getEffectGroupByKey(key, 'attack');
+  state.editingFuncEffects[idx] = { group, key, params: [] };
+  $('#effectBuilder').innerHTML = renderEffectRows();
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function setEffectParam(idx, pidx, val) {
@@ -3421,12 +3657,13 @@ async function saveFuncEditor() {
 
   const payload = {
     card_name: $('#funcName')?.value?.trim() || '未命名功能牌',
-    type: $('#funcType')?.value || 'attack',
+    type: $('#funcType')?.value?.trim() || 'attack',
     rarity: Number($('#funcRarity')?.value || 1),
     filename: $('#funcFilename')?.value?.trim() || '',
     description: $('#funcDesc')?.value?.trim() || '',
     tags: state.editingFuncEffects.map(effectToTag).filter(Boolean)
   };
+  mergeFuncCustomCategories([payload.type]);
   if (state.editingFuncIndex >= 0) state.funcCards[state.editingFuncIndex] = payload;
   else state.funcCards.push(payload);
   closeDialog();
@@ -3439,7 +3676,11 @@ async function saveFuncEditor() {
 async function saveFuncCards(show = true) {
   const res = await apiPost('/api/func_cards', { cards: state.funcCards });
   if (res.ok) {
-    if (show) showToast('功能牌已保存。');
+    clearFuncIncompletePinState();
+    if (show) {
+      renderCards();
+      showToast('功能牌已保存。');
+    }
   } else if (show) {
     showToast(res.error || '保存失败。', true);
   }
@@ -3455,7 +3696,7 @@ async function deleteFuncCard(i) {
   showToast('功能牌已删除。');
 }
 async function batchAddCards() {
-  const raw = prompt('每行格式：卡牌名,大类(attack/heal/defense),稀有度');
+  const raw = prompt('每行格式：卡牌名,分类,稀有度');
   if (!raw) return;
   raw.split(/\r?\n/).map(v => v.trim()).filter(Boolean).forEach(line => {
     const [name, type, rarity] = line.split(',').map(s => s?.trim() || '');
@@ -3496,11 +3737,13 @@ async function saveAllData() {
       saveTitles(false),
     ]);
 
-    const failed = results.find(res => !res?.ok);
+        const failed = results.find(res => !res?.ok);
     if (failed) {
       showToast(failed.error || '部分内容保存失败。', true);
       return;
     }
+    clearFuncIncompletePinState();
+    renderCards();
     showToast('当前方案已全部保存。');
   } catch (e) {
     console.error(e);
@@ -3552,10 +3795,9 @@ Object.assign(window, {
   saveFateEditor,
   saveFateCards,
   deleteFateCard,
-  uploadFateImages,
+    uploadFateImages,
   pickFile,
   openFuncEditor,
-  changeFuncType,
   addEffectRow,
   removeEffectRow,
   setEffectKey,
@@ -3597,12 +3839,17 @@ Object.assign(window, {
   openBatchEventDialog,
   confirmBatchEventAdd,
   setEventText,
-  openFateEditorFromImage,
+    openFateEditorFromImage,
   openFuncEditorFromImage,
-  duplicateFateCard,
+    duplicateFateCard,
   duplicateFuncCard,
-  detectIncompleteFateCards,
-  setFuncFilter,
+    setFuncFilter,
+  setFuncSearchKeyword,
+  setFateSearchKeyword,
+  bringIncompleteFuncCardsToFront,
+  openEffectGlossary,
+  createFuncCategoryPrompt,
+  setEffectGroup,
   editProfile,
   saveProfileEdit,
   deleteProfileConfirm,

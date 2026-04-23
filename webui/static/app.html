@@ -2272,9 +2272,8 @@ function fateItem(card, i) {
       <div class="archive-cover">${has ? `<img src="${src}" alt="命运牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
         <div class="archive-title">${esc(card.name || '未命名命运牌')}</div>
-        <div class="archive-meta">
+                <div class="archive-meta">
           <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
-          <span class="badge">${esc(card.filename || '未绑定图片')}</span>
           ${incomplete ? '<span class="badge">未完成</span>' : ''}
         </div>
         <div class="archive-desc">${esc(card.text || '当前还没有文案。')}</div>

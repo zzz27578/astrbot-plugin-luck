@@ -1284,6 +1284,7 @@ async def api_get_user_stats(request):
             group_cards = 0
             group_sign_ins = 0
             group_active_users = 0
+            group_user_count = 0
             
             for uid, info in data.items():
                 gold = _safe_int(info.get("total_gold", info.get("gold", 0)), 0)
@@ -1311,6 +1312,7 @@ async def api_get_user_stats(request):
                 if is_active_user:
                     stats["active_users"] += 1
                     group_active_users += 1
+                    group_user_count += 1
 
                 for card in inventory:
                     if isinstance(card, dict):
@@ -1331,23 +1333,24 @@ async def api_get_user_stats(request):
                         if tname:
                             stats["title_holders"][tname] = stats["title_holders"].get(tname, 0) + 1
 
-                stats["wealth_leaderboard"].append({
-                    "uid": str(uid),
-                    "name": display_name,
-                    "gold": gold,
-                    "cards": cards_count,
-                    "sign_ins": sign_ins,
-                })
+                if is_active_user:
+                    stats["wealth_leaderboard"].append({
+                        "uid": str(uid),
+                        "name": display_name,
+                        "gold": gold,
+                        "cards": cards_count,
+                        "sign_ins": sign_ins,
+                    })
                 
             stats["groups"].append({
                 "group_id": group_dir.name, 
-                "user_count": len(data),
+                "user_count": group_user_count,
                 "group_gold": group_gold,
                 "group_cards": group_cards,
                 "group_sign_ins": group_sign_ins,
                 "active_users": group_active_users,
             })
-            stats["total_users"] += len(data)
+            stats["total_users"] += group_user_count
             
         # 财富排行榜排序并截取 Top 50
         stats["wealth_leaderboard"].sort(key=lambda x: (x["gold"], x["cards"], x["sign_ins"]), reverse=True)

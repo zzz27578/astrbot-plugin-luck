@@ -570,11 +570,12 @@ class CardEngine:
                         })
                     else:
                         dmg = random.randint(min_val, max_val)
-                        t_data["total_gold"] -= dmg
+                        actual_dmg = min(dmg, max(0, t_data.get("total_gold", 0)))
+                        t_data["total_gold"] -= actual_dmg
                         bounty_bonus = self._apply_bounty_bonus(source_data, t_data)
 
-                        reflected = self._apply_thorn_reflect(source_data, t_data, dmg)
-                        shown_dmg = max(0, dmg - reflected) + bounty_bonus
+                        reflected = self._apply_thorn_reflect(source_data, t_data, actual_dmg)
+                        shown_dmg = max(0, actual_dmg - reflected) + bounty_bonus
                         hit_logs.append(f"{t_name}(-{shown_dmg})")
 
                         self.last_aoe_events.append({

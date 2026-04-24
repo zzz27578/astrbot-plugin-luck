@@ -487,7 +487,7 @@ def _sync_expired_defense_cards(user_data: dict, config: dict | None = None) -> 
     if not inventory:
         return False
 
-        cards_config = load_func_cards_config(config)
+    cards_config = load_func_cards_config(config)
     status_names = {str(st.get("name", "")) for st in user_data.get("statuses", [])}
     changed = False
 
@@ -498,7 +498,7 @@ def _sync_expired_defense_cards(user_data: dict, config: dict | None = None) -> 
 
 
         card_name = card.get("card_name", "")
-        card_cfg = next((c for c in cards_config if c.get("card_name") == card_name), None)
+        card_cfg = _find_card_config_by_name(cards_config, card_name)
 
         if not card_cfg or card_cfg.get("type") != "defense":
             continue

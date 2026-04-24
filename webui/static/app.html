@@ -1289,7 +1289,7 @@ const state = {
     funcPinIncomplete: false,
   funcCustomCategories: [],
   fateSearchKeyword: '',
-  fatePinMissingName: false,
+  fatePinIncomplete: false,
   lazyProgress: { active: false, label: '', percent: 0, timer: null },
   pendingDelete: { kind: '', index: -1 },
 };
@@ -1974,13 +1974,6 @@ function isFateCardIncomplete(card) {
 function ensureFateDraftCards() {
   state.draftFateCards ||= [];
 }
-function bringNamelessFateCardsToFront() {
-  const count = state.fateCards.filter(isFateCardMissingName).length;
-  if (!count) return showToast('当前没有缺名称的命运牌。');
-  state.fatePinMissingName = true;
-  renderFate();
-  showToast(`已将 ${count} 张缺名称命运牌置顶显示。`);
-}
 function isFuncCardIncomplete(card) {
   return !(card.card_name || '').trim() || !card.filename || !imageExists('func', card.filename) || !(card.description || '').trim() || !(card.tags || []).length;
 }
@@ -2005,8 +1998,8 @@ function setFateSearchKeyword(value) {
   state.fateSearchKeyword = value || '';
   renderFate();
 }
-function clearFateNamePinState() {
-  state.fatePinMissingName = false;
+function clearFateIncompletePinState() {
+  state.fatePinIncomplete = false;
 }
 function setFuncSearchKeyword(value) {
   state.funcSearchKeyword = value || '';
@@ -2015,12 +2008,25 @@ function setFuncSearchKeyword(value) {
 function clearFuncIncompletePinState() {
   state.funcPinIncomplete = false;
 }
+function bringIncompleteFateCardsToFront() {
+  const count = state.fateCards.filter(isFateCardIncomplete).length;
+  if (!count) return showToast('当前没有未完成的命运牌。');
+  state.fatePinIncomplete = true;
+  renderFate();
+  showToast(`已将 ${count} 张未完成命运牌置顶显示。`);
+}
 function bringIncompleteFuncCardsToFront() {
   const count = state.funcCards.filter(isFuncCardIncomplete).length;
   if (!count) return showToast('当前没有未完成的功能牌。');
   state.funcPinIncomplete = true;
   renderCards();
   showToast(`已将 ${count} 张未完成功能牌置顶显示。`);
+}
+function bringNamelessFateCardsToFront() {
+  return bringIncompleteFateCardsToFront();
+}
+function clearFateNamePinState() {
+  clearFateIncompletePinState();
 }
 function setFuncFilter(value) {
   state.funcFilter = value || 'all';
@@ -2341,11 +2347,11 @@ function eventItem(kind, item, i) {
 function renderFate() {
   ensureFateDraftCards();
   const keyword = state.fateSearchKeyword || '';
-  const namelessCount = state.fateCards.filter(isFateCardMissingName).length;
+  const incompleteCount = state.fateCards.filter(isFateCardIncomplete).length;
   const unusedImages = getUnusedImageFiles('fate');
   let visibleCards = state.fateCards.map((card, i) => ({ card, i })).filter(({ card }) => isFateCardMatched(card, keyword));
-  if (state.fatePinMissingName) {
-    visibleCards = visibleCards.slice().sort((a, b) => Number(isFateCardMissingName(b.card)) - Number(isFateCardMissingName(a.card)));
+  if (state.fatePinIncomplete) {
+    visibleCards = visibleCards.slice().sort((a, b) => Number(isFateCardIncomplete(b.card)) - Number(isFateCardIncomplete(a.card)));
   }
   $('#page-fate').innerHTML = `
     <div class="grid">
@@ -2353,13 +2359,13 @@ function renderFate() {
         <div class="panel-head">
                     <div>
                       <div class="panel-title">命运牌档案</div>
-                      <div class="panel-note">上传图片后可用顶部红按钮把缺名称的命运牌直接置顶。利用懒狗模式可批量快速生成随机牌。</div>
+                      <div class="panel-note">支持搜索、未完成置顶、待建档图片管理与懒狗模式批量生成，编辑体验与功能牌页保持一致。</div>
                     </div>
                     <div class="row">
                       <button class="btn-green" onclick="openLazyBatchDialog('fate')"><span class="btn-text">懒狗模式</span></button>
                       <button class="btn-strong" onclick="openFateEditor(-1)"><span class="btn-text">新增命运牌</span></button>
                       <button class="btn" onclick="uploadFateImages()"><span class="btn-text">批量上传图片</span></button>
-                      <button class="btn-danger ${state.fatePinMissingName ? 'glow-red' : ''}" onclick="bringNamelessFateCardsToFront()"><span class="btn-text">缺名称置顶</span></button>
+                      <button class="${state.fatePinIncomplete ? 'btn-danger' : 'btn'} ${state.fatePinIncomplete ? 'glow-red' : ''}" onclick="bringIncompleteFateCardsToFront()"><span class="btn-text">未完成置顶</span></button>
                       <button class="btn" onclick="saveFateCards()"><span class="btn-text">保存全部</span></button>
                     </div>
         </div>
@@ -2371,7 +2377,7 @@ function renderFate() {
                               <div class="filter-side-info">
                                 <button class="btn-green" onclick="openAutoBindDialog('fate')"><span class="btn-text">自动绑定空置图片</span></button>
                                 <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
-                                <div class="filter-summary">缺名称牌数 ${namelessCount}</div>
+                                <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
                     </div>
                   </div>
                 </div>
@@ -2440,7 +2446,7 @@ function fateItem(card, i) {
   const incomplete = isFateCardIncomplete(card);
   const deleting = isDeletePending('fate', i);
   return `
-    <article class="archive-card${incomplete ? ' incomplete' : ''}">
+    <article class="archive-card ${state.fatePinIncomplete && incomplete ? 'incomplete-pinned' : ''}${incomplete ? ' incomplete' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="命运牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
         <div class="archive-title">${esc(card.name || '未命名命运牌')}</div>
@@ -3692,7 +3698,7 @@ async function saveFateEditor() {
 async function saveFateCards(show = true) {
   const res = await apiPost('/api/fate_cards', { cards: state.fateCards });
   if (res.ok) {
-    clearFateNamePinState();
+    clearFateIncompletePinState();
     if (show) showToast('命运牌已保存。');
   } else if (show) {
     showToast(res.error || '保存失败。', true);
@@ -4289,6 +4295,7 @@ Object.assign(window, {
     setFuncFilter,
   setFuncSearchKeyword,
   setFateSearchKeyword,
+  bringIncompleteFateCardsToFront,
   bringIncompleteFuncCardsToFront,
   openEffectGlossary,
   createFuncCategoryPrompt,

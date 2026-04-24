@@ -121,6 +121,15 @@ _LAZY_QUOTE_FALLBACKS = [
     "云层之后的光，正在替你蓄力。",
     "下一次抉择，也许就是转运的入口。",
 ]
+_LAZY_QUOTE_OPENERS = ["今夜", "此刻", "转角处", "云层之后", "命运的轨道上", "风停之前", "黎明抵达前"]
+_LAZY_QUOTE_SUBJECTS = ["答案", "好运", "回响", "转机", "伏笔", "光", "信号", "机会"]
+_LAZY_QUOTE_VERBS = ["正在靠近", "已经启程", "会悄悄出现", "正等你伸手", "藏在下一步里", "比想象更早抵达"]
+_LAZY_QUOTE_ENDINGS = ["别急。", "抬头就能看见。", "你会接住它。", "这次别错过。", "只差一步。", "很快就轮到你。"]
+_BUILTIN_FALLBACK_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xcf\xc0"
+    b"\x00\x00\x03\x01\x01\x00\x18\xdd\x8d\xb1\x00\x00\x00\x00IEND\xaeB`\x82"
+)
 
 
 def _atomic_write(path: Path, data):
@@ -168,6 +177,41 @@ def _list_image_files(directory: Path) -> list[str]:
 
 def _is_api_generated_image(filename: str) -> bool:
     return str(filename or "").strip().lower().startswith(_API_IMAGE_PREFIXES)
+
+
+def _build_procedural_lazy_quote(used_texts: set[str]) -> str:
+    for _ in range(24):
+        text = f"{random.choice(_LAZY_QUOTE_OPENERS)}，{random.choice(_LAZY_QUOTE_SUBJECTS)} {random.choice(_LAZY_QUOTE_VERBS)}，{random.choice(_LAZY_QUOTE_ENDINGS)}"
+        if text not in used_texts:
+            used_texts.add(text)
+            return text
+    text = f"命运回响第 {len(used_texts) + 1} 章已经翻开。"
+    used_texts.add(text)
+    return text
+
+
+def _choose_any_image(target_dir: Path, used_images: set[str], allow_repeat: bool = True) -> str:
+    if not target_dir.exists():
+        return ""
+    files = [f.name for f in target_dir.iterdir() if f.is_file() and f.suffix.lower() in _LAZY_ALLOWED_IMAGE_EXTS]
+    if not files:
+        return ""
+    if allow_repeat:
+        return random.choice(files)
+    available = [f for f in files if f not in used_images]
+    return random.choice(available) if available else ""
+
+
+def _create_builtin_fallback_image(target_dir: Path, prefix: str) -> str:
+    target_dir.mkdir(parents=True, exist_ok=True)
+    logo_path = ROOT_DIR / "logo.png"
+    filename = f"{prefix}_{uuid.uuid4().hex[:12]}.png"
+    dest = target_dir / filename
+    if logo_path.exists():
+        shutil.copy2(logo_path, dest)
+        return filename
+    dest.write_bytes(_BUILTIN_FALLBACK_PNG)
+    return filename
 
 
 def _load_json_template(path: Path, default):
@@ -567,6 +611,9 @@ async def _fetch_lazy_quote(session: ClientSession) -> dict:
         ("hitokoto", "https://v1.hitokoto.cn"),
         ("hitokoto_alt", "https://international.v1.hitokoto.cn"),
         ("suyanw", "https://api.suyanw.cn/api/meiju"),
+        ("xxapi_hitokoto", "https://v2.xxapi.cn/api/yiyan?type=hitokoto"),
+        ("mir6_yulu", "https://api.mir6.com/api/yulu?txt=4&type=json"),
+        ("jinrishici", "https://v1.jinrishici.com/all.json"),
     ]
     errors = []
     for source, url in random.sample(sources, len(sources)):
@@ -661,14 +708,12 @@ def _choose_local_image_with_repeat(target_dir: Path, used_images: set[str], all
 
 
 def _fallback_lazy_quote(used_texts: set[str]) -> str:
-    available = [text for text in _LAZY_QUOTE_FALLBACKS if text not in used_texts]
-    if available:
-        text = random.choice(available)
+    pool = [text for text in _LAZY_QUOTE_FALLBACKS if text not in used_texts]
+    if pool and random.random() < 0.35:
+        text = random.choice(pool)
         used_texts.add(text)
         return text
-    text = f"命运的幕布再次拉开·第 {len(used_texts) + 1} 幕"
-    used_texts.add(text)
-    return text
+    return _build_procedural_lazy_quote(used_texts)
 
 
 async def _fetch_unique_lazy_quote(session: ClientSession, used_texts: set[str]) -> str:
@@ -733,15 +778,24 @@ async def _select_lazy_image(
         filename = _choose_local_image_with_repeat(local_dir, used_images, allow_repeat=allow_repeat)
         if filename:
             used_images.add(filename)
-        return filename
+            return filename
+        filename = _choose_any_image(local_dir, used_images, allow_repeat=True)
+        if filename:
+            used_images.add(filename)
+            return filename
+        return _create_builtin_fallback_image(local_dir, prefix)
     if image_mode == "remote":
         try:
-            return await _fetch_unique_lazy_image(session, remote_dir, prefix, used_remote_urls)
-        except Exception:
-            filename = _choose_local_image_with_repeat(local_dir, used_images, allow_repeat=True)
+            filename = await _fetch_unique_lazy_image(session, remote_dir, prefix, used_remote_urls)
             if filename:
-                used_images.add(filename)
+                return filename
+        except Exception:
+            pass
+        filename = _choose_any_image(local_dir, used_images, allow_repeat=True)
+        if filename:
+            used_images.add(filename)
             return filename
+        return _create_builtin_fallback_image(local_dir, prefix)
     return ""
 
 

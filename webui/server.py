@@ -260,7 +260,17 @@ def _ensure_profile_seed_data(profile_id: str):
 
 def _ensure_private_dirs():
     """确保官方隔离数据目录存在，避免 WebUI 因目录缺失读取异常。"""
-    for directory in (BASE_PATHS["plugin_data_dir"], BASE_PATHS["profiles_dir"], GROUP_DATA_DIR, FATE_ASSETS_DIR, ASSETS_DIR):
+    lazy_fate_dir = BASE_PATHS["plugin_data_dir"] / "lazy_images" / "fate"
+    lazy_func_dir = BASE_PATHS["plugin_data_dir"] / "lazy_images" / "func"
+    for directory in (
+        BASE_PATHS["plugin_data_dir"],
+        BASE_PATHS["profiles_dir"],
+        GROUP_DATA_DIR,
+        FATE_ASSETS_DIR,
+        ASSETS_DIR,
+        lazy_fate_dir,
+        lazy_func_dir,
+    ):
         directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -1490,7 +1500,11 @@ def run_server_process(port: int):
         # 永久阻塞，保持进程存活
         await asyncio.Event().wait()
 
-    asyncio.run(_serve())
+    try:
+        asyncio.run(_serve())
+    except Exception as exc:
+        print(f"[WebUI] WebUI startup failed: {exc}")
+        raise
 
 
 async def start_webui(host: str = "0.0.0.0", port: int = 4399):

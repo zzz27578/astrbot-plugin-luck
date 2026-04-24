@@ -1264,11 +1264,15 @@ const state = {
   signInTexts: { good_things: [], bad_things: [], luck_ranges: [], enable_quote: true, enable_draw_prob: true, use_custom_quote: false, custom_quotes: [] },
   fateCards: [],
   fateImages: [],
+  fateLocalImages: [],
+  fateLazyImages: [],
     funcCards: [],
   titles: [],
   titleCatalog: defaultTitleCatalog,
 
   images: [],
+  funcLocalImages: [],
+  funcLazyImages: [],
   stats: { total_groups: 0, total_users: 0, active_users: 0, total_gold: 0, total_cards_issued: 0, total_sign_ins: 0, rarity_distribution: {}, wealth_leaderboard: [], groups: [], card_holders: {}, title_holders: {} },
   statsViewProfile: 'default',
   goodSelected: [],
@@ -1286,11 +1290,107 @@ const state = {
   funcCustomCategories: [],
   fateSearchKeyword: '',
   fatePinMissingName: false,
+  lazyProgress: { active: false, label: '', percent: 0, timer: null },
 };
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+const uniqueStrings = (list) => Array.from(new Set((list || []).filter(Boolean)));
+
+function getImagePools(kind) {
+  return kind === 'fate'
+    ? { local: state.fateLocalImages || [], lazy: state.fateLazyImages || [], all: state.fateImages || [] }
+    : { local: state.funcLocalImages || [], lazy: state.funcLazyImages || [], all: state.images || [] };
+}
+
+function imageExists(kind, filename) {
+  if (!filename) return false;
+  return getImagePools(kind).all.includes(filename);
+}
+
+function getCardImageUrl(kind, filename) {
+  if (!filename) return '';
+  const safe = encodeURIComponent(filename);
+  const profile = encodeURIComponent(state.currentProfile);
+  const pools = getImagePools(kind);
+  if (pools.local.includes(filename)) {
+    return kind === 'fate' ? `/fate_assets/${safe}?profile=${profile}` : `/assets/${safe}?profile=${profile}`;
+  }
+  if (pools.lazy.includes(filename)) {
+    return kind === 'fate' ? `/lazy_assets/fate/${safe}` : `/lazy_assets/func/${safe}`;
+  }
+  return kind === 'fate' ? `/fate_assets/${safe}?profile=${profile}` : `/assets/${safe}?profile=${profile}`;
+}
+
+function getUnusedImageFiles(kind) {
+  const cards = kind === 'fate' ? state.fateCards : state.funcCards;
+  const used = new Set(cards.map(card => card.filename).filter(Boolean));
+  return getImagePools(kind).all.filter(file => !used.has(file));
+}
+
+function ensureLazyProgressHud() {
+  if ($('#lazyProgressHud')) return;
+  const hud = document.createElement('div');
+  hud.id = 'lazyProgressHud';
+  hud.style.cssText = 'position:fixed;right:22px;bottom:22px;width:320px;padding:14px 14px 12px;border:1px solid rgba(26,158,94,.35);background:rgba(8,10,9,.94);box-shadow:0 18px 40px rgba(0,0,0,.35);backdrop-filter:blur(8px);z-index:9999;border-radius:10px;color:#e6ede9;display:none;';
+  hud.innerHTML = `
+    <div id="lazyProgressLabel" style="font-family:var(--font-headline);font-size:12px;letter-spacing:1px;font-weight:800;color:#9fdab6;">懒狗模式生成中</div>
+    <div style="margin-top:8px;height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;">
+      <div id="lazyProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1a9e5e,#9ee37d);transition:width .25s ease;"></div>
+    </div>
+    <div id="lazyProgressText" style="margin-top:8px;font-size:12px;color:#b8c5be;">0%</div>`;
+  document.body.appendChild(hud);
+}
+
+function stopLazyProgress() {
+  if (state.lazyProgress.timer) {
+    clearInterval(state.lazyProgress.timer);
+    state.lazyProgress.timer = null;
+  }
+}
+
+function setLazyProgress(percent, label) {
+  ensureLazyProgressHud();
+  const hud = $('#lazyProgressHud');
+  const bar = $('#lazyProgressBar');
+  const text = $('#lazyProgressText');
+  const title = $('#lazyProgressLabel');
+  if (!hud || !bar || !text || !title) return;
+  hud.style.display = 'block';
+  title.textContent = label || '懒狗模式生成中';
+  const value = Math.max(0, Math.min(100, Number(percent || 0)));
+  bar.style.width = `${value}%`;
+  text.textContent = value >= 100 ? '100% 已完成' : `${Math.floor(value)}%`;
+}
+
+function startLazyProgress(kind, count, imageMode) {
+  stopLazyProgress();
+  state.lazyProgress.active = true;
+  state.lazyProgress.percent = 1;
+  const slowFactor = imageMode === 'remote' ? 11 : imageMode === 'local' ? 6 : 3;
+  const step = Math.max(0.4, 96 / Math.max(12, count * slowFactor));
+  setLazyProgress(1, kind === 'fate' ? '命运牌正在生成...' : '功能牌正在生成...');
+  state.lazyProgress.timer = setInterval(() => {
+    state.lazyProgress.percent = Math.min(99, state.lazyProgress.percent + step);
+    setLazyProgress(state.lazyProgress.percent, kind === 'fate' ? '命运牌正在生成...' : '功能牌正在生成...');
+  }, 260);
+}
+
+function finishLazyProgress(success = true) {
+  stopLazyProgress();
+  if (!$('#lazyProgressHud')) return;
+  if (success) {
+    setLazyProgress(100, '生成完成');
+    setTimeout(() => {
+      const hud = $('#lazyProgressHud');
+      if (hud) hud.style.display = 'none';
+    }, 700);
+    return;
+  }
+  const hud = $('#lazyProgressHud');
+  if (hud) hud.style.display = 'none';
+}
 
 const pageMeta = {
   overview: ['总览与方案', '把方案与核心信息放在同一屏内，随时掌握系统活跃状态。'],
@@ -1607,12 +1707,20 @@ async function loadSignin() {
 async function loadFate() {
   const [a, b] = await Promise.all([apiGet('/api/fate_cards'), apiGet('/api/fate_images')]);
   if (a.ok) state.fateCards = a.cards || [];
-  if (b.ok) state.fateImages = b.images || [];
+  if (b.ok) {
+    state.fateLocalImages = b.images || [];
+    state.fateLazyImages = b.lazy_images || [];
+    state.fateImages = uniqueStrings([...(b.images || []), ...(b.lazy_images || [])]);
+  }
 }
 async function loadCards() {
   const [a, b] = await Promise.all([apiGet('/api/func_cards'), apiGet('/api/images')]);
   if (a.ok) state.funcCards = a.cards || [];
-  if (b.ok) state.images = b.files || [];
+  if (b.ok) {
+    state.funcLocalImages = b.files || [];
+    state.funcLazyImages = b.lazy_files || [];
+    state.images = uniqueStrings([...(b.files || []), ...(b.lazy_files || [])]);
+  }
   mergeFuncCustomCategories(state.funcCards.map(card => card.type));
   clearFuncIncompletePinState();
 }
@@ -1850,13 +1958,10 @@ function isFateCardMissingName(card) {
   return !(card?.name || '').trim();
 }
 function isFateCardIncomplete(card) {
-  return isFateCardMissingName(card) || !(card.text || '').trim() || !card.filename || !state.fateImages.includes(card.filename);
+  return isFateCardMissingName(card) || !(card.text || '').trim() || !card.filename || !imageExists('fate', card.filename);
 }
 function ensureFateDraftCards() {
-  const boundFiles = new Set(state.fateCards.map(card => card.filename).filter(Boolean));
-  state.fateImages.filter(file => !boundFiles.has(file)).forEach(file => {
-    state.fateCards.push({ name: '', text: '', gold: 0, filename: file });
-  });
+  state.draftFateCards ||= [];
 }
 function bringNamelessFateCardsToFront() {
   const count = state.fateCards.filter(isFateCardMissingName).length;
@@ -1866,7 +1971,7 @@ function bringNamelessFateCardsToFront() {
   showToast(`已将 ${count} 张缺名称命运牌置顶显示。`);
 }
 function isFuncCardIncomplete(card) {
-  return !(card.card_name || '').trim() || !card.filename || !state.images.includes(card.filename) || !(card.description || '').trim() || !(card.tags || []).length;
+  return !(card.card_name || '').trim() || !card.filename || !imageExists('func', card.filename) || !(card.description || '').trim() || !(card.tags || []).length;
 }
 function isFuncCardMatched(card, keyword) {
   const kw = String(keyword || '').trim().toLowerCase();
@@ -2226,6 +2331,7 @@ function renderFate() {
   ensureFateDraftCards();
   const keyword = state.fateSearchKeyword || '';
   const namelessCount = state.fateCards.filter(isFateCardMissingName).length;
+  const unusedImages = getUnusedImageFiles('fate');
   let visibleCards = state.fateCards.map((card, i) => ({ card, i })).filter(({ card }) => isFateCardMatched(card, keyword));
   if (state.fatePinMissingName) {
     visibleCards = visibleCards.slice().sort((a, b) => Number(isFateCardMissingName(b.card)) - Number(isFateCardMissingName(a.card)));
@@ -2271,6 +2377,24 @@ function renderFate() {
                     ${state.draftFateCards.map((card, i) => fateDraftItem(card, i)).join('')}
                   </div>
                 </div>` : ''}
+                ${unusedImages.length ? `
+                <div class="archive-index-group" style="margin-bottom:14px;">
+                  <div class="archive-index-title">待建档图片</div>
+                  <div class="pending-grid">
+                    ${unusedImages.map(file => `
+                      <article class="archive-card">
+                        <div class="archive-cover"><img src="${getCardImageUrl('fate', file)}" alt="${esc(file)}"></div>
+                        <div class="archive-body">
+                          <div class="pending-caption">这张图片当前没有被任何命运牌使用。</div>
+                          <div class="archive-actions">
+                            <button class="btn-green" onclick="openFateEditorFromImage('${esc(file)}')"><span class="btn-text">编辑</span></button>
+                            <button class="btn" onclick="openFateEditorFromImage('${esc(file)}')"><span class="btn-text">建牌</span></button>
+                            <button class="btn-danger" onclick="deleteFateImage('${esc(file)}')"><span class="btn-text">删除</span></button>
+                          </div>
+                        </div>
+                      </article>`).join('')}
+                  </div>
+                </div>` : ''}
                 <div class="archive-grid">
           ${visibleCards.map(({ card, i }) => fateItem(card, i)).join('') || '<div class="empty">暂无命运牌</div>'}
         </div>
@@ -2280,10 +2404,10 @@ function renderFate() {
 
 function fateDraftItem(card, i) {
   const has = !!card.filename;
-  const src = has ? `/lazy_assets/fate/${encodeURIComponent(card.filename)}` : '';
+  const src = has ? getCardImageUrl('fate', card.filename) : '';
   return `
     <article class="archive-card">
-      <div class="archive-cover">${has ? `<img src="${src}" onerror="this.src='/fate_assets/${encodeURIComponent(card.filename)}'">` : '未绑定图片'}</div>
+      <div class="archive-cover">${has ? `<img src="${src}">` : '未绑定图片'}</div>
       <div class="archive-body">
         <div class="archive-title">${esc(card.name || '未命名命运牌')}</div>
         <div class="archive-meta">
@@ -2300,8 +2424,8 @@ function fateDraftItem(card, i) {
 }
 
 function fateItem(card, i) {
-  const has = card.filename && state.fateImages.includes(card.filename);
-  const src = has ? `/fate_assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
+  const has = card.filename && imageExists('fate', card.filename);
+  const src = has ? getCardImageUrl('fate', card.filename) : '';
   const incomplete = isFateCardIncomplete(card);
   return `
     <article class="archive-card${incomplete ? ' incomplete' : ''}">
@@ -2787,7 +2911,7 @@ function renderCards() {
   const filter = state.funcFilter || 'all';
   const keyword = state.funcSearchKeyword || '';
   const incompleteCount = state.funcCards.filter(isFuncCardIncomplete).length;
-  const unusedImages = state.images.filter(file => !state.funcCards.some(card => card.filename === file));
+  const unusedImages = getUnusedImageFiles('func');
   const categoryOptions = getFuncCategoryOptions();
   let filteredEntries = state.funcCards.map((card, index) => ({ card, index })).filter(({ card }) => {
     const type = String(card.type || 'attack').trim();
@@ -2872,12 +2996,12 @@ function renderCards() {
 
 function funcDraftItem(card, i) {
   const has = !!card.filename;
-  const src = has ? `/lazy_assets/func/${encodeURIComponent(card.filename)}` : '';
+  const src = has ? getCardImageUrl('func', card.filename) : '';
   const rarity = Number(card.rarity) || 1;
   const tags = (card.tags || []).slice(0, 4).map(tag => `<div class="archive-scroll-chip soft-badge">${esc(humanizeTag(tag))}</div>`).join('') || '<span class="helper">未设定效果</span>';
   return `
     <article class="archive-card func-card rarity-${rarity}">
-      <div class="archive-cover">${has ? `<img src="${src}" onerror="this.src='/assets/${encodeURIComponent(card.filename)}'">` : '未绑定图片'}</div>
+      <div class="archive-cover">${has ? `<img src="${src}">` : '未绑定图片'}</div>
       <div class="archive-body">
         <div class="archive-title">${esc(card.card_name || '未命名功能牌')}</div>
         <div class="archive-meta">
@@ -2896,8 +3020,8 @@ function funcDraftItem(card, i) {
 }
 
 function funcItem(card, i) {
-  const has = card.filename && state.images.includes(card.filename);
-  const src = has ? `/assets/${encodeURIComponent(card.filename)}?profile=${encodeURIComponent(state.currentProfile)}` : '';
+  const has = card.filename && imageExists('func', card.filename);
+  const src = has ? getCardImageUrl('func', card.filename) : '';
   const rarity = Number(card.rarity) || 1;
   const tags = (card.tags || []).slice(0, 4).map(tag => `<div class="archive-scroll-chip soft-badge">${esc(humanizeTag(tag))}</div>`).join('') || '<span class="helper">未设定效果</span>';
   return `
@@ -3531,7 +3655,7 @@ function openFateEditor(index) {
       </div>
       <div class="editor-side">
         <div class="panel-title" style="font-size:14px;margin-bottom:10px;">可用图片</div>
-        <div class="asset-grid">${state.fateImages.map(file => `<div class="asset-item"><div class="thumb"><img src="/fate_assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('fateFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
+        <div class="asset-grid">${state.fateImages.map(file => `<div class="asset-item"><div class="thumb"><img src="${getCardImageUrl('fate', file)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('fateFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
       </div>
     </div>`, 'editor');
 }
@@ -3567,6 +3691,8 @@ async function deleteFateCard(i) {
   state.fateCards.splice(i, 1);
   renderFate();
   await saveFateCards(false);
+  await loadFate();
+  renderFate();
   showToast('命运牌已删除。');
 }
 async function uploadImages(endpoint, onReload, onRender, successText) {
@@ -3688,7 +3814,7 @@ function funcEditorHtml(card) {
       </div>
       <div class="editor-side">
         <div class="panel-title" style="font-size:14px;margin-bottom:10px;">图像库</div>
-        <div class="asset-grid">${state.images.map(file => `<div class="asset-item"><div class="thumb"><img src="/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('funcFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
+        <div class="asset-grid">${state.images.map(file => `<div class="asset-item"><div class="thumb"><img src="${getCardImageUrl('func', file)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('funcFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
       </div>
     </div>`;
 }
@@ -3857,6 +3983,7 @@ async function executeLazyBatch(kind) {
   }
 
   try {
+    startLazyProgress(kind, count, image_mode);
     const res = await apiPost(endpoint, payload);
     if (!res.ok) throw new Error(res.error || '生成失败');
     
@@ -3869,8 +3996,10 @@ async function executeLazyBatch(kind) {
       renderCards();
     }
     closeDialog();
+    finishLazyProgress(true);
     showToast(`成功生成 ${res.cards.length} 张草稿，请在页面顶端审核应用！`);
   } catch(e) {
+    finishLazyProgress(false);
     showToast(e.message, true);
     btn.disabled = false;
     btn.innerHTML = '重试';
@@ -3942,15 +4071,33 @@ async function executeAutoBind(kind) {
   }
 }
 
-function applyDrafts(kind) {
+async function applyDrafts(kind) {
   if (kind === 'fate') {
-    state.fateCards.unshift(...(state.draftFateCards || []));
+    const drafts = [...(state.draftFateCards || [])];
+    if (!drafts.length) return;
+    state.fateCards.unshift(...drafts);
+    const res = await saveFateCards(false);
+    if (!res?.ok) {
+      state.fateCards.splice(0, drafts.length);
+      return showToast(res?.error || '命运牌入库失败。', true);
+    }
     state.draftFateCards = [];
-    saveFateCards();
+    await loadFate();
+    renderFate();
+    showToast('命运牌草稿已全部入库。');
   } else {
-    state.funcCards.unshift(...(state.draftFuncCards || []));
+    const drafts = [...(state.draftFuncCards || [])];
+    if (!drafts.length) return;
+    state.funcCards.unshift(...drafts);
+    const res = await saveFuncCards(false);
+    if (!res?.ok) {
+      state.funcCards.splice(0, drafts.length);
+      return showToast(res?.error || '功能牌入库失败。', true);
+    }
     state.draftFuncCards = [];
-    saveFuncCards();
+    await loadCards();
+    renderCards();
+    showToast('功能牌草稿已全部入库。');
   }
 }
 
@@ -3974,7 +4121,7 @@ async function deleteFateImage(file) {
   return deleteAsset('/api/fate_images', file, loadFate, renderFate);
 }
 async function refreshCardAssets(show = true) {
-  await loadCards();
+  await Promise.all([loadCards(), loadFate()]);
   if (show) showToast('资源扫描完成。');
 }
 
@@ -4085,6 +4232,8 @@ Object.assign(window, {
   setTitleBasicField,
     deleteFuncCard,
     deleteDraftCard,
+    applyDrafts,
+    clearDrafts,
 
     openLazyBatchDialog,
     executeLazyBatch,
@@ -4119,6 +4268,7 @@ Object.assign(window, {
 async function bootstrapWebUi() {
   if (bootstrapWebUi.started) return;
   bootstrapWebUi.started = true;
+  ensureLazyProgressHud();
   bindEvents();
   await loadAll();
 }

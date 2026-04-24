@@ -139,6 +139,13 @@ def _deep_merge_dict(base: dict, override: dict) -> dict:
     return result
 
 
+def _list_image_files(directory: Path) -> list[str]:
+    if not directory.exists():
+        return []
+    exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+    return sorted(f.name for f in directory.iterdir() if f.is_file() and f.suffix.lower() in exts)
+
+
 def _load_json_template(path: Path, default):
     data = _read_json(path, default)
     if isinstance(default, list):
@@ -786,7 +793,6 @@ async def api_lazy_batch_fate(request):
                     used_remote_urls=used_remote_urls,
                 )
                 results.append(draft)
-                await asyncio.sleep(0.1)
         
         return web.json_response({"ok": True, "cards": results})
     except Exception as e:
@@ -833,7 +839,6 @@ async def api_lazy_batch_func(request):
                     used_remote_urls=used_remote_urls,
                 )
                 results.append(draft)
-                await asyncio.sleep(0.1)
 
         return web.json_response({"ok": True, "cards": results})
     except Exception as e:
@@ -970,13 +975,10 @@ async def api_list_fate_images(request):
     try:
         paths = _get_request_profile_paths(request)
         fate_assets_dir = paths["fate_assets_dir"]
-        if not fate_assets_dir.exists():
-            return web.json_response({"ok": True, "images": []})
-        exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
-        images = [f.name for f in fate_assets_dir.iterdir() if f.suffix.lower() in exts]
-        return web.json_response({"ok": True, "images": sorted(images)})
+        lazy_dir = paths["plugin_data_dir"] / "lazy_images" / "fate"
+        return web.json_response({"ok": True, "images": _list_image_files(fate_assets_dir), "lazy_images": _list_image_files(lazy_dir)})
     except Exception as e:
-        return web.json_response({"ok": False, "error": str(e), "images": []}, status=500)
+        return web.json_response({"ok": False, "error": str(e), "images": [], "lazy_images": []}, status=500)
 
 
 async def api_get_func_cards(request):
@@ -1181,12 +1183,10 @@ async def api_list_images(request):
         paths = _get_request_profile_paths(request)
         assets_dir = paths["func_assets_dir"]
         assets_dir.mkdir(parents=True, exist_ok=True)
-        exts = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-        files = [f.name for f in assets_dir.iterdir() if f.suffix.lower() in exts]
-        files.sort()
-        return web.json_response({"ok": True, "files": files})
+        lazy_dir = paths["plugin_data_dir"] / "lazy_images" / "func"
+        return web.json_response({"ok": True, "files": _list_image_files(assets_dir), "lazy_files": _list_image_files(lazy_dir)})
     except Exception as e:
-        return web.json_response({"ok": False, "error": str(e), "files": []}, status=500)
+        return web.json_response({"ok": False, "error": str(e), "files": [], "lazy_files": []}, status=500)
 
 
 async def api_delete_image(request):
@@ -1194,10 +1194,16 @@ async def api_delete_image(request):
     if not filename:
         return web.json_response({"ok": False, "error": "no filename"}, status=400)
     paths = _get_request_profile_paths(request)
-    target = paths["func_assets_dir"] / Path(filename).name
-    if target.exists():
-        target.unlink()
-    return web.json_response({"ok": True})
+    safe_name = Path(filename).name
+    deleted = False
+    for target in (
+        paths["func_assets_dir"] / safe_name,
+        paths["plugin_data_dir"] / "lazy_images" / "func" / safe_name,
+    ):
+        if target.exists():
+            target.unlink()
+            deleted = True
+    return web.json_response({"ok": True, "deleted": deleted})
 
 
 async def api_delete_fate_image(request):
@@ -1205,10 +1211,16 @@ async def api_delete_fate_image(request):
     if not filename:
         return web.json_response({"ok": False, "error": "no filename"}, status=400)
     paths = _get_request_profile_paths(request)
-    target = paths["fate_assets_dir"] / Path(filename).name
-    if target.exists():
-        target.unlink()
-    return web.json_response({"ok": True})
+    safe_name = Path(filename).name
+    deleted = False
+    for target in (
+        paths["fate_assets_dir"] / safe_name,
+        paths["plugin_data_dir"] / "lazy_images" / "fate" / safe_name,
+    ):
+        if target.exists():
+            target.unlink()
+            deleted = True
+    return web.json_response({"ok": True, "deleted": deleted})
 
 
 async def api_check_missing_images(request):

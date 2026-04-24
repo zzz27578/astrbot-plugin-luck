@@ -15,11 +15,8 @@ from aiohttp import web, ClientSession, ClientTimeout
 
 from ..core.title_engine import TitleEngine
 from ..core.lazy_engine import (
-    build_fate_draft,
     build_func_draft,
     _choose_local_image,
-    fetch_pure_quote,
-    fetch_random_waifu_image,
 )
 from ..core.plugin_storage import (
     DEFAULT_PROFILE_NAME,
@@ -96,6 +93,14 @@ DEFAULT_SIGN_IN_TEXTS = {
 
 _LAZY_HTTP_TIMEOUT = ClientTimeout(total=15)
 _LAZY_ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+_LAZY_QUOTE_FALLBACKS = [
+    "命运的车轮已经开始转动。",
+    "今晚的风，会替你翻开下一页。",
+    "别急，答案正在来的路上。",
+    "你以为是偶然，其实是伏笔。",
+    "此刻的犹豫，也会成为转机。",
+    "有些奖励，会在坚持之后出现。",
+]
 
 
 def _atomic_write(path: Path, data):
@@ -456,7 +461,15 @@ def _pick_image_suffix(url: str, content_type: str = "") -> str:
 
 
 async def _fetch_json_url(session: ClientSession, url: str) -> dict | list:
-    async with session.get(url, headers={"User-Agent": "luck_rank_webui/1.0"}) as resp:
+    bust = uuid.uuid4().hex
+    joiner = "&" if "?" in url else "?"
+    final_url = f"{url}{joiner}_t={bust}"
+    headers = {
+        "User-Agent": "luck_rank_webui/1.0",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+    }
+    async with session.get(final_url, headers=headers) as resp:
         if resp.status != 200:
             raise RuntimeError(f"HTTP {resp.status}")
         return await resp.json(content_type=None)
@@ -509,16 +522,21 @@ def _extract_image_url(payload) -> str:
 
 
 async def _fetch_lazy_quote(session: ClientSession) -> dict:
-    source = "hitokoto"
-    url = "https://v1.hitokoto.cn"
-    try:
-        payload = await _fetch_json_url(session, url)
-        text = _extract_quote_text(payload)
-        if text:
-            return {"text": text, "source": source, "source_url": url}
-        raise RuntimeError("hitokoto: empty")
-    except Exception as exc:
-        raise RuntimeError(f"{source}: {exc}")
+    sources = [
+        ("suyanw", "https://api.suyanw.cn/api/meiju"),
+        ("hitokoto", "https://v1.hitokoto.cn"),
+    ]
+    errors = []
+    for source, url in random.sample(sources, len(sources)):
+        try:
+            payload = await _fetch_json_url(session, url)
+            text = _extract_quote_text(payload)
+            if text:
+                return {"text": text, "source": source, "source_url": url}
+            errors.append(f"{source}: empty")
+        except Exception as exc:
+            errors.append(f"{source}: {exc}")
+    raise RuntimeError("; ".join(errors) or "quote source unavailable")
 
 
 
@@ -528,7 +546,7 @@ async def _fetch_lazy_image_url(session: ClientSession) -> dict:
         ("nekos.best", "https://nekos.best/api/v2/neko"),
     ]
     errors = []
-    for source, url in sources:
+    for source, url in random.sample(sources, len(sources)):
         try:
             payload = await _fetch_json_url(session, url)
             image_url = _extract_image_url(payload)
@@ -542,7 +560,15 @@ async def _fetch_lazy_image_url(session: ClientSession) -> dict:
 
 async def _download_lazy_image(session: ClientSession, image_url: str, target_dir: Path, prefix: str) -> str:
     target_dir.mkdir(parents=True, exist_ok=True)
-    async with session.get(image_url, headers={"User-Agent": "luck_rank_webui/1.0"}) as resp:
+    bust = uuid.uuid4().hex
+    joiner = "&" if "?" in image_url else "?"
+    final_url = f"{image_url}{joiner}_t={bust}"
+    headers = {
+        "User-Agent": "luck_rank_webui/1.0",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+    }
+    async with session.get(final_url, headers=headers) as resp:
         if resp.status != 200:
             raise RuntimeError(f"image download failed: HTTP {resp.status}")
         content = await resp.read()
@@ -552,6 +578,167 @@ async def _download_lazy_image(session: ClientSession, image_url: str, target_di
         filename = f"{prefix}_{uuid.uuid4().hex[:12]}{suffix}"
         (target_dir / filename).write_bytes(content)
         return filename
+
+
+def _choose_local_image_with_repeat(target_dir: Path, used_images: set[str], allow_repeat: bool = False) -> str:
+    if not allow_repeat:
+        return _choose_local_image(target_dir, used_images)
+    if not target_dir.exists():
+        return ""
+    files = [f.name for f in target_dir.iterdir() if f.is_file() and f.suffix.lower() in _LAZY_ALLOWED_IMAGE_EXTS]
+    return random.choice(files) if files else ""
+
+
+def _fallback_lazy_quote(used_texts: set[str]) -> str:
+    for text in _LAZY_QUOTE_FALLBACKS:
+        if text not in used_texts:
+            used_texts.add(text)
+            return text
+    text = f"命运的幕布再次拉开·第 {len(used_texts) + 1} 幕"
+    used_texts.add(text)
+    return text
+
+
+async def _fetch_unique_lazy_quote(session: ClientSession, used_texts: set[str]) -> str:
+    last_text = ""
+    for _ in range(8):
+        try:
+            result = await _fetch_lazy_quote(session)
+            text = str(result.get("text", "")).strip()
+            if not text:
+                continue
+            last_text = text
+            if text not in used_texts:
+                used_texts.add(text)
+                return text
+        except Exception:
+            continue
+    if last_text and last_text not in used_texts:
+        used_texts.add(last_text)
+        return last_text
+    return _fallback_lazy_quote(used_texts)
+
+
+async def _fetch_unique_lazy_image(
+    session: ClientSession,
+    target_dir: Path,
+    prefix: str,
+    used_remote_urls: set[str],
+) -> str:
+    last_seen_url = ""
+    for _ in range(8):
+        image_result = await _fetch_lazy_image_url(session)
+        image_url = str(image_result.get("url", "")).strip()
+        if not image_url:
+            continue
+        last_seen_url = image_url
+        if image_url in used_remote_urls:
+            continue
+        filename = await _download_lazy_image(session, image_url, target_dir, prefix)
+        used_remote_urls.add(image_url)
+        return filename
+    if last_seen_url:
+        return await _download_lazy_image(session, last_seen_url, target_dir, prefix)
+    raise RuntimeError("image source unavailable")
+
+
+async def _select_lazy_image(
+    session: ClientSession,
+    *,
+    image_mode: str,
+    remote_dir: Path,
+    local_dir: Path,
+    prefix: str,
+    used_images: set[str],
+    used_remote_urls: set[str],
+    allow_repeat: bool = False,
+) -> str:
+    if image_mode == "local":
+        filename = _choose_local_image_with_repeat(local_dir, used_images, allow_repeat=allow_repeat)
+        if filename:
+            used_images.add(filename)
+        return filename
+    if image_mode == "remote":
+        try:
+            return await _fetch_unique_lazy_image(session, remote_dir, prefix, used_remote_urls)
+        except Exception:
+            return ""
+    return ""
+
+
+async def _build_lazy_fate_draft(
+    session: ClientSession,
+    *,
+    remote_dir: Path,
+    local_dir: Path,
+    gold_min: int,
+    gold_max: int,
+    image_mode: str,
+    gen_text: bool,
+    used_texts: set[str],
+    used_images: set[str],
+    used_remote_urls: set[str],
+) -> dict:
+    gold = random.randint(min(gold_min, gold_max), max(gold_min, gold_max))
+    text = ""
+    name = "未命名命运牌"
+    if gen_text:
+        raw_quote = await _fetch_unique_lazy_quote(session, used_texts)
+        name = _lazy_title_from_text(raw_quote, "命运·", "未命名命运牌", max_len=8)
+        prefix = f"金币+{gold}\n" if gold >= 0 else f"金币-{abs(gold)}\n"
+        text = f"{prefix}{raw_quote}"
+    filename = await _select_lazy_image(
+        session,
+        image_mode=image_mode,
+        remote_dir=remote_dir,
+        local_dir=local_dir,
+        prefix="rfate",
+        used_images=used_images,
+        used_remote_urls=used_remote_urls,
+    )
+    return {
+        "name": name,
+        "text": text,
+        "gold": gold,
+        "filename": filename,
+    }
+
+
+async def _build_lazy_func_draft(
+    session: ClientSession,
+    *,
+    remote_dir: Path,
+    local_dir: Path,
+    allowed_types: list,
+    max_rarity: int,
+    max_tags: int,
+    max_effect_val: int,
+    image_mode: str,
+    gen_text: bool,
+    used_images: set[str],
+    used_remote_urls: set[str],
+) -> dict:
+    draft = await build_func_draft(
+        remote_dir,
+        local_dir,
+        allowed_types,
+        max_rarity,
+        max_tags,
+        max_effect_val,
+        "none",
+        gen_text,
+        set(),
+    )
+    draft["filename"] = await _select_lazy_image(
+        session,
+        image_mode=image_mode,
+        remote_dir=remote_dir,
+        local_dir=local_dir,
+        prefix="rfunc",
+        used_images=used_images,
+        used_remote_urls=used_remote_urls,
+    )
+    return draft
 
 
 async def api_lazy_batch_fate(request):
@@ -573,13 +760,23 @@ async def api_lazy_batch_fate(request):
         results = []
         used_texts = set()
         used_images = set()
-        for _ in range(count):
-            draft = await build_fate_draft(
-                remote_dir, local_dir,
-                gold_min, gold_max, image_mode, gen_text,
-                used_texts, used_images
-            )
-            results.append(draft)
+        used_remote_urls = set()
+        async with ClientSession(timeout=_LAZY_HTTP_TIMEOUT) as session:
+            for _ in range(count):
+                draft = await _build_lazy_fate_draft(
+                    session,
+                    remote_dir=remote_dir,
+                    local_dir=local_dir,
+                    gold_min=gold_min,
+                    gold_max=gold_max,
+                    image_mode=image_mode,
+                    gen_text=gen_text,
+                    used_texts=used_texts,
+                    used_images=used_images,
+                    used_remote_urls=used_remote_urls,
+                )
+                results.append(draft)
+                await asyncio.sleep(0.1)
         
         return web.json_response({"ok": True, "cards": results})
     except Exception as e:
@@ -609,13 +806,24 @@ async def api_lazy_batch_func(request):
 
         results = []
         used_images = set()
-        for _ in range(count):
-            draft = await build_func_draft(
-                remote_dir, local_dir,
-                allowed_types, max_rarity, max_tags, max_effect_val,
-                image_mode, gen_text, used_images
-            )
-            results.append(draft)
+        used_remote_urls = set()
+        async with ClientSession(timeout=_LAZY_HTTP_TIMEOUT) as session:
+            for _ in range(count):
+                draft = await _build_lazy_func_draft(
+                    session,
+                    remote_dir=remote_dir,
+                    local_dir=local_dir,
+                    allowed_types=allowed_types,
+                    max_rarity=max_rarity,
+                    max_tags=max_tags,
+                    max_effect_val=max_effect_val,
+                    image_mode=image_mode,
+                    gen_text=gen_text,
+                    used_images=used_images,
+                    used_remote_urls=used_remote_urls,
+                )
+                results.append(draft)
+                await asyncio.sleep(0.1)
 
         return web.json_response({"ok": True, "cards": results})
     except Exception as e:
@@ -633,21 +841,36 @@ async def api_lazy_auto_bind(request):
         if kind == "fate":
             cards_file = paths["fate_cards_file"]
             local_dir = paths["fate_assets_dir"]
+            remote_dir = paths["plugin_data_dir"] / "lazy_images" / "fate"
             cards = _normalize_fate_cards(_read_json(cards_file, []))
         else:
             cards_file = paths["func_cards_file"]
             local_dir = paths["func_assets_dir"]
+            remote_dir = paths["plugin_data_dir"] / "lazy_images" / "func"
             cards = _normalize_func_cards(_read_json(cards_file, []))
 
+        image_mode = str(body.get("image_mode", "local")).strip()
+        allow_repeat = bool(body.get("allow_repeat", False))
         used_images = {str(c.get("filename", "")) for c in cards if c.get("filename")}
+        used_remote_urls = set()
         changed = 0
-        for c in cards:
-            if not str(c.get("filename", "")).strip():
-                new_file = _choose_local_image(local_dir, used_images)
-                if new_file:
-                    c["filename"] = new_file
-                    used_images.add(new_file)
-                    changed += 1
+        async with ClientSession(timeout=_LAZY_HTTP_TIMEOUT) as session:
+            for c in cards:
+                if not str(c.get("filename", "")).strip():
+                    new_file = await _select_lazy_image(
+                        session,
+                        image_mode=image_mode,
+                        remote_dir=remote_dir,
+                        local_dir=local_dir,
+                        prefix=f"auto_{kind}",
+                        used_images=used_images,
+                        used_remote_urls=used_remote_urls,
+                        allow_repeat=allow_repeat,
+                    )
+                    if new_file:
+                        c["filename"] = new_file
+                        used_images.add(new_file)
+                        changed += 1
 
         if changed > 0:
             _atomic_write(cards_file, cards)

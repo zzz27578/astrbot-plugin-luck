@@ -2252,7 +2252,7 @@ function renderFate() {
                   </div>
                             <div class="filter-row-main">
                               <div class="filter-side-info">
-                                <button class="btn-green" onclick="autoBindMissingImages('fate')"><span class="btn-text">自动绑定空置图片</span></button>
+                                <button class="btn-green" onclick="openAutoBindDialog('fate')"><span class="btn-text">自动绑定空置图片</span></button>
                                 <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
                                 <div class="filter-summary">缺名称牌数 ${namelessCount}</div>
                     </div>
@@ -2291,8 +2291,9 @@ function fateDraftItem(card, i) {
           <span class="badge">草稿</span>
         </div>
         <div class="archive-desc">${esc(card.text || '当前还没有文案。')}</div>
-        <div class="archive-actions" style="grid-template-columns:1fr;">
-          <div class="helper" style="text-align:center;">请在顶部点击“全部入库”以保存。</div>
+        <div class="archive-actions" style="grid-template-columns:1fr 1fr;">
+          <div class="helper" style="text-align:center; align-self:center;">尚未入库</div>
+          <button class="btn-danger" onclick="deleteDraftCard('fate', ${i})"><span class="btn-text">删除此草稿</span></button>
         </div>
       </div>
     </article>`;
@@ -2823,7 +2824,7 @@ function renderCards() {
               <button class="filter-chip filter-chip-add" onclick="createFuncCategoryPrompt()">新增类别</button>
             </div>
                         <div class="filter-side-info">
-              <button class="btn-green" onclick="autoBindMissingImages('func')"><span class="btn-text">自动绑定空置图片</span></button>
+              <button class="btn-green" onclick="openAutoBindDialog('func')"><span class="btn-text">自动绑定空置图片</span></button>
               <div class="filter-summary">当前显示 ${filteredEntries.length} / ${state.funcCards.length}</div>
               <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
               <button class="${state.funcPinIncomplete ? 'btn-danger' : 'btn'} ${state.funcPinIncomplete ? 'glow-red' : ''}" onclick="bringIncompleteFuncCardsToFront()"><span class="btn-text">未完成置顶</span></button>
@@ -2886,8 +2887,9 @@ function funcDraftItem(card, i) {
         </div>
         <div class="archive-tag-row">${tags}</div>
         <div class="archive-desc">${esc(card.description || '当前还没有描述。')}</div>
-        <div class="archive-actions" style="grid-template-columns:1fr;">
-          <div class="helper" style="text-align:center;">请在顶部点击“全部入库”以保存。</div>
+        <div class="archive-actions" style="grid-template-columns:1fr 1fr;">
+          <div class="helper" style="text-align:center; align-self:center;">尚未入库</div>
+          <button class="btn-danger" onclick="deleteDraftCard('func', ${i})"><span class="btn-text">删除此草稿</span></button>
         </div>
       </div>
     </article>`;
@@ -3875,16 +3877,52 @@ async function executeLazyBatch(kind) {
   }
 }
 
-async function autoBindMissingImages(kind) {
+function deleteDraftCard(kind, idx) {
+  if (kind === 'fate') {
+    state.draftFateCards.splice(idx, 1);
+    renderFate();
+  } else {
+    state.draftFuncCards.splice(idx, 1);
+    renderCards();
+  }
+}
+
+async function openAutoBindDialog(kind) {
+  openDialog('自动绑定空置图片', `
+    <div>
+      <div class="panel-note" style="margin-bottom:16px;">将为当前没有配图的牌批量分配图片。你可以在本地图库和随机二次元美少女之间选择图源。</div>
+      <div class="field" style="margin-top:16px;">
+        <label>配图来源</label>
+        <select class="select" id="autoBindImageMode">
+          <option value="local">使用本地图库匹配（用户上传图片）</option>
+          <option value="remote">随机使用二次元美少女</option>
+        </select>
+      </div>
+      <div class="field" style="margin-top:16px;">
+        <label class="check-strong" style="min-height:36px;">
+          <input type="checkbox" id="autoBindAllowRepeat">
+          <span>本地图库不够时允许重复使用图片</span>
+        </label>
+      </div>
+      <div class="row" style="margin-top:20px;">
+        <button class="btn-strong" onclick="executeAutoBind('${kind}')"><span class="btn-text">开始绑图</span></button>
+      </div>
+    </div>
+  `, 'small');
+}
+
+async function executeAutoBind(kind) {
   const btn = event.currentTarget;
   const oldHtml = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '绑图中...';
+  const image_mode = $('#autoBindImageMode')?.value || 'local';
+  const allow_repeat = !!$('#autoBindAllowRepeat')?.checked;
   try {
-    const res = await apiPost('/api/lazy/auto_bind', { kind });
+    const res = await apiPost('/api/lazy/auto_bind', { kind, image_mode, allow_repeat });
     if (!res.ok) throw new Error(res.error || '绑定失败');
     if (res.changed === 0) {
-      showToast('没有缺少图片且能从本地图库匹配到的牌。');
+      showToast('当前没有缺图卡牌，或者图源不满足要求。');
     } else {
       if (kind === 'fate') {
         state.fateCards = res.cards;
@@ -3893,6 +3931,7 @@ async function autoBindMissingImages(kind) {
         state.funcCards = res.cards;
         renderCards();
       }
+      closeDialog();
       showToast(`成功为 ${res.changed} 张牌自动绑定了图片！`);
     }
   } catch(e) {
@@ -4045,11 +4084,14 @@ Object.assign(window, {
     setTitleEffectField,
   setTitleBasicField,
     deleteFuncCard,
+    deleteDraftCard,
 
-  openLazyBatchDialog,
-  executeLazyBatch,
+    openLazyBatchDialog,
+    executeLazyBatch,
+    openAutoBindDialog,
+    executeAutoBind,
 
-  uploadFuncImages,
+    uploadFuncImages,
   deleteFuncImage,
   deleteFateImage,
   refreshCardAssets,

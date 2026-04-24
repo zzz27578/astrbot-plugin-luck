@@ -710,9 +710,28 @@ body.chassis {
 .btn-danger.glow-red, .btn.glow-red { border-color: rgba(217, 56, 41, 0.45); color: var(--danger); }
 .btn-danger.glow-red:hover, .btn.glow-red:hover { background: rgba(217, 56, 41, 0.08); border-color: var(--danger); color: var(--danger); }
 @keyframes unfinished-red-glow { 0%, 100% { box-shadow: 0 0 0 rgba(217,56,41,0), 0 0 0 rgba(217,56,41,0); } 50% { box-shadow: 0 0 0 1px rgba(217,56,41,0.6), 0 0 22px rgba(217,56,41,0.38); } }
+@keyframes pending-delete-shake {
+  0% { transform: translate3d(0, 0, 0); }
+  22% { transform: translate3d(-2px, 0, 0); }
+  48% { transform: translate3d(2px, 0, 0); }
+  72% { transform: translate3d(-1px, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+.archive-card.incomplete-pinned { border-color: rgba(217, 56, 41, 0.52); }
+.archive-card.incomplete-pinned::before { border-color: rgba(217, 56, 41, 0.72); width: 20px; height: 20px; }
 .func-card.incomplete-pinned { animation: unfinished-red-glow 1.6s ease-in-out infinite; border-color: rgba(217,56,41,0.6); }
 .func-card.incomplete-pinned::before { border-color: var(--danger); width: 24px; height: 24px; }
 .archive-card.func-card { overflow: visible; }
+.archive-card.delete-pending { animation: pending-delete-shake 0.28s ease-out 1; border-color: rgba(217, 56, 41, 0.56); box-shadow: inset 0 0 0 1px rgba(217, 56, 41, 0.14); }
+.archive-card.delete-pending .archive-title { color: #7a261f; }
+.archive-card.delete-pending .btn-danger .btn-text { font-weight: 900; letter-spacing: 1.6px; }
+.archive-card.delete-pending .btn .btn-text,
+.archive-card.delete-pending .btn-green .btn-text { font-weight: 800; }
+.func-card.delete-pending { box-shadow: inset 0 0 0 1px rgba(217, 56, 41, 0.22); }
+.func-card.delete-pending::before { border-color: rgba(217, 56, 41, 0.72); width: 20px; height: 20px; }
+.title-card { border-color: rgba(255, 191, 95, 0.34); box-shadow: inset 0 0 0 1px rgba(255, 191, 95, 0.08); }
+.title-card::before { border-color: rgba(255, 191, 95, 0.44); width: 20px; height: 20px; }
+.title-card .archive-scroll-chip { background: rgba(255, 191, 95, 0.06); border-color: rgba(255, 191, 95, 0.24); color: var(--shard-text); }
 .archive-meta, .archive-tag-row { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .archive-scroll-chip { display: inline-block; max-width: 100%; max-height: 42px; overflow: auto; padding: 6px 10px; font-family: var(--font-headline); font-size: 11px; font-weight: 700; letter-spacing: 0.5px; background: var(--shard-bg); border: 1px solid var(--shard-border); color: var(--shard-text-muted); line-height: 1.4; word-break: break-word; scrollbar-width: thin; scrollbar-color: rgba(33, 163, 102, 0.28) transparent; }
 .archive-scroll-chip.soft-badge { background: transparent; }
@@ -1292,6 +1311,8 @@ const state = {
   fatePinIncomplete: false,
   lazyProgress: { active: false, label: '', percent: 0, timer: null },
   pendingDelete: { kind: '', index: -1 },
+  pendingAssetDelete: { kind: '', file: '' },
+  pendingTitleDelete: -1,
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -1327,7 +1348,13 @@ function isDeletePending(kind, index) {
   return state.pendingDelete.kind === kind && state.pendingDelete.index === index;
 }
 
+function clearAuxDeleteStates() {
+  state.pendingAssetDelete = { kind: '', file: '' };
+  state.pendingTitleDelete = -1;
+}
+
 function requestDelete(kind, index) {
+  clearAuxDeleteStates();
   state.pendingDelete = { kind, index };
   if (kind === 'fate') renderFate();
   else renderCards();
@@ -1338,6 +1365,42 @@ function cancelDelete(kind, index) {
   state.pendingDelete = { kind: '', index: -1 };
   if (kind === 'fate') renderFate();
   else renderCards();
+}
+
+function isAssetDeletePending(kind, file) {
+  return state.pendingAssetDelete.kind === kind && state.pendingAssetDelete.file === file;
+}
+
+function requestAssetDelete(kind, file) {
+  state.pendingDelete = { kind: '', index: -1 };
+  state.pendingTitleDelete = -1;
+  state.pendingAssetDelete = { kind, file };
+  if (kind === 'fate') renderFate();
+  else renderCards();
+}
+
+function cancelAssetDelete(kind, file) {
+  if (!isAssetDeletePending(kind, file)) return;
+  state.pendingAssetDelete = { kind: '', file: '' };
+  if (kind === 'fate') renderFate();
+  else renderCards();
+}
+
+function isTitleDeletePending(index) {
+  return state.pendingTitleDelete === index;
+}
+
+function requestTitleDelete(index) {
+  state.pendingDelete = { kind: '', index: -1 };
+  state.pendingAssetDelete = { kind: '', file: '' };
+  state.pendingTitleDelete = index;
+  renderTitles();
+}
+
+function cancelTitleDelete(index) {
+  if (!isTitleDeletePending(index)) return;
+  state.pendingTitleDelete = -1;
+  renderTitles();
 }
 
 function ensureLazyProgressHud() {
@@ -2365,7 +2428,6 @@ function renderFate() {
                       <button class="btn-green" onclick="openLazyBatchDialog('fate')"><span class="btn-text">懒狗模式</span></button>
                       <button class="btn-strong" onclick="openFateEditor(-1)"><span class="btn-text">新增命运牌</span></button>
                       <button class="btn" onclick="uploadFateImages()"><span class="btn-text">批量上传图片</span></button>
-                      <button class="${state.fatePinIncomplete ? 'btn-danger' : 'btn'} ${state.fatePinIncomplete ? 'glow-red' : ''}" onclick="bringIncompleteFateCardsToFront()"><span class="btn-text">未完成置顶</span></button>
                       <button class="btn" onclick="saveFateCards()"><span class="btn-text">保存全部</span></button>
                     </div>
         </div>
@@ -2374,10 +2436,12 @@ function renderFate() {
                     <input class="input" placeholder="搜索名称、文案、金币值或图片文件名" value="${esc(keyword)}" oninput="setFateSearchKeyword(this.value)">
                   </div>
                             <div class="filter-row-main">
+                              <div class="filter-chip-group"></div>
                               <div class="filter-side-info">
                                 <button class="btn-green" onclick="openAutoBindDialog('fate')"><span class="btn-text">自动绑定空置图片</span></button>
                                 <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
                                 <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
+                                <button class="${state.fatePinIncomplete ? 'btn-danger' : 'btn'} ${state.fatePinIncomplete ? 'glow-red' : ''}" onclick="bringIncompleteFateCardsToFront()"><span class="btn-text">未完成置顶</span></button>
                     </div>
                   </div>
                 </div>
@@ -2398,18 +2462,7 @@ function renderFate() {
                 <div class="archive-index-group" style="margin-bottom:14px;">
                   <div class="archive-index-title">待建档图片</div>
                   <div class="pending-grid">
-                    ${unusedImages.map(file => `
-                      <article class="archive-card">
-                        <div class="archive-cover"><img src="${getCardImageUrl('fate', file)}" alt="${esc(file)}"></div>
-                        <div class="archive-body">
-                          <div class="pending-caption">这张图片当前没有被任何命运牌使用。</div>
-                          <div class="archive-actions">
-                            <button class="btn-green" onclick="openFateEditorFromImage('${esc(file)}')"><span class="btn-text">编辑</span></button>
-                            <button class="btn" onclick="openFateEditorFromImage('${esc(file)}')"><span class="btn-text">建牌</span></button>
-                            <button class="btn-danger" onclick="deleteFateImage('${esc(file)}')"><span class="btn-text">删除</span></button>
-                          </div>
-                        </div>
-                      </article>`).join('')}
+                    ${unusedImages.map(file => pendingImageItem('fate', file)).join('')}
                   </div>
                 </div>` : ''}
                 <div class="archive-grid">
@@ -2446,7 +2499,7 @@ function fateItem(card, i) {
   const incomplete = isFateCardIncomplete(card);
   const deleting = isDeletePending('fate', i);
   return `
-    <article class="archive-card ${state.fatePinIncomplete && incomplete ? 'incomplete-pinned' : ''}${incomplete ? ' incomplete' : ''}">
+    <article class="archive-card ${state.fatePinIncomplete && incomplete ? 'incomplete-pinned' : ''}${incomplete ? ' incomplete' : ''}${deleting ? ' delete-pending' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="命运牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
         <div class="archive-title">${esc(card.name || '未命名命运牌')}</div>
@@ -2459,6 +2512,25 @@ function fateItem(card, i) {
           <button class="btn-strong" onclick="openFateEditor(${i})"><span class="btn-text">编辑</span></button>
           <button class="${deleting ? 'btn' : 'btn-green'}" onclick="${deleting ? `cancelDelete('fate', ${i})` : `duplicateFateCard(${i})`}"><span class="btn-text">${deleting ? '取消' : '复制'}</span></button>
           <button class="btn-danger" onclick="${deleting ? `confirmDeleteCard('fate', ${i})` : `requestDelete('fate', ${i})`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>
+        </div>
+      </div>
+    </article>`;
+}
+
+function pendingImageItem(kind, file) {
+  const deleting = isAssetDeletePending(kind, file);
+  const openEditor = kind === 'fate' ? 'openFateEditorFromImage' : 'openFuncEditorFromImage';
+  const desc = kind === 'fate' ? '这张图片当前没有被任何命运牌使用。' : '这张图片还没有被任何功能牌使用。';
+  return `
+    <article class="archive-card${deleting ? ' delete-pending' : ''}">
+      <div class="archive-cover"><img src="${getCardImageUrl(kind, file)}" alt="${esc(file)}"></div>
+      <div class="archive-body">
+        <div class="archive-title">${esc(file)}</div>
+        <div class="pending-caption">${desc}</div>
+        <div class="archive-actions">
+          <button class="btn-green" onclick="${openEditor}('${esc(file)}')"><span class="btn-text">编辑</span></button>
+          <button class="btn" onclick="${deleting ? `cancelAssetDelete('${kind}', '${esc(file)}')` : `${openEditor}('${esc(file)}')`}"><span class="btn-text">${deleting ? '取消' : '建牌'}</span></button>
+          <button class="btn-danger" onclick="${deleting ? `confirmDeleteAsset('${kind}', '${esc(file)}')` : `requestAssetDelete('${kind}', '${esc(file)}')`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>
         </div>
       </div>
     </article>`;
@@ -2513,8 +2585,9 @@ function titleOperatorName(op) {
 function titleItem(title, i) {
   const condText = (title.conditions || []).map(c => `${titleConditionName(c.type)} ${titleOperatorName(c.operator)} ${c.value}`).join('；') || '无条件';
   const effText = (title.effects || []).map(e => `${titleEffectName(e.type)} ${Number(e.value || 0) >= 0 ? '+' : ''}${e.value}`).join('；') || '无效果';
+  const deleting = isTitleDeletePending(i);
   return `
-    <article class="archive-card func-card rarity-4">
+    <article class="archive-card title-card${deleting ? ' delete-pending' : ''}">
       <div class="archive-body">
         <div class="archive-title">${esc(title.name || title.id || '未命名称号')}</div>
         <div class="archive-meta">
@@ -2526,8 +2599,8 @@ function titleItem(title, i) {
         <div class="archive-desc">${esc(title.desc || '当前还没有描述。')}</div>
         <div class="archive-actions">
           <button class="btn-strong" onclick="openTitleEditor(${i})"><span class="btn-text">编辑</span></button>
-          <button class="btn-green" onclick="duplicateTitle(${i})"><span class="btn-text">复制</span></button>
-          <button class="btn-danger" onclick="deleteTitle(${i})"><span class="btn-text">删除</span></button>
+          <button class="${deleting ? 'btn' : 'btn-green'}" onclick="${deleting ? `cancelTitleDelete(${i})` : `duplicateTitle(${i})`}"><span class="btn-text">${deleting ? '取消' : '复制'}</span></button>
+          <button class="btn-danger" onclick="${deleting ? `confirmDeleteTitle(${i})` : `requestTitleDelete(${i})`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>
         </div>
       </div>
     </article>`;
@@ -2569,7 +2642,7 @@ function renderTitleEditorConditions() {
     <div class="field-grid" style="grid-template-columns:minmax(0,1.7fr) 160px 140px 88px;gap:10px;align-items:end;margin-top:10px;">
       <div class="field">
         <label>条件 ${idx + 1}</label>
-        <button class="btn" type="button" onclick="openTitleCatalogPicker('condition', ${idx})"><span class="btn-text">选择条件：${esc(titleConditionName(cond.type))}</span></button>
+        <button class="btn outline-btn" type="button" onclick="openTitleCatalogPicker('condition', ${idx})"><span class="btn-text">选择条件：${esc(titleConditionName(cond.type))}</span></button>
       </div>
       <div class="field"><label>比较方式</label><select class="input" onchange="setTitleConditionField(${idx}, 'operator', this.value)">
         ${['>=', '>', '==', '<=', '<'].map(op => `<option value="${op}" ${cond.operator === op ? 'selected' : ''}>${titleOperatorName(op)}</option>`).join('')}
@@ -2587,7 +2660,7 @@ function renderTitleEditorEffects() {
     <div class="field-grid" style="grid-template-columns:minmax(0,2fr) 160px 88px;gap:10px;align-items:end;margin-top:10px;">
       <div class="field">
         <label>效果 ${idx + 1}</label>
-        <button class="btn" type="button" onclick="openTitleCatalogPicker('effect', ${idx})"><span class="btn-text">选择效果：${esc(titleEffectName(effect.type))}</span></button>
+        <button class="btn outline-btn" type="button" onclick="openTitleCatalogPicker('effect', ${idx})"><span class="btn-text">选择效果：${esc(titleEffectName(effect.type))}</span></button>
       </div>
       <div class="field"><label>数值</label><input class="input" type="number" value="${esc(effect.value ?? 0)}" onchange="setTitleEffectField(${idx}, 'value', this.value)"></div>
       <button class="btn-danger" type="button" onclick="removeTitleEffect(${idx})">删除</button>
@@ -2687,28 +2760,28 @@ function renderTitleCatalogPickerList(kind, index, groupFilter = '全部') {
   const filtered = catalog.filter(item => groupFilter === '全部' || titleCatalogGroup(kind, item.key) === groupFilter);
 
   wrap.innerHTML = filtered.length ? `
-    <div style="overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:14px;">
-      <table style="width:100%;border-collapse:collapse;min-width:860px;">
+    <div style="overflow:auto;border:1px solid var(--shard-border);border-radius:14px;background:var(--shard-surface);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);">
+      <table style="width:100%;border-collapse:collapse;min-width:860px;background:var(--shard-surface);color:var(--shard-text);">
         <thead>
-          <tr>
-            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">类别</th>
-            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">名称</th>
-            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">参数</th>
-            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">用途说明</th>
-            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);">操作</th>
+          <tr style="background:var(--shard-bg);">
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid var(--shard-border);color:var(--shard-text);font-family:var(--font-headline);font-size:12px;letter-spacing:1px;">类别</th>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid var(--shard-border);color:var(--shard-text);font-family:var(--font-headline);font-size:12px;letter-spacing:1px;">名称</th>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid var(--shard-border);color:var(--shard-text);font-family:var(--font-headline);font-size:12px;letter-spacing:1px;">参数</th>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid var(--shard-border);color:var(--shard-text);font-family:var(--font-headline);font-size:12px;letter-spacing:1px;">用途说明</th>
+            <th style="text-align:left;padding:12px 14px;border-bottom:1px solid var(--shard-border);color:var(--shard-text);font-family:var(--font-headline);font-size:12px;letter-spacing:1px;">操作</th>
           </tr>
         </thead>
         <tbody>
           ${filtered.map(item => `
             <tr>
-              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">${esc(titleCatalogGroup(kind, item.key))}</td>
-              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">
-                <div style="font-weight:700;">${esc(item.name)}</div>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.06);vertical-align:top;color:var(--shard-text);">${esc(titleCatalogGroup(kind, item.key))}</td>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.06);vertical-align:top;">
+                <div style="font-weight:800;color:var(--shard-text);">${esc(item.name)}</div>
                 <div class="helper" style="margin-top:4px;">键值：${esc(item.key)}</div>
               </td>
-              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">${esc(item.param || '数值')}</td>
-              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">${esc(titleCatalogTip(kind, item.key))}</td>
-              <td style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;">
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.06);vertical-align:top;color:var(--shard-text-muted);font-weight:700;">${esc(item.param || '数值')}</td>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.06);vertical-align:top;color:var(--shard-text-muted);line-height:1.7;">${esc(titleCatalogTip(kind, item.key))}</td>
+              <td style="padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.06);vertical-align:top;">
                 <button class="btn-strong" type="button" onclick="chooseTitleCatalogItem('${kind}', ${index}, '${esc(item.key)}')"><span class="btn-text">选择这个</span></button>
               </td>
             </tr>
@@ -2874,8 +2947,9 @@ async function saveTitles(show = true) {
   return res;
 }
 
-async function deleteTitle(i) {
-  if (!confirm('确认删除该称号吗？')) return;
+async function confirmDeleteTitle(i) {
+  if (!isTitleDeletePending(i)) return;
+  state.pendingTitleDelete = -1;
   state.titles.splice(i, 1);
   renderTitles();
   await saveTitles(false);
@@ -2990,18 +3064,7 @@ function renderCards() {
         <div class="archive-index-group" style="margin-bottom:14px;">
           <div class="archive-index-title">待建档图片</div>
           <div class="pending-grid func-pending-grid">
-            ${unusedImages.map(file => `
-              <article class="archive-card">
-                <div class="archive-cover"><img src="/assets/${encodeURIComponent(file)}?profile=${encodeURIComponent(state.currentProfile)}" alt="${esc(file)}"></div>
-                <div class="archive-body">
-                  <div class="pending-caption">这张图片还没有被任何功能牌使用。</div>
-                  <div class="archive-actions">
-                    <button class="btn-green" onclick="openFuncEditorFromImage('${esc(file)}')"><span class="btn-text">编辑</span></button>
-                    <button class="btn" onclick="openFuncEditorFromImage('${esc(file)}')"><span class="btn-text">建牌</span></button>
-                    <button class="btn-danger" onclick="deleteFuncImage('${esc(file)}')"><span class="btn-text">删除</span></button>
-                  </div>
-            </div>
-              </article>`).join('') || '<div class="empty">当前没有待建档图片</div>'}
+            ${unusedImages.map(file => pendingImageItem('func', file)).join('') || '<div class="empty">当前没有待建档图片</div>'}
           </div>
         </div>` : ''}
         <div class="archive-grid func-archive-grid">
@@ -3044,7 +3107,7 @@ function funcItem(card, i) {
   const tags = (card.tags || []).slice(0, 4).map(tag => `<div class="archive-scroll-chip soft-badge">${esc(humanizeTag(tag))}</div>`).join('') || '<span class="helper">未设定效果</span>';
   const deleting = isDeletePending('func', i);
   return `
-    <article class="archive-card func-card rarity-${rarity} ${state.funcPinIncomplete && isFuncCardIncomplete(card) ? 'incomplete-pinned' : ''}">
+    <article class="archive-card func-card rarity-${rarity} ${state.funcPinIncomplete && isFuncCardIncomplete(card) ? 'incomplete-pinned' : ''}${deleting ? ' delete-pending' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="功能牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
         <div class="archive-title">${esc(card.card_name || '未命名功能牌')}</div>
@@ -3758,8 +3821,12 @@ async function uploadImages(endpoint, onReload, onRender, successText) {
   };
   input.click();
 }
-async function deleteAsset(apiBase, file, onReload, onRender) {
-  if (!confirm(`确认删除图片 ${file} 吗？`)) return;
+async function confirmDeleteAsset(kind, file) {
+  if (!isAssetDeletePending(kind, file)) return;
+  state.pendingAssetDelete = { kind: '', file: '' };
+  const apiBase = kind === 'fate' ? '/api/fate_images' : '/api/images';
+  const onReload = kind === 'fate' ? loadFate : loadCards;
+  const onRender = kind === 'fate' ? renderFate : renderCards;
   const res = await apiDelete(`${apiBase}/${encodeURIComponent(file)}`);
   if (res.ok) {
     await onReload();
@@ -4151,10 +4218,10 @@ async function uploadFuncImages() {
   return uploadImages('/api/upload_image', loadCards, renderCards, '功能牌图片批量上传完成。');
 }
 async function deleteFuncImage(file) {
-  return deleteAsset('/api/images', file, loadCards, renderCards);
+  requestAssetDelete('func', file);
 }
 async function deleteFateImage(file) {
-  return deleteAsset('/api/fate_images', file, loadFate, renderFate);
+  requestAssetDelete('fate', file);
 }
 async function refreshCardAssets(show = true) {
   await Promise.all([loadCards(), loadFate()]);
@@ -4250,7 +4317,9 @@ Object.assign(window, {
 
   saveFuncCards,
   saveTitles,
-  deleteTitle,
+  requestTitleDelete,
+  cancelTitleDelete,
+  confirmDeleteTitle,
     duplicateTitle,
     openTitleEditor,
     returnToTitleEditor,
@@ -4280,6 +4349,9 @@ Object.assign(window, {
     executeAutoBind,
 
     uploadFuncImages,
+  requestAssetDelete,
+  cancelAssetDelete,
+  confirmDeleteAsset,
   deleteFuncImage,
   deleteFateImage,
   refreshCardAssets,

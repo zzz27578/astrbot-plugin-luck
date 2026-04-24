@@ -53,6 +53,33 @@ from .logic_gate import (
     GATE_TOGGLE_CARD,
 )
 
+
+def _is_group_participant(user_info: dict) -> bool:
+    if not isinstance(user_info, dict):
+        return False
+    return any([
+        int(user_info.get("total_sign_in_days", user_info.get("sign_in_count", 0)) or 0) > 0,
+        bool(str(user_info.get("last_date", "")).strip()),
+        int(user_info.get("total_gold", user_info.get("gold", 0)) or 0) != 0,
+        bool(user_info.get("inventory")),
+        bool(user_info.get("titles")),
+        int(user_info.get("total_func_cards_drawn", 0) or 0) > 0,
+        int(user_info.get("total_fate_card_draws", 0) or 0) > 0,
+    ])
+
+
+def _filter_participant_uids(all_users: dict, exclude: set | None = None) -> list[str]:
+    excluded = {str(uid) for uid in (exclude or set())}
+    result = []
+    for uid, data in (all_users or {}).items():
+        uid_text = str(uid)
+        if uid_text in excluded:
+            continue
+        if _is_group_participant(data):
+            result.append(uid_text)
+    return result
+
+
 class CardEngine:
     def __init__(self):
         self.last_aoe_events = []
@@ -416,7 +443,7 @@ class CardEngine:
                 _, min_val, max_val = tag.split(":")
                 min_val, max_val = int(min_val), int(max_val)
                 target_uid = self._find_uid_by_data(all_users, target_data)
-                valid_helpers = [uid for uid in all_users.keys() if uid != source_uid and uid != target_uid]
+                valid_helpers = _filter_participant_uids(all_users, {source_uid, target_uid})
                 helper_name = "一名路过的群友"
                 if valid_helpers:
                     helper_uid = random.choice(valid_helpers)
@@ -503,7 +530,7 @@ class CardEngine:
                 _, min_val, max_val, count = tag.split(":")
                 min_val, max_val, count = int(min_val), int(max_val), int(count)
                 
-                valid_targets = [uid for uid in all_users.keys() if uid != source_uid]
+                valid_targets = _filter_participant_uids(all_users, {source_uid})
                 selected = random.sample(valid_targets, min(count, len(valid_targets)))
                 
                 if not selected:
@@ -570,7 +597,7 @@ class CardEngine:
                 _, min_val, max_val, count = tag.split(":")
                 min_val, max_val, count = int(min_val), int(max_val), int(count)
                 
-                valid_targets = [uid for uid in all_users.keys() if uid != source_uid]
+                valid_targets = _filter_participant_uids(all_users, {source_uid})
                 selected_others = random.sample(valid_targets, min(count - 1, len(valid_targets)))
                 selected = [source_uid] + selected_others
                 
@@ -597,7 +624,7 @@ class CardEngine:
                 _, count = tag.split(":")
                 count = max(1, int(count))
 
-                valid_targets = [uid for uid in all_users.keys() if uid != source_uid]
+                valid_targets = _filter_participant_uids(all_users, {source_uid})
                 selected_others = random.sample(valid_targets, min(max(0, count - 1), len(valid_targets)))
                 selected = [source_uid] + selected_others
 

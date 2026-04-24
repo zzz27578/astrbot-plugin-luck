@@ -48,6 +48,71 @@ PUBLIC_DUEL_STAKE_MIN = 1
 PUBLIC_DUEL_STAKE_MAX = 1000000
 
 
+def _normalize_card_lookup_name(name: str) -> str:
+    text = str(name or "").strip().lower()
+    text = re.sub(r"[\s\[\]【】()（）<>《》「」『』\"'`]+", "", text)
+    text = re.sub(r"[·•,，.。!！?？:：;；/\\|_-]+", "", text)
+    return text
+
+
+def _card_name_matches(candidate: str, requested: str) -> bool:
+    candidate_text = str(candidate or "").strip()
+    requested_text = str(requested or "").strip()
+    if not candidate_text or not requested_text:
+        return False
+    if candidate_text == requested_text:
+        return True
+    return _normalize_card_lookup_name(candidate_text) == _normalize_card_lookup_name(requested_text)
+
+
+def _find_inventory_card_index(inventory: list, requested_name: str) -> int:
+    for idx, card in enumerate(inventory or []):
+        if _card_name_matches(card.get("card_name"), requested_name):
+            return idx
+    return -1
+
+
+def _find_card_config_by_name(cards_config: list, requested_name: str) -> dict | None:
+    for card in cards_config or []:
+        if _card_name_matches(card.get("card_name"), requested_name):
+            return card
+    return None
+
+
+def _parse_action_card_name(raw_text: str, action: str) -> str:
+    text = str(raw_text or "").replace("\u3000", " ").strip()
+    if text.startswith(action):
+        text = text[len(action):].strip()
+    text = re.sub(r"\s*@\S+\s*$", "", text).strip()
+    text = re.sub(r"\s*随机\s*$", "", text).strip()
+    return text
+
+
+def _is_group_participant(user_info: dict) -> bool:
+    if not isinstance(user_info, dict):
+        return False
+    return any([
+        int(user_info.get("total_sign_in_days", user_info.get("sign_in_count", 0)) or 0) > 0,
+        bool(str(user_info.get("last_date", "")).strip()),
+        int(user_info.get("total_gold", user_info.get("gold", 0)) or 0) != 0,
+        bool(user_info.get("inventory")),
+        bool(user_info.get("titles")),
+        int(user_info.get("total_func_cards_drawn", 0) or 0) > 0,
+        int(user_info.get("total_fate_card_draws", 0) or 0) > 0,
+    ])
+
+
+def _filter_group_participants(all_users: dict, source_uid: str | None = None) -> dict:
+    filtered = {}
+    for uid, data in (all_users or {}).items():
+        uid_text = str(uid)
+        if source_uid is not None and uid_text == str(source_uid):
+            continue
+        if _is_group_participant(data):
+            filtered[uid_text] = data
+    return filtered
+
+
 def _format_title_effect_desc(title_name: str, config: dict | None = None) -> str:
     info = TitleEngine.get_title_info(title_name, config)
     effects = TitleEngine.describe_effects(info.get("effects", []))
@@ -1291,6 +1356,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
 async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: str):
     user_id = event.get_sender_id()
     user_name = event.get_sender_name()
+    target_card_name = str(target_card_name or "").strip()
 
     if not target_card_name:
         yield event.plain_result("⚠️ 请指定要丢弃的卡牌名。例如：/luck 丢弃 掠夺之手")
@@ -1303,11 +1369,7 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
         yield event.plain_result(f"📭 {user_name}，你的战术卡槽空空如也，无牌可丢。")
         return
 
-        found_index = -1
-    for i, card in enumerate(inventory):
-        if card.get("card_name") == target_card_name:
-            found_index = i
-            break
+    found_index = _find_inventory_card_index(inventory, target_card_name)
 
     if found_index != -1:
         discarded_card = inventory.pop(found_index)
@@ -1333,11 +1395,10 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     today = datetime.now().strftime("%Y-%m-%d")
 
     raw_text = event.message_str.replace("/luck", "").strip()
-    match = re.search(r"使用\s*([^\s@]+)", raw_text)
-    if not match:
+    target_card_name = _parse_action_card_name(raw_text, "使用")
+    if not target_card_name:
         yield event.plain_result("⚠️ 咒语格式错误。\n👉 举例：/luck 使用绝对零度@某人\n👉 也支持：/luck 使用 绝对零度 @某人\n👉 群攻：/luck 使用南蛮入侵")
         return
-    target_card_name = match.group(1).strip()
 
     user_data = await bank.get_user_data(user_id, user_name)
     TitleEngine.ensure_user_title_fields(user_data)
@@ -1353,15 +1414,13 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         return
 
     inventory = user_data.get("inventory", [])
-    found_index = -1
-    for i, card in enumerate(inventory):
-        if card.get("card_name") == target_card_name:
-            found_index = i
-            break
+    found_index = _find_inventory_card_index(inventory, target_card_name)
             
     if found_index == -1:
         yield event.plain_result(f"❓ 你的卡槽中并未发现 [{target_card_name}]。")
         return
+
+    target_card_name = str(inventory[found_index].get("card_name", "") or target_card_name).strip() or target_card_name
         
     # 💡 战损拦截：破烂的牌无法被使用
     if inventory[found_index].get("is_broken", False):
@@ -1370,9 +1429,9 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
     cards_config = load_func_cards_config(config)
     raw_cards_config = load_func_cards_config(config, include_disabled_dice=True)
-    card_cfg = next((c for c in cards_config if c.get("card_name") == target_card_name), None)
+    card_cfg = _find_card_config_by_name(cards_config, target_card_name)
     if not card_cfg:
-        raw_cfg = next((c for c in raw_cards_config if c.get("card_name") == target_card_name), None)
+        raw_cfg = _find_card_config_by_name(raw_cards_config, target_card_name)
         if raw_cfg and _is_dice_card_by_tags(raw_cfg.get("tags", [])) and not (config or {}).get("func_cards_settings", {}).get("enable_dice_cards", True):
             yield event.plain_result("🎲 当前已关闭骰子玩法，无法使用该骰子功能牌。")
             return
@@ -1393,6 +1452,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     target_name = None
     is_random = False
     all_users = await bank.get_all_users()
+    participant_users = _filter_group_participants(all_users, user_id)
     target_data = None
 
     if not is_aoe:
@@ -1413,13 +1473,13 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
                 return
             
             if is_random:
-                valid_targets = [uid for uid in all_users.keys() if uid != user_id]
+                valid_targets = list(participant_users.keys())
                 if not valid_targets:
                     yield event.plain_result("⚠️ 虚空之中空无一人，找不到可以盲打的目标！")
                     return
                 target_id = random.choice(valid_targets)
                 # 💡 修复：强制真名盲打播报
-                target_name = all_users[target_id].get("name", f"群友({target_id})")
+                target_name = participant_users.get(target_id, {}).get("name", all_users.get(target_id, {}).get("name", f"群友({target_id})"))
                 yield event.plain_result(f"🎲 命运的轮盘开始转动... 法术锁定了盲打目标：{target_name}！")
 
         elif card_type == "heal":
@@ -1431,12 +1491,14 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             return
 
         # 💡 修复：确保无论是不是盲打，获取的都是真名
+        target_info = all_users.get(target_id, {}) if target_id else {}
+        if target_id in participant_users:
+            target_info = participant_users[target_id]
         if target_id in all_users:
-            real_target_name = all_users[target_id].get("name", target_name or f"群友({target_id})")
+            real_target_name = target_info.get("name", target_name or f"群友({target_id})")
         else:
             real_target_name = target_name or f"群友({target_id})"
-
-            target_data = await bank.get_user_data(target_id, real_target_name)
+        target_data = await bank.get_user_data(target_id, real_target_name)
 
     else:
         target_id = "AOE"
@@ -1552,9 +1614,8 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
 
 
-        evil_bonus = 0
-        title_effects = TitleEngine.calculate_effects(user_data, config)
-
+    evil_bonus = 0
+    title_effects = TitleEngine.calculate_effects(user_data, config)
     karma_report = ""
     if card_type == "attack":
         if user_data.get("last_attack_date") != today:
@@ -1671,13 +1732,12 @@ async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_act
     
     action_str = "启用" if is_activate else "停用"
     raw_text = event.message_str.replace("/luck", "").strip()
-    match = re.search(rf"{action_str}\s*([^\s]+)", raw_text)
-    
-    if not match:
+    target_card_name = _parse_action_card_name(raw_text, action_str)
+
+    if not target_card_name:
         yield event.plain_result(f"⚠️ 格式错误。正确格式：/luck {action_str}卡牌名（或 /luck {action_str} 卡牌名）")
         return
-        
-    target_card_name = match.group(1).strip()
+
     user_data = await bank.get_user_data(user_id, user_name)
     
     blocked_by = find_gate_block(user_data, GATE_TOGGLE_CARD)
@@ -1693,52 +1753,55 @@ async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_act
     if _sync_expired_defense_cards(user_data, config):
         await bank.save_user_data()
 
-    for card in inventory:
+    found_index = _find_inventory_card_index(inventory, target_card_name)
+    if found_index == -1:
+        yield event.plain_result(f"❓ 你的卡槽中并未发现 [{target_card_name}]。")
+        return
 
-        if card.get("card_name") == target_card_name:
-            
-            # 💡 战损拦截：破烂的牌不能挂载
-            if card.get("is_broken", False):
-                yield event.plain_result(f"⚠️ 你的 [{target_card_name}] 已经销毁，无法再作为法阵阵眼！请先丢弃它。")
-                return
+    card = inventory[found_index]
+    target_card_name = str(card.get("card_name", "") or target_card_name).strip() or target_card_name
 
-            if card.get("is_active") == is_activate:
-                yield event.plain_result(f"⚠️ [{target_card_name}] 已经处于该状态了。")
-                return
-                
-            cards_config = load_func_cards_config(config)
+    # 💡 战损拦截：破烂的牌不能挂载
+    if card.get("is_broken", False):
+        yield event.plain_result(f"⚠️ 你的 [{target_card_name}] 已经销毁，无法再作为法阵阵眼！请先丢弃它。")
+        return
 
-            card_cfg = next((c for c in cards_config if c.get("card_name") == target_card_name), {})
-            
-            if card_cfg.get("type") != "defense":
-                yield event.plain_result("⚠️ 只有【防御牌】才能被挂载到状态栏。")
-                return
-            
-            engine = CardEngine()
-            if is_activate:
-                await engine.execute_tags(user_data, user_data, card_cfg.get("tags", []))
-                card["is_active"] = True
-                msg = f"🛡️ 阵法流转！[{target_card_name}] 已成功挂载至你的状态栏，时刻警戒四周。"
-            else:
-                # 根据防御牌词条，卸载对应状态
-                remove_names = []
-                for tag in card_cfg.get("tags", []):
-                    if tag == "add_shield":
-                        remove_names.append("无懈可击")
-                    elif tag.startswith("thorn_armor:"):
-                        remove_names.append("反甲")
+    if card.get("is_active") == is_activate:
+        yield event.plain_result(f"⚠️ [{target_card_name}] 已经处于该状态了。")
+        return
+        
+    cards_config = load_func_cards_config(config)
+    card_cfg = _find_card_config_by_name(cards_config, target_card_name) or {}
+    
+    if card_cfg.get("type") != "defense":
+        yield event.plain_result("⚠️ 只有【防御牌】才能被挂载到状态栏。")
+        return
+    
+    engine = CardEngine()
+    if is_activate:
+        await engine.execute_tags(user_data, user_data, card_cfg.get("tags", []))
+        card["is_active"] = True
+        msg = f"🛡️ 阵法流转！[{target_card_name}] 已成功挂载至你的状态栏，时刻警戒四周。"
+    else:
+        # 根据防御牌词条，卸载对应状态
+        remove_names = []
+        for tag in card_cfg.get("tags", []):
+            if tag == "add_shield":
+                remove_names.append("无懈可击")
+            elif tag.startswith("thorn_armor:"):
+                remove_names.append("反甲")
 
-                if remove_names:
-                    user_data["statuses"] = [
-                        st for st in user_data.get("statuses", [])
-                        if st.get("name") not in set(remove_names)
-                    ]
+        if remove_names:
+            user_data["statuses"] = [
+                st for st in user_data.get("statuses", [])
+                if st.get("name") not in set(remove_names)
+            ]
 
-                card["is_active"] = False
-                msg = f"🎐 灵力收回，[{target_card_name}] 已从你的状态栏卸载，重回卡槽休眠。"
-                
-            await bank.save_user_data()
-            yield event.plain_result(msg)
-            return
+        card["is_active"] = False
+        msg = f"🎐 灵力收回，[{target_card_name}] 已从你的状态栏卸载，重回卡槽休眠。"
+        
+    await bank.save_user_data()
+    yield event.plain_result(msg)
+    return
 
     yield event.plain_result(f"❓ 你的卡槽中并未发现 [{target_card_name}]。")

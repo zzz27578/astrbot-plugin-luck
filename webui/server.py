@@ -1245,6 +1245,13 @@ async def api_get_user_stats(request):
     """按方案汇总只读用户数据，供概率分析和持牌检测用"""
     try:
         profile_id = _get_request_profile_id(request)
+        profile_paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+        func_cards = _normalize_func_cards(_read_json(profile_paths["func_cards_file"], []))
+        rarity_by_name = {
+            str(card.get("card_name", "")).strip(): max(1, min(5, _safe_int(card.get("rarity", 1), 1)))
+            for card in func_cards
+            if isinstance(card, dict) and str(card.get("card_name", "")).strip()
+        }
         stats = {
             "total_groups": 0,
             "total_users": 0,
@@ -1276,12 +1283,23 @@ async def api_get_user_stats(request):
             group_gold = 0
             group_cards = 0
             group_sign_ins = 0
+            group_active_users = 0
             
             for uid, info in data.items():
-                gold = _safe_int(info.get("gold", 0), 0)
-                sign_ins = _safe_int(info.get("sign_in_count", 0), 0)
+                gold = _safe_int(info.get("total_gold", info.get("gold", 0)), 0)
+                sign_ins = _safe_int(info.get("total_sign_in_days", info.get("sign_in_count", 0)), 0)
                 inventory = info.get("inventory", [])
                 cards_count = len(inventory) if isinstance(inventory, list) else 0
+                last_date = str(info.get("last_date", "") or "").strip()
+                titles = info.get("titles", [])
+                display_name = str(info.get("name", "") or "").strip() or f"群友({uid})"
+                is_active_user = any([
+                    sign_ins > 0,
+                    bool(last_date),
+                    gold != 0,
+                    cards_count > 0,
+                    bool(titles),
+                ])
                 
                 stats["total_gold"] += gold
                 stats["total_cards_issued"] += cards_count
@@ -1290,8 +1308,9 @@ async def api_get_user_stats(request):
                 group_cards += cards_count
                 group_sign_ins += sign_ins
                 
-                if sign_ins > 0:
+                if is_active_user:
                     stats["active_users"] += 1
+                    group_active_users += 1
 
                 for card in inventory:
                     if isinstance(card, dict):
@@ -1299,13 +1318,13 @@ async def api_get_user_stats(request):
                         if cname:
                             stats["card_holders"][cname] = stats["card_holders"].get(cname, 0) + 1
 
-                        r = str(card.get("rarity", 1))
-                        if r in stats["rarity_distribution"]:
-                            stats["rarity_distribution"][r] += 1
+                        rarity = rarity_by_name.get(cname, max(1, min(5, _safe_int(card.get("rarity", 1), 1))))
+                        rarity_key = str(rarity)
+                        if rarity_key in stats["rarity_distribution"]:
+                            stats["rarity_distribution"][rarity_key] += 1
                         else:
                             stats["rarity_distribution"]["1"] += 1
                             
-                titles = info.get("titles", [])
                 if isinstance(titles, list):
                     for t in titles:
                         tname = str(t.get("name", t) if isinstance(t, dict) else t).strip()
@@ -1314,24 +1333,28 @@ async def api_get_user_stats(request):
 
                 stats["wealth_leaderboard"].append({
                     "uid": str(uid),
+                    "name": display_name,
                     "gold": gold,
-                    "cards": cards_count
+                    "cards": cards_count,
+                    "sign_ins": sign_ins,
                 })
                 
             stats["groups"].append({
                 "group_id": group_dir.name, 
                 "user_count": len(data),
                 "group_gold": group_gold,
-                "group_sign_ins": group_sign_ins
+                "group_cards": group_cards,
+                "group_sign_ins": group_sign_ins,
+                "active_users": group_active_users,
             })
             stats["total_users"] += len(data)
             
         # 财富排行榜排序并截取 Top 50
-        stats["wealth_leaderboard"].sort(key=lambda x: x["gold"], reverse=True)
+        stats["wealth_leaderboard"].sort(key=lambda x: (x["gold"], x["cards"], x["sign_ins"]), reverse=True)
         stats["wealth_leaderboard"] = stats["wealth_leaderboard"][:50]
         
         # 群组排行榜按总金币或活跃度排序
-        stats["groups"].sort(key=lambda x: x["group_gold"], reverse=True)
+        stats["groups"].sort(key=lambda x: (x["group_sign_ins"], x["group_gold"], x["active_users"]), reverse=True)
         
         return web.json_response({"ok": True, "stats": stats})
     except Exception as e:

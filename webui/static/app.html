@@ -2247,21 +2247,55 @@ function renderFate() {
                     </div>
         </div>
                 <div class="filter-bar">
-          <div class="filter-search">
-            <input class="input" placeholder="搜索名称、文案、金币值或图片文件名" value="${esc(keyword)}" oninput="setFateSearchKeyword(this.value)">
-          </div>
-                    <div class="filter-row-main">
-            <div class="filter-side-info">
-              <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
-              <div class="filter-summary">缺名称牌数 ${namelessCount}</div>
-            </div>
-          </div>
-        </div>
-        <div class="archive-grid">
+                  <div class="filter-search">
+                    <input class="input" placeholder="搜索名称、文案、金币值或图片文件名" value="${esc(keyword)}" oninput="setFateSearchKeyword(this.value)">
+                  </div>
+                            <div class="filter-row-main">
+                              <div class="filter-side-info">
+                                <button class="btn-green" onclick="autoBindMissingImages('fate')"><span class="btn-text">自动绑定空置图片</span></button>
+                                <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
+                                <div class="filter-summary">缺名称牌数 ${namelessCount}</div>
+                    </div>
+                  </div>
+                </div>
+                ${(state.draftFateCards && state.draftFateCards.length) ? `
+                <div class="archive-index-group" style="margin-bottom:14px; border: 2px dashed rgba(243, 156, 18, 0.6); padding: 16px; background: rgba(243, 156, 18, 0.05);">
+                  <div class="archive-index-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <span style="color:#f39c12; font-weight:800; font-size:14px;">⚠️ 待入档草稿区 (${state.draftFateCards.length}张)</span>
+                    <div style="display:flex; gap:8px;">
+                      <button class="btn-strong" style="border-color:#f39c12;" onclick="applyDrafts('fate')"><span class="btn-text">全部入库</span></button>
+                      <button class="btn-danger" onclick="clearDrafts('fate')"><span class="btn-text">清空草稿</span></button>
+                    </div>
+                  </div>
+                  <div class="archive-grid">
+                    ${state.draftFateCards.map((card, i) => fateDraftItem(card, i)).join('')}
+                  </div>
+                </div>` : ''}
+                <div class="archive-grid">
           ${visibleCards.map(({ card, i }) => fateItem(card, i)).join('') || '<div class="empty">暂无命运牌</div>'}
         </div>
       </section>
     </div>`;
+}
+
+function fateDraftItem(card, i) {
+  const has = !!card.filename;
+  const src = has ? `/lazy_assets/fate/${encodeURIComponent(card.filename)}` : '';
+  return `
+    <article class="archive-card">
+      <div class="archive-cover">${has ? `<img src="${src}" onerror="this.src='/fate_assets/${encodeURIComponent(card.filename)}'">` : '未绑定图片'}</div>
+      <div class="archive-body">
+        <div class="archive-title">${esc(card.name || '未命名命运牌')}</div>
+        <div class="archive-meta">
+          <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
+          <span class="badge">草稿</span>
+        </div>
+        <div class="archive-desc">${esc(card.text || '当前还没有文案。')}</div>
+        <div class="archive-actions" style="grid-template-columns:1fr;">
+          <div class="helper" style="text-align:center;">请在顶部点击“全部入库”以保存。</div>
+        </div>
+      </div>
+    </article>`;
 }
 
 function fateItem(card, i) {
@@ -2788,13 +2822,27 @@ function renderCards() {
                             ${categoryOptions.map(item => `<button class="filter-chip ${filter === item.value ? 'active' : ''}" onclick="setFuncFilter('${esc(item.value)}')">${esc(item.label)}</button>`).join('')}
               <button class="filter-chip filter-chip-add" onclick="createFuncCategoryPrompt()">新增类别</button>
             </div>
-            <div class="filter-side-info">
+                        <div class="filter-side-info">
+              <button class="btn-green" onclick="autoBindMissingImages('func')"><span class="btn-text">自动绑定空置图片</span></button>
               <div class="filter-summary">当前显示 ${filteredEntries.length} / ${state.funcCards.length}</div>
               <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
               <button class="${state.funcPinIncomplete ? 'btn-danger' : 'btn'} ${state.funcPinIncomplete ? 'glow-red' : ''}" onclick="bringIncompleteFuncCardsToFront()"><span class="btn-text">未完成置顶</span></button>
             </div>
           </div>
         </div>
+        ${(state.draftFuncCards && state.draftFuncCards.length) ? `
+        <div class="archive-index-group" style="margin-bottom:14px; border: 2px dashed rgba(243, 156, 18, 0.6); padding: 16px; background: rgba(243, 156, 18, 0.05);">
+          <div class="archive-index-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="color:#f39c12; font-weight:800; font-size:14px;">⚠️ 待入档功能牌草稿 (${state.draftFuncCards.length}张)</span>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-strong" style="border-color:#f39c12;" onclick="applyDrafts('func')"><span class="btn-text">全部入库</span></button>
+              <button class="btn-danger" onclick="clearDrafts('func')"><span class="btn-text">清空草稿</span></button>
+            </div>
+          </div>
+          <div class="archive-grid func-archive-grid">
+            ${state.draftFuncCards.map((card, i) => funcDraftItem(card, i)).join('')}
+          </div>
+        </div>` : ''}
         ${filter === 'all' ? `
         <div class="archive-index-group" style="margin-bottom:14px;">
           <div class="archive-index-title">待建档图片</div>
@@ -2819,6 +2867,30 @@ function renderCards() {
       </section>
     </div>`;
   renderHeroAux();
+}
+
+function funcDraftItem(card, i) {
+  const has = !!card.filename;
+  const src = has ? `/lazy_assets/func/${encodeURIComponent(card.filename)}` : '';
+  const rarity = Number(card.rarity) || 1;
+  const tags = (card.tags || []).slice(0, 4).map(tag => `<div class="archive-scroll-chip soft-badge">${esc(humanizeTag(tag))}</div>`).join('') || '<span class="helper">未设定效果</span>';
+  return `
+    <article class="archive-card func-card rarity-${rarity}">
+      <div class="archive-cover">${has ? `<img src="${src}" onerror="this.src='/assets/${encodeURIComponent(card.filename)}'">` : '未绑定图片'}</div>
+      <div class="archive-body">
+        <div class="archive-title">${esc(card.card_name || '未命名功能牌')}</div>
+        <div class="archive-meta">
+          <span class="badge rarity-badge rarity-${rarity}">${esc(rarityLabelMap[rarity] || '普通')}</span>
+          <span class="badge">${esc(categoryLabel(card.type))}</span>
+          <span class="badge">草稿</span>
+        </div>
+        <div class="archive-tag-row">${tags}</div>
+        <div class="archive-desc">${esc(card.description || '当前还没有描述。')}</div>
+        <div class="archive-actions" style="grid-template-columns:1fr;">
+          <div class="helper" style="text-align:center;">请在顶部点击“全部入库”以保存。</div>
+        </div>
+      </div>
+    </article>`;
 }
 
 function funcItem(card, i) {
@@ -3733,21 +3805,26 @@ function openLazyBatchDialog(kind) {
     `;
   }
 
-  openDialog(title, `
+    openDialog(title, `
     <div>
-      <div class="panel-note" style="margin-bottom:16px;">将按照你的配置在本地临时生成一批草稿牌。你可以预览后统一保存或撤销。如果本地图库不足将自动尝试调用外部二次元图片接口。</div>
+      <div class="panel-note" style="margin-bottom:16px;">将按照配置在本地生成草稿，可预览后再确认入库。</div>
       <div class="field-grid">
         <div class="field"><label>生成数量</label><input type="number" class="input" id="lazyCount" value="3" min="1" max="10"></div>
       </div>
       <div style="margin-top:12px;">${extraFields}</div>
       <div class="field" style="margin-top:16px;">
-        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyGenPic" checked><span>自动绑定图片（优先已有图库）</span></label>
-        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyGenText" checked><span>自动生成文案</span></label>
-        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyPreferLocal" checked><span>优先复用本地已有图片</span></label>
-        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyAllowRemote" checked><span>本地不足时调用外部图源</span></label>
+        <label>配图来源（单选）</label>
+        <select class="select" id="lazyImageMode">
+          <option value="local">从本地精选图库随机匹配</option>
+          <option value="remote">实时从二次元网络接口抓取 (图存至专属暗格)</option>
+          <option value="none">不配图</option>
+        </select>
+      </div>
+      <div class="field" style="margin-top:16px;">
+        <label class="check-strong" style="min-height:36px;"><input type="checkbox" id="lazyGenText" checked><span>自动生成卡牌说明文案</span></label>
       </div>
       <div class="row" style="margin-top:20px;">
-        <button class="btn-strong" onclick="executeLazyBatch('${kind}')"><span class="btn-text">开始生成</span></button>
+        <button class="btn-strong" onclick="executeLazyBatch('${kind}')"><span class="btn-text">开始生成草稿</span></button>
       </div>
     </div>
   `, 'small');
@@ -3759,12 +3836,10 @@ async function executeLazyBatch(kind) {
   btn.innerHTML = '生成中，请耐心等待...';
   
   const count = Number($('#lazyCount')?.value || 1);
-  const gen_pic = $('#lazyGenPic')?.checked;
+  const image_mode = $('#lazyImageMode')?.value || 'none';
   const gen_text = $('#lazyGenText')?.checked;
-  const prefer_local = $('#lazyPreferLocal')?.checked;
-  const allow_remote = $('#lazyAllowRemote')?.checked;
 
-  let payload = { count, gen_pic, gen_text, prefer_local, allow_remote };
+  let payload = { count, image_mode, gen_text };
   let endpoint = '';
 
   if (kind === 'fate') {
@@ -3783,21 +3858,70 @@ async function executeLazyBatch(kind) {
     const res = await apiPost(endpoint, payload);
     if (!res.ok) throw new Error(res.error || '生成失败');
     
+    // 放入草稿数组，不再直接塞入主池
     if (kind === 'fate') {
-      state.fateCards.unshift(...res.cards);
-      await saveFateCards(false);
+      state.draftFateCards = (state.draftFateCards || []).concat(res.cards);
       renderFate();
     } else {
-      state.funcCards.unshift(...res.cards);
-      await saveFuncCards(false);
-      await refreshCardAssets(false);
+      state.draftFuncCards = (state.draftFuncCards || []).concat(res.cards);
+      renderCards();
     }
     closeDialog();
-    showToast(`成功生成 ${res.cards.length} 张牌并已置顶加入牌库！`);
+    showToast(`成功生成 ${res.cards.length} 张草稿，请在页面顶端审核应用！`);
   } catch(e) {
     showToast(e.message, true);
     btn.disabled = false;
     btn.innerHTML = '重试';
+  }
+}
+
+async function autoBindMissingImages(kind) {
+  const btn = event.currentTarget;
+  const oldHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '绑图中...';
+  try {
+    const res = await apiPost('/api/lazy/auto_bind', { kind });
+    if (!res.ok) throw new Error(res.error || '绑定失败');
+    if (res.changed === 0) {
+      showToast('没有缺少图片且能从本地图库匹配到的牌。');
+    } else {
+      if (kind === 'fate') {
+        state.fateCards = res.cards;
+        renderFate();
+      } else {
+        state.funcCards = res.cards;
+        renderCards();
+      }
+      showToast(`成功为 ${res.changed} 张牌自动绑定了图片！`);
+    }
+  } catch(e) {
+    showToast(e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldHtml;
+  }
+}
+
+function applyDrafts(kind) {
+  if (kind === 'fate') {
+    state.fateCards.unshift(...(state.draftFateCards || []));
+    state.draftFateCards = [];
+    saveFateCards();
+  } else {
+    state.funcCards.unshift(...(state.draftFuncCards || []));
+    state.draftFuncCards = [];
+    saveFuncCards();
+  }
+}
+
+function clearDrafts(kind) {
+  if (kind === 'fate') {
+    state.draftFateCards = [];
+    renderFate();
+  } else {
+    state.draftFuncCards = [];
+    renderCards();
   }
 }
 

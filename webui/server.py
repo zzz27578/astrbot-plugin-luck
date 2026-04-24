@@ -554,88 +554,30 @@ async def _download_lazy_image(session: ClientSession, image_url: str, target_di
         return filename
 
 
-async def api_lazy_match(request):
-    try:
-        body = await request.json() if request.can_read_body else {}
-        if not isinstance(body, dict):
-            body = {}
-        paths, _ = _get_request_runtime_config(request)
-        
-        kind = str(body.get("kind", "")).strip()
-        if kind not in ("fate", "func"):
-            return web.json_response({"ok": False, "error": "invalid kind"}, status=400)
-
-        card = body.get("card", {})
-        gen_pic = bool(body.get("gen_pic", True))
-        gen_text = bool(body.get("gen_text", True))
-        prefer_local = bool(body.get("prefer_local", True))
-        allow_remote = bool(body.get("allow_remote", True))
-
-        if kind == "fate":
-            target_dir = paths["fate_assets_dir"]
-            name = card.get("name", "")
-            text = card.get("text", "")
-            filename = card.get("filename", "")
-            if gen_text and not text:
-                text = await fetch_pure_quote()
-                card["text"] = text
-                if not name:
-                    card["name"] = f"命运·{text[:8]}"
-            if gen_pic and not filename:
-                if prefer_local:
-                    filename = _choose_local_image(target_dir, [name, text])
-                if not filename and allow_remote:
-                    try:
-                        filename = await fetch_random_waifu_image(target_dir, "fate")
-                    except Exception:
-                        pass
-                if not filename and not prefer_local:
-                    filename = _choose_local_image(target_dir, [name, text])
-                card["filename"] = filename
-        else:
-            target_dir = paths["func_assets_dir"]
-            name = card.get("card_name", "")
-            desc = card.get("description", "")
-            filename = card.get("filename", "")
-            if gen_pic and not filename:
-                if prefer_local:
-                    filename = _choose_local_image(target_dir, [name, desc])
-                if not filename and allow_remote:
-                    try:
-                        filename = await fetch_random_waifu_image(target_dir, "func")
-                    except Exception:
-                        pass
-                if not filename and not prefer_local:
-                    filename = _choose_local_image(target_dir, [name, desc])
-                card["filename"] = filename
-        
-        return web.json_response({"ok": True, "card": card})
-    except Exception as e:
-        return web.json_response({"ok": False, "error": str(e)}, status=500)
-
-
 async def api_lazy_batch_fate(request):
     try:
         body = await request.json() if request.can_read_body else {}
         if not isinstance(body, dict):
             body = {}
-        paths, runtime_cfg = _get_request_runtime_config(request)
-        if not runtime_cfg.get("fate_cards_settings", {}).get("enable", True):
-            return web.json_response({"ok": False, "error": "命运牌模块未开启。"}, status=403)
+        paths, _ = _get_request_runtime_config(request)
 
         count = max(1, min(10, _safe_int(body.get("count", 1))))
         gold_min = _safe_int(body.get("gold_min", -20), -20)
         gold_max = _safe_int(body.get("gold_max", 100), 100)
-        gen_pic = bool(body.get("gen_pic", True))
+        image_mode = str(body.get("image_mode", "none")).strip()
         gen_text = bool(body.get("gen_text", True))
-        prefer_local = bool(body.get("prefer_local", True))
-        allow_remote = bool(body.get("allow_remote", True))
+
+        remote_dir = paths["plugin_data_dir"] / "lazy_images" / "fate"
+        local_dir = paths["fate_assets_dir"]
 
         results = []
+        used_texts = set()
+        used_images = set()
         for _ in range(count):
             draft = await build_fate_draft(
-                paths["fate_assets_dir"],
-                gold_min, gold_max, gen_pic, gen_text, prefer_local, allow_remote
+                remote_dir, local_dir,
+                gold_min, gold_max, image_mode, gen_text,
+                used_texts, used_images
             )
             results.append(draft)
         
@@ -649,9 +591,7 @@ async def api_lazy_batch_func(request):
         body = await request.json() if request.can_read_body else {}
         if not isinstance(body, dict):
             body = {}
-        paths, runtime_cfg = _get_request_runtime_config(request)
-        if not runtime_cfg.get("func_cards_settings", {}).get("enable", True):
-            return web.json_response({"ok": False, "error": "功能牌模块未开启。"}, status=403)
+        paths, _ = _get_request_runtime_config(request)
 
         count = max(1, min(10, _safe_int(body.get("count", 1))))
         allowed_types = body.get("allowed_types")
@@ -661,17 +601,19 @@ async def api_lazy_batch_func(request):
         max_tags = max(1, _safe_int(body.get("max_tags", 2), 2))
         max_effect_val = _safe_int(body.get("max_effect_val", 50), 50)
         
-        gen_pic = bool(body.get("gen_pic", True))
+        image_mode = str(body.get("image_mode", "none")).strip()
         gen_text = bool(body.get("gen_text", True))
-        prefer_local = bool(body.get("prefer_local", True))
-        allow_remote = bool(body.get("allow_remote", True))
+
+        remote_dir = paths["plugin_data_dir"] / "lazy_images" / "func"
+        local_dir = paths["func_assets_dir"]
 
         results = []
+        used_images = set()
         for _ in range(count):
             draft = await build_func_draft(
-                paths["func_assets_dir"],
+                remote_dir, local_dir,
                 allowed_types, max_rarity, max_tags, max_effect_val,
-                gen_pic, gen_text, prefer_local, allow_remote
+                image_mode, gen_text, used_images
             )
             results.append(draft)
 
@@ -679,6 +621,40 @@ async def api_lazy_batch_func(request):
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
+
+async def api_lazy_auto_bind(request):
+    try:
+        body = await request.json() if request.can_read_body else {}
+        if not isinstance(body, dict):
+            body = {}
+        paths, _ = _get_request_runtime_config(request)
+        kind = str(body.get("kind", "fate")).strip()
+        
+        if kind == "fate":
+            cards_file = paths["fate_cards_file"]
+            local_dir = paths["fate_assets_dir"]
+            cards = _normalize_fate_cards(_read_json(cards_file, []))
+        else:
+            cards_file = paths["func_cards_file"]
+            local_dir = paths["func_assets_dir"]
+            cards = _normalize_func_cards(_read_json(cards_file, []))
+
+        used_images = {str(c.get("filename", "")) for c in cards if c.get("filename")}
+        changed = 0
+        for c in cards:
+            if not str(c.get("filename", "")).strip():
+                new_file = _choose_local_image(local_dir, used_images)
+                if new_file:
+                    c["filename"] = new_file
+                    used_images.add(new_file)
+                    changed += 1
+
+        if changed > 0:
+            _atomic_write(cards_file, cards)
+            
+        return web.json_response({"ok": True, "changed": changed, "cards": cards})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 # ============================================================================== 
 # API 路由处理
@@ -1317,9 +1293,14 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/group_access", api_save_group_access)
     app.router.add_get("/api/runtime_config", api_get_runtime_config)
     app.router.add_post("/api/runtime_config", api_save_runtime_config)
-    app.router.add_post("/api/lazy/match", api_lazy_match)
     app.router.add_post("/api/lazy/batch_fate", api_lazy_batch_fate)
     app.router.add_post("/api/lazy/batch_func", api_lazy_batch_func)
+    app.router.add_post("/api/lazy/auto_bind", api_lazy_auto_bind)
+
+    # 专门挂载隔离的外网图片目录
+    app.router.add_static("/lazy_assets/fate", BASE_PATHS["plugin_data_dir"] / "lazy_images" / "fate")
+    app.router.add_static("/lazy_assets/func", BASE_PATHS["plugin_data_dir"] / "lazy_images" / "func")
+
     app.router.add_get("/api/fate_cards", api_get_fate_cards)
     app.router.add_post("/api/fate_cards", api_save_fate_cards)
     app.router.add_post("/api/upload_fate_image", api_upload_fate_image)

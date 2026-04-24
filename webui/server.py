@@ -520,8 +520,46 @@ def _seed_blank_profile(paths: dict):
 def _get_request_runtime_config(request) -> tuple[dict, dict]:
     paths = _get_request_profile_paths(request)
     current = _read_json(paths["runtime_config_file"], {})
-    merged = _deep_merge_dict(_default_runtime_config(), current if isinstance(current, dict) else {})
+    merged = _sanitize_runtime_config(current if isinstance(current, dict) else {})
     return paths, merged
+
+
+def _clamp_int(value, default: int, *, minimum: int | None = None, maximum: int | None = None) -> int:
+    try:
+        number = int(value)
+    except Exception:
+        number = int(default)
+    if minimum is not None:
+        number = max(minimum, number)
+    if maximum is not None:
+        number = min(maximum, number)
+    return number
+
+
+def _sanitize_runtime_config(cfg: dict | None) -> dict:
+    merged = _deep_merge_dict(_default_runtime_config(), cfg if isinstance(cfg, dict) else {})
+    func_cfg = merged.setdefault("func_cards_settings", {})
+    func_cfg["public_duel_daily_limit"] = _clamp_int(
+        func_cfg.get("public_duel_daily_limit", 3),
+        3,
+        minimum=1,
+        maximum=50,
+    )
+    duel_min = _clamp_int(
+        func_cfg.get("public_duel_min_stake", 10),
+        10,
+        minimum=1,
+        maximum=1_000_000,
+    )
+    duel_max = _clamp_int(
+        func_cfg.get("public_duel_max_stake", 200),
+        200,
+        minimum=1,
+        maximum=1_000_000,
+    )
+    func_cfg["public_duel_min_stake"] = duel_min
+    func_cfg["public_duel_max_stake"] = max(duel_min, duel_max)
+    return merged
 
 
 def _lazy_title_from_text(text: str, prefix: str, fallback: str, max_len: int = 12) -> str:
@@ -913,7 +951,7 @@ async def api_lazy_batch_fate(request):
             body = {}
         paths, _ = _get_request_runtime_config(request)
 
-        count = max(1, min(10, _safe_int(body.get("count", 1))))
+        count = max(1, min(100, _safe_int(body.get("count", 1))))
         gold_min = _safe_int(body.get("gold_min", -20), -20)
         gold_max = _safe_int(body.get("gold_max", 100), 100)
         image_mode = str(body.get("image_mode", "none")).strip()
@@ -954,7 +992,7 @@ async def api_lazy_batch_func(request):
             body = {}
         paths, _ = _get_request_runtime_config(request)
 
-        count = max(1, min(10, _safe_int(body.get("count", 1))))
+        count = max(1, min(100, _safe_int(body.get("count", 1))))
         allowed_types = body.get("allowed_types")
         if not isinstance(allowed_types, list):
             allowed_types = ["attack", "heal", "defense"]
@@ -1051,7 +1089,7 @@ async def api_get_runtime_config(request):
     try:
         paths = _get_request_profile_paths(request)
         current = _read_json(paths["runtime_config_file"], {})
-        merged = _deep_merge_dict(_default_runtime_config(), current)
+        merged = _sanitize_runtime_config(current)
         return web.json_response({"ok": True, "config": merged})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "config": _default_runtime_config()}, status=500)
@@ -1063,7 +1101,7 @@ async def api_save_runtime_config(request):
         cfg = body.get("config", {})
         if not isinstance(cfg, dict):
             return web.json_response({"ok": False, "error": "config must be object"}, status=400)
-        merged = _deep_merge_dict(_default_runtime_config(), cfg)
+        merged = _sanitize_runtime_config(cfg)
         paths = _get_request_profile_paths(request)
         _atomic_write(paths["runtime_config_file"], merged)
         return web.json_response({"ok": True})

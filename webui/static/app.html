@@ -388,6 +388,14 @@ body.chassis {
   background: var(--shard-surface);
   box-shadow: inset 0 -2px 8px rgba(34, 197, 94, 0.1);
 }
+.input:disabled, .textarea:disabled, .select:disabled {
+  color: rgba(25, 33, 29, 0.55);
+  background: linear-gradient(180deg, rgba(238,242,239,0.92), rgba(230,235,232,0.92));
+  border-color: rgba(148, 160, 153, 0.42);
+  border-bottom-color: rgba(148, 160, 153, 0.58);
+  cursor: not-allowed;
+  box-shadow: none;
+}
 .field { display: grid; gap: 8px; }
 .field label { font-family: var(--font-headline); font-size: 10px; font-weight: 800; color: var(--shard-text-muted); letter-spacing: 1px; text-transform: uppercase; }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
@@ -534,12 +542,26 @@ body.chassis {
 .archive-card::before { content: ''; position: absolute; left: -1px; top: -1px; width: 12px; height: 12px; border-top: 2px solid var(--shard-text); border-left: 2px solid var(--shard-text); transition: 0.3s; pointer-events: none; z-index: 5; }
 .archive-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(57,229,184,0.08); border-color: var(--accent); }
 .archive-card:hover::before { border-color: var(--accent); width: 24px; height: 24px; }
+.archive-index-group { margin-bottom: 18px; border: 1px solid rgba(26, 158, 94, 0.14); background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,247,245,0.96)); padding: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.72); }
+.archive-index-group.archive-index-draft { border: 2px dashed rgba(243, 156, 18, 0.52); background: linear-gradient(180deg, rgba(255,248,236,0.94), rgba(255,244,228,0.88)); }
+.archive-index-title { font-family: var(--font-headline); font-size: 15px; font-weight: 900; color: var(--shard-text); letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+.archive-index-title::before { content: ''; width: 5px; height: 16px; background: var(--accent); display: inline-block; }
+.archive-section-fold { border: 1px solid var(--shard-border); background: var(--shard-surface); }
+.archive-section-fold summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: linear-gradient(180deg, rgba(249,251,250,0.98), rgba(240,244,241,0.98)); border-bottom: 1px solid var(--shard-border); }
+.archive-section-fold summary::-webkit-details-marker { display: none; }
+.archive-section-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.archive-section-title { font-family: var(--font-headline); font-size: 15px; font-weight: 900; color: var(--shard-text); letter-spacing: 1px; }
+.archive-section-meta { font-family: var(--font-headline); font-size: 11px; font-weight: 800; color: var(--shard-text-muted); letter-spacing: 1px; }
+.archive-section-toggle { color: var(--shard-text-muted); font-size: 14px; transition: transform 0.2s ease, color 0.2s ease; }
+.archive-section-fold[open] .archive-section-toggle { transform: rotate(180deg); color: var(--accent); }
+.archive-section-body { padding: 16px; background: rgba(255,255,255,0.66); }
 .archive-cover { aspect-ratio: 3/4; background: var(--shard-bg); border-bottom: 1px solid var(--shard-border); padding: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
 .archive-cover::after { content: 'IMG_DATA'; position: absolute; font-family: var(--font-headline); font-size: 10px; font-weight: 700; color: rgba(0,0,0,0.05); letter-spacing: 2px; }
 .archive-cover img { width: 100%; height: 100%; object-fit: cover; border: 1px solid var(--shard-border); z-index: 1; position: relative; }
 .archive-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
 .archive-title { font-family: var(--font-headline); font-size: 16px; font-weight: 800; color: var(--shard-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .archive-desc { font-size: 12px; color: var(--shard-text-muted); background: var(--shard-bg); padding: 12px; border: 1px solid var(--shard-border); line-height: 1.6; overflow: auto; max-height: 88px; min-height: 88px; word-break: break-word; scrollbar-width: thin; scrollbar-color: rgba(33, 163, 102, 0.28) transparent; }
+.pending-caption { font-size: 13px; line-height: 1.7; color: var(--shard-text-muted); background: linear-gradient(180deg, rgba(247,250,248,0.96), rgba(239,244,241,0.96)); border: 1px solid var(--shard-border); padding: 12px; min-height: 68px; }
 .archive-desc::-webkit-scrollbar, .archive-scroll-chip::-webkit-scrollbar { width: 4px; height: 4px; }
 .archive-desc::-webkit-scrollbar-track, .archive-scroll-chip::-webkit-scrollbar-track { background: transparent; }
 .archive-desc::-webkit-scrollbar-thumb, .archive-scroll-chip::-webkit-scrollbar-thumb { background: rgba(33, 163, 102, 0.22); border-radius: 999px; }
@@ -910,12 +932,14 @@ body.chassis {
 
 /* 运行配置优化 */
 .runtime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; margin-top: 12px; }
-.config-block { transition: all 0.3s ease; position: relative; padding-bottom: 24px; border-bottom: 1px dashed var(--shard-border); margin-bottom: 24px; }
+.config-block { transition: all 0.3s ease; position: relative; padding: 0 0 24px; border-bottom: 1px dashed var(--shard-border); margin-bottom: 24px; }
 .config-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-.config-block.locked { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
-.config-block.locked::after { content: ''; position: absolute; inset: 0; z-index: 10; }
+.config-block.locked { opacity: 0.62; filter: grayscale(0.8); pointer-events: none; }
+.config-block.locked::after { content: '模块未开启'; position: absolute; inset: 8px 0 auto auto; z-index: 10; padding: 4px 10px; border: 1px solid rgba(120, 132, 125, 0.36); background: rgba(240, 243, 241, 0.9); color: rgba(54, 64, 59, 0.68); font-family: var(--font-headline); font-size: 10px; font-weight: 800; letter-spacing: 1px; }
 .config-kicker { font-family: var(--font-headline); font-size: 15px; color: var(--shard-text); letter-spacing: 1px; font-weight: 900; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 .config-kicker::before { content: ''; display: block; width: 4px; height: 14px; background: var(--shard-text); }
+.config-block .runtime-grid { padding: 16px; background: linear-gradient(180deg, rgba(248,250,249,0.96), rgba(241,245,242,0.96)); border: 1px solid var(--shard-border); }
+.config-block.locked .runtime-grid { background: linear-gradient(180deg, rgba(241,244,242,0.92), rgba(233,237,234,0.92)); }
 
 /* 权重分析器：左边填数字，右边图表与数值展示 */
 .rarity-weight-layout { display: flex; gap: 40px; align-items: stretch; background: var(--shard-bg); border: 1px solid var(--shard-border); padding: 24px; border-top: 3px solid var(--shard-text); margin-top: 16px; }
@@ -1407,14 +1431,23 @@ function ensureLazyProgressHud() {
   if ($('#lazyProgressHud')) return;
   const hud = document.createElement('div');
   hud.id = 'lazyProgressHud';
-  hud.style.cssText = 'position:fixed;right:22px;bottom:22px;width:320px;padding:14px 14px 12px;border:1px solid rgba(26,158,94,.35);background:rgba(8,10,9,.94);box-shadow:0 18px 40px rgba(0,0,0,.35);backdrop-filter:blur(8px);z-index:9999;border-radius:10px;color:#e6ede9;display:none;';
+  hud.style.cssText = 'position:fixed;right:22px;bottom:22px;width:332px;padding:14px 14px 12px;border:1px solid rgba(26,158,94,.35);background:rgba(8,10,9,.94);box-shadow:0 18px 40px rgba(0,0,0,.35);backdrop-filter:blur(8px);z-index:9999;border-radius:10px;color:#e6ede9;display:none;';
   hud.innerHTML = `
-    <div id="lazyProgressLabel" style="font-family:var(--font-headline);font-size:12px;letter-spacing:1px;font-weight:800;color:#9fdab6;">懒狗模式生成中</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div id="lazyProgressLabel" style="font-family:var(--font-headline);font-size:12px;letter-spacing:1px;font-weight:800;color:#9fdab6;">懒狗模式生成中</div>
+      <div id="lazyProgressSpinner" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(159,218,182,.22);border-top-color:#9fdab6;animation:lazy-spin .9s linear infinite;flex-shrink:0;"></div>
+    </div>
     <div style="margin-top:8px;height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;">
-      <div id="lazyProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1a9e5e,#9ee37d);transition:width .25s ease;"></div>
+      <div id="lazyProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1a9e5e,#9ee37d);transition:width .42s ease;"></div>
     </div>
     <div id="lazyProgressText" style="margin-top:8px;font-size:12px;color:#b8c5be;">0%</div>`;
   document.body.appendChild(hud);
+  if (!$('#lazyProgressSpinStyle')) {
+    const style = document.createElement('style');
+    style.id = 'lazyProgressSpinStyle';
+    style.textContent = '@keyframes lazy-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+  }
 }
 
 function stopLazyProgress() {
@@ -1442,13 +1475,13 @@ function startLazyProgress(kind, count, imageMode) {
   stopLazyProgress();
   state.lazyProgress.active = true;
   state.lazyProgress.percent = 1;
-  const slowFactor = imageMode === 'remote' ? 11 : imageMode === 'local' ? 6 : 3;
-  const step = Math.max(0.4, 96 / Math.max(12, count * slowFactor));
+  const slowFactor = imageMode === 'remote' ? 22 : imageMode === 'local' ? 13 : 8;
+  const step = Math.max(0.16, 96 / Math.max(34, count * slowFactor));
   setLazyProgress(1, kind === 'fate' ? '命运牌正在生成...' : '功能牌正在生成...');
   state.lazyProgress.timer = setInterval(() => {
     state.lazyProgress.percent = Math.min(99, state.lazyProgress.percent + step);
     setLazyProgress(state.lazyProgress.percent, kind === 'fate' ? '命运牌正在生成...' : '功能牌正在生成...');
-  }, 260);
+  }, 420);
 }
 
 function finishLazyProgress(success = true) {
@@ -2196,7 +2229,7 @@ function renderRuntime() {
   $('#page-runtime').innerHTML = `
     <div class="grid">
       <section class="panel col-4">
-        <div class="panel-head"><div><div class="panel-title">模块开关</div><div class="panel-note">开关打开后，右侧对应参数才会进入可调状态。</div></div></div>
+        <div class="panel-head"><div><div class="panel-title">模块开关</div></div></div>
         ${toggleBox('命运牌系统', '开启后才会启用命运牌相关抽取与每日上限配置。', 'fate_cards_settings.enable', c.fate_cards_settings.enable)}
         ${toggleBox('功能牌系统', '关闭时，功能牌的经济、稀有度和对赌相关配置都会锁定。', 'func_cards_settings.enable', f.enable)}
         ${toggleBox('骰子牌系统', '控制骰子功能牌与相关规则入口是否开放。', 'func_cards_settings.enable_dice_cards', f.enable_dice_cards)}
@@ -2208,7 +2241,6 @@ function renderRuntime() {
         <div class="panel-head">
           <div>
             <div class="panel-title">参数配置</div>
-            <div class="panel-note">左侧总开关未开启时，右侧对应参数区域将锁定变灰不可编辑。输入框已适配工业紧凑布局。</div>
           </div>
           <button class="btn-strong" onclick="saveRuntime()"><span class="btn-text">保存运行配置</span></button>
         </div>
@@ -2234,9 +2266,9 @@ function renderRuntime() {
         <div class="config-block ${duelEnabled ? '' : 'locked'}">
           <div class="config-kicker">公开对赌</div>
           <div class="runtime-grid">
-            ${numField('对赌每日次数', 'func_cards_settings.public_duel_daily_limit', f.public_duel_daily_limit, !duelEnabled)}
-            ${numField('最小赌注', 'func_cards_settings.public_duel_min_stake', f.public_duel_min_stake, !duelEnabled)}
-            ${numField('最大赌注', 'func_cards_settings.public_duel_max_stake', f.public_duel_max_stake, !duelEnabled)}
+            ${numField('对赌每日次数', 'func_cards_settings.public_duel_daily_limit', f.public_duel_daily_limit, !duelEnabled, 'min="1" max="50"')}
+            ${numField('最小赌注', 'func_cards_settings.public_duel_min_stake', f.public_duel_min_stake, !duelEnabled, 'min="1" max="1000000"')}
+            ${numField('最大赌注', 'func_cards_settings.public_duel_max_stake', f.public_duel_max_stake, !duelEnabled, 'min="1" max="1000000"')}
           </div>
         </div>
 
@@ -2261,8 +2293,8 @@ function renderRuntime() {
 function toggleBox(label, desc, path, on) {
   return `<div class="toggle-row"><div class="toggle-copy"><div>${label}</div><div class="helper">${desc}</div></div><div class="toggle-box ${on ? 'on' : ''}" onclick="toggleRuntime('${path}', this)"></div></div>`;
 }
-function numField(label, path, value, disabled = false) {
-  return `<div class="field"><label>${label}</label><input class="input" type="number" value="${esc(value ?? 0)}" ${disabled ? 'disabled' : ''} oninput="setRuntimeValue('${path}', this.value)"></div>`;
+function numField(label, path, value, disabled = false, attrs = '') {
+  return `<div class="field"><label>${label}</label><input class="input" type="number" value="${esc(value ?? 0)}" ${disabled ? 'disabled' : ''} ${attrs} oninput="setRuntimeValue('${path}', this.value)"></div>`;
 }
 function selectField(label, path, value, options, disabled = false) {
   return `<div class="field"><label>${label}</label><select class="select" ${disabled ? 'disabled' : ''} onchange="setRuntimeValue('${path}', this.value)">${options.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(value) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
@@ -2446,7 +2478,7 @@ function renderFate() {
                   </div>
                 </div>
                 ${(state.draftFateCards && state.draftFateCards.length) ? `
-                <div class="archive-index-group" style="margin-bottom:14px; border: 2px dashed rgba(243, 156, 18, 0.6); padding: 16px; background: rgba(243, 156, 18, 0.05);">
+                <div class="archive-index-group archive-index-draft">
                   <div class="archive-index-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                     <span style="color:#f39c12; font-weight:800; font-size:14px;">⚠️ 待入档草稿区 (${state.draftFateCards.length}张)</span>
                     <div style="display:flex; gap:8px;">
@@ -2459,11 +2491,8 @@ function renderFate() {
                   </div>
                 </div>` : ''}
                 ${unusedImages.length ? `
-                <div class="archive-index-group" style="margin-bottom:14px;">
-                  <div class="archive-index-title">待建档图片</div>
-                  <div class="pending-grid">
-                    ${unusedImages.map(file => pendingImageItem('fate', file)).join('')}
-                  </div>
+                <div class="archive-index-group">
+                  ${renderCollapsibleArchiveSection('待建档图片', unusedImages.length, `<div class="pending-grid">${unusedImages.map(file => pendingImageItem('fate', file)).join('')}</div>`, false, '可折叠收起')}
                 </div>` : ''}
                 <div class="archive-grid">
           ${visibleCards.map(({ card, i }) => fateItem(card, i)).join('') || '<div class="empty">暂无命运牌</div>'}
@@ -2534,6 +2563,20 @@ function pendingImageItem(kind, file) {
         </div>
       </div>
     </article>`;
+}
+
+function renderCollapsibleArchiveSection(title, count, innerHtml, open = true, meta = '') {
+  return `
+    <details class="archive-section-fold" ${open ? 'open' : ''}>
+      <summary>
+        <div class="archive-section-head">
+          <div class="archive-section-title">${esc(title)}</div>
+          <div class="archive-section-meta">${esc(meta || `共 ${count} 项`)}</div>
+        </div>
+        <span class="archive-section-toggle">▾</span>
+      </summary>
+      <div class="archive-section-body">${innerHtml}</div>
+    </details>`;
 }
 
 // ===== [ page: cards ] =====================================================
@@ -3048,7 +3091,7 @@ function renderCards() {
           </div>
         </div>
         ${(state.draftFuncCards && state.draftFuncCards.length) ? `
-        <div class="archive-index-group" style="margin-bottom:14px; border: 2px dashed rgba(243, 156, 18, 0.6); padding: 16px; background: rgba(243, 156, 18, 0.05);">
+        <div class="archive-index-group archive-index-draft">
           <div class="archive-index-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <span style="color:#f39c12; font-weight:800; font-size:14px;">⚠️ 待入档功能牌草稿 (${state.draftFuncCards.length}张)</span>
             <div style="display:flex; gap:8px;">
@@ -3061,11 +3104,8 @@ function renderCards() {
           </div>
         </div>` : ''}
         ${filter === 'all' ? `
-        <div class="archive-index-group" style="margin-bottom:14px;">
-          <div class="archive-index-title">待建档图片</div>
-          <div class="pending-grid func-pending-grid">
-            ${unusedImages.map(file => pendingImageItem('func', file)).join('') || '<div class="empty">当前没有待建档图片</div>'}
-          </div>
+        <div class="archive-index-group">
+          ${renderCollapsibleArchiveSection('待建档图片', unusedImages.length, `<div class="pending-grid func-pending-grid">${unusedImages.map(file => pendingImageItem('func', file)).join('') || '<div class="empty">当前没有待建档图片</div>'}</div>`, false, '可折叠收起')}
         </div>` : ''}
         <div class="archive-grid func-archive-grid">
           ${filteredEntries.map(entry => funcItem(entry.card, entry.index)).join('') || '<div class="empty">当前筛选下没有功能牌</div>'}
@@ -4038,9 +4078,9 @@ function openLazyBatchDialog(kind) {
 
     openDialog(title, `
     <div>
-      <div class="panel-note" style="margin-bottom:16px;">将按照配置在本地生成草稿，可预览后再确认入库。</div>
+      <div class="panel-note" style="margin-bottom:16px;">单次最多生成 100 张草稿。更建议少次操作、单次多量，生成期间无需反复刷新页面。</div>
       <div class="field-grid">
-        <div class="field"><label>生成数量</label><input type="number" class="input" id="lazyCount" value="3" min="1" max="10"></div>
+        <div class="field"><label>生成数量</label><input type="number" class="input" id="lazyCount" value="3" min="1" max="100"></div>
       </div>
       <div style="margin-top:12px;">${extraFields}</div>
       <div class="field" style="margin-top:16px;">
@@ -4066,9 +4106,12 @@ async function executeLazyBatch(kind) {
   btn.disabled = true;
   btn.innerHTML = '生成中，请耐心等待...';
   
-  const count = Number($('#lazyCount')?.value || 1);
+  const rawCount = Number($('#lazyCount')?.value || 1);
+  const count = Number.isFinite(rawCount) ? Math.max(1, Math.min(100, Math.floor(rawCount))) : 1;
   const image_mode = $('#lazyImageMode')?.value || 'none';
   const gen_text = $('#lazyGenText')?.checked;
+
+  if ($('#lazyCount')) $('#lazyCount').value = String(count);
 
   let payload = { count, image_mode, gen_text };
   let endpoint = '';

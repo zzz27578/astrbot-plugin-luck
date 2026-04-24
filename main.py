@@ -38,6 +38,18 @@ def _load_runtime_override(runtime_config_file: str) -> dict:
         return {}
 
 
+def _normalize_public_duel_runtime(config: dict) -> dict:
+    merged = dict(config or {})
+    func_cfg = dict(merged.get("func_cards_settings", {}) or {})
+    duel_cfg = m_func_cards._get_public_duel_settings(merged)
+    func_cfg["enable_public_duel_mode"] = duel_cfg["enabled"]
+    func_cfg["public_duel_daily_limit"] = duel_cfg["daily_limit"]
+    func_cfg["public_duel_min_stake"] = duel_cfg["min_stake"]
+    func_cfg["public_duel_max_stake"] = duel_cfg["max_stake"]
+    merged["func_cards_settings"] = func_cfg
+    return merged
+
+
 def _extract_group_id(event: AstrMessageEvent) -> str | None:
     """尽可能兼容不同 AstrBot 版本/适配器的群号提取。"""
     candidates = []
@@ -188,7 +200,7 @@ class LuckPlugin(Star):
         """按群读取运行时配置，确保用户数据与配置方案双重隔离。"""
         runtime_ctx = get_runtime_context(group_id, self.name or PLUGIN_NAME)
         runtime_override = _load_runtime_override(str(runtime_ctx["runtime_config_file"]))
-        merged_config = _deep_merge_dict(self._base_config, runtime_override)
+        merged_config = _normalize_public_duel_runtime(_deep_merge_dict(self._base_config, runtime_override))
         merged_config["_storage_paths"] = runtime_ctx
         merged_config["_group_id"] = str(group_id)
         merged_config["_profile_name"] = str(runtime_ctx["active_profile_name"])
@@ -527,11 +539,11 @@ class LuckPlugin(Star):
         fate_enabled = current_config.get("fate_cards_settings", {}).get("enable", True)
         func_enabled = current_config.get("func_cards_settings", {}).get("enable", True)
         dice_cards_enabled = current_config.get("func_cards_settings", {}).get("enable_dice_cards", True)
-        duel_cfg = current_config.get("func_cards_settings", {})
-        duel_enabled = duel_cfg.get("enable_public_duel_mode", duel_cfg.get("enable_pure_dice_mode", False))
-        duel_limit = int(duel_cfg.get("public_duel_daily_limit", duel_cfg.get("pure_dice_daily_limit", 3)) or 3)
-        duel_min = int(duel_cfg.get("public_duel_min_stake", 10) or 10)
-        duel_max = int(duel_cfg.get("public_duel_max_stake", 200) or 200)
+        duel_cfg = m_func_cards._get_public_duel_settings(current_config)
+        duel_enabled = duel_cfg["enabled"]
+        duel_limit = duel_cfg["daily_limit"]
+        duel_min = duel_cfg["min_stake"]
+        duel_max = duel_cfg["max_stake"]
 
         lines = [
             "📖 /luck 指令菜单（完整版）",
@@ -581,11 +593,11 @@ class LuckPlugin(Star):
         fate_enabled = current_config.get("fate_cards_settings", {}).get("enable", True)
         func_enabled = current_config.get("func_cards_settings", {}).get("enable", True)
         dice_cards_enabled = current_config.get("func_cards_settings", {}).get("enable_dice_cards", True)
-        duel_cfg = current_config.get("func_cards_settings", {})
-        duel_enabled = duel_cfg.get("enable_public_duel_mode", duel_cfg.get("enable_pure_dice_mode", False))
-        duel_limit = int(duel_cfg.get("public_duel_daily_limit", duel_cfg.get("pure_dice_daily_limit", 3)) or 3)
-        duel_min = int(duel_cfg.get("public_duel_min_stake", 10) or 10)
-        duel_max = int(duel_cfg.get("public_duel_max_stake", 200) or 200)
+        duel_cfg = m_func_cards._get_public_duel_settings(current_config)
+        duel_enabled = duel_cfg["enabled"]
+        duel_limit = duel_cfg["daily_limit"]
+        duel_min = duel_cfg["min_stake"]
+        duel_max = duel_cfg["max_stake"]
 
         lines = [
             "📘 /luck 帮助（QQ版）",

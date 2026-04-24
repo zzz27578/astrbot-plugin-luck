@@ -42,6 +42,10 @@ PENDING_DUEL = {
 PENDING_DUEL_LOCK = asyncio.Lock()
 DUEL_CONFIRM_WINDOW_SEC = 60
 DUEL_STAGE_DELAY_SEC = 1.6
+PUBLIC_DUEL_DAILY_LIMIT_MIN = 1
+PUBLIC_DUEL_DAILY_LIMIT_MAX = 50
+PUBLIC_DUEL_STAKE_MIN = 1
+PUBLIC_DUEL_STAKE_MAX = 1000000
 
 
 def _format_title_effect_desc(title_name: str, config: dict | None = None) -> str:
@@ -270,8 +274,11 @@ def _get_public_duel_settings(config: dict | None) -> dict:
     func_cfg = (config or {}).get("func_cards_settings", {})
     enabled = bool(func_cfg.get("enable_public_duel_mode", func_cfg.get("enable_pure_dice_mode", False)))
     daily_limit = int(func_cfg.get("public_duel_daily_limit", func_cfg.get("pure_dice_daily_limit", 3)) or 3)
-    min_stake = max(1, int(func_cfg.get("public_duel_min_stake", 10) or 10))
-    max_stake = max(min_stake, int(func_cfg.get("public_duel_max_stake", 200) or 200))
+    daily_limit = max(PUBLIC_DUEL_DAILY_LIMIT_MIN, min(PUBLIC_DUEL_DAILY_LIMIT_MAX, daily_limit))
+    min_stake = int(func_cfg.get("public_duel_min_stake", 10) or 10)
+    min_stake = max(PUBLIC_DUEL_STAKE_MIN, min(PUBLIC_DUEL_STAKE_MAX, min_stake))
+    max_stake = int(func_cfg.get("public_duel_max_stake", 200) or 200)
+    max_stake = max(min_stake, min(PUBLIC_DUEL_STAKE_MAX, max_stake))
     return {
         "enabled": enabled,
         "daily_limit": daily_limit,

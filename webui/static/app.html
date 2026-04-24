@@ -1291,6 +1291,7 @@ const state = {
   fateSearchKeyword: '',
   fatePinMissingName: false,
   lazyProgress: { active: false, label: '', percent: 0, timer: null },
+  pendingDelete: { kind: '', index: -1 },
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -1320,6 +1321,23 @@ function getUnusedImageFiles(kind) {
   const cards = kind === 'fate' ? state.fateCards : state.funcCards;
   const used = new Set(cards.map(card => card.filename).filter(Boolean));
   return getImagePools(kind).all.filter(file => !used.has(file));
+}
+
+function isDeletePending(kind, index) {
+  return state.pendingDelete.kind === kind && state.pendingDelete.index === index;
+}
+
+function requestDelete(kind, index) {
+  state.pendingDelete = { kind, index };
+  if (kind === 'fate') renderFate();
+  else renderCards();
+}
+
+function cancelDelete(kind, index) {
+  if (!isDeletePending(kind, index)) return;
+  state.pendingDelete = { kind: '', index: -1 };
+  if (kind === 'fate') renderFate();
+  else renderCards();
 }
 
 function ensureLazyProgressHud() {
@@ -2420,6 +2438,7 @@ function fateItem(card, i) {
   const has = card.filename && imageExists('fate', card.filename);
   const src = has ? getCardImageUrl('fate', card.filename) : '';
   const incomplete = isFateCardIncomplete(card);
+  const deleting = isDeletePending('fate', i);
   return `
     <article class="archive-card${incomplete ? ' incomplete' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="命运牌图片">` : '未绑定图片'}</div>
@@ -2432,8 +2451,8 @@ function fateItem(card, i) {
         <div class="archive-desc">${esc(card.text || '当前还没有文案。')}</div>
         <div class="archive-actions">
           <button class="btn-strong" onclick="openFateEditor(${i})"><span class="btn-text">编辑</span></button>
-          <button class="btn-green" onclick="duplicateFateCard(${i})"><span class="btn-text">复制</span></button>
-          <button class="btn-danger" onclick="deleteFateCard(${i})"><span class="btn-text">删除</span></button>
+          <button class="${deleting ? 'btn' : 'btn-green'}" onclick="${deleting ? `cancelDelete('fate', ${i})` : `duplicateFateCard(${i})`}"><span class="btn-text">${deleting ? '取消' : '复制'}</span></button>
+          <button class="btn-danger" onclick="${deleting ? `confirmDeleteCard('fate', ${i})` : `requestDelete('fate', ${i})`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>
         </div>
       </div>
     </article>`;
@@ -3017,6 +3036,7 @@ function funcItem(card, i) {
   const src = has ? getCardImageUrl('func', card.filename) : '';
   const rarity = Number(card.rarity) || 1;
   const tags = (card.tags || []).slice(0, 4).map(tag => `<div class="archive-scroll-chip soft-badge">${esc(humanizeTag(tag))}</div>`).join('') || '<span class="helper">未设定效果</span>';
+  const deleting = isDeletePending('func', i);
   return `
     <article class="archive-card func-card rarity-${rarity} ${state.funcPinIncomplete && isFuncCardIncomplete(card) ? 'incomplete-pinned' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="功能牌图片">` : '未绑定图片'}</div>
@@ -3031,8 +3051,8 @@ function funcItem(card, i) {
         <div class="archive-desc">${esc(card.description || '当前还没有描述。')}</div>
         <div class="archive-actions">
           <button class="btn-strong" onclick="openFuncEditor(${i})"><span class="btn-text">编辑</span></button>
-          <button class="btn-green" onclick="duplicateFuncCard(${i})"><span class="btn-text">复制</span></button>
-          <button class="btn-danger" onclick="deleteFuncCard(${i})"><span class="btn-text">删除</span></button>
+          <button class="${deleting ? 'btn' : 'btn-green'}" onclick="${deleting ? `cancelDelete('func', ${i})` : `duplicateFuncCard(${i})`}"><span class="btn-text">${deleting ? '取消' : '复制'}</span></button>
+          <button class="btn-danger" onclick="${deleting ? `confirmDeleteCard('func', ${i})` : `requestDelete('func', ${i})`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>
         </div>
       </div>
     </article>`;
@@ -3679,8 +3699,31 @@ async function saveFateCards(show = true) {
   }
   return res;
 }
-async function deleteFateCard(i) {
-  if (!confirm('确认删除该命运牌吗？')) return;
+async function confirmDeleteCard(kind, i) {
+  if (!isDeletePending(kind, i)) return;
+  state.pendingDelete = { kind: '', index: -1 };
+  if (kind === 'fate') {
+    state.fateCards.splice(i, 1);
+    renderFate();
+    await saveFateCards(false);
+    await loadFate();
+    renderFate();
+    showToast('命运牌已删除。');
+    return;
+  }
+  state.funcCards.splice(i, 1);
+  renderCards();
+  await saveFuncCards(false);
+  await refreshCardAssets(false);
+  renderCards();
+  showToast('功能牌已删除。');
+}
+
+function deleteFateCard(i) {
+  requestDelete('fate', i);
+}
+
+async function deleteFateCardImmediate(i) {
   state.fateCards.splice(i, 1);
   renderFate();
   await saveFateCards(false);
@@ -3879,14 +3922,8 @@ async function saveFuncCards(show = true) {
   }
   return res;
 }
-async function deleteFuncCard(i) {
-  if (!confirm('确认删除该功能牌吗？')) return;
-  state.funcCards.splice(i, 1);
-  renderCards();
-  await saveFuncCards(false);
-  await refreshCardAssets(false);
-  renderCards();
-  showToast('功能牌已删除。');
+function deleteFuncCard(i) {
+  requestDelete('func', i);
 }
 async function batchAddCards() {
   const raw = prompt('每行格式：卡牌名,分类,稀有度');
@@ -4192,6 +4229,9 @@ Object.assign(window, {
   saveFateEditor,
   saveFateCards,
   deleteFateCard,
+  requestDelete,
+  cancelDelete,
+  confirmDeleteCard,
     uploadFateImages,
   pickFile,
   openFuncEditor,

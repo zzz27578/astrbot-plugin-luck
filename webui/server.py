@@ -94,6 +94,22 @@ DEFAULT_SIGN_IN_TEXTS = {
 _LAZY_HTTP_TIMEOUT = ClientTimeout(total=15)
 _LAZY_ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 _API_IMAGE_PREFIXES = ("api_fate_", "api_func_", "rfate_", "rfunc_", "auto_fate_", "auto_func_")
+_FAST_PORTRAIT_APIS = [
+    "https://jrys-api.gh0.pw/api/v1/get/image",
+    "https://api.yimian.xyz/img?type=moe&size=1080x1920",
+    "https://t.alcy.cc/mp",
+    "https://api.btstu.cn/sjbz/api.php?method=mobile&lx=dongman",
+]
+_FALLBACK_IMAGE_URLS = [
+    "https://i0.hdslb.com/bfs/article/546ab5af12b986c2d1070028b2a23c678ee6078e.png",
+    "https://i0.hdslb.com/bfs/article/288ba1731d3f66ebc5974f6385a59ee6aec25d0a.png",
+    "https://i0.hdslb.com/bfs/article/948c5350f766c5179c3f1194a1bdb8b3f86a41e5.png",
+    "https://i0.hdslb.com/bfs/article/2e53b99f39e5385ee49b0c8fdbfca22d6a5e5e78.jpg",
+    "https://i0.hdslb.com/bfs/article/28ab6b0958a346dc91dec6d2685beee4392cd55f.jpg",
+    "https://i0.hdslb.com/bfs/article/2bfc59df642a9847e97eaa6d9e3bca9029b6cf1.png",
+    "https://i0.hdslb.com/bfs/article/db54b81d0bce136a442a703820843132a966de.jpg",
+    "https://i0.hdslb.com/bfs/article/26fee679ab039aaa5b35cbc3d3a4b8aa391c177.png",
+]
 _LAZY_QUOTE_FALLBACKS = [
     "命运的车轮已经开始转动。",
     "今晚的风，会替你翻开下一页。",
@@ -101,6 +117,9 @@ _LAZY_QUOTE_FALLBACKS = [
     "你以为是偶然，其实是伏笔。",
     "此刻的犹豫，也会成为转机。",
     "有些奖励，会在坚持之后出现。",
+    "命运不会催你，但会在拐角等你。",
+    "云层之后的光，正在替你蓄力。",
+    "下一次抉择，也许就是转运的入口。",
 ]
 
 
@@ -545,8 +564,9 @@ def _extract_image_url(payload) -> str:
 
 async def _fetch_lazy_quote(session: ClientSession) -> dict:
     sources = [
-        ("suyanw", "https://api.suyanw.cn/api/meiju"),
         ("hitokoto", "https://v1.hitokoto.cn"),
+        ("hitokoto_alt", "https://international.v1.hitokoto.cn"),
+        ("suyanw", "https://api.suyanw.cn/api/meiju"),
     ]
     errors = []
     for source, url in random.sample(sources, len(sources)):
@@ -564,42 +584,66 @@ async def _fetch_lazy_quote(session: ClientSession) -> dict:
 
 async def _fetch_lazy_image_url(session: ClientSession) -> dict:
     sources = [
+        *[(f"portrait_api_{idx}", url) for idx, url in enumerate(_FAST_PORTRAIT_APIS, start=1)],
         ("waifu.pics", "https://api.waifu.pics/sfw/waifu"),
         ("nekos.best", "https://nekos.best/api/v2/neko"),
     ]
+    random.shuffle(sources)
     errors = []
-    for source, url in random.sample(sources, len(sources)):
-        try:
-            payload = await _fetch_json_url(session, url)
-            image_url = _extract_image_url(payload)
-            if image_url:
-                return {"url": image_url, "source": source, "source_url": url}
-            errors.append(f"{source}: empty")
-        except Exception as exc:
-            errors.append(f"{source}: {exc}")
+    tasks = [asyncio.create_task(_fetch_image_from_source(session, source, url)) for source, url in sources]
+    try:
+        for future in asyncio.as_completed(tasks):
+            try:
+                result = await future
+                for task in tasks:
+                    if not task.done():
+                        task.cancel()
+                return {"url": result["image_url"], "source": result["source"], "content": result.get("content"), "content_type": result.get("content_type", "")}
+            except Exception as exc:
+                errors.append(str(exc))
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+    if _FALLBACK_IMAGE_URLS:
+        fallback_url = random.choice(_FALLBACK_IMAGE_URLS)
+        return {"url": fallback_url, "source": "fallback_url", "content": None, "content_type": ""}
     raise RuntimeError("; ".join(errors) or "image source unavailable")
 
 
 async def _download_lazy_image(session: ClientSession, image_url: str, target_dir: Path, prefix: str) -> str:
+    return await _save_lazy_image_content(session, image_url, None, "", target_dir, prefix)
+
+
+async def _save_lazy_image_content(
+    session: ClientSession,
+    image_url: str,
+    content: bytes | None,
+    content_type: str,
+    target_dir: Path,
+    prefix: str,
+) -> str:
     target_dir.mkdir(parents=True, exist_ok=True)
-    bust = uuid.uuid4().hex
-    joiner = "&" if "?" in image_url else "?"
-    final_url = f"{image_url}{joiner}_t={bust}"
-    headers = {
-        "User-Agent": "luck_rank_webui/1.0",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-    }
-    async with session.get(final_url, headers=headers) as resp:
-        if resp.status != 200:
-            raise RuntimeError(f"image download failed: HTTP {resp.status}")
-        content = await resp.read()
-        if len(content) < 32:
-            raise RuntimeError("image content too small")
-        suffix = _pick_image_suffix(image_url, resp.headers.get("Content-Type", ""))
-        filename = f"{prefix}_{uuid.uuid4().hex[:12]}{suffix}"
-        (target_dir / filename).write_bytes(content)
-        return filename
+    if content is None:
+        bust = uuid.uuid4().hex
+        joiner = "&" if "?" in image_url else "?"
+        final_url = f"{image_url}{joiner}_t={bust}"
+        headers = {
+            "User-Agent": "luck_rank_webui/1.0",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+        }
+        async with session.get(final_url, headers=headers) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"image download failed: HTTP {resp.status}")
+            content = await resp.read()
+            if len(content) < 32:
+                raise RuntimeError("image content too small")
+            content_type = resp.headers.get("Content-Type", "")
+    suffix = _pick_image_suffix(image_url, content_type)
+    filename = f"{prefix}_{uuid.uuid4().hex[:12]}{suffix}"
+    (target_dir / filename).write_bytes(content)
+    return filename
 
 
 def _choose_local_image_with_repeat(target_dir: Path, used_images: set[str], allow_repeat: bool = False) -> str:
@@ -654,19 +698,23 @@ async def _fetch_unique_lazy_image(
     used_remote_urls: set[str],
 ) -> str:
     last_seen_url = ""
+    last_seen_content = None
+    last_seen_content_type = ""
     for _ in range(8):
         image_result = await _fetch_lazy_image_url(session)
         image_url = str(image_result.get("url", "")).strip()
         if not image_url:
             continue
         last_seen_url = image_url
+        last_seen_content = image_result.get("content")
+        last_seen_content_type = str(image_result.get("content_type", "") or "")
         if image_url in used_remote_urls:
             continue
-        filename = await _download_lazy_image(session, image_url, target_dir, prefix)
+        filename = await _save_lazy_image_content(session, image_url, last_seen_content, last_seen_content_type, target_dir, prefix)
         used_remote_urls.add(image_url)
         return filename
     if last_seen_url:
-        return await _download_lazy_image(session, last_seen_url, target_dir, prefix)
+        return await _save_lazy_image_content(session, last_seen_url, last_seen_content, last_seen_content_type, target_dir, prefix)
     raise RuntimeError("image source unavailable")
 
 
@@ -690,8 +738,43 @@ async def _select_lazy_image(
         try:
             return await _fetch_unique_lazy_image(session, remote_dir, prefix, used_remote_urls)
         except Exception:
-            return ""
+            filename = _choose_local_image_with_repeat(local_dir, used_images, allow_repeat=True)
+            if filename:
+                used_images.add(filename)
+            return filename
     return ""
+
+
+async def _fetch_image_from_source(session: ClientSession, source: str, url: str) -> dict:
+    headers = {
+        "User-Agent": "luck_rank_webui/1.0",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+    }
+    bust = uuid.uuid4().hex
+    joiner = "&" if "?" in url else "?"
+    final_url = f"{url}{joiner}_t={bust}"
+    async with session.get(final_url, headers=headers, allow_redirects=True) as resp:
+        if resp.status != 200:
+            raise RuntimeError(f"HTTP {resp.status}")
+        content_type = (resp.headers.get("Content-Type") or "").lower()
+        if any(token in content_type for token in ("image/", "application/octet-stream")):
+            content = await resp.read()
+            if len(content) < 32:
+                raise RuntimeError("image content too small")
+            final_image_url = str(resp.url)
+            return {
+                "source": source,
+                "image_url": final_image_url,
+                "content": content,
+                "content_type": content_type,
+            }
+        if "json" in content_type or "text" in content_type:
+            payload = await resp.json(content_type=None)
+            image_url = _extract_image_url(payload)
+            if image_url:
+                return {"source": source, "image_url": image_url, "content": None, "content_type": ""}
+        raise RuntimeError("unsupported payload")
 
 
 async def _build_lazy_fate_draft(

@@ -17,13 +17,6 @@ from ..core.logic_gate import (
     GATE_USE_CARD,
     GATE_TOGGLE_CARD,
 )
-from ..core.lazy_engine import (
-    is_func_super_lazy_enabled,
-    generate_super_lazy_func_card,
-    resolve_func_card,
-)
-
-
 # ================= 🎲 骰局会话状态（全局单局） =================
 PENDING_DUEL = {
     "active": False,

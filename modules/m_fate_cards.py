@@ -6,11 +6,6 @@ from astrbot.api.event import AstrMessageEvent
 from astrbot.api.message_components import Plain, Image
 from ..core.logic_gate import find_gate_block, format_gate_block_message, GATE_DRAW_FATE_CARD
 from ..core.title_engine import TitleEngine
-from ..core.lazy_engine import (
-    is_fate_super_lazy_enabled,
-    generate_super_lazy_fate_card,
-    resolve_fate_card,
-)
 
 
 

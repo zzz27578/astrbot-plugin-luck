@@ -1313,13 +1313,6 @@ function getCardImageUrl(kind, filename) {
   if (!filename) return '';
   const safe = encodeURIComponent(filename);
   const profile = encodeURIComponent(state.currentProfile);
-  const pools = getImagePools(kind);
-  if (pools.local.includes(filename)) {
-    return kind === 'fate' ? `/fate_assets/${safe}?profile=${profile}` : `/assets/${safe}?profile=${profile}`;
-  }
-  if (pools.lazy.includes(filename)) {
-    return kind === 'fate' ? `/lazy_assets/fate/${safe}` : `/lazy_assets/func/${safe}`;
-  }
   return kind === 'fate' ? `/fate_assets/${safe}?profile=${profile}` : `/assets/${safe}?profile=${profile}`;
 }
 

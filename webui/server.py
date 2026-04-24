@@ -93,6 +93,7 @@ DEFAULT_SIGN_IN_TEXTS = {
 
 _LAZY_HTTP_TIMEOUT = ClientTimeout(total=15)
 _LAZY_ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+_API_IMAGE_PREFIXES = ("api_fate_", "api_func_", "rfate_", "rfunc_", "auto_fate_", "auto_func_")
 _LAZY_QUOTE_FALLBACKS = [
     "命运的车轮已经开始转动。",
     "今晚的风，会替你翻开下一页。",
@@ -144,6 +145,10 @@ def _list_image_files(directory: Path) -> list[str]:
         return []
     exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
     return sorted(f.name for f in directory.iterdir() if f.is_file() and f.suffix.lower() in exts)
+
+
+def _is_api_generated_image(filename: str) -> bool:
+    return str(filename or "").strip().lower().startswith(_API_IMAGE_PREFIXES)
 
 
 def _load_json_template(path: Path, default):
@@ -598,19 +603,25 @@ async def _download_lazy_image(session: ClientSession, image_url: str, target_di
 
 
 def _choose_local_image_with_repeat(target_dir: Path, used_images: set[str], allow_repeat: bool = False) -> str:
-    if not allow_repeat:
-        return _choose_local_image(target_dir, used_images)
     if not target_dir.exists():
         return ""
-    files = [f.name for f in target_dir.iterdir() if f.is_file() and f.suffix.lower() in _LAZY_ALLOWED_IMAGE_EXTS]
+    files = [
+        f.name
+        for f in target_dir.iterdir()
+        if f.is_file() and f.suffix.lower() in _LAZY_ALLOWED_IMAGE_EXTS and not _is_api_generated_image(f.name)
+    ]
+    if not allow_repeat:
+        available = [f for f in files if f not in used_images]
+        return random.choice(available) if available else ""
     return random.choice(files) if files else ""
 
 
 def _fallback_lazy_quote(used_texts: set[str]) -> str:
-    for text in _LAZY_QUOTE_FALLBACKS:
-        if text not in used_texts:
-            used_texts.add(text)
-            return text
+    available = [text for text in _LAZY_QUOTE_FALLBACKS if text not in used_texts]
+    if available:
+        text = random.choice(available)
+        used_texts.add(text)
+        return text
     text = f"命运的幕布再次拉开·第 {len(used_texts) + 1} 幕"
     used_texts.add(text)
     return text
@@ -707,9 +718,9 @@ async def _build_lazy_fate_draft(
     filename = await _select_lazy_image(
         session,
         image_mode=image_mode,
-        remote_dir=remote_dir,
+        remote_dir=local_dir,
         local_dir=local_dir,
-        prefix="rfate",
+        prefix="api_fate",
         used_images=used_images,
         used_remote_urls=used_remote_urls,
     )
@@ -749,9 +760,9 @@ async def _build_lazy_func_draft(
     draft["filename"] = await _select_lazy_image(
         session,
         image_mode=image_mode,
-        remote_dir=remote_dir,
+        remote_dir=local_dir,
         local_dir=local_dir,
-        prefix="rfunc",
+        prefix="api_func",
         used_images=used_images,
         used_remote_urls=used_remote_urls,
     )
@@ -856,12 +867,12 @@ async def api_lazy_auto_bind(request):
         if kind == "fate":
             cards_file = paths["fate_cards_file"]
             local_dir = paths["fate_assets_dir"]
-            remote_dir = paths["plugin_data_dir"] / "lazy_images" / "fate"
+            remote_dir = paths["fate_assets_dir"]
             cards = _normalize_fate_cards(_read_json(cards_file, []))
         else:
             cards_file = paths["func_cards_file"]
             local_dir = paths["func_assets_dir"]
-            remote_dir = paths["plugin_data_dir"] / "lazy_images" / "func"
+            remote_dir = paths["func_assets_dir"]
             cards = _normalize_func_cards(_read_json(cards_file, []))
 
         image_mode = str(body.get("image_mode", "local")).strip()
@@ -877,7 +888,7 @@ async def api_lazy_auto_bind(request):
                         image_mode=image_mode,
                         remote_dir=remote_dir,
                         local_dir=local_dir,
-                        prefix=f"auto_{kind}",
+                        prefix=f"api_{kind}",
                         used_images=used_images,
                         used_remote_urls=used_remote_urls,
                         allow_repeat=allow_repeat,
@@ -976,7 +987,9 @@ async def api_list_fate_images(request):
         paths = _get_request_profile_paths(request)
         fate_assets_dir = paths["fate_assets_dir"]
         lazy_dir = paths["plugin_data_dir"] / "lazy_images" / "fate"
-        return web.json_response({"ok": True, "images": _list_image_files(fate_assets_dir), "lazy_images": _list_image_files(lazy_dir)})
+        local_files = _list_image_files(fate_assets_dir)
+        legacy_lazy_files = [name for name in _list_image_files(lazy_dir) if name not in local_files]
+        return web.json_response({"ok": True, "images": sorted(local_files + legacy_lazy_files), "lazy_images": legacy_lazy_files})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "images": [], "lazy_images": []}, status=500)
 
@@ -1184,7 +1197,9 @@ async def api_list_images(request):
         assets_dir = paths["func_assets_dir"]
         assets_dir.mkdir(parents=True, exist_ok=True)
         lazy_dir = paths["plugin_data_dir"] / "lazy_images" / "func"
-        return web.json_response({"ok": True, "files": _list_image_files(assets_dir), "lazy_files": _list_image_files(lazy_dir)})
+        local_files = _list_image_files(assets_dir)
+        legacy_lazy_files = [name for name in _list_image_files(lazy_dir) if name not in local_files]
+        return web.json_response({"ok": True, "files": sorted(local_files + legacy_lazy_files), "lazy_files": legacy_lazy_files})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "files": [], "lazy_files": []}, status=500)
 
@@ -1472,20 +1487,30 @@ async def api_save_group_access(request):
 async def serve_fate_image(request):
     filename = request.match_info.get("filename", "")
     profile_id = _sanitize_profile_id(request.query.get("profile") or DEFAULT_PROFILE_NAME)
-    target = get_profile_storage_paths(profile_id, PLUGIN_NAME)["fate_assets_dir"] / Path(filename).name
-    if not target.exists():
-        raise web.HTTPNotFound()
-    return web.FileResponse(target)
+    safe_name = Path(filename).name
+    paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+    for target in (
+        paths["fate_assets_dir"] / safe_name,
+        paths["plugin_data_dir"] / "lazy_images" / "fate" / safe_name,
+    ):
+        if target.exists():
+            return web.FileResponse(target)
+    raise web.HTTPNotFound()
 
 
 async def serve_image(request):
     """提供图片文件访问"""
     filename = request.match_info.get("filename", "")
     profile_id = _sanitize_profile_id(request.query.get("profile") or DEFAULT_PROFILE_NAME)
-    target = get_profile_storage_paths(profile_id, PLUGIN_NAME)["func_assets_dir"] / Path(filename).name
-    if not target.exists():
-        raise web.HTTPNotFound()
-    return web.FileResponse(target)
+    safe_name = Path(filename).name
+    paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+    for target in (
+        paths["func_assets_dir"] / safe_name,
+        paths["plugin_data_dir"] / "lazy_images" / "func" / safe_name,
+    ):
+        if target.exists():
+            return web.FileResponse(target)
+    raise web.HTTPNotFound()
 
 
 async def serve_index(request):

@@ -3,7 +3,7 @@ import json
 import random
 import re
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 import time 
 from astrbot.api.event import AstrMessageEvent
 from astrbot.api.message_components import Plain, Image, At
@@ -47,6 +47,14 @@ PUBLIC_DUEL_DAILY_LIMIT_MAX = 50
 PUBLIC_DUEL_STAKE_MIN = 1
 PUBLIC_DUEL_STAKE_MAX = 1000000
 MAX_FUNC_CARD_SLOTS = 3
+_DEFAULT_PANEL_SECTIONS = [
+    {"id": "basic_profile", "enabled": True, "label": "观测对象", "emoji": "📊", "required": True},
+    {"id": "titles", "enabled": True, "label": "称号", "emoji": "🏅", "required": False},
+    {"id": "statuses", "enabled": True, "label": "异界干涉状态", "emoji": "🎭", "required": False},
+    {"id": "dice_status", "enabled": True, "label": "骰局状态", "emoji": "🎲", "required": False},
+    {"id": "card_slots", "enabled": True, "label": "战术卡槽", "emoji": "🎴", "required": False},
+    {"id": "battle_logs", "enabled": True, "label": "近期恩怨纪事", "emoji": "📜", "required": False},
+]
 
 
 def _normalize_card_lookup_name(name: str) -> str:
@@ -92,8 +100,16 @@ def _get_slot_count(inventory: list) -> int:
     return len(_get_slotted_cards(inventory))
 
 
-def _format_slot_count(inventory: list) -> str:
-    return f"{_get_slot_count(inventory)}/{MAX_FUNC_CARD_SLOTS}"
+def get_max_func_card_slots(config: dict | None = None) -> int:
+    runtime_cfg = (config or {}).get("func_cards_settings", {})
+    try:
+        return max(1, int(runtime_cfg.get("max_inventory_slots", MAX_FUNC_CARD_SLOTS) or MAX_FUNC_CARD_SLOTS))
+    except (TypeError, ValueError):
+        return MAX_FUNC_CARD_SLOTS
+
+
+def _format_slot_count(inventory: list, config: dict | None = None) -> str:
+    return f"{_get_slot_count(inventory)}/{get_max_func_card_slots(config)}"
 
 
 def _build_inventory_card_entry(card_name: str, *, no_slot: bool = False, source: str = "") -> dict:
@@ -105,6 +121,125 @@ def _build_inventory_card_entry(card_name: str, *, no_slot: bool = False, source
         "no_slot": bool(no_slot),
         "source": source or "",
     }
+
+
+def get_panel_sections_config(config: dict | None = None) -> list[dict]:
+    ui_cfg = (config or {}).get("ui_settings", {})
+    raw_sections = ui_cfg.get("panel_sections", [])
+    default_map = {item["id"]: item for item in _DEFAULT_PANEL_SECTIONS}
+    normalized = []
+    seen = set()
+
+    for item in raw_sections if isinstance(raw_sections, list) else []:
+        if not isinstance(item, dict):
+            continue
+        section_id = str(item.get("id", "") or "").strip()
+        if section_id not in default_map or section_id in seen:
+            continue
+        default = default_map[section_id]
+        normalized.append({
+            "id": section_id,
+            "enabled": True if default.get("required", False) else bool(item.get("enabled", default["enabled"])),
+            "label": str(item.get("label", default["label"]) or default["label"]).strip() or default["label"],
+            "emoji": str(item.get("emoji", default["emoji"]) or default["emoji"]).strip() or default["emoji"],
+        })
+        seen.add(section_id)
+
+    for default in _DEFAULT_PANEL_SECTIONS:
+        if default["id"] in seen:
+            continue
+        normalized.append({
+            "id": default["id"],
+            "enabled": bool(default["enabled"]),
+            "label": default["label"],
+            "emoji": default["emoji"],
+        })
+
+    basic_index = next((idx for idx, section in enumerate(normalized) if section["id"] == "basic_profile"), -1)
+    if basic_index > 0:
+        normalized.insert(0, normalized.pop(basic_index))
+    elif basic_index < 0:
+        normalized.insert(0, {
+            "id": "basic_profile",
+            "enabled": True,
+            "label": default_map["basic_profile"]["label"],
+            "emoji": default_map["basic_profile"]["emoji"],
+        })
+
+    normalized[0]["enabled"] = True
+    return normalized
+
+
+def get_panel_section_settings(config: dict | None = None) -> dict:
+    defaults = {
+        "basic_profile": {"show_rank": True, "show_karma": True},
+        "titles": {"display_limit": 6},
+        "statuses": {"display_limit": 5},
+        "dice_status": {"display_limit": 4},
+        "battle_logs": {"display_limit": 6, "recent_days": 3},
+    }
+    ui_cfg = (config or {}).get("ui_settings", {})
+    raw = ui_cfg.get("panel_section_settings", {})
+    if isinstance(raw, dict):
+        for section_id, section_defaults in defaults.items():
+            section_raw = raw.get(section_id, {})
+            if not isinstance(section_raw, dict):
+                continue
+            defaults[section_id].update(section_raw)
+
+    defaults["basic_profile"]["show_rank"] = bool(defaults["basic_profile"].get("show_rank", True))
+    defaults["basic_profile"]["show_karma"] = bool(defaults["basic_profile"].get("show_karma", True))
+    for section_id in ["titles", "statuses", "dice_status", "battle_logs"]:
+        try:
+            display_limit = int(defaults[section_id].get("display_limit", 5) or 5)
+        except (TypeError, ValueError):
+            display_limit = 5
+        defaults[section_id]["display_limit"] = max(1, display_limit)
+    try:
+        recent_days = int(defaults["battle_logs"].get("recent_days", 3) or 3)
+    except (TypeError, ValueError):
+        recent_days = 3
+    defaults["battle_logs"]["recent_days"] = max(1, recent_days)
+    return defaults
+
+
+def _slice_section_lines(lines: list[str], limit: int, more_hint: str) -> list[str]:
+    if len(lines) <= limit:
+        return lines
+    hidden_count = len(lines) - limit
+    return lines[:limit] + [f"  …… 还有 {hidden_count} {more_hint}未展示。"]
+
+
+def _parse_battle_log_date(log_text: str, now_dt: datetime | None = None) -> datetime | None:
+    now_dt = now_dt or datetime.now()
+    match = re.match(r"^\[(\d{2})-(\d{2})\s+(\d{2}):(\d{2})\]", str(log_text or "").strip())
+    if not match:
+        return None
+    month, day, hour, minute = map(int, match.groups())
+    year = now_dt.year
+    try:
+        parsed = datetime(year, month, day, hour, minute)
+    except ValueError:
+        return None
+    if parsed > now_dt + timedelta(days=1):
+        try:
+            parsed = datetime(year - 1, month, day, hour, minute)
+        except ValueError:
+            return None
+    return parsed
+
+
+def _filter_battle_logs_by_days(logs: list[str], recent_days: int) -> list[str]:
+    if recent_days <= 0:
+        return logs
+    now_dt = datetime.now()
+    threshold = now_dt - timedelta(days=max(1, recent_days))
+    filtered = []
+    for log in logs:
+        parsed = _parse_battle_log_date(log, now_dt)
+        if parsed is None or parsed >= threshold:
+            filtered.append(log)
+    return filtered
 
 
 def _resolve_func_card_image_path(card: dict, config: dict | None = None) -> str:
@@ -152,7 +287,7 @@ async def grant_admin_func_card(bank, config: dict, user_id: str, user_name: str
         "ok": True,
         "card": card,
         "draw_events": draw_events,
-        "slot_text": _format_slot_count(inventory),
+        "slot_text": _format_slot_count(inventory, config),
         "img_path": _resolve_func_card_image_path(card, config),
     }
 
@@ -406,27 +541,22 @@ _DEDUP_PENALTY = 0.15
 def _pick_func_card(cards_config: list, config: dict, user_data: dict) -> dict | None:
     """
     按稀有度权重从卡池中挑选一张牌。
-    - 先按稀有度权重抽档位（支持 default / custom 两种模式）
+    - 先按稀有度权重抽档位
     - 同档内对近期出过的牌静默降权，降低重复概率
     """
     if not cards_config:
         return None
 
     func_cfg = (config or {}).get("func_cards_settings", {})
-    mode = str(func_cfg.get("rarity_mode", "default")).strip().lower()
-
-    if mode == "custom":
-        raw_weights = func_cfg.get("custom_rarity_weights", {})
-        weights = {}
-        for r in range(1, 6):
-            key = f"rarity_{r}"
-            val = raw_weights.get(key, _DEFAULT_RARITY_WEIGHTS.get(r, 0))
-            try:
-                weights[r] = max(0, int(val))
-            except (TypeError, ValueError):
-                weights[r] = _DEFAULT_RARITY_WEIGHTS.get(r, 0)
-    else:
-        weights = dict(_DEFAULT_RARITY_WEIGHTS)
+    raw_weights = func_cfg.get("custom_rarity_weights", {})
+    weights = {}
+    for r in range(1, 6):
+        key = f"rarity_{r}"
+        val = raw_weights.get(key, _DEFAULT_RARITY_WEIGHTS.get(r, 0))
+        try:
+            weights[r] = max(0, int(val))
+        except (TypeError, ValueError):
+            weights[r] = _DEFAULT_RARITY_WEIGHTS.get(r, 0)
 
     # 只保留卡池里实际存在的稀有度档位
     available_rarities = {c.get("rarity", 1) for c in cards_config}
@@ -558,7 +688,7 @@ async def _has_enough_gold(bank, user_id: str, user_name: str, stake: int) -> bo
     return int(user_data.get("total_gold", 0)) >= int(stake)
 
 
-def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: list, aoe_kind: str, karma_report: str, slot_len: int):
+def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: list, aoe_kind: str, karma_report: str, slot_len: int, config: dict | None = None):
     action_line = {
         "heal": "🌿 范围援护落下，受益名单：",
         "cleanse": "✨ 范围净化扩散，影响名单：",
@@ -596,7 +726,7 @@ def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: 
                 components.append(Plain(f"（-{amount}）"))
 
     tail = f"\n{karma_report}" if karma_report else ""
-    tail += f"\n🎴 当前卡槽：{slot_len}/{MAX_FUNC_CARD_SLOTS}"
+    tail += f"\n🎴 当前卡槽：{slot_len}/{get_max_func_card_slots(config)}"
     components.append(Plain(tail))
     return components
 
@@ -1152,7 +1282,9 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
 
 
 # ================= 🏆 善恶排行榜逻辑 =================
-async def handle_karma_leaderboard(event: AstrMessageEvent, bank, board_length: int = 10):
+async def handle_karma_leaderboard(event: AstrMessageEvent, bank, config: dict | None = None):
+    from . import m_sign_in
+
     all_users = await bank.get_all_users()
     valid_users = {uid: data for uid, data in all_users.items() if data.get("karma_value", 0) != 0}
 
@@ -1160,22 +1292,64 @@ async def handle_karma_leaderboard(event: AstrMessageEvent, bank, board_length: 
         yield event.plain_result("⚖️ 【天道善恶榜】\n当前异世界一片祥和，暂无行善或积恶之人上榜。")
         return
 
-    sorted_users = sorted(valid_users.items(), key=lambda x: x[1].get("karma_value", 0), reverse=True)
-    lines = ["⚖️ 【天道善恶榜】", "━━━━━━━━━━━━━━"]
+    settings = m_sign_in.get_leaderboard_settings(config, "karma")
+    if not settings["enabled"]:
+        yield event.plain_result("⚠️ 当前方案已关闭善恶榜。")
+        return
+    if not settings["show_positive"] and not settings["show_negative"] and not settings.get("show_nearby", True):
+        yield event.plain_result("⚠️ 当前善恶榜的正邪区块都已关闭。")
+        return
 
-    for i, (uid, data) in enumerate(sorted_users[:board_length]):
-        name = data.get("name", f"群友({uid})")
-        karma = data.get("karma_value", 0)
-        tag = "👼 善" if karma > 0 else "💀 恶"
-        # 显示善恶称号标记
-        title_tag = ""
-        titles = data.get("titles", [])
-        if "行善之人" in titles:
-            title_tag = " [行善之人]"
-        elif "邪恶之人" in titles:
-            title_tag = " [邪恶之人]"
-        lines.append(f"{i+1}. {name}{title_tag} | 业报: {karma} {tag}")
+    board_length = settings["board_length"]
+    positive_users = sorted(
+        [(uid, data) for uid, data in valid_users.items() if int(data.get("karma_value", 0) or 0) > 0],
+        key=lambda item: item[1].get("karma_value", 0),
+        reverse=True,
+    )[:board_length]
+    negative_users = sorted(
+        [(uid, data) for uid, data in valid_users.items() if int(data.get("karma_value", 0) or 0) < 0],
+        key=lambda item: item[1].get("karma_value", 0),
+    )[:board_length]
 
+    lines = [settings.get("title", "⚖️ 【天道善恶榜】")]
+
+    if settings["show_positive"]:
+        lines.extend(["", settings.get("positive_header", "😇 【善业榜】")])
+        if not positive_users:
+            lines.append("暂无积善成员上榜。")
+        for i, (uid, data) in enumerate(positive_users):
+            name = data.get("name", f"群友({uid})")
+            karma = int(data.get("karma_value", 0) or 0)
+            title_tag = f" [{settings['positive_titles'][i]}]" if i < 3 else ""
+            lines.append(f"{i+1}.{title_tag} {name} | 业报: +{karma}")
+
+    if settings["show_negative"]:
+        lines.extend(["", settings.get("negative_header", "😈 【恶业榜】")])
+        if not negative_users:
+            lines.append("暂无积恶成员上榜。")
+        for i, (uid, data) in enumerate(negative_users):
+            name = data.get("name", f"群友({uid})")
+            karma = int(data.get("karma_value", 0) or 0)
+            title_tag = f" [{settings['negative_titles'][i]}]" if i < 3 else ""
+            lines.append(f"{i+1}.{title_tag} {name} | 业报: {karma}")
+
+    if settings.get("show_nearby", True) and event.get_sender_id() in valid_users:
+        full_list = sorted(valid_users.items(), key=lambda item: item[1].get("karma_value", 0), reverse=True)
+        my_index = next((i for i, (uid, _) in enumerate(full_list) if uid == event.get_sender_id()), -1)
+        if my_index != -1:
+            start = max(0, my_index - 3)
+            end = min(len(full_list), my_index + 4)
+            lines.extend(["", settings.get("nearby_header", "🧭 【你的附近位】")])
+            for i in range(start, end):
+                uid, data = full_list[i]
+                real_rank = i + 1
+                name = data.get("name", f"群友({uid})")
+                karma = int(data.get("karma_value", 0) or 0)
+                prefix = "👉" if uid == event.get_sender_id() else f"No.{real_rank}"
+                karma_text = f"+{karma}" if karma > 0 else str(karma)
+                lines.append(f"{prefix} {name} | 业报: {karma_text}")
+
+    lines.append("")
     lines.append("━━━━━━━━━━━━━━")
     lines.append("💡 施放治疗法术积攒善意，发起攻击累积罪恶。")
     lines.append("🏅 善值≥5 获得【行善之人】称号，恶值≤-5 获得【邪恶之人】称号。")
@@ -1194,41 +1368,24 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
     rank = await calculate_rank(bank, user_id)
 
     panel_title = config.get("ui_settings", {}).get("panel_title", "【个人状态观测仪】")
+    panel_sections = get_panel_sections_config(config)
+    panel_section_settings = get_panel_section_settings(config)
+    panel_section_map = {section["id"]: section for section in panel_sections}
+    basic_section = panel_section_map.get("basic_profile", {"label": "观测对象", "emoji": "📊"})
+    slot_limit = get_max_func_card_slots(config)
+    basic_settings = panel_section_settings.get("basic_profile", {})
 
     gold = user_data.get("total_gold", 0)
     karma = user_data.get("karma_value", 0)
     karma_str = f"+{karma} (善)" if karma > 0 else f"{karma} (恶)" if karma < 0 else "0 (中立)"
 
-    lines = [
-        f"📊 {panel_title}",
-        f"👤 观测对象：{user_name}",
-        f"💰 金币总量：{gold} (位阶：第 {rank} 位)",
-        f"⚖️ 善恶业报：{karma_str}"
-    ]
-
     titles = user_data.get("titles", [])
     equipped_titles = set(TitleEngine.get_equipped_titles(user_data, config))
     max_titles = TitleEngine.get_max_equipped_titles(config)
-    if not titles:
-        lines.append("🏅 当前称号：无名之辈")
-    else:
-        lines.append(f"🏅 【称号】 已佩戴 {len(equipped_titles)}/{max_titles} · 共拥有 {len(titles)}")
-        for t in titles:
-            t_info = TitleEngine.get_title_info(t, config)
-            state = "🟢" if t in equipped_titles else "⚪"
-            lines.append(f"  {state} {t_info['name']} - {_format_title_effect_desc(t, config)}")
-
-
-
-
-            
-
-            
-    lines.append("━━━━━━━━━━━━━━")
-    lines.append("🎭 【异界干涉状态】")
     statuses = user_data.get("statuses", [])
     now = int(time.time())
     valid_statuses = []
+    status_lines = []
     for st in statuses:
         if "expire_time" in st:
             if now < st["expire_time"]:
@@ -1236,10 +1393,10 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
                 h, r = divmod(rem_sec, 3600)
                 m, _ = divmod(r, 60)
                 desc = f"剩余 {h}小时{m}分自动解封"
-                lines.append(f"  ▪️ [{st.get('name')}] - {desc}")
+                status_lines.append(f"  ▪️ [{st.get('name')}] - {desc}")
                 valid_statuses.append(st)
         else:
-            lines.append(f"  ▪️ [{st.get('name', '未知')}] - {st.get('desc', '')}")
+            status_lines.append(f"  ▪️ [{st.get('name', '未知')}] - {st.get('desc', '')}")
             valid_statuses.append(st)
             
             
@@ -1250,13 +1407,6 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
 
     if _sync_expired_defense_cards(user_data, config):
         await bank.save_user_data()
-
-    if not valid_statuses:
-
-
-        lines.append("  🎐 当前周身清明，无任何异样状态。")
-    lines.append("━━━━━━━━━━━━━━")
-    lines.append("🎲 【骰局状态】")
     now_ts = int(time.time())
     dice_status_lines = []
     for st in valid_statuses:
@@ -1291,35 +1441,28 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
         desc = "，".join(desc_parts) if desc_parts else st.get("desc", "骰子规则生效中")
         dice_status_lines.append(f"  ▪️ [{name}] - {desc}")
 
-    if not dice_status_lines:
-        lines.append("  🎲 当前无骰局加成状态。")
-    else:
-        lines.extend(dice_status_lines)
-
-        lines.append("━━━━━━━━━━━━━━")
     inventory = user_data.get("inventory", [])
     slot_cards = _get_slotted_cards(inventory)
     slot_count = len(slot_cards)
-    lines.append(f"🎴 【战术卡槽】 ({slot_count}/{MAX_FUNC_CARD_SLOTS})")
-    for i in range(MAX_FUNC_CARD_SLOTS):
+    slot_lines = [f"  容量：{slot_count}/{slot_limit}"]
+    for i in range(slot_limit):
         if i < slot_count:
             card = slot_cards[i]
             card_name = card.get("card_name", "未知卡牌")
 
-            # 💡 战损系统面板渲染
             if card.get("is_broken", False):
                 reason = str(card.get("broken_reason", "") or "").strip()
                 status_tag = f" (💔已销毁：{reason})" if reason else " (💔已销毁)"
             else:
                 status_tag = " (🛡️已启用)" if card.get("is_active", False) else ""
 
-            lines.append(f"  {i+1}. [{card_name}]{status_tag}")
+            slot_lines.append(f"  {i+1}. [{card_name}]{status_tag}")
         else:
-            lines.append(f"  {i+1}. [空]")
+            slot_lines.append(f"  {i+1}. [空]")
 
     extra_cards = [card for card in inventory if _is_slotless_card(card)]
     if extra_cards:
-        lines.append("🌟 【天赐牌仓】 (不占卡槽)")
+        slot_lines.append("  管理员授予牌（不占战术卡槽）")
         for idx, card in enumerate(extra_cards, 1):
             card_name = card.get("card_name", "未知卡牌")
             if card.get("is_broken", False):
@@ -1327,17 +1470,51 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
                 status_tag = f" (💔已销毁：{reason})" if reason else " (💔已销毁)"
             else:
                 status_tag = " (🛡️已启用)" if card.get("is_active", False) else ""
-            lines.append(f"  ✦ {idx}. [{card_name}]{status_tag}")
+            slot_lines.append(f"  ✦ {idx}. [{card_name}]{status_tag}")
 
-
-    lines.append("━━━━━━━━━━━━━━")
-    lines.append("📜 【近期恩怨纪事（最近3天）】")
     battle_logs = user_data.get("battle_logs", [])
-    if not battle_logs:
-        lines.append("  🎐 近期风和日丽，无事发生。")
-    else:
-        for log in battle_logs:
-            lines.append(f"  {log}")
+    battle_recent_days = int(panel_section_settings.get("battle_logs", {}).get("recent_days", 3) or 3)
+    filtered_battle_logs = _filter_battle_logs_by_days(battle_logs, battle_recent_days)
+    battle_log_lines = [f"  {log}" for log in filtered_battle_logs] if filtered_battle_logs else [f"  🎐 最近 {battle_recent_days} 天风和日丽，无事发生。"]
+    title_lines = (
+        ["🏅 当前称号：无名之辈"]
+        if not titles
+        else [f"  已佩戴 {len(equipped_titles)}/{max_titles} · 共拥有 {len(titles)}"]
+        + [
+            f"  {'🟢' if t in equipped_titles else '⚪'} {TitleEngine.get_title_info(t, config)['name']} - {_format_title_effect_desc(t, config)}"
+            for t in titles
+        ]
+    )
+    title_limit = int(panel_section_settings.get("titles", {}).get("display_limit", len(title_lines)) or len(title_lines))
+    status_limit = int(panel_section_settings.get("statuses", {}).get("display_limit", len(status_lines) or 1) or (len(status_lines) or 1))
+    dice_limit = int(panel_section_settings.get("dice_status", {}).get("display_limit", len(dice_status_lines) or 1) or (len(dice_status_lines) or 1))
+    battle_limit = int(panel_section_settings.get("battle_logs", {}).get("display_limit", len(battle_log_lines) or 1) or (len(battle_log_lines) or 1))
+
+    section_lines_map = {
+        "basic_profile": [
+            f"{basic_section.get('emoji', '📊')} {panel_title}",
+            f"👤 {basic_section.get('label', '观测对象')}：{user_name}",
+        ]
+        + ([f"💰 金币总量：{gold} (位阶：第 {rank} 位)"] if basic_settings.get("show_rank", True) else [f"💰 金币总量：{gold}"])
+        + ([f"⚖️ 善恶业报：{karma_str}"] if basic_settings.get("show_karma", True) else []),
+        "titles": _slice_section_lines(title_lines, title_limit, "个称号"),
+        "statuses": _slice_section_lines(status_lines or ["  🎐 当前周身清明，无任何异样状态。"], status_limit, "条状态"),
+        "dice_status": _slice_section_lines(dice_status_lines or ["  🎲 当前无骰局加成状态。"], dice_limit, "条骰局状态"),
+        "card_slots": slot_lines,
+        "battle_logs": _slice_section_lines(battle_log_lines, battle_limit, "条战报"),
+    }
+
+    lines = []
+    enabled_sections = [section for section in panel_sections if section.get("enabled", False) or section.get("id") == "basic_profile"]
+    for idx, section in enumerate(enabled_sections):
+        if idx > 0:
+            lines.append("━━━━━━━━━━━━━━")
+        section_id = section["id"]
+        if section_id == "basic_profile":
+            lines.extend(section_lines_map["basic_profile"])
+            continue
+        lines.append(f"{section.get('emoji', '•')} 【{section.get('label', section_id)}】")
+        lines.extend(section_lines_map.get(section_id, ["  暂无数据。"]))
 
     yield event.plain_result("\n".join(lines))
 
@@ -1367,6 +1544,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
     eco_cfg = config.get("func_cards_settings", {}).get("economy_settings", {})
     draw_cost = int(eco_cfg.get("draw_cost", 20) or 20)
     free_daily = int(eco_cfg.get("free_daily_draw", 1) or 1)
+    paid_daily_limit = max(0, int(eco_cfg.get("paid_daily_draw", 1) or 1))
     base_prob = int(eco_cfg.get("draw_probability", 5) or 5)
     pity_threshold = int(eco_cfg.get("pity_threshold", 10) or 10)
 
@@ -1381,8 +1559,8 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         user_data["today_paid_draws"] = 0
 
     inventory = user_data.get("inventory", [])
-    if _get_slot_count(inventory) >= MAX_FUNC_CARD_SLOTS:
-        yield event.plain_result(f"⚠️ 你的战术卡槽已满 ({_format_slot_count(inventory)})！请先使用或发送「/luck 丢弃 [卡名]」腾出空间。")
+    if _get_slot_count(inventory) >= get_max_func_card_slots(config):
+        yield event.plain_result(f"⚠️ 你的战术卡槽已满 ({_format_slot_count(inventory, config)})！请先使用或发送「/luck 丢弃 [卡名]」腾出空间。")
         return
 
     is_free = False
@@ -1390,14 +1568,18 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         user_data["today_free_draws"] -= 1
         is_free = True
     else:
-        if int(user_data.get("today_paid_draws", 0) or 0) >= 1:
-            yield event.plain_result("⚠️ 天道法则限制：每天最多只能进行 1 次额外付费抽取。")
+        current_paid_draws = int(user_data.get("today_paid_draws", 0) or 0)
+        if paid_daily_limit <= 0:
+            yield event.plain_result("⚠️ 当前运行配置已关闭额外付费抽取。")
+            return
+        if current_paid_draws >= paid_daily_limit:
+            yield event.plain_result(f"⚠️ 天道法则限制：每天最多只能进行 {paid_daily_limit} 次额外付费抽取。")
             return
         success = await bank.change_gold(user_id, -draw_cost)
         if not success:
             yield event.plain_result(f"📉 金币不足或已坠入深渊！每次额外抽取需要 {draw_cost} 金币。")
             return
-        user_data["today_paid_draws"] = int(user_data.get("today_paid_draws", 0) or 0) + 1
+        user_data["today_paid_draws"] = current_paid_draws + 1
 
     luck_val = int(user_data.get("today_luck_value", 50) or 50)
     luck_mod = 0
@@ -1465,7 +1647,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
     title_hint = ""
     if draw_events:
         title_hint = "\n" + "\n".join(TitleEngine.format_title_event_lines(draw_events, config))
-    res_text = f"✨ {hit_reason}\n你从虚空中凝结出了：\n【{actual_rarity_str}】{card['card_name']}\n━━━━━━━━\n📝 {text}\n{cost_str}\n🎴 当前卡槽：{_format_slot_count(user_data['inventory'])}{title_hint}"
+    res_text = f"✨ {hit_reason}\n你从虚空中凝结出了：\n【{actual_rarity_str}】{card['card_name']}\n━━━━━━━━\n📝 {text}\n{cost_str}\n🎴 当前卡槽：{_format_slot_count(user_data['inventory'], config)}{title_hint}"
 
     img_filename = str(card.get("filename", "")).strip()
     img_path = _resolve_func_card_image_path(card, config)
@@ -1512,7 +1694,7 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
 
         if discarded_card.get("no_slot", False):
             status_note += " (天赐牌不占卡槽)"
-        yield event.plain_result(f"🗑️ 你将 [{target_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{_format_slot_count(inventory)}")
+        yield event.plain_result(f"🗑️ 你将 [{target_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{_format_slot_count(inventory, config)}")
     else:
 
         yield event.plain_result(f"❓ 你的库存中并未发现名为 [{target_card_name}] 的战术牌。")
@@ -1642,7 +1824,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         yield event.plain_result(
             f"🍀 {user_name} 启动了 [{target_card_name}]！\n"
             f"接下来 24 小时内，你在掷骰出现最低点时将自动重投 1 次。\n"
-            f"🎴 当前卡槽：{_format_slot_count(inventory)}"
+            f"🎴 当前卡槽：{_format_slot_count(inventory, config)}"
         )
         return
 
@@ -1734,7 +1916,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
         await bank.save_user_data()
         yield event.plain_result(
-            f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{_format_slot_count(inventory)}"
+            f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{_format_slot_count(inventory, config)}"
         )
         return
 
@@ -1820,14 +2002,14 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     remaining_slot_count = _get_slot_count(inventory)
 
     if is_aoe:
-        aoe_chain = _format_aoe_chain(user_id, user_name, target_card_name, aoe_events, aoe_kind, karma_report, remaining_slot_count)
+        aoe_chain = _format_aoe_chain(user_id, user_name, target_card_name, aoe_events, aoe_kind, karma_report, remaining_slot_count, config)
 
     await bank.save_user_data()
 
     if is_aoe:
         final_msg = None
     else:
-        final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{remaining_slot_count}/{MAX_FUNC_CARD_SLOTS}"
+        final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{remaining_slot_count}/{get_max_func_card_slots(config)}"
     
     log_msg = f"使用了 [{target_card_name}]"
     await bank.log_battle(user_id, f"{log_msg}。结果：{report_str}")

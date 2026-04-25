@@ -955,6 +955,62 @@ body.chassis {
 .rarity-dot { width: 10px; height: 10px; background: var(--dot-color); border-radius: 50% !important; }
 .rarity-pct { color: var(--accent); font-family: var(--font-headline); font-weight: 900; font-size: 14px; }
 
+/* 用户面板配置 */
+.panel-config-layout { display:grid; grid-template-columns: minmax(0, 1.52fr) minmax(340px, 0.88fr); gap: 20px; align-items:start; }
+.panel-config-stage { border: 1px solid var(--shard-border); background: linear-gradient(180deg, rgba(248,250,249,0.98), rgba(241,245,242,0.96)); padding: 20px; position: relative; overflow: hidden; }
+.panel-config-stage::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at top right, rgba(57,229,184,0.08), transparent 40%); pointer-events:none; }
+.panel-config-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; position:relative; z-index:1; }
+.panel-config-header .panel-note { margin:0; max-width:520px; }
+.panel-config-shell { position:relative; z-index:1; display:flex; flex-direction:column; gap:10px; }
+.panel-wire-row { display:grid; grid-template-columns: 140px minmax(0, 1fr) 172px; gap: 12px; align-items:stretch; }
+.panel-wire-note { position:relative; min-height: 96px; padding: 8px 0 8px 14px; display:flex; flex-direction:column; justify-content:center; gap:6px; background: transparent; }
+.panel-wire-note::before { content:''; position:absolute; left:0; top:10px; bottom:10px; width:2px; background: linear-gradient(180deg, rgba(57,229,184,0.75), rgba(57,229,184,0.12)); }
+.panel-wire-note.left::after { content:''; position:absolute; top:50%; right:-15px; width:15px; height:1px; background: var(--shard-border); }
+.panel-wire-note.right::before { content:''; position:absolute; top:50%; left:-15px; width:15px; height:1px; background: var(--shard-border); }
+.panel-wire-kicker { font-family: var(--font-headline); font-size:10px; letter-spacing:1px; color: var(--accent); font-weight:900; }
+.panel-wire-label { font-size:12px; font-weight:800; color: var(--shard-text); }
+.panel-wire-helper { font-size:11px; line-height:1.7; color: var(--shard-text-muted); }
+.panel-wire-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.panel-wire-actions .btn-mini { min-width: 88px; }
+.panel-ghost-card { border: none; border-left: 2px solid rgba(57,229,184,0.18); background: linear-gradient(90deg, rgba(255,255,255,0.72), rgba(244,247,245,0.32)); padding: 10px 14px 10px 16px; transition: 0.2s; cursor:pointer; position:relative; min-height:96px; }
+.panel-ghost-card:hover { border-left-color: var(--accent); background: linear-gradient(90deg, rgba(255,255,255,0.88), rgba(244,247,245,0.46)); transform: translateY(-1px); }
+.panel-ghost-card.selected { border-left-color: var(--accent); background: linear-gradient(90deg, rgba(57,229,184,0.10), rgba(255,255,255,0.88)); box-shadow: inset 0 0 0 1px rgba(57,229,184,0.14); }
+.panel-ghost-card.disabled { opacity: 0.46; filter: grayscale(0.55); }
+.panel-ghost-card.required { border-left-width: 3px; }
+.panel-preview-card-inner { display:flex; flex-direction:column; gap:10px; }
+.panel-preview-head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.panel-preview-title-wrap { display:flex; align-items:center; gap:10px; min-width:0; }
+.panel-preview-title { font-size:14px; font-weight:900; color: var(--shard-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.panel-preview-state { font-family: var(--font-headline); font-size:10px; letter-spacing:1px; font-weight:900; padding: 4px 8px; border:1px solid var(--shard-border); color: var(--shard-text-muted); background: rgba(255,255,255,0.72); }
+.panel-preview-body { display:grid; gap:8px; }
+.panel-preview-hero { font-family: var(--font-headline); font-size: 13px; font-weight: 900; color: var(--shard-text); padding: 4px 0 6px 10px; border-left: 2px solid rgba(57,229,184,0.5); background: linear-gradient(90deg, rgba(57,229,184,0.08), rgba(255,255,255,0.12)); }
+.panel-preview-subline { font-size: 11px; color: var(--shard-text-muted); font-weight: 700; padding-left: 2px; }
+.panel-preview-row { border: none; border-left: 2px solid rgba(0,0,0,0.08); padding: 6px 0 6px 10px; font-size: 12px; line-height: 1.65; color: var(--shard-text); background: linear-gradient(90deg, rgba(255,255,255,0.78), rgba(255,255,255,0)); }
+.panel-preview-row.tone-hero { border-left: 3px solid #39e5b8; }
+.panel-preview-row.tone-title { border-left: 3px solid #f5c451; }
+.panel-preview-row.tone-status { border-left: 3px solid #ef7f59; }
+.panel-preview-row.tone-dice { border-left: 3px solid #6bb6ff; }
+.panel-preview-row.tone-card { border-left: 3px solid #6f8d7a; }
+.panel-preview-row.tone-log { border-left: 3px solid #9aa688; }
+.panel-config-side { display:flex; flex-direction:column; gap:16px; align-self: stretch; min-height: 100%; }
+.panel-config-side .panel { height: fit-content; }
+.panel-config-side .panel-sticky { position: sticky; top: 22px; z-index: 3; }
+.panel-editor-block { border:1px solid var(--shard-border); background: linear-gradient(180deg, rgba(248,250,249,0.98), rgba(241,245,242,0.96)); padding:14px; }
+.panel-toggle-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:8px; }
+.panel-check { display:flex; align-items:center; gap:8px; min-height:40px; border:1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.75); padding: 10px 12px; cursor:pointer; font-size:12px; color: var(--shard-text); font-weight:700; }
+.leaderboard-fieldset { border:none; padding:0; margin:0; min-width:0; display:flex; flex-direction:column; gap:14px; }
+.leaderboard-fieldset.locked { opacity:0.42; filter:grayscale(0.65); }
+.leaderboard-lock-note { font-size:11px; color:var(--shard-text-muted); line-height:1.6; margin-top:-4px; }
+@media (max-width: 1200px) {
+  .panel-config-layout { grid-template-columns: 1fr; }
+  .panel-config-side .panel-sticky { position: static; }
+}
+@media (max-width: 920px) {
+  .panel-wire-row { grid-template-columns: 1fr; }
+  .panel-wire-note.left::after, .panel-wire-note.right::before { display:none; }
+  .panel-toggle-grid { grid-template-columns: 1fr; }
+}
+
 </style>
 </head>
 <body class="chassis">
@@ -1004,6 +1060,11 @@ body.chassis {
             <button class="nav-btn" data-page="runtime">
               <span class="nav-text">运行配置</span>
               <span class="nav-sub">RUNTIME / PROBABILITY</span>
+              <div class="nav-indicator"></div>
+            </button>
+            <button class="nav-btn" data-page="panelcfg">
+              <span class="nav-text">用户面板配置</span>
+              <span class="nav-sub">PANEL / WIREFRAME</span>
               <div class="nav-indicator"></div>
             </button>
             <button class="nav-btn" data-page="signin">
@@ -1066,6 +1127,7 @@ body.chassis {
 
           <div class="page active" id="page-overview"></div>
           <div class="page" id="page-runtime"></div>
+          <div class="page" id="page-panelcfg"></div>
           <div class="page" id="page-signin"></div>
           <div class="page" id="page-fate"></div>
           <div class="page" id="page-cards"></div>
@@ -1326,6 +1388,7 @@ const state = {
   editingTitleIndex: -1,
   titleDraft: null,
   justActivatedProfile: '',
+  panelConfigSelectedId: 'basic_profile',
 
     funcFilter: 'all',
   funcSearchKeyword: '',
@@ -1502,11 +1565,47 @@ function finishLazyProgress(success = true) {
 const pageMeta = {
   overview: ['总览与方案', '把方案与核心信息放在同一屏内，随时掌握系统活跃状态。'],
   runtime: ['运行配置', '保留完整功能，但让高频参数调整更轻松、更直观。'],
+  panelcfg: ['用户面板配置', '用可视化方式管理区块启用与显示细项，保持旧数据零破坏。'],
   signin: ['签到配置', '事件池、运势区间与预览集中排布，方便边改边看。'],
   fate: ['命运牌档案', '命运牌、资源图片与编辑器放在一起，减少来回跳转。'],
   cards: ['功能牌档案', '竖版卡片展示，按类型快速查看并编辑功能牌。'],
   titles: ['称号档案', '配置称号的获取条件、效果与说明，支持按方案独立维护。'],
 };
+
+const defaultPanelSectionDefs = [
+  { id: 'basic_profile', label: '观测对象', enabled: true, required: true, desc: '基础身份、金币、排名和善恶值，属于必选核心区块。', sample: ['观测对象：示例成员', '金币总量：9527', '善恶业报：+3 (善)'] },
+  { id: 'titles', label: '称号', enabled: true, required: false, desc: '展示已拥有称号、佩戴数量与称号效果。', sample: ['已佩戴 2/3 · 共拥有 4', '🟢 天选之人 - 功能牌爆率 +10%'] },
+  { id: 'statuses', label: '异界干涉状态', enabled: true, required: false, desc: '展示冻结、沉默、护盾、好运加护等当前状态。', sample: ['▪️ [好运加护] - 剩余 3小时12分自动解封'] },
+  { id: 'dice_status', label: '骰局状态', enabled: true, required: false, desc: '展示重投、骰子修正等只影响骰局的状态。', sample: ['▪️ [天命重投] - 下次最低点自动重投'] },
+  { id: 'card_slots', label: '战术卡槽', enabled: true, required: false, desc: '展示常规功能牌栏位与当前持有情况，管理员授予牌也会并入这里。', sample: ['容量：2/3', '1. [绝对零度]', '2. [无懈可击] (🛡️已启用)'] },
+  { id: 'battle_logs', label: '近期恩怨纪事', enabled: true, required: false, desc: '展示最近保存下来的个人战报。', sample: ['[04-25 20:14] 使用了 [绝对零度]。结果：...', '[04-25 20:16] 遭到范围攻击。结果：...'] },
+];
+
+function getDefaultPanelSections() {
+  return defaultPanelSectionDefs.map(({ id, label, enabled }) => ({ id, label, enabled }));
+}
+
+function getPanelSectionDef(id) {
+  return defaultPanelSectionDefs.find(item => item.id === id) || defaultPanelSectionDefs[0];
+}
+
+function getDefaultWealthLeaderboardSettings() {
+  return { enabled: true, show_top: true, show_bottom: true, show_nearby: true, board_length: 10, title: '💰 ✦异世界·金币双榜✦ 💰', top_header: '🏆 【金币·封神榜】', bottom_header: '🃃 【倒霉·深渊榜】', nearby_header: '🧭 【你的附近位】', top_titles: ['👑 金冠', '🥈 银序', '🥉 铜席'], bottom_titles: ['💀 穷途', '🪙 漏财', '🕳️ 深渊'] };
+}
+
+function getDefaultKarmaLeaderboardSettings() {
+  return { enabled: true, show_positive: true, show_negative: true, show_nearby: true, board_length: 10, title: '⚖️ 【天道善恶榜】', positive_header: '😇 【善业榜】', negative_header: '😈 【恶业榜】', nearby_header: '🧭 【你的附近位】', positive_titles: ['😇 首善', '🍀 积福者', '🤝 仁心客'], negative_titles: ['😈 首恶', '🔥 业火者', '🌩️ 灾厄客'] };
+}
+
+function getDefaultPanelSectionSettings() {
+  return {
+    basic_profile: { show_rank: true, show_karma: true },
+    titles: { display_limit: 6 },
+    statuses: { display_limit: 5 },
+    dice_status: { display_limit: 4 },
+    battle_logs: { display_limit: 6, recent_days: 3 },
+  };
+}
 
 
 const rarityLabelMap = { 1: '普通', 2: '稀有', 3: '史诗', 4: '传说', 5: '神话' };
@@ -1756,6 +1855,13 @@ function getProfileName(id = state.currentProfile) {
 function ensureRuntime() {
   const c = state.runtimeConfig || {};
   c.webui_settings ||= { enable: true, port: 4399 };
+  c.ui_settings ||= {
+    panel_title: '【个人状态观测仪】',
+    wealth_leaderboard: getDefaultWealthLeaderboardSettings(),
+    karma_leaderboard: getDefaultKarmaLeaderboardSettings(),
+    panel_sections: getDefaultPanelSections(),
+    panel_section_settings: getDefaultPanelSectionSettings(),
+  };
   c.fate_cards_settings ||= { enable: true, daily_draw_limit: 3 };
   c.func_cards_settings ||= {
     enable: true,
@@ -1765,14 +1871,86 @@ function ensureRuntime() {
     public_duel_min_stake: 10,
     public_duel_max_stake: 200,
     enable_rarity_dedup: true,
-    rarity_mode: 'default',
     max_equipped_titles: 3,
+    max_inventory_slots: 3,
     custom_rarity_weights: { rarity_1: 30, rarity_2: 30, rarity_3: 28, rarity_4: 11, rarity_5: 1 },
-        economy_settings: { draw_probability: 5, free_daily_draw: 1, paid_daily_draw: 10, draw_cost: 20, pity_threshold: 10 }
+        economy_settings: { draw_probability: 5, free_daily_draw: 1, paid_daily_draw: 1, draw_cost: 20, pity_threshold: 10 }
   };
   c.func_cards_settings.custom_rarity_weights ||= { rarity_1: 30, rarity_2: 30, rarity_3: 28, rarity_4: 11, rarity_5: 1 };
-  c.func_cards_settings.economy_settings ||= { draw_probability: 5, free_daily_draw: 1, paid_daily_draw: 10, draw_cost: 20, pity_threshold: 10 };
+  c.func_cards_settings.economy_settings ||= { draw_probability: 5, free_daily_draw: 1, paid_daily_draw: 1, draw_cost: 20, pity_threshold: 10 };
   c.func_cards_settings.max_equipped_titles ||= 3;
+  c.func_cards_settings.max_inventory_slots ||= 3;
+  c.ui_settings.wealth_leaderboard = { ...getDefaultWealthLeaderboardSettings(), ...(c.ui_settings.wealth_leaderboard || c.ui_settings.leaderboard || {}) };
+  c.ui_settings.karma_leaderboard = { ...getDefaultKarmaLeaderboardSettings(), ...(c.ui_settings.karma_leaderboard || {}) };
+  if (c.ui_settings.board_length != null && (c.ui_settings.wealth_leaderboard?.board_length == null)) {
+    c.ui_settings.wealth_leaderboard.board_length = Number(c.ui_settings.board_length || 10) || 10;
+  }
+  c.ui_settings.panel_section_settings = {
+    ...getDefaultPanelSectionSettings(),
+    ...(c.ui_settings.panel_section_settings || {}),
+    basic_profile: { ...getDefaultPanelSectionSettings().basic_profile, ...(c.ui_settings.panel_section_settings?.basic_profile || {}) },
+    titles: { ...getDefaultPanelSectionSettings().titles, ...(c.ui_settings.panel_section_settings?.titles || {}) },
+    statuses: { ...getDefaultPanelSectionSettings().statuses, ...(c.ui_settings.panel_section_settings?.statuses || {}) },
+    dice_status: { ...getDefaultPanelSectionSettings().dice_status, ...(c.ui_settings.panel_section_settings?.dice_status || {}) },
+    battle_logs: { ...getDefaultPanelSectionSettings().battle_logs, ...(c.ui_settings.panel_section_settings?.battle_logs || {}) },
+  };
+  const panelMap = new Map(getDefaultPanelSections().map(item => [item.id, item]));
+  const normalizedPanelSections = [];
+  const seenPanelIds = new Set();
+  (Array.isArray(c.ui_settings.panel_sections) ? c.ui_settings.panel_sections : []).forEach(item => {
+    const id = String(item?.id || '').trim();
+    if (!panelMap.has(id) || seenPanelIds.has(id)) return;
+    const base = panelMap.get(id);
+    normalizedPanelSections.push({
+      id,
+      enabled: getPanelSectionDef(id).required ? true : !!item.enabled,
+      label: String(item?.label || base.label || '').trim() || base.label,
+    });
+    seenPanelIds.add(id);
+  });
+  getDefaultPanelSections().forEach(item => {
+    if (seenPanelIds.has(item.id)) return;
+    normalizedPanelSections.push(clone(item));
+  });
+  const basicIndex = normalizedPanelSections.findIndex(item => item.id === 'basic_profile');
+  if (basicIndex > 0) normalizedPanelSections.unshift(normalizedPanelSections.splice(basicIndex, 1)[0]);
+  if (basicIndex < 0) normalizedPanelSections.unshift(getDefaultPanelSections()[0]);
+  normalizedPanelSections[0].enabled = true;
+  c.ui_settings.panel_sections = normalizedPanelSections;
+  c.ui_settings.panel_title = String(c.ui_settings.panel_title || '【个人状态观测仪】').trim() || '【个人状态观测仪】';
+  c.ui_settings.wealth_leaderboard = { ...getDefaultWealthLeaderboardSettings(), ...c.ui_settings.wealth_leaderboard };
+  c.ui_settings.wealth_leaderboard.board_length = Number(c.ui_settings.wealth_leaderboard.board_length || 10) || 10;
+  c.ui_settings.wealth_leaderboard.enabled = !!c.ui_settings.wealth_leaderboard.enabled;
+  c.ui_settings.wealth_leaderboard.show_top = !!c.ui_settings.wealth_leaderboard.show_top;
+  c.ui_settings.wealth_leaderboard.show_bottom = !!c.ui_settings.wealth_leaderboard.show_bottom;
+  c.ui_settings.wealth_leaderboard.show_nearby = !!c.ui_settings.wealth_leaderboard.show_nearby;
+  c.ui_settings.wealth_leaderboard.title = String(c.ui_settings.wealth_leaderboard.title || getDefaultWealthLeaderboardSettings().title).trim() || getDefaultWealthLeaderboardSettings().title;
+  c.ui_settings.wealth_leaderboard.top_header = String(c.ui_settings.wealth_leaderboard.top_header || getDefaultWealthLeaderboardSettings().top_header).trim() || getDefaultWealthLeaderboardSettings().top_header;
+  c.ui_settings.wealth_leaderboard.bottom_header = String(c.ui_settings.wealth_leaderboard.bottom_header || getDefaultWealthLeaderboardSettings().bottom_header).trim() || getDefaultWealthLeaderboardSettings().bottom_header;
+  c.ui_settings.wealth_leaderboard.nearby_header = String(c.ui_settings.wealth_leaderboard.nearby_header || getDefaultWealthLeaderboardSettings().nearby_header).trim() || getDefaultWealthLeaderboardSettings().nearby_header;
+  c.ui_settings.wealth_leaderboard.top_titles = (Array.isArray(c.ui_settings.wealth_leaderboard.top_titles) ? c.ui_settings.wealth_leaderboard.top_titles : getDefaultWealthLeaderboardSettings().top_titles).slice(0, 3);
+  c.ui_settings.wealth_leaderboard.bottom_titles = (Array.isArray(c.ui_settings.wealth_leaderboard.bottom_titles) ? c.ui_settings.wealth_leaderboard.bottom_titles : getDefaultWealthLeaderboardSettings().bottom_titles).slice(0, 3);
+  c.ui_settings.karma_leaderboard = { ...getDefaultKarmaLeaderboardSettings(), ...c.ui_settings.karma_leaderboard };
+  c.ui_settings.karma_leaderboard.board_length = Number(c.ui_settings.karma_leaderboard.board_length || 10) || 10;
+  c.ui_settings.karma_leaderboard.enabled = !!c.ui_settings.karma_leaderboard.enabled;
+  c.ui_settings.karma_leaderboard.show_positive = !!c.ui_settings.karma_leaderboard.show_positive;
+  c.ui_settings.karma_leaderboard.show_negative = !!c.ui_settings.karma_leaderboard.show_negative;
+  c.ui_settings.karma_leaderboard.show_nearby = !!c.ui_settings.karma_leaderboard.show_nearby;
+  c.ui_settings.karma_leaderboard.title = String(c.ui_settings.karma_leaderboard.title || getDefaultKarmaLeaderboardSettings().title).trim() || getDefaultKarmaLeaderboardSettings().title;
+  c.ui_settings.karma_leaderboard.positive_header = String(c.ui_settings.karma_leaderboard.positive_header || getDefaultKarmaLeaderboardSettings().positive_header).trim() || getDefaultKarmaLeaderboardSettings().positive_header;
+  c.ui_settings.karma_leaderboard.negative_header = String(c.ui_settings.karma_leaderboard.negative_header || getDefaultKarmaLeaderboardSettings().negative_header).trim() || getDefaultKarmaLeaderboardSettings().negative_header;
+  c.ui_settings.karma_leaderboard.nearby_header = String(c.ui_settings.karma_leaderboard.nearby_header || getDefaultKarmaLeaderboardSettings().nearby_header).trim() || getDefaultKarmaLeaderboardSettings().nearby_header;
+  c.ui_settings.karma_leaderboard.positive_titles = (Array.isArray(c.ui_settings.karma_leaderboard.positive_titles) ? c.ui_settings.karma_leaderboard.positive_titles : getDefaultKarmaLeaderboardSettings().positive_titles).slice(0, 3);
+  c.ui_settings.karma_leaderboard.negative_titles = (Array.isArray(c.ui_settings.karma_leaderboard.negative_titles) ? c.ui_settings.karma_leaderboard.negative_titles : getDefaultKarmaLeaderboardSettings().negative_titles).slice(0, 3);
+  c.ui_settings.panel_section_settings.basic_profile.show_rank = !!c.ui_settings.panel_section_settings.basic_profile.show_rank;
+  c.ui_settings.panel_section_settings.basic_profile.show_karma = !!c.ui_settings.panel_section_settings.basic_profile.show_karma;
+  ['titles', 'statuses', 'dice_status', 'battle_logs'].forEach(id => {
+    c.ui_settings.panel_section_settings[id].display_limit = Number(c.ui_settings.panel_section_settings[id].display_limit || getDefaultPanelSectionSettings()[id].display_limit) || getDefaultPanelSectionSettings()[id].display_limit;
+  });
+  c.ui_settings.panel_section_settings.battle_logs.recent_days = Number(c.ui_settings.panel_section_settings.battle_logs.recent_days || getDefaultPanelSectionSettings().battle_logs.recent_days) || getDefaultPanelSectionSettings().battle_logs.recent_days;
+  if (!c.ui_settings.panel_sections.some(item => item.id === state.panelConfigSelectedId)) {
+    state.panelConfigSelectedId = c.ui_settings.panel_sections[0]?.id || 'basic_profile';
+  }
   state.runtimeConfig = c;
 }
 
@@ -2221,7 +2399,6 @@ function renderRuntime() {
   const f = c.func_cards_settings;
   const e = f.economy_settings;
   const w = f.custom_rarity_weights;
-  const preview = buildRarityWeightPreview();
   const fateEnabled = !!c.fate_cards_settings.enable;
   const funcEnabled = !!f.enable;
   const duelEnabled = funcEnabled && !!f.enable_public_duel_mode;
@@ -2245,7 +2422,7 @@ function renderRuntime() {
           <button class="btn-strong" onclick="saveRuntime()"><span class="btn-text">保存运行配置</span></button>
         </div>
 
-                <div class="config-block ${fateEnabled ? '' : 'locked'}">
+        <div class="config-block ${fateEnabled ? '' : 'locked'}">
           <div class="config-kicker">命运牌模块</div>
           <div class="runtime-grid">
             ${numField('命运牌每日换牌上限', 'fate_cards_settings.daily_draw_limit', c.fate_cards_settings.daily_draw_limit, !fateEnabled)}
@@ -2296,8 +2473,619 @@ function toggleBox(label, desc, path, on) {
 function numField(label, path, value, disabled = false, attrs = '') {
   return `<div class="field"><label>${label}</label><input class="input" type="number" value="${esc(value ?? 0)}" ${disabled ? 'disabled' : ''} ${attrs} oninput="setRuntimeValue('${path}', this.value)"></div>`;
 }
+function textField(label, path, value, disabled = false, attrs = '') {
+  return `<div class="field"><label>${label}</label><input class="input" type="text" value="${esc(value ?? '')}" ${disabled ? 'disabled' : ''} ${attrs} oninput="setRuntimeValue('${path}', this.value)"></div>`;
+}
 function selectField(label, path, value, options, disabled = false) {
   return `<div class="field"><label>${label}</label><select class="select" ${disabled ? 'disabled' : ''} onchange="setRuntimeValue('${path}', this.value)">${options.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(value) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
+}
+
+function getPanelSections() {
+  ensureRuntime();
+  return state.runtimeConfig.ui_settings.panel_sections || [];
+}
+
+function getWealthLeaderboardSettingsUI() {
+  ensureRuntime();
+  return state.runtimeConfig.ui_settings.wealth_leaderboard || getDefaultWealthLeaderboardSettings();
+}
+
+function getKarmaLeaderboardSettingsUI() {
+  ensureRuntime();
+  return state.runtimeConfig.ui_settings.karma_leaderboard || getDefaultKarmaLeaderboardSettings();
+}
+
+function getPanelSectionSettings(sectionId) {
+  ensureRuntime();
+  const defaults = getDefaultPanelSectionSettings();
+  return { ...(defaults[sectionId] || {}), ...(state.runtimeConfig.ui_settings.panel_section_settings?.[sectionId] || {}) };
+}
+
+function selectPanelSection(id) {
+  if (!getPanelSections().some(section => section.id === id)) return;
+  state.panelConfigSelectedId = id;
+  renderPanelConfig();
+}
+
+function togglePanelSectionEnabled(id) {
+  const section = getPanelSections().find(item => item.id === id);
+  if (!section) return;
+  const def = getPanelSectionDef(id);
+  if (def.required) return showToast('基础资料区块不能关闭。', true);
+  section.enabled = !section.enabled;
+  renderPanelConfig();
+}
+
+function setPanelSectionField(id, field, value) {
+  const section = getPanelSections().find(item => item.id === id);
+  if (!section) return;
+  const def = getPanelSectionDef(id);
+  const next = String(value ?? '').trim();
+  section[field] = next || def[field] || section[field];
+  renderPanelConfig();
+}
+
+function setPanelSectionSetting(sectionId, field, value) {
+  ensureRuntime();
+  const defaults = getDefaultPanelSectionSettings();
+  state.runtimeConfig.ui_settings.panel_section_settings ||= getDefaultPanelSectionSettings();
+  state.runtimeConfig.ui_settings.panel_section_settings[sectionId] ||= {};
+  const base = defaults[sectionId] || {};
+  const baseValue = base[field];
+  let next = value;
+  if (typeof baseValue === 'number') next = Number(value || baseValue || 0);
+  if (typeof baseValue === 'boolean') next = !!value;
+  state.runtimeConfig.ui_settings.panel_section_settings[sectionId][field] = next === '' ? baseValue : next;
+  renderPanelConfig();
+}
+
+function setPanelSectionFlag(sectionId, field, checked) {
+  setPanelSectionSetting(sectionId, field, !!checked);
+}
+
+function setWealthLeaderboardSetting(field, value) {
+  ensureRuntime();
+  state.runtimeConfig.ui_settings.wealth_leaderboard ||= getDefaultWealthLeaderboardSettings();
+  const defaults = getDefaultWealthLeaderboardSettings();
+  const baseValue = defaults[field];
+  let next = value;
+  if (typeof baseValue === 'number') next = Number(value || baseValue || 0);
+  if (typeof baseValue === 'boolean') next = !!value;
+  state.runtimeConfig.ui_settings.wealth_leaderboard[field] = next === '' ? baseValue : next;
+  renderPanelConfig();
+}
+
+function setWealthLeaderboardTitle(index, bucket, value) {
+  ensureRuntime();
+  const key = bucket === 'bottom' ? 'bottom_titles' : 'top_titles';
+  state.runtimeConfig.ui_settings.wealth_leaderboard ||= getDefaultWealthLeaderboardSettings();
+  const defaults = getDefaultWealthLeaderboardSettings()[key];
+  const list = Array.isArray(state.runtimeConfig.ui_settings.wealth_leaderboard[key]) ? [...state.runtimeConfig.ui_settings.wealth_leaderboard[key]] : [...defaults];
+  list[index] = String(value ?? '').trim() || defaults[index];
+  state.runtimeConfig.ui_settings.wealth_leaderboard[key] = list.slice(0, 3);
+  renderPanelConfig();
+}
+
+function setWealthTopTitle(index, value) {
+  setWealthLeaderboardTitle(index, 'top', value);
+}
+
+function setWealthBottomTitle(index, value) {
+  setWealthLeaderboardTitle(index, 'bottom', value);
+}
+
+function setKarmaLeaderboardSetting(field, value) {
+  ensureRuntime();
+  state.runtimeConfig.ui_settings.karma_leaderboard ||= getDefaultKarmaLeaderboardSettings();
+  const defaults = getDefaultKarmaLeaderboardSettings();
+  const baseValue = defaults[field];
+  let next = value;
+  if (typeof baseValue === 'number') next = Number(value || baseValue || 0);
+  if (typeof baseValue === 'boolean') next = !!value;
+  state.runtimeConfig.ui_settings.karma_leaderboard[field] = next === '' ? baseValue : next;
+  renderPanelConfig();
+}
+
+function setKarmaLeaderboardTitle(index, bucket, value) {
+  ensureRuntime();
+  const key = bucket === 'negative' ? 'negative_titles' : 'positive_titles';
+  state.runtimeConfig.ui_settings.karma_leaderboard ||= getDefaultKarmaLeaderboardSettings();
+  const defaults = getDefaultKarmaLeaderboardSettings()[key];
+  const list = Array.isArray(state.runtimeConfig.ui_settings.karma_leaderboard[key]) ? [...state.runtimeConfig.ui_settings.karma_leaderboard[key]] : [...defaults];
+  list[index] = String(value ?? '').trim() || defaults[index];
+  state.runtimeConfig.ui_settings.karma_leaderboard[key] = list.slice(0, 3);
+  renderPanelConfig();
+}
+
+function setKarmaPositiveTitle(index, value) {
+  setKarmaLeaderboardTitle(index, 'positive', value);
+}
+
+function setKarmaNegativeTitle(index, value) {
+  setKarmaLeaderboardTitle(index, 'negative', value);
+}
+
+function resetPanelSections() {
+  ensureRuntime();
+  state.runtimeConfig.ui_settings.panel_sections = getDefaultPanelSections();
+  state.runtimeConfig.ui_settings.panel_title = '【个人状态观测仪】';
+  state.runtimeConfig.ui_settings.wealth_leaderboard = getDefaultWealthLeaderboardSettings();
+  state.runtimeConfig.ui_settings.karma_leaderboard = getDefaultKarmaLeaderboardSettings();
+  state.runtimeConfig.ui_settings.panel_section_settings = getDefaultPanelSectionSettings();
+  state.runtimeConfig.func_cards_settings.max_equipped_titles = 3;
+  state.runtimeConfig.func_cards_settings.max_inventory_slots = 3;
+  state.panelConfigSelectedId = 'basic_profile';
+  renderPanelConfig();
+  showToast('用户面板配置已恢复默认骨架。');
+}
+
+function getPanelPreviewMock() {
+  const titleSettings = getPanelSectionSettings('titles');
+  const statusSettings = getPanelSectionSettings('statuses');
+  const diceSettings = getPanelSectionSettings('dice_status');
+  const battleSettings = getPanelSectionSettings('battle_logs');
+  const slotLimit = Number(state.runtimeConfig?.func_cards_settings?.max_inventory_slots || 3) || 3;
+  const equippedLimit = Number(state.runtimeConfig?.func_cards_settings?.max_equipped_titles || 3) || 3;
+  return {
+    name: '夜行旅人',
+    gold: 9527,
+    rank: 4,
+    karma: '+3 (善)',
+    titleSummary: `已佩戴 2/${equippedLimit} · 共拥有 6`,
+    titles: [
+      '🟢 星穹见证者 - 功能牌爆率 +10%',
+      '🟢 风暴借火者 - 每日额外免费抽取 +1',
+      '⚪ 深渊回声 - 公开对赌胜利金币 +8%',
+      '⚪ 旧梦收集家 - 功能牌护盾时长 +1小时',
+      '⚪ 荆棘行者 - 反伤比例 +10%',
+      '⚪ 未央之客 - 善恶业报波动 -1',
+    ].slice(0, Math.max(1, titleSettings.display_limit || 6)),
+    statuses: [
+      '▪️ [好运加护] - 剩余 3小时12分自动解封',
+      '▪️ [荆棘反甲] - 剩余 1小时48分自动解封',
+      '▪️ [护盾同步] - 下次控制效果将被抵消',
+    ].slice(0, Math.max(1, statusSettings.display_limit || 5)),
+    diceStatuses: [
+      '▪️ [天命重投] - 下次最低点自动重投',
+      '▪️ [职业骰手] - 骰子总点修正 +2',
+    ].slice(0, Math.max(1, diceSettings.display_limit || 4)),
+    slots: Array.from({ length: slotLimit }, (_, idx) => {
+      const cards = [
+        '1. [绝对零度] (🛡️已启用)',
+        '2. [无懈可击]',
+        '3. [命运转盘]',
+        '4. [群星回响]',
+      ];
+      return cards[idx] || `${idx + 1}. [空]`;
+    }),
+    adminCards: [
+      '✦ [南蛮入侵] (管理员授予)',
+      '✦ [星辉赐火] (管理员授予)',
+    ],
+    battleLogs: [
+      '[04-25 20:14] 使用了 [绝对零度]。结果：目标被冻结 2小时。',
+      '[04-25 20:17] 发起公开对赌。结果：胜利并赢得 88 金币。',
+      '[04-25 20:19] 遭到群体攻击。结果：无懈可击触发。',
+      '[04-25 20:25] 管理员授予了 [南蛮入侵]。',
+      '[04-25 20:29] 使用了 [命运转盘]。结果：净化负面状态。',
+    ].slice(0, Math.max(1, battleSettings.display_limit || 6)),
+  };
+}
+
+function renderPreviewRows(lines, tone = 'neutral') {
+  return lines.map(line => `<div class="panel-preview-row tone-${tone}">${esc(line)}</div>`).join('');
+}
+
+function renderPanelPreviewSection(section, mock) {
+  const sectionSettings = getPanelSectionSettings(section.id);
+  const commonHead = `
+    <div class="panel-preview-head">
+      <div class="panel-preview-title-wrap">
+        <span class="panel-preview-title">${esc(section.label)}</span>
+      </div>
+      <span class="panel-preview-state">${section.enabled ? '启用中' : '已关闭'}</span>
+    </div>`;
+
+  const bodyBySection = {
+    basic_profile: `
+      <div class="panel-preview-hero">${esc(state.runtimeConfig.ui_settings.panel_title || '【个人状态观测仪】')}</div>
+      ${renderPreviewRows([
+        `${section.label}：${mock.name}`,
+        sectionSettings.show_rank ? `金币总量：${mock.gold} (位阶：第 ${mock.rank} 位)` : `金币总量：${mock.gold}`,
+        sectionSettings.show_karma ? `善恶业报：${mock.karma}` : '善恶业报：已隐藏',
+      ], 'hero')}`,
+    titles: `
+      <div class="panel-preview-subline">${esc(mock.titleSummary)}</div>
+      ${renderPreviewRows(mock.titles, 'title')}`,
+    statuses: renderPreviewRows(mock.statuses, 'status'),
+    dice_status: renderPreviewRows(mock.diceStatuses, 'dice'),
+    card_slots: `
+      <div class="panel-preview-subline">容量：2/${mock.slots.length}，管理员授予牌会并入这里显示</div>
+      ${renderPreviewRows([...mock.slots, ...mock.adminCards], 'card')}`,
+    battle_logs: renderPreviewRows(mock.battleLogs, 'log'),
+  };
+
+  return `
+    <div class="panel-preview-card-inner">
+      ${commonHead}
+      <div class="panel-preview-body">${bodyBySection[section.id] || renderPreviewRows(['暂无预览数据'])}</div>
+    </div>`;
+}
+
+function renderPanelSpecificControls(selected, selectedDef) {
+  const titleSettings = getPanelSectionSettings('titles');
+  const basicSettings = getPanelSectionSettings('basic_profile');
+  const battleSettings = getPanelSectionSettings('battle_logs');
+  const statusSettings = getPanelSectionSettings('statuses');
+  const diceSettings = getPanelSectionSettings('dice_status');
+  const slotLimit = Number(state.runtimeConfig.func_cards_settings.max_inventory_slots || 3) || 3;
+  const equippedLimit = Number(state.runtimeConfig.func_cards_settings.max_equipped_titles || 3) || 3;
+
+  if (selected.id === 'basic_profile') {
+    return `
+      <div class="panel-editor-block">
+        <div class="config-kicker">基础资料区块</div>
+        <div class="field">
+          <label>面板主标题</label>
+          <input class="input" type="text" value="${esc(state.runtimeConfig.ui_settings.panel_title || '')}" onchange="setRuntimeValue('ui_settings.panel_title', this.value); renderPanelConfig();">
+        </div>
+        <div class="field">
+          <label>区块名称</label>
+          <input class="input" type="text" value="${esc(selected.label || '')}" onchange="setPanelSectionField('${esc(selected.id)}', 'label', this.value)">
+        </div>
+        <div class="panel-toggle-grid">
+          <label class="panel-check"><input type="checkbox" ${basicSettings.show_rank ? 'checked' : ''} onchange="setPanelSectionFlag('basic_profile', 'show_rank', this.checked)"><span>显示当前排名</span></label>
+          <label class="panel-check"><input type="checkbox" ${basicSettings.show_karma ? 'checked' : ''} onchange="setPanelSectionFlag('basic_profile', 'show_karma', this.checked)"><span>显示善恶业报</span></label>
+        </div>
+      </div>`;
+  }
+
+  if (selected.id === 'titles') {
+    return `
+      <div class="panel-editor-block">
+        <div class="config-kicker">称号配置</div>
+        <div class="field">
+          <label>区块名称</label>
+          <input class="input" type="text" value="${esc(selected.label || '')}" onchange="setPanelSectionField('${esc(selected.id)}', 'label', this.value)">
+        </div>
+        <div class="runtime-grid" style="padding:0; background:none; border:none;">
+          <div class="field">
+            <label>最多佩戴称号</label>
+            <input class="input" type="number" min="1" max="12" value="${esc(equippedLimit)}" onchange="setRuntimeValue('func_cards_settings.max_equipped_titles', this.value); renderPanelConfig();">
+          </div>
+          <div class="field">
+            <label>面板最多显示称号</label>
+            <input class="input" type="number" min="1" max="50" value="${esc(titleSettings.display_limit)}" onchange="setPanelSectionSetting('titles', 'display_limit', this.value)">
+          </div>
+        </div>
+      </div>`;
+  }
+
+  if (selected.id === 'card_slots') {
+    return `
+      <div class="panel-editor-block">
+        <div class="config-kicker">战术卡槽配置</div>
+        <div class="field">
+          <label>区块名称</label>
+          <input class="input" type="text" value="${esc(selected.label || '')}" onchange="setPanelSectionField('${esc(selected.id)}', 'label', this.value)">
+        </div>
+        <div class="field">
+          <label>个人最大持有卡槽</label>
+          <input class="input" type="number" min="1" max="12" value="${esc(slotLimit)}" onchange="setRuntimeValue('func_cards_settings.max_inventory_slots', this.value); renderPanelConfig();">
+        </div>
+        <div class="panel-note" style="margin-top:10px;">这项会真正影响群内可持有的常规功能牌数量，不只是面板显示。</div>
+      </div>`;
+  }
+
+  if (selected.id === 'statuses') {
+    return `
+      <div class="panel-editor-block">
+        <div class="config-kicker">异界状态显示</div>
+        <div class="field">
+          <label>区块名称</label>
+          <input class="input" type="text" value="${esc(selected.label || '')}" onchange="setPanelSectionField('${esc(selected.id)}', 'label', this.value)">
+        </div>
+        <div class="field">
+          <label>面板最多显示状态</label>
+          <input class="input" type="number" min="1" max="50" value="${esc(statusSettings.display_limit)}" onchange="setPanelSectionSetting('statuses', 'display_limit', this.value)">
+        </div>
+      </div>`;
+  }
+
+  if (selected.id === 'dice_status') {
+    return `
+      <div class="panel-editor-block">
+        <div class="config-kicker">骰局状态显示</div>
+        <div class="field">
+          <label>区块名称</label>
+          <input class="input" type="text" value="${esc(selected.label || '')}" onchange="setPanelSectionField('${esc(selected.id)}', 'label', this.value)">
+        </div>
+        <div class="field">
+          <label>面板最多显示骰局状态</label>
+          <input class="input" type="number" min="1" max="50" value="${esc(diceSettings.display_limit)}" onchange="setPanelSectionSetting('dice_status', 'display_limit', this.value)">
+        </div>
+      </div>`;
+  }
+
+  if (selected.id === 'battle_logs') {
+    return `
+      <div class="panel-editor-block">
+        <div class="config-kicker">战报显示</div>
+        <div class="field">
+          <label>区块名称</label>
+          <input class="input" type="text" value="${esc(selected.label || '')}" onchange="setPanelSectionField('${esc(selected.id)}', 'label', this.value)">
+        </div>
+        <div class="field">
+          <label>面板最多显示战报</label>
+          <input class="input" type="number" min="1" max="50" value="${esc(battleSettings.display_limit)}" onchange="setPanelSectionSetting('battle_logs', 'display_limit', this.value)">
+        </div>
+        <div class="field">
+          <label>仅显示最近几天</label>
+          <input class="input" type="number" min="1" max="30" value="${esc(battleSettings.recent_days || 3)}" onchange="setPanelSectionSetting('battle_logs', 'recent_days', this.value)">
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="panel-editor-block">
+      <div class="config-kicker">${esc(selectedDef.label)} 细项</div>
+      <div class="panel-note">当前这个区块暂时没有额外专属参数，主要通过区块名称和启用状态控制。</div>
+    </div>`;
+}
+
+function renderLeaderboardTitleInputs(kind, labels, setterName) {
+  return labels.map((label, index) => `
+    <div class="field">
+      <label>${label}</label>
+      <input class="input" type="text" value="${esc(kind[index] || '')}" onchange="${setterName}(${index}, this.value)">
+    </div>
+  `).join('');
+}
+
+function renderLeaderboardConfigGroup({ title, disabled = false, note = '', content = '' }) {
+  return `
+    <fieldset class="leaderboard-fieldset ${disabled ? 'locked' : ''}" ${disabled ? 'disabled' : ''}>
+      <div class="config-kicker" style="margin:0;">${title}</div>
+      ${note ? `<div class="leaderboard-lock-note">${note}</div>` : ''}
+      ${content}
+    </fieldset>
+  `;
+}
+
+function renderWealthLeaderboardCard() {
+  const cfg = getWealthLeaderboardSettingsUI();
+  const boardDisabled = !cfg.enabled;
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">金币榜</div>
+          <div class="panel-note">这里控制财富排行榜命令的启用状态、表头、正负榜、附近位和前三席位名称。关闭对应区块后，下方编辑区会自动暗下去。</div>
+        </div>
+        <button class="btn-strong" onclick="saveRuntime()"><span class="btn-text">保存金币榜</span></button>
+      </div>
+      <div class="stack" style="gap:14px;">
+        <div class="panel-toggle-grid">
+          <label class="panel-check"><input type="checkbox" ${cfg.enabled ? 'checked' : ''} onchange="setWealthLeaderboardSetting('enabled', this.checked)"><span>开启金币榜</span></label>
+          <label class="panel-check"><input type="checkbox" ${cfg.show_top ? 'checked' : ''} onchange="setWealthLeaderboardSetting('show_top', this.checked)"><span>显示正榜</span></label>
+          <label class="panel-check"><input type="checkbox" ${cfg.show_bottom ? 'checked' : ''} onchange="setWealthLeaderboardSetting('show_bottom', this.checked)"><span>显示负榜</span></label>
+          <label class="panel-check"><input type="checkbox" ${cfg.show_nearby ? 'checked' : ''} onchange="setWealthLeaderboardSetting('show_nearby', this.checked)"><span>显示附近排名</span></label>
+        </div>
+        <div class="field">
+          <label>每榜显示人数</label>
+          <input class="input" type="number" min="1" max="50" value="${esc(cfg.board_length)}" onchange="setWealthLeaderboardSetting('board_length', this.value)">
+        </div>
+        ${renderLeaderboardConfigGroup({
+          title: '总榜标题',
+          disabled: boardDisabled,
+          note: boardDisabled ? '金币榜已关闭，先重新开启才能继续编辑表头。' : '',
+          content: `
+            <div class="field">
+              <label>榜单总标题</label>
+              <input class="input" type="text" value="${esc(cfg.title)}" onchange="setWealthLeaderboardSetting('title', this.value)">
+            </div>`
+        })}
+        ${renderLeaderboardConfigGroup({
+          title: '附近位配置',
+          disabled: boardDisabled || !cfg.show_nearby,
+          note: !cfg.show_nearby ? '附近位未开启，下面的表头会暂时锁定。' : '',
+          content: `
+            <div class="field">
+              <label>附近位表头</label>
+              <input class="input" type="text" value="${esc(cfg.nearby_header)}" onchange="setWealthLeaderboardSetting('nearby_header', this.value)">
+            </div>`
+        })}
+        ${renderLeaderboardConfigGroup({
+          title: '正榜配置',
+          disabled: boardDisabled || !cfg.show_top,
+          note: !cfg.show_top ? '正榜未开启，下面的表头和前三名称会暂时锁定。' : '',
+          content: `
+            <div class="field">
+              <label>正榜表头</label>
+              <input class="input" type="text" value="${esc(cfg.top_header)}" onchange="setWealthLeaderboardSetting('top_header', this.value)">
+            </div>
+            <div class="runtime-grid" style="padding:0; background:none; border:none;">
+              ${renderLeaderboardTitleInputs(cfg.top_titles, ['正榜第 1 名称', '正榜第 2 名称', '正榜第 3 名称'], 'setWealthTopTitle')}
+            </div>`
+        })}
+        ${renderLeaderboardConfigGroup({
+          title: '负榜配置',
+          disabled: boardDisabled || !cfg.show_bottom,
+          note: !cfg.show_bottom ? '负榜未开启，下面的表头和前三名称会暂时锁定。' : '',
+          content: `
+            <div class="field">
+              <label>负榜表头</label>
+              <input class="input" type="text" value="${esc(cfg.bottom_header)}" onchange="setWealthLeaderboardSetting('bottom_header', this.value)">
+            </div>
+            <div class="runtime-grid" style="padding:0; background:none; border:none;">
+              ${renderLeaderboardTitleInputs(cfg.bottom_titles, ['负榜第 1 名称', '负榜第 2 名称', '负榜第 3 名称'], 'setWealthBottomTitle')}
+            </div>`
+        })}
+      </div>
+    </section>`;
+}
+
+function renderKarmaLeaderboardCard() {
+  const cfg = getKarmaLeaderboardSettingsUI();
+  const boardDisabled = !cfg.enabled;
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">善恶榜</div>
+          <div class="panel-note">这里控制善业榜 / 恶业榜 / 附近位的启用状态、表头和前三名称。关闭某块后，下面对应配置会自动暗下去。</div>
+        </div>
+        <button class="btn-strong" onclick="saveRuntime()"><span class="btn-text">保存善恶榜</span></button>
+      </div>
+      <div class="stack" style="gap:14px;">
+        <div class="panel-toggle-grid">
+          <label class="panel-check"><input type="checkbox" ${cfg.enabled ? 'checked' : ''} onchange="setKarmaLeaderboardSetting('enabled', this.checked)"><span>开启善恶榜</span></label>
+          <label class="panel-check"><input type="checkbox" ${cfg.show_positive ? 'checked' : ''} onchange="setKarmaLeaderboardSetting('show_positive', this.checked)"><span>显示善业榜</span></label>
+          <label class="panel-check"><input type="checkbox" ${cfg.show_negative ? 'checked' : ''} onchange="setKarmaLeaderboardSetting('show_negative', this.checked)"><span>显示恶业榜</span></label>
+          <label class="panel-check"><input type="checkbox" ${cfg.show_nearby ? 'checked' : ''} onchange="setKarmaLeaderboardSetting('show_nearby', this.checked)"><span>显示附近位</span></label>
+        </div>
+        <div class="field">
+          <label>每榜显示人数</label>
+          <input class="input" type="number" min="1" max="50" value="${esc(cfg.board_length)}" onchange="setKarmaLeaderboardSetting('board_length', this.value)">
+        </div>
+        ${renderLeaderboardConfigGroup({
+          title: '总榜标题',
+          disabled: boardDisabled,
+          note: boardDisabled ? '善恶榜已关闭，先重新开启才能继续编辑表头。' : '',
+          content: `
+            <div class="field">
+              <label>榜单总标题</label>
+              <input class="input" type="text" value="${esc(cfg.title)}" onchange="setKarmaLeaderboardSetting('title', this.value)">
+            </div>`
+        })}
+        ${renderLeaderboardConfigGroup({
+          title: '附近位配置',
+          disabled: boardDisabled || !cfg.show_nearby,
+          note: !cfg.show_nearby ? '附近位未开启，下面的表头会暂时锁定。' : '',
+          content: `
+            <div class="field">
+              <label>附近位表头</label>
+              <input class="input" type="text" value="${esc(cfg.nearby_header)}" onchange="setKarmaLeaderboardSetting('nearby_header', this.value)">
+            </div>`
+        })}
+        ${renderLeaderboardConfigGroup({
+          title: '善业榜配置',
+          disabled: boardDisabled || !cfg.show_positive,
+          note: !cfg.show_positive ? '善业榜未开启，下面的表头和前三名称会暂时锁定。' : '',
+          content: `
+            <div class="field">
+              <label>善业榜表头</label>
+              <input class="input" type="text" value="${esc(cfg.positive_header)}" onchange="setKarmaLeaderboardSetting('positive_header', this.value)">
+            </div>
+            <div class="runtime-grid" style="padding:0; background:none; border:none;">
+              ${renderLeaderboardTitleInputs(cfg.positive_titles, ['善榜第 1 名称', '善榜第 2 名称', '善榜第 3 名称'], 'setKarmaPositiveTitle')}
+            </div>`
+        })}
+        ${renderLeaderboardConfigGroup({
+          title: '恶业榜配置',
+          disabled: boardDisabled || !cfg.show_negative,
+          note: !cfg.show_negative ? '恶业榜未开启，下面的表头和前三名称会暂时锁定。' : '',
+          content: `
+            <div class="field">
+              <label>恶业榜表头</label>
+              <input class="input" type="text" value="${esc(cfg.negative_header)}" onchange="setKarmaLeaderboardSetting('negative_header', this.value)">
+            </div>
+            <div class="runtime-grid" style="padding:0; background:none; border:none;">
+              ${renderLeaderboardTitleInputs(cfg.negative_titles, ['恶榜第 1 名称', '恶榜第 2 名称', '恶榜第 3 名称'], 'setKarmaNegativeTitle')}
+            </div>`
+        })}
+      </div>
+    </section>`;
+}
+
+function renderPanelConfig() {
+  ensureRuntime();
+  const sections = getPanelSections();
+  const selected = sections.find(section => section.id === state.panelConfigSelectedId) || sections[0];
+  if (!selected) return;
+  state.panelConfigSelectedId = selected.id;
+  const selectedDef = getPanelSectionDef(selected.id);
+  const mock = getPanelPreviewMock();
+
+  $('#page-panelcfg').innerHTML = `
+    <div class="panel-config-layout">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">用户面板配置</div>
+            <div class="panel-note">左侧按真实玩家数据去模拟预览，右侧只保留当前区块的可用配置。排行榜被拆到页面底部单独配置，不再混进观测对象里。</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn" onclick="resetPanelSections()"><span class="btn-text">恢复默认</span></button>
+            <button class="btn-strong" onclick="saveRuntime()"><span class="btn-text">保存面板配置</span></button>
+          </div>
+        </div>
+
+        <div class="panel-config-stage clip-bevel-shard">
+          <div class="panel-config-header">
+            <div>
+              <div class="config-kicker" style="margin-bottom:8px;">面板骨架预览</div>
+              <div class="panel-note">当前示例用户是模拟数据，但右侧改的内容会真的写入运行配置并影响群内输出。</div>
+            </div>
+          </div>
+          <div class="panel-config-shell">
+            ${sections.map((section, index) => {
+              const def = getPanelSectionDef(section.id);
+              const selectedClass = selected.id === section.id ? 'selected' : '';
+              const disabledClass = section.enabled ? '' : 'disabled';
+              const requiredClass = def.required ? 'required' : '';
+              return `
+                <div class="panel-wire-row">
+                  <div class="panel-wire-note left">
+                    <div class="panel-wire-kicker">[ ${String(index + 1).padStart(2, '0')} / ${esc(section.id)} ]</div>
+                    <div class="panel-wire-label">${def.required ? '必选核心区块' : (section.enabled ? '当前已启用' : '当前已关闭')}</div>
+                    <div class="panel-wire-helper">${esc(def.desc)}</div>
+                  </div>
+                  <div class="panel-ghost-card ${selectedClass} ${disabledClass} ${requiredClass}" onclick="selectPanelSection('${esc(section.id)}')">
+                    ${renderPanelPreviewSection(section, mock)}
+                  </div>
+                  <div class="panel-wire-note right">
+                    <div class="panel-wire-kicker">[ 快速操作 ]</div>
+                    <div class="panel-wire-actions">
+                      <button class="btn-mini ${selected.id === section.id ? 'btn-strong' : 'outline-btn'}" onclick="selectPanelSection('${esc(section.id)}')"><span class="btn-text">${selected.id === section.id ? '正在编辑' : '选中编辑'}</span></button>
+                      <button class="btn-mini outline-btn" onclick="togglePanelSectionEnabled('${esc(section.id)}')"><span class="btn-text">${def.required ? '固定启用' : (section.enabled ? '关闭区块' : '启用区块')}</span></button>
+                      <button class="btn-mini outline-btn" onclick="saveRuntime()"><span class="btn-text">立即保存</span></button>
+                    </div>
+                    <div class="panel-wire-helper">这里只保留选中、开关和即时保存，不再提供拖拽或上下排序。</div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </section>
+
+      <div class="panel-config-side">
+        <section class="panel panel-sticky">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">区块细调</div>
+              <div class="panel-note">当前选中：${esc(selected.label || selectedDef.label)}</div>
+            </div>
+            <button class="btn-strong" onclick="saveRuntime()"><span class="btn-text">保存</span></button>
+          </div>
+          <div class="stack" style="gap:14px;">
+            ${renderPanelSpecificControls(selected, selectedDef)}
+            <div class="panel-editor-block">
+              <div class="config-kicker">区块开关</div>
+              <div class="panel-note">${esc(selectedDef.desc)}</div>
+              <div class="row" style="margin-top:12px;">
+                <button class="btn ${selectedDef.required ? 'outline-btn' : ''}" onclick="togglePanelSectionEnabled('${esc(selected.id)}')"><span class="btn-text">${selectedDef.required ? '基础区块固定启用' : (selected.enabled ? '关闭这个区块' : '重新启用区块')}</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div class="grid" style="margin-top:20px;">
+      <div class="col-6">${renderWealthLeaderboardCard()}</div>
+      <div class="col-6">${renderKarmaLeaderboardCard()}</div>
+    </div>`;
 }
 
 // ===== [ page: signin ] ====================================================
@@ -3367,6 +4155,7 @@ function renderGlobalStats() {
 function renderAll() {
   renderOverview();
   renderRuntime();
+  renderPanelConfig();
   renderSignin();
   renderFate();
     renderCards();
@@ -4334,6 +5123,18 @@ Object.assign(window, {
   toggleRuntime,
   setRuntimeValue,
   saveRuntime,
+  selectPanelSection,
+  togglePanelSectionEnabled,
+  setPanelSectionField,
+  setPanelSectionSetting,
+  setPanelSectionFlag,
+  setWealthLeaderboardSetting,
+  setWealthTopTitle,
+  setWealthBottomTitle,
+  setKarmaLeaderboardSetting,
+  setKarmaPositiveTitle,
+  setKarmaNegativeTitle,
+  resetPanelSections,
   toggleEventSelect,
   removeEvent,
   deleteSelectedEvents,

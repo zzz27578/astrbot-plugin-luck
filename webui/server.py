@@ -131,6 +131,197 @@ _BUILTIN_FALLBACK_PNG = (
     b"\x00\x00\x03\x01\x01\x00\x18\xdd\x8d\xb1\x00\x00\x00\x00IEND\xaeB`\x82"
 )
 
+_DEFAULT_PANEL_SECTIONS = [
+    {"id": "basic_profile", "enabled": True, "label": "观测对象", "emoji": "📊", "required": True},
+    {"id": "titles", "enabled": True, "label": "称号", "emoji": "🏅", "required": False},
+    {"id": "statuses", "enabled": True, "label": "异界干涉状态", "emoji": "🎭", "required": False},
+    {"id": "dice_status", "enabled": True, "label": "骰局状态", "emoji": "🎲", "required": False},
+    {"id": "card_slots", "enabled": True, "label": "战术卡槽", "emoji": "🎴", "required": False},
+    {"id": "battle_logs", "enabled": True, "label": "近期恩怨纪事", "emoji": "📜", "required": False},
+]
+
+
+def _default_panel_sections() -> list[dict]:
+    return [{k: v for k, v in item.items() if k != "required"} for item in _DEFAULT_PANEL_SECTIONS]
+
+
+def _sanitize_rank_titles(raw_titles, defaults: list[str]) -> list[str]:
+    source = raw_titles if isinstance(raw_titles, list) else []
+    values: list[str] = []
+    for idx in range(3):
+        fallback = defaults[idx]
+        value = str(source[idx] if idx < len(source) else fallback).strip() or fallback
+        values.append(value)
+    return values
+
+
+def _default_leaderboard_settings(kind: str = "wealth") -> dict:
+    if kind == "karma":
+        return {
+            "enabled": True,
+            "show_positive": True,
+            "show_negative": True,
+            "show_nearby": True,
+            "board_length": 10,
+            "title": "⚖️ 【天道善恶榜】",
+            "positive_header": "😇 【善业榜】",
+            "negative_header": "😈 【恶业榜】",
+            "nearby_header": "🧭 【你的附近位】",
+            "positive_titles": ["😇 首善", "🍀 积福者", "🤝 仁心客"],
+            "negative_titles": ["😈 首恶", "🔥 业火者", "🌩️ 灾厄客"],
+        }
+    return {
+        "enabled": True,
+        "show_top": True,
+        "show_bottom": True,
+        "show_nearby": True,
+        "board_length": 10,
+        "title": "💰 ✦异世界·金币双榜✦ 💰",
+        "top_header": "🏆 【金币·封神榜】",
+        "bottom_header": "🃃 【倒霉·深渊榜】",
+        "nearby_header": "🧭 【你的附近位】",
+        "top_titles": ["👑 金冠", "🥈 银序", "🥉 铜席"],
+        "bottom_titles": ["💀 穷途", "🪙 漏财", "🕳️ 深渊"],
+    }
+
+
+def _sanitize_leaderboard_settings(raw_settings, fallback_length: int = 10, *, kind: str = "wealth") -> dict:
+    merged = _default_leaderboard_settings(kind)
+    if isinstance(raw_settings, dict):
+        merged.update(raw_settings)
+    merged["enabled"] = bool(merged.get("enabled", True))
+    merged["board_length"] = _clamp_int(
+        merged.get("board_length", fallback_length),
+        fallback_length,
+        minimum=1,
+        maximum=50,
+    )
+    if kind == "karma":
+        merged["show_positive"] = bool(merged.get("show_positive", True))
+        merged["show_negative"] = bool(merged.get("show_negative", True))
+        merged["show_nearby"] = bool(merged.get("show_nearby", True))
+        merged["title"] = str(merged.get("title", _default_leaderboard_settings("karma")["title"]) or _default_leaderboard_settings("karma")["title"]).strip() or _default_leaderboard_settings("karma")["title"]
+        merged["positive_header"] = str(merged.get("positive_header", _default_leaderboard_settings("karma")["positive_header"]) or _default_leaderboard_settings("karma")["positive_header"]).strip() or _default_leaderboard_settings("karma")["positive_header"]
+        merged["negative_header"] = str(merged.get("negative_header", _default_leaderboard_settings("karma")["negative_header"]) or _default_leaderboard_settings("karma")["negative_header"]).strip() or _default_leaderboard_settings("karma")["negative_header"]
+        merged["nearby_header"] = str(merged.get("nearby_header", _default_leaderboard_settings("karma")["nearby_header"]) or _default_leaderboard_settings("karma")["nearby_header"]).strip() or _default_leaderboard_settings("karma")["nearby_header"]
+        merged["positive_titles"] = _sanitize_rank_titles(merged.get("positive_titles", []), _default_leaderboard_settings("karma")["positive_titles"])
+        merged["negative_titles"] = _sanitize_rank_titles(merged.get("negative_titles", []), _default_leaderboard_settings("karma")["negative_titles"])
+    else:
+        merged["show_top"] = bool(merged.get("show_top", True))
+        merged["show_bottom"] = bool(merged.get("show_bottom", True))
+        merged["show_nearby"] = bool(merged.get("show_nearby", True))
+        merged["title"] = str(merged.get("title", _default_leaderboard_settings()["title"]) or _default_leaderboard_settings()["title"]).strip() or _default_leaderboard_settings()["title"]
+        merged["top_header"] = str(merged.get("top_header", _default_leaderboard_settings()["top_header"]) or _default_leaderboard_settings()["top_header"]).strip() or _default_leaderboard_settings()["top_header"]
+        merged["bottom_header"] = str(merged.get("bottom_header", _default_leaderboard_settings()["bottom_header"]) or _default_leaderboard_settings()["bottom_header"]).strip() or _default_leaderboard_settings()["bottom_header"]
+        merged["nearby_header"] = str(merged.get("nearby_header", _default_leaderboard_settings()["nearby_header"]) or _default_leaderboard_settings()["nearby_header"]).strip() or _default_leaderboard_settings()["nearby_header"]
+        merged["top_titles"] = _sanitize_rank_titles(merged.get("top_titles", []), _default_leaderboard_settings()["top_titles"])
+        merged["bottom_titles"] = _sanitize_rank_titles(merged.get("bottom_titles", []), _default_leaderboard_settings()["bottom_titles"])
+    return merged
+
+
+def _default_panel_section_settings() -> dict:
+    return {
+        "basic_profile": {
+            "show_rank": True,
+            "show_karma": True,
+        },
+        "titles": {
+            "display_limit": 6,
+        },
+        "statuses": {
+            "display_limit": 5,
+        },
+        "dice_status": {
+            "display_limit": 4,
+        },
+        "battle_logs": {
+            "display_limit": 6,
+            "recent_days": 3,
+        },
+    }
+
+
+def _sanitize_panel_section_settings(raw_settings) -> dict:
+    defaults = _default_panel_section_settings()
+    merged = _deep_merge_dict(defaults, raw_settings if isinstance(raw_settings, dict) else {})
+
+    basic = merged.setdefault("basic_profile", {})
+    basic["show_rank"] = bool(basic.get("show_rank", True))
+    basic["show_karma"] = bool(basic.get("show_karma", True))
+
+    for section_id, default_limit in {
+        "titles": 6,
+        "statuses": 5,
+        "dice_status": 4,
+        "battle_logs": 6,
+    }.items():
+        section_cfg = merged.setdefault(section_id, {})
+        section_cfg["display_limit"] = _clamp_int(
+            section_cfg.get("display_limit", defaults.get(section_id, {}).get("display_limit", default_limit)),
+            default_limit,
+            minimum=1,
+            maximum=50,
+        )
+    battle_cfg = merged.setdefault("battle_logs", {})
+    battle_cfg["recent_days"] = _clamp_int(
+        battle_cfg.get("recent_days", defaults.get("battle_logs", {}).get("recent_days", 3)),
+        3,
+        minimum=1,
+        maximum=30,
+    )
+
+    return merged
+
+
+def _sanitize_panel_sections(raw_sections) -> list[dict]:
+    default_map = {item["id"]: item for item in _DEFAULT_PANEL_SECTIONS}
+    normalized: list[dict] = []
+    seen: set[str] = set()
+
+    for item in raw_sections if isinstance(raw_sections, list) else []:
+        if not isinstance(item, dict):
+            continue
+        section_id = str(item.get("id", "") or "").strip()
+        if section_id not in default_map or section_id in seen:
+            continue
+        default = default_map[section_id]
+        enabled = bool(item.get("enabled", default["enabled"]))
+        if default.get("required", False):
+            enabled = True
+        label = str(item.get("label", default["label"]) or default["label"]).strip() or default["label"]
+        emoji = str(item.get("emoji", default["emoji"]) or default["emoji"]).strip() or default["emoji"]
+        normalized.append({
+            "id": section_id,
+            "enabled": enabled,
+            "label": label,
+            "emoji": emoji,
+        })
+        seen.add(section_id)
+
+    for default in _DEFAULT_PANEL_SECTIONS:
+        if default["id"] in seen:
+            continue
+        normalized.append({
+            "id": default["id"],
+            "enabled": bool(default["enabled"]),
+            "label": default["label"],
+            "emoji": default["emoji"],
+        })
+
+    basic_index = next((idx for idx, section in enumerate(normalized) if section.get("id") == "basic_profile"), -1)
+    if basic_index > 0:
+        normalized.insert(0, normalized.pop(basic_index))
+    elif basic_index < 0:
+        normalized.insert(0, {
+            "id": "basic_profile",
+            "enabled": True,
+            "label": default_map["basic_profile"]["label"],
+            "emoji": default_map["basic_profile"]["emoji"],
+        })
+
+    normalized[0]["enabled"] = True
+    return normalized
+
 
 def _atomic_write(path: Path, data):
     """原子写入：先写临时文件再替换，防止写到一半损坏"""
@@ -455,6 +646,13 @@ def _default_runtime_config() -> dict:
             "enable": True,
             "port": 4399,
         },
+        "ui_settings": {
+            "panel_title": "【个人状态观测仪】",
+            "wealth_leaderboard": _default_leaderboard_settings("wealth"),
+            "karma_leaderboard": _default_leaderboard_settings("karma"),
+            "panel_sections": _default_panel_sections(),
+            "panel_section_settings": _default_panel_section_settings(),
+        },
         "sign_in_settings": {
             "enable": True,
         },
@@ -476,7 +674,6 @@ def _default_runtime_config() -> dict:
             "public_duel_min_stake": 10,
             "public_duel_max_stake": 200,
             "enable_rarity_dedup": True,
-            "rarity_mode": "default",
             "custom_rarity_weights": {
                 "rarity_1": 30,
                 "rarity_2": 30,
@@ -487,11 +684,12 @@ def _default_runtime_config() -> dict:
                         "economy_settings": {
                 "draw_probability": 5,
                 "free_daily_draw": 1,
-                "paid_daily_draw": 10,
+                "paid_daily_draw": 1,
                 "draw_cost": 20,
                 "pity_threshold": 10,
             },
             "max_equipped_titles": 3,
+            "max_inventory_slots": 3,
         },
 
     }
@@ -538,7 +736,43 @@ def _clamp_int(value, default: int, *, minimum: int | None = None, maximum: int 
 
 def _sanitize_runtime_config(cfg: dict | None) -> dict:
     merged = _deep_merge_dict(_default_runtime_config(), cfg if isinstance(cfg, dict) else {})
+    ui_cfg = merged.setdefault("ui_settings", {})
+    ui_cfg["panel_title"] = str(ui_cfg.get("panel_title", "【个人状态观测仪】") or "【个人状态观测仪】").strip() or "【个人状态观测仪】"
+    legacy_board_length = _clamp_int(ui_cfg.get("board_length", 10), 10, minimum=1, maximum=50)
+    wealth_seed = ui_cfg.get("wealth_leaderboard")
+    if not isinstance(wealth_seed, dict):
+        wealth_seed = ui_cfg.get("leaderboard", {})
+    ui_cfg["wealth_leaderboard"] = _sanitize_leaderboard_settings(wealth_seed, legacy_board_length, kind="wealth")
+    ui_cfg["karma_leaderboard"] = _sanitize_leaderboard_settings(ui_cfg.get("karma_leaderboard", {}), legacy_board_length, kind="karma")
+    ui_cfg["panel_sections"] = _sanitize_panel_sections(ui_cfg.get("panel_sections", _default_panel_sections()))
+    ui_cfg["panel_section_settings"] = _sanitize_panel_section_settings(ui_cfg.get("panel_section_settings", {}))
+
+    fate_cfg = merged.setdefault("fate_cards_settings", {})
+    fate_cfg["enable"] = bool(fate_cfg.get("enable", True))
+    fate_cfg["daily_draw_limit"] = _clamp_int(
+        fate_cfg.get("daily_draw_limit", 3),
+        3,
+        minimum=1,
+        maximum=100,
+    )
+
     func_cfg = merged.setdefault("func_cards_settings", {})
+    func_cfg["enable"] = bool(func_cfg.get("enable", True))
+    func_cfg["enable_dice_cards"] = bool(func_cfg.get("enable_dice_cards", True))
+    func_cfg["enable_public_duel_mode"] = bool(func_cfg.get("enable_public_duel_mode", False))
+    func_cfg["enable_rarity_dedup"] = bool(func_cfg.get("enable_rarity_dedup", True))
+    func_cfg["max_equipped_titles"] = _clamp_int(
+        func_cfg.get("max_equipped_titles", 3),
+        3,
+        minimum=1,
+        maximum=12,
+    )
+    func_cfg["max_inventory_slots"] = _clamp_int(
+        func_cfg.get("max_inventory_slots", 3),
+        3,
+        minimum=1,
+        maximum=12,
+    )
     func_cfg["public_duel_daily_limit"] = _clamp_int(
         func_cfg.get("public_duel_daily_limit", 3),
         3,
@@ -559,6 +793,53 @@ def _sanitize_runtime_config(cfg: dict | None) -> dict:
     )
     func_cfg["public_duel_min_stake"] = duel_min
     func_cfg["public_duel_max_stake"] = max(duel_min, duel_max)
+
+    weights_cfg = func_cfg.setdefault("custom_rarity_weights", {})
+    for rarity_key, default_value in {
+        "rarity_1": 30,
+        "rarity_2": 30,
+        "rarity_3": 28,
+        "rarity_4": 11,
+        "rarity_5": 1,
+    }.items():
+        weights_cfg[rarity_key] = _clamp_int(
+            weights_cfg.get(rarity_key, default_value),
+            default_value,
+            minimum=0,
+            maximum=100000,
+        )
+
+    eco_cfg = func_cfg.setdefault("economy_settings", {})
+    eco_cfg["draw_probability"] = _clamp_int(
+        eco_cfg.get("draw_probability", 5),
+        5,
+        minimum=0,
+        maximum=100,
+    )
+    eco_cfg["free_daily_draw"] = _clamp_int(
+        eco_cfg.get("free_daily_draw", 1),
+        1,
+        minimum=0,
+        maximum=100,
+    )
+    eco_cfg["paid_daily_draw"] = _clamp_int(
+        eco_cfg.get("paid_daily_draw", 1),
+        1,
+        minimum=0,
+        maximum=100,
+    )
+    eco_cfg["draw_cost"] = _clamp_int(
+        eco_cfg.get("draw_cost", 20),
+        20,
+        minimum=0,
+        maximum=1_000_000,
+    )
+    eco_cfg["pity_threshold"] = _clamp_int(
+        eco_cfg.get("pity_threshold", 10),
+        10,
+        minimum=1,
+        maximum=1000,
+    )
     return merged
 
 

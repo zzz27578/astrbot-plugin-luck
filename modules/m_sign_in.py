@@ -170,13 +170,75 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
 
 
 # (排行榜逻辑保持不变，统一修改 name)
-async def handle_leaderboard(event: AstrMessageEvent, bank, board_length: int = 10):
+def _normalize_rank_titles(values, defaults: list[str]) -> list[str]:
+    source = values if isinstance(values, list) else []
+    items = []
+    for idx in range(3):
+        fallback = defaults[idx]
+        value = str(source[idx] if idx < len(source) else fallback).strip() or fallback
+        items.append(value)
+    return items
+
+
+def get_leaderboard_settings(config: dict | None = None, kind: str = "wealth") -> dict:
+    ui_cfg = (config or {}).get("ui_settings", {})
+    legacy_length = ui_cfg.get("board_length", 10)
+    raw = ui_cfg.get("wealth_leaderboard" if kind == "wealth" else "karma_leaderboard", {})
+    if kind == "wealth" and not isinstance(raw, dict):
+        raw = ui_cfg.get("leaderboard", {})
+    if not isinstance(raw, dict):
+        raw = {}
+    try:
+        board_length = max(1, int(raw.get("board_length", legacy_length) or legacy_length))
+    except (TypeError, ValueError):
+        board_length = 10
+
+    if kind == "karma":
+        return {
+            "enabled": bool(raw.get("enabled", True)),
+            "show_positive": bool(raw.get("show_positive", True)),
+            "show_negative": bool(raw.get("show_negative", True)),
+            "show_nearby": bool(raw.get("show_nearby", True)),
+            "board_length": board_length,
+            "title": str(raw.get("title", "⚖️ 【天道善恶榜】") or "⚖️ 【天道善恶榜】").strip() or "⚖️ 【天道善恶榜】",
+            "positive_header": str(raw.get("positive_header", "😇 【善业榜】") or "😇 【善业榜】").strip() or "😇 【善业榜】",
+            "negative_header": str(raw.get("negative_header", "😈 【恶业榜】") or "😈 【恶业榜】").strip() or "😈 【恶业榜】",
+            "nearby_header": str(raw.get("nearby_header", "🧭 【你的附近位】") or "🧭 【你的附近位】").strip() or "🧭 【你的附近位】",
+            "positive_titles": _normalize_rank_titles(raw.get("positive_titles", []), ["😇 首善", "🍀 积福者", "🤝 仁心客"]),
+            "negative_titles": _normalize_rank_titles(raw.get("negative_titles", []), ["😈 首恶", "🔥 业火者", "🌩️ 灾厄客"]),
+        }
+
+    return {
+        "enabled": bool(raw.get("enabled", True)),
+        "show_top": bool(raw.get("show_top", True)),
+        "show_bottom": bool(raw.get("show_bottom", True)),
+        "show_nearby": bool(raw.get("show_nearby", True)),
+        "board_length": board_length,
+        "title": str(raw.get("title", "💰 ✦异世界·金币双榜✦ 💰") or "💰 ✦异世界·金币双榜✦ 💰").strip() or "💰 ✦异世界·金币双榜✦ 💰",
+        "top_header": str(raw.get("top_header", "🏆 【金币·封神榜】") or "🏆 【金币·封神榜】").strip() or "🏆 【金币·封神榜】",
+        "bottom_header": str(raw.get("bottom_header", "🃃 【倒霉·深渊榜】") or "🃃 【倒霉·深渊榜】").strip() or "🃃 【倒霉·深渊榜】",
+        "nearby_header": str(raw.get("nearby_header", "🧭 【你的附近位】") or "🧭 【你的附近位】").strip() or "🧭 【你的附近位】",
+        "top_titles": _normalize_rank_titles(raw.get("top_titles", []), ["👑 金冠", "🥈 银序", "🥉 铜席"]),
+        "bottom_titles": _normalize_rank_titles(raw.get("bottom_titles", []), ["💀 穷途", "🪙 漏财", "🕳️ 深渊"]),
+    }
+
+
+async def handle_leaderboard(event: AstrMessageEvent, bank, config: dict | None = None):
     user_id = event.get_sender_id()
     all_users = await bank.get_all_users()
     if not all_users:
         yield event.plain_result("榜单暂无数据。")
         return
 
+    settings = get_leaderboard_settings(config, "wealth")
+    if not settings["enabled"]:
+        yield event.plain_result("⚠️ 当前方案已关闭财富排行榜。")
+        return
+    if not settings["show_top"] and not settings["show_bottom"] and not settings["show_nearby"]:
+        yield event.plain_result("⚠️ 当前排行榜的全部展示区块都已关闭。")
+        return
+
+    board_length = settings["board_length"]
     full_list = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0), reverse=True)
     top_n = full_list[:board_length]
     bottom_n = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0), reverse=False)[:board_length]
@@ -211,5 +273,62 @@ async def handle_leaderboard(event: AstrMessageEvent, bank, board_length: int = 
                 real_rank = i + 1
                 prefix = "👉" if u_id == user_id else f"No.{real_rank}"
                 result.append(f"{prefix} {info.get('name', f'群友({u_id})')} : {info['total_gold']}")
+
+    yield event.plain_result("\n".join(result))
+
+
+async def handle_leaderboard_v2(event: AstrMessageEvent, bank, config: dict | None = None):
+    user_id = event.get_sender_id()
+    all_users = await bank.get_all_users()
+    if not all_users:
+        yield event.plain_result("榜单暂无数据。")
+        return
+
+    settings = get_leaderboard_settings(config)
+    if not settings["enabled"]:
+        yield event.plain_result("⚠️ 当前方案已关闭财富排行榜。")
+        return
+    if not settings["show_top"] and not settings["show_bottom"] and not settings["show_nearby"]:
+        yield event.plain_result("⚠️ 当前排行榜的全部展示区块都已关闭。")
+        return
+
+    board_length = settings["board_length"]
+    full_list = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0), reverse=True)
+    top_n = full_list[:board_length]
+    bottom_n = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0))[:board_length]
+
+    result = [settings["title"]]
+    visible_users = set()
+
+    if settings["show_top"]:
+        result.extend(["", settings["top_header"]])
+        for index, (uid, info) in enumerate(top_n):
+            visible_users.add(uid)
+            rank = index + 1
+            icon = "👑" if rank == 1 else "⚜️" if rank == 2 else "✨" if rank == 3 else f"{rank}."
+            title_tag = f" [{settings['top_titles'][index]}]" if index < 3 else ""
+            icon = f"{rank}."
+            result.append(f"{icon}{title_tag} {info.get('name', f'群友({uid})')} : {info.get('total_gold', 0)}")
+
+    if settings["show_bottom"]:
+        result.extend(["", settings["bottom_header"]])
+        for index, (uid, info) in enumerate(bottom_n):
+            visible_users.add(uid)
+            icon = "☠️" if index == 0 else "🪩️" if index == 1 else "🚅" if index == 2 else f"{index + 1}."
+            title_tag = f" [{settings['bottom_titles'][index]}]" if index < 3 else ""
+            icon = f"{index + 1}."
+            result.append(f"{icon}{title_tag} {info.get('name', f'群友({uid})')} : {info.get('total_gold', 0)}")
+
+    if settings["show_nearby"] and user_id in all_users and user_id not in visible_users:
+        my_index = next((i for i, (uid, _) in enumerate(full_list) if uid == user_id), -1)
+        if my_index != -1:
+            start = max(0, my_index - 3)
+            end = min(len(full_list), my_index + 4)
+            result.extend(["", settings["nearby_header"]])
+            for i in range(start, end):
+                u_id, info = full_list[i]
+                real_rank = i + 1
+                prefix = "👉" if u_id == user_id else f"No.{real_rank}"
+                result.append(f"{prefix} {info.get('name', f'群友({u_id})')} : {info.get('total_gold', 0)}")
 
     yield event.plain_result("\n".join(result))

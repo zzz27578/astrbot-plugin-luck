@@ -5,7 +5,7 @@ import asyncio
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api.message_components import *
-from .modules.m_sign_in import handle_sign_in, handle_leaderboard
+from .modules.m_sign_in import handle_sign_in
 
 # ================= 🔌 核心底座与模块导入 =================
 from .core.luck_bank import LuckBank
@@ -274,8 +274,7 @@ class LuckPlugin(Star):
 
         # ================= 🏆 4. 风云排行榜路由 =================
         if re.match(r"^(排行榜|金币榜|财富榜|气运榜|运势榜)$", cmd_str):
-            board_length = current_config.get("ui_settings", {}).get("board_length", 10)
-            async for res in m_sign_in.handle_leaderboard(event, bank, board_length):
+            async for res in m_sign_in.handle_leaderboard_v2(event, bank, current_config):
                 yield res
             return
 
@@ -283,8 +282,7 @@ class LuckPlugin(Star):
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            board_length = current_config.get("ui_settings", {}).get("board_length", 10)
-            async for res in m_func_cards.handle_karma_leaderboard(event, bank, board_length):
+            async for res in m_func_cards.handle_karma_leaderboard(event, bank, current_config):
                 yield res
             return
 

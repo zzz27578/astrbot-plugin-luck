@@ -25,6 +25,7 @@ TITLE_STATS_DEFAULTS = {
     "max_fate_card_gold": 0,
     "titles": [],
     "equipped_titles": [],
+    "manual_titles": [],
 }
 
 

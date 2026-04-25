@@ -46,6 +46,7 @@ PUBLIC_DUEL_DAILY_LIMIT_MIN = 1
 PUBLIC_DUEL_DAILY_LIMIT_MAX = 50
 PUBLIC_DUEL_STAKE_MIN = 1
 PUBLIC_DUEL_STAKE_MAX = 1000000
+MAX_FUNC_CARD_SLOTS = 3
 
 
 def _normalize_card_lookup_name(name: str) -> str:
@@ -77,6 +78,131 @@ def _find_card_config_by_name(cards_config: list, requested_name: str) -> dict |
         if _card_name_matches(card.get("card_name"), requested_name):
             return card
     return None
+
+
+def _is_slotless_card(card: dict | None) -> bool:
+    return bool((card or {}).get("no_slot", False))
+
+
+def _get_slotted_cards(inventory: list) -> list:
+    return [card for card in (inventory or []) if not _is_slotless_card(card)]
+
+
+def _get_slot_count(inventory: list) -> int:
+    return len(_get_slotted_cards(inventory))
+
+
+def _format_slot_count(inventory: list) -> str:
+    return f"{_get_slot_count(inventory)}/{MAX_FUNC_CARD_SLOTS}"
+
+
+def _build_inventory_card_entry(card_name: str, *, no_slot: bool = False, source: str = "") -> dict:
+    return {
+        "card_name": card_name,
+        "is_active": False,
+        "is_broken": False,
+        "broken_reason": "",
+        "no_slot": bool(no_slot),
+        "source": source or "",
+    }
+
+
+def _resolve_func_card_image_path(card: dict, config: dict | None = None) -> str:
+    img_filename = str((card or {}).get("filename", "")).strip()
+    if not img_filename:
+        return ""
+
+    storage_paths = (config or {}).get("_storage_paths", {})
+    func_assets_dir = storage_paths.get("func_assets_dir")
+    profile_img_path = os.path.join(str(func_assets_dir), img_filename) if func_assets_dir else ""
+    legacy_img_path = os.path.join(os.path.dirname(__file__), "..", "assets", "func_cards", img_filename)
+
+    if profile_img_path and os.path.isfile(profile_img_path):
+        return profile_img_path
+    if legacy_img_path and os.path.isfile(legacy_img_path):
+        return legacy_img_path
+    return ""
+
+
+async def grant_admin_func_card(bank, config: dict, user_id: str, user_name: str, card_name: str) -> dict:
+    user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+
+    cards_config = load_func_cards_config(config, include_disabled_dice=True)
+    card = _find_card_config_by_name(cards_config, card_name)
+    if not card:
+        return {"ok": False, "error": f"⚠️ 功能牌【{card_name}】不存在，请检查卡名是否与卡池配置一致。"}
+
+    if _is_dice_card_by_tags(card.get("tags", [])) and not (config or {}).get("func_cards_settings", {}).get("enable_dice_cards", True):
+        return {"ok": False, "error": f"⚠️ 功能牌【{card['card_name']}】属于骰子玩法牌，当前骰子功能牌开关未开启。"}
+
+    inventory = user_data.setdefault("inventory", [])
+    inventory.append(_build_inventory_card_entry(card["card_name"], no_slot=True, source="admin_grant"))
+    user_data["func_card_pity_count"] = 0
+    user_data["total_func_cards_drawn"] = int(user_data.get("total_func_cards_drawn", 0) or 0) + 1
+
+    recent = user_data.setdefault("recent_drawn_cards", [])
+    recent.append(card["card_name"])
+    if len(recent) > _DEDUP_WINDOW:
+        user_data["recent_drawn_cards"] = recent[-_DEDUP_WINDOW:]
+
+    draw_events = TitleEngine.sync_titles(user_data, config)
+    await bank.save_user_data()
+    return {
+        "ok": True,
+        "card": card,
+        "draw_events": draw_events,
+        "slot_text": _format_slot_count(inventory),
+        "img_path": _resolve_func_card_image_path(card, config),
+    }
+
+
+def format_admin_func_card_grant_text(target_name: str, grant_result: dict, config: dict | None = None) -> str:
+    card = grant_result["card"]
+    rarity_map = {1: "⚪ 普通", 2: "🔵 稀有", 3: "🟣 史诗", 4: "🟡 传说", 5: "🔴 神话"}
+    actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
+    text = card.get("description", "一张神秘的战术卡")
+    title_hint = ""
+    draw_events = grant_result.get("draw_events", [])
+    if draw_events:
+        title_hint = "\n" + "\n".join(TitleEngine.format_title_event_lines(draw_events, config))
+    return (
+        f"✨ 【天道钦点·额外免费抽取】\n"
+        f"{target_name} 从虚空中凝结出了：\n"
+        f"【{actual_rarity_str}】{card['card_name']}\n"
+        f"━━━━━━━━\n"
+        f"📝 {text}\n"
+        f"消耗：管理员授予的额外免费抽取次数\n"
+        f"🎴 当前卡槽：{grant_result['slot_text']}（该牌为天赐牌，不占栏位）"
+        f"{title_hint}"
+    )
+
+
+async def grant_admin_title(bank, config: dict, user_id: str, user_name: str, title_name: str) -> dict:
+    user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+
+    title_cfg = TitleEngine.get_title_info(title_name, config)
+    if title_cfg.get("desc") == "未知的神秘称号" and not any(item.get("name") == title_name for item in TitleEngine.load_titles_config(config)):
+        return {"ok": False, "error": f"⚠️ 称号【{title_name}】不存在，请检查称号名是否与配置一致。"}
+
+    owned = user_data.setdefault("titles", [])
+    manual_titles = user_data.setdefault("manual_titles", [])
+    existed = title_name in owned
+    if not existed:
+        owned.append(title_name)
+    if title_name not in manual_titles:
+        manual_titles.append(title_name)
+
+    await bank.save_user_data()
+    return {
+        "ok": True,
+        "existed": existed,
+        "title_name": title_name,
+        "title_info": title_cfg,
+        "equipped_count": len(TitleEngine.get_equipped_titles(user_data, config)),
+        "max_equipped": TitleEngine.get_max_equipped_titles(config),
+    }
 
 
 def _parse_action_card_name(raw_text: str, action: str) -> str:
@@ -470,7 +596,7 @@ def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: 
                 components.append(Plain(f"（-{amount}）"))
 
     tail = f"\n{karma_report}" if karma_report else ""
-    tail += f"\n🎴 当前卡槽：{slot_len}/3"
+    tail += f"\n🎴 当前卡槽：{slot_len}/{MAX_FUNC_CARD_SLOTS}"
     components.append(Plain(tail))
     return components
 
@@ -1172,11 +1298,12 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
 
         lines.append("━━━━━━━━━━━━━━")
     inventory = user_data.get("inventory", [])
-    slot_count = len(inventory)
-    lines.append(f"🎴 【战术卡槽】 ({slot_count}/3)")
-    for i in range(3):
+    slot_cards = _get_slotted_cards(inventory)
+    slot_count = len(slot_cards)
+    lines.append(f"🎴 【战术卡槽】 ({slot_count}/{MAX_FUNC_CARD_SLOTS})")
+    for i in range(MAX_FUNC_CARD_SLOTS):
         if i < slot_count:
-            card = inventory[i]
+            card = slot_cards[i]
             card_name = card.get("card_name", "未知卡牌")
 
             # 💡 战损系统面板渲染
@@ -1189,6 +1316,18 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
             lines.append(f"  {i+1}. [{card_name}]{status_tag}")
         else:
             lines.append(f"  {i+1}. [空]")
+
+    extra_cards = [card for card in inventory if _is_slotless_card(card)]
+    if extra_cards:
+        lines.append("🌟 【天赐牌仓】 (不占卡槽)")
+        for idx, card in enumerate(extra_cards, 1):
+            card_name = card.get("card_name", "未知卡牌")
+            if card.get("is_broken", False):
+                reason = str(card.get("broken_reason", "") or "").strip()
+                status_tag = f" (💔已销毁：{reason})" if reason else " (💔已销毁)"
+            else:
+                status_tag = " (🛡️已启用)" if card.get("is_active", False) else ""
+            lines.append(f"  ✦ {idx}. [{card_name}]{status_tag}")
 
 
     lines.append("━━━━━━━━━━━━━━")
@@ -1218,10 +1357,11 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         )
         yield event.plain_result(msg)
         return
-        cards_config = load_func_cards_config(config)
-        if not cards_config:
-            yield event.plain_result("⚠️ 功能牌卡池为空或配置无效，请检查功能牌池数据。")
-            return
+
+    cards_config = load_func_cards_config(config)
+    if not cards_config:
+        yield event.plain_result("⚠️ 功能牌卡池为空或配置无效，请检查功能牌池数据。")
+        return
 
 
     eco_cfg = config.get("func_cards_settings", {}).get("economy_settings", {})
@@ -1241,8 +1381,8 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         user_data["today_paid_draws"] = 0
 
     inventory = user_data.get("inventory", [])
-    if len(inventory) >= 3:
-        yield event.plain_result("⚠️ 你的战术卡槽已满 (3/3)！请先使用或发送「/luck 丢弃 [卡名]」腾出空间。")
+    if _get_slot_count(inventory) >= MAX_FUNC_CARD_SLOTS:
+        yield event.plain_result(f"⚠️ 你的战术卡槽已满 ({_format_slot_count(inventory)})！请先使用或发送「/luck 丢弃 [卡名]」腾出空间。")
         return
 
     is_free = False
@@ -1307,12 +1447,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         return
 
     actual_rarity_str = rarity_map.get(card.get("rarity", 1), "⚪ 普通")
-    user_data.setdefault("inventory", []).append({
-        "card_name": card["card_name"],
-        "is_active": False,
-        "is_broken": False,
-        "broken_reason": "",
-    })
+    user_data.setdefault("inventory", []).append(_build_inventory_card_entry(card["card_name"]))
 
 
     user_data["total_func_cards_drawn"] = int(user_data.get("total_func_cards_drawn", 0) or 0) + 1
@@ -1330,19 +1465,10 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
     title_hint = ""
     if draw_events:
         title_hint = "\n" + "\n".join(TitleEngine.format_title_event_lines(draw_events, config))
-    res_text = f"✨ {hit_reason}\n你从虚空中凝结出了：\n【{actual_rarity_str}】{card['card_name']}\n━━━━━━━━\n📝 {text}\n{cost_str}\n🎴 当前卡槽：{len(user_data['inventory'])}/3{title_hint}"
+    res_text = f"✨ {hit_reason}\n你从虚空中凝结出了：\n【{actual_rarity_str}】{card['card_name']}\n━━━━━━━━\n📝 {text}\n{cost_str}\n🎴 当前卡槽：{_format_slot_count(user_data['inventory'])}{title_hint}"
 
     img_filename = str(card.get("filename", "")).strip()
-    img_path = ""
-    storage_paths = (config or {}).get("_storage_paths", {})
-    func_assets_dir = storage_paths.get("func_assets_dir")
-    profile_img_path = os.path.join(str(func_assets_dir), img_filename) if func_assets_dir and img_filename else ""
-    legacy_img_path = os.path.join(os.path.dirname(__file__), "..", "assets", "func_cards", img_filename) if img_filename else ""
-
-    if profile_img_path and os.path.isfile(profile_img_path):
-        img_path = profile_img_path
-    elif legacy_img_path and os.path.isfile(legacy_img_path):
-        img_path = legacy_img_path
+    img_path = _resolve_func_card_image_path(card, config)
 
     if img_path:
         yield event.chain_result([Image.fromFileSystem(img_path), Plain("\n" + res_text)])
@@ -1366,7 +1492,7 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
     inventory = user_data.get("inventory", [])
 
     if not inventory:
-        yield event.plain_result(f"📭 {user_name}，你的战术卡槽空空如也，无牌可丢。")
+        yield event.plain_result(f"📭 {user_name}，你的库存里空空如也，无牌可丢。")
         return
 
     found_index = _find_inventory_card_index(inventory, target_card_name)
@@ -1384,10 +1510,12 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
         elif discarded_card.get("is_active"):
             status_note = " (撤销了护盾阵眼)"
 
-        yield event.plain_result(f"🗑️ 你将 [{target_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{len(inventory)}/3")
+        if discarded_card.get("no_slot", False):
+            status_note += " (天赐牌不占卡槽)"
+        yield event.plain_result(f"🗑️ 你将 [{target_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{_format_slot_count(inventory)}")
     else:
 
-        yield event.plain_result(f"❓ 你的卡槽中并未发现名为 [{target_card_name}] 的战术牌。")
+        yield event.plain_result(f"❓ 你的库存中并未发现名为 [{target_card_name}] 的战术牌。")
 
 async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: dict = None):
     user_id = event.get_sender_id()
@@ -1417,7 +1545,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     found_index = _find_inventory_card_index(inventory, target_card_name)
             
     if found_index == -1:
-        yield event.plain_result(f"❓ 你的卡槽中并未发现 [{target_card_name}]。")
+        yield event.plain_result(f"❓ 你的库存中并未发现 [{target_card_name}]。")
         return
 
     target_card_name = str(inventory[found_index].get("card_name", "") or target_card_name).strip() or target_card_name
@@ -1514,7 +1642,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         yield event.plain_result(
             f"🍀 {user_name} 启动了 [{target_card_name}]！\n"
             f"接下来 24 小时内，你在掷骰出现最低点时将自动重投 1 次。\n"
-            f"🎴 当前卡槽：{len(inventory)}/3"
+            f"🎴 当前卡槽：{_format_slot_count(inventory)}"
         )
         return
 
@@ -1606,7 +1734,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
         await bank.save_user_data()
         yield event.plain_result(
-            f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{len(inventory)}/3"
+            f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{_format_slot_count(inventory)}"
         )
         return
 
@@ -1685,18 +1813,21 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             blocked_count = sum(1 for e in aoe_events if e.get("blocked"))
             total_damage = sum(int(e.get("amount", 0)) for e in aoe_events)
             report_str = f"🏹 范围攻击命中 {affected_count} 人（免疫 {blocked_count} 人），总造成 {total_damage} 金币伤害。"
-        aoe_chain = _format_aoe_chain(user_id, user_name, target_card_name, aoe_events, aoe_kind, karma_report, len(inventory) - 1)
-
     else:
         report_str = "\n".join(battle_reports) if battle_reports else "💨 法术消散在风中，似乎什么也没发生..."
     
     inventory.pop(found_index)
+    remaining_slot_count = _get_slot_count(inventory)
+
+    if is_aoe:
+        aoe_chain = _format_aoe_chain(user_id, user_name, target_card_name, aoe_events, aoe_kind, karma_report, remaining_slot_count)
+
     await bank.save_user_data()
 
     if is_aoe:
         final_msg = None
     else:
-        final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{len(inventory)}/3"
+        final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{remaining_slot_count}/{MAX_FUNC_CARD_SLOTS}"
     
     log_msg = f"使用了 [{target_card_name}]"
     await bank.log_battle(user_id, f"{log_msg}。结果：{report_str}")
@@ -1755,7 +1886,7 @@ async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_act
 
     found_index = _find_inventory_card_index(inventory, target_card_name)
     if found_index == -1:
-        yield event.plain_result(f"❓ 你的卡槽中并未发现 [{target_card_name}]。")
+        yield event.plain_result(f"❓ 你的库存中并未发现 [{target_card_name}]。")
         return
 
     card = inventory[found_index]
@@ -1804,4 +1935,4 @@ async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_act
     yield event.plain_result(msg)
     return
 
-    yield event.plain_result(f"❓ 你的卡槽中并未发现 [{target_card_name}]。")
+    yield event.plain_result(f"❓ 你的库存中并未发现 [{target_card_name}]。")

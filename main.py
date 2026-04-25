@@ -247,6 +247,10 @@ class LuckPlugin(Star):
             async for res in self._handle_admin_add(event, user_id, cmd_str, bank, current_config):
                 yield res
             return
+        if cmd_str.startswith("授予功能牌") or cmd_str.startswith("授予称号"):
+            async for res in self._handle_admin_grant(event, user_id, cmd_str, bank, current_config):
+                yield res
+            return
 
                 # ================= 📖 2. 菜单与帮助路由 =================
         if cmd_str in ["", "菜单", "功能菜单", "menu"]:
@@ -424,73 +428,83 @@ class LuckPlugin(Star):
 
 
    # ---------------- 👑 管理员私有方法 ----------------
-    async def _handle_admin_add(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
-        # 1. 权限校验 (动态读取，安全开源版)
-        is_admin = False
-        
-        # 兼容 AstrBot 面板的两种数据保存格式 (嵌套结构 vs 扁平结构)
+    def _is_extra_admin(self, sender_id: str, current_config: dict) -> bool:
         admin_cfg = current_config.get("admin_settings", {})
-        
-        # 灵活提取：优先从嵌套结构取，如果没有，则退化到根节点取
         extra_admins_str = admin_cfg.get("extra_admin_qqs") or current_config.get("extra_admin_qqs", "")
-        
-        # 安全拆分：支持中英文逗号，自动过滤空格和空字符
         extra_admins_str = str(extra_admins_str).replace("，", ",")
         extra_admins = [qq.strip() for qq in extra_admins_str.split(",") if qq.strip()]
-        
-        if sender_id in extra_admins:
-            is_admin = True
-        
-        if not is_admin:
+        return sender_id in extra_admins
+
+    async def _resolve_admin_targets(
+        self,
+        event: AstrMessageEvent,
+        bank: LuckBank,
+        sender_id: str,
+        sender_name: str,
+        raw_text: str,
+    ) -> tuple[list[tuple[str, dict]], str, str] | tuple[None, None, str]:
+        text = str(raw_text or "").strip()
+        if not text:
+            return None, None, "⚠️ 请先指定目标。可用目标：自己、@某人、全体成员。"
+
+        target_name = ""
+        target_scope = "single"
+
+        for alias in ("自己", "本人", "我自己"):
+            if text.startswith(alias):
+                target_name = sender_name
+                text = text[len(alias):].strip()
+                user_data = await bank.get_user_data(sender_id, sender_name)
+                return [(sender_id, user_data)], target_name, text
+
+        for alias in ("全体成员", "全体", "全员"):
+            if text.startswith(alias):
+                target_scope = "all"
+                target_name = "全体成员"
+                text = text[len(alias):].strip()
+                break
+
+        if target_scope == "all":
+            all_users = await bank.get_all_users()
+            if not all_users:
+                return None, None, "⚠️ 当前尚无可操作的成员档案。"
+            target_users = [(uid, await bank.get_user_data(uid, data.get("name", f"群友({uid})"))) for uid, data in all_users.items()]
+            return target_users, target_name, text
+
+        target_id, target_name = _extract_at_target(event)
+        if not target_id:
+            return None, None, "⚠️ 天道法则施放失败：必须指定“自己”、@一名玩家，或使用“全体成员”。"
+
+        cleaned_text = re.sub(r"@\S+", "", text).strip()
+        target_user = await bank.get_user_data(target_id, target_name or f"群友({target_id})")
+        return [(target_id, target_user)], target_name or f"群友({target_id})", cleaned_text
+
+    async def _handle_admin_add(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
+        if not self._is_extra_admin(sender_id, current_config):
             yield event.plain_result("⚡ 狂妄！你未拥有天道权限，无法篡改世界线！")
             return
 
-                # 2. 解析目标: 支持 @某人 或 全体成员
-        target_id = None
-        target_name = ""
-        raw_text = event.message_str.replace("/luck", "").replace("增加", "", 1).strip()
-        target_scope = "single"
-
-        if raw_text.startswith(("全体成员", "全体", "全员")):
-            target_scope = "all"
-            target_name = "全体成员"
-            for alias in ("全体成员", "全体", "全员"):
-                if raw_text.startswith(alias):
-                    raw_text = raw_text[len(alias):].strip()
-                    break
-        else:
-            for comp in event.get_messages():
-                if isinstance(comp, At):
-                    target_id = str(comp.qq)
-                    target_name = f"群友({target_id})"
-                    break
-
-            if not target_id:
-                yield event.plain_result("⚠️ 天道法则施放失败：必须 @ 一个明确的目标玩家，或使用“全体成员”作为生效范围。")
-                return
-
-            raw_text = re.sub(r"@\S+", "", raw_text).strip()
+        target_users, target_name, raw_text_or_error = await self._resolve_admin_targets(
+            event,
+            bank,
+            sender_id,
+            event.get_sender_name(),
+            cmd_str.replace("增加", "", 1).strip(),
+        )
+        if not target_users:
+            yield event.plain_result(raw_text_or_error)
+            return
+        raw_text = raw_text_or_error
+        target_scope = "all" if target_name == "全体成员" else "single"
 
         # 3. 解析类型和数量 (支持正负数)
-
-        
         match = re.search(r"(命运牌|功能牌|金币|气运|运势)\s*(-?\d+)", raw_text)
         if not match:
-            yield event.plain_result("⚠️ 参数解析失败。\n正确格式：\n/luck 增加 @某人 命运牌 3\n/luck 增加 @某人 功能牌 1\n/luck 增加 @某人 金币 50 (或 -50)")
+            yield event.plain_result("⚠️ 参数解析失败。\n正确格式：\n/luck 增加 自己 命运牌 3\n/luck 增加 @某人 功能牌 1\n/luck 增加 全体成员 金币 50\n/luck 增加 @某人 金币 -50")
             return
             
         card_type = match.group(1)
         add_count = int(match.group(2))
-
-                # 4. 调取档案并执行“资产篡改”
-        if target_scope == "all":
-            all_users = await bank.get_all_users()
-            if not all_users:
-                yield event.plain_result("⚠️ 当前尚无可发放福利的成员档案。")
-                return
-            target_users = [(uid, await bank.get_user_data(uid, data.get("name", f"群友({uid})"))) for uid, data in all_users.items()]
-        else:
-            target_users = [(target_id, await bank.get_user_data(target_id, target_name))]
 
         affected_count = len(target_users)
 
@@ -530,6 +544,155 @@ class LuckPlugin(Star):
             else:
                 user_data = target_users[0][1]
                 yield event.plain_result(f"⚡ 天道裁决！\n已强行 {action_str} {target_name} {abs_count} 枚金币！\n💰 当前金币：{user_data['total_gold']}")
+
+    async def _handle_admin_grant(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
+        if not self._is_extra_admin(sender_id, current_config):
+            yield event.plain_result("⚡ 狂妄！你未拥有天道权限，无法篡改世界线！")
+            return
+
+        sender_name = event.get_sender_name()
+
+        if cmd_str.startswith("授予功能牌"):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
+                yield event.plain_result("⚠️ 战术功能牌系统未开启，当前无法授予功能牌。")
+                return
+
+            target_users, target_name, raw_text_or_error = await self._resolve_admin_targets(
+                event,
+                bank,
+                sender_id,
+                sender_name,
+                cmd_str.replace("授予功能牌", "", 1).strip(),
+            )
+            if not target_users:
+                yield event.plain_result(raw_text_or_error)
+                return
+
+            card_name = raw_text_or_error.strip()
+            if not card_name:
+                yield event.plain_result("⚠️ 参数解析失败。\n正确格式：\n/luck 授予功能牌 自己 卡名\n/luck 授予功能牌 @某人 卡名\n/luck 授予功能牌 全体成员 卡名")
+                return
+
+            if target_name == "全体成员":
+                success_results = []
+                failed = []
+                for uid, user_data in target_users:
+                    result = await m_func_cards.grant_admin_func_card(bank, current_config, uid, user_data.get("name", f"群友({uid})"), card_name)
+                    if result.get("ok"):
+                        success_results.append((user_data.get("name", f"群友({uid})"), result))
+                    else:
+                        failed.append((user_data.get("name", f"群友({uid})"), result.get("error", "未知错误")))
+
+                if not success_results:
+                    yield event.plain_result(failed[0][1] if failed else "⚠️ 功能牌授予失败。")
+                    return
+
+                first_name, first_result = success_results[0]
+                real_card_name = first_result["card"]["card_name"]
+                preview_names = "、".join(name for name, _ in success_results[:10])
+                if len(success_results) > 10:
+                    preview_names += "……"
+                lines = [
+                    "✨ 【天道钦点·额外免费抽取】",
+                    f"已为全体成员统一授予功能牌：【{real_card_name}】",
+                    f"👥 成功人数：{len(success_results)}",
+                    "📦 入库方式：天赐牌形态，可正常使用，但不占战术卡槽。",
+                    f"📣 抽中名单：{preview_names}",
+                ]
+                if failed:
+                    lines.append(f"⚠️ 失败人数：{len(failed)}")
+                img_path = first_result.get("img_path", "")
+                res_text = "\n".join(lines)
+                if img_path:
+                    yield event.chain_result([Image.fromFileSystem(img_path), Plain("\n" + res_text)])
+                else:
+                    yield event.plain_result(res_text)
+                return
+
+            target_uid, user_data = target_users[0]
+            result = await m_func_cards.grant_admin_func_card(bank, current_config, target_uid, user_data.get("name", target_name), card_name)
+            if not result.get("ok"):
+                yield event.plain_result(result.get("error", "⚠️ 功能牌授予失败。"))
+                return
+
+            res_text = m_func_cards.format_admin_func_card_grant_text(target_name, result, current_config)
+            img_path = result.get("img_path", "")
+            if img_path:
+                yield event.chain_result([Image.fromFileSystem(img_path), Plain("\n" + res_text)])
+            else:
+                yield event.plain_result(res_text)
+            return
+
+        target_users, target_name, raw_text_or_error = await self._resolve_admin_targets(
+            event,
+            bank,
+            sender_id,
+            sender_name,
+            cmd_str.replace("授予称号", "", 1).strip(),
+        )
+        if not target_users:
+            yield event.plain_result(raw_text_or_error)
+            return
+
+        title_name = raw_text_or_error.strip()
+        if not title_name:
+            yield event.plain_result("⚠️ 参数解析失败。\n正确格式：\n/luck 授予称号 自己 称号名\n/luck 授予称号 @某人 称号名\n/luck 授予称号 全体成员 称号名")
+            return
+
+        if target_name == "全体成员":
+            granted_count = 0
+            existed_count = 0
+            failed = []
+            preview_names = []
+            for uid, user_data in target_users:
+                result = await m_func_cards.grant_admin_title(bank, current_config, uid, user_data.get("name", f"群友({uid})"), title_name)
+                if not result.get("ok"):
+                    failed.append((user_data.get("name", f"群友({uid})"), result.get("error", "未知错误")))
+                    continue
+                preview_names.append(user_data.get("name", f"群友({uid})"))
+                if result.get("existed", False):
+                    existed_count += 1
+                else:
+                    granted_count += 1
+
+            if granted_count == 0 and existed_count == 0:
+                yield event.plain_result(failed[0][1] if failed else "⚠️ 称号授予失败。")
+                return
+
+            preview = "、".join(preview_names[:10])
+            if len(preview_names) > 10:
+                preview += "……"
+            lines = [
+                "🏅 【天道敕封】",
+                f"已为全体成员处理称号：【{title_name}】",
+                f"✅ 新增授予：{granted_count}",
+                f"ℹ️ 原本已拥有：{existed_count}",
+                "💡 需要生效时，玩家可继续使用：/luck 佩戴称号 称号名",
+            ]
+            if preview:
+                lines.append(f"📣 处理名单：{preview}")
+            if failed:
+                lines.append(f"⚠️ 失败人数：{len(failed)}")
+            yield event.plain_result("\n".join(lines))
+            return
+
+        target_uid, user_data = target_users[0]
+        result = await m_func_cards.grant_admin_title(bank, current_config, target_uid, user_data.get("name", target_name), title_name)
+        if not result.get("ok"):
+            yield event.plain_result(result.get("error", "⚠️ 称号授予失败。"))
+            return
+
+        title_desc = str(result.get("title_info", {}).get("desc", "") or "").strip()
+        action_text = "已拥有，已刷新为手动授予状态" if result.get("existed", False) else "已成功授予"
+        lines = [
+            "🏅 【天道敕封】",
+            f"{action_text}：{target_name} -> 【{title_name}】",
+            f"🎽 当前佩戴：{result.get('equipped_count', 0)}/{result.get('max_equipped', 1)}",
+            "💡 需要生效时，可继续使用：/luck 佩戴称号 称号名",
+        ]
+        if title_desc:
+            lines.insert(2, f"📝 {title_desc}")
+        yield event.plain_result("\n".join(lines))
 
 
         # ---------------- 📖 纯文本视图方法 ----------------

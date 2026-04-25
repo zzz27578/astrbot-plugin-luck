@@ -48,6 +48,7 @@ class TitleEngine:
     def ensure_user_title_fields(cls, user_data: dict) -> dict:
         user_data.setdefault("titles", [])
         user_data.setdefault("equipped_titles", [])
+        user_data.setdefault("manual_titles", [])
         user_data.setdefault("title_events", [])
         return user_data
 
@@ -202,11 +203,14 @@ class TitleEngine:
         title_map = {item["name"]: item for item in title_cfgs}
         owned = user_data.setdefault("titles", [])
         equipped = user_data.setdefault("equipped_titles", [])
+        manual_titles = set(user_data.setdefault("manual_titles", []))
         events: list[tuple[str, str]] = []
 
         for title_name in list(owned):
             cfg = title_map.get(title_name)
             if not cfg:
+                continue
+            if title_name in manual_titles:
                 continue
             if cfg.get("allow_loss", False) and not cls.check_title_conditions(user_data, cfg):
                 owned.remove(title_name)

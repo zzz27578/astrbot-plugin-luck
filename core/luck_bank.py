@@ -159,6 +159,16 @@ class LuckBank:
 
     # ================= 🏦 外部调用 API 接口 =================
 
+    def _append_battle_log_unlocked(self, user_id: str, message: str, now_dt: datetime | None = None) -> bool:
+        if user_id not in self._data:
+            return False
+        now_dt = now_dt or datetime.now()
+        time_str = now_dt.strftime("%m-%d %H:%M")
+        log_entry = f"[{time_str}] {message}"
+        self._data[user_id]["battle_logs"].append(log_entry)
+        self._prune_battle_logs(self._data[user_id], days=3, now=now_dt)
+        return True
+
     async def get_user_data(self, user_id: str, user_name: str) -> dict:
         """
         获取用户档案。如果是新入群玩家，自动初始化完整结构。
@@ -210,7 +220,7 @@ class LuckBank:
         async with self.lock:
             self._save_data_sync()
 
-    async def change_gold(self, user_id: str, amount: int) -> bool:
+    async def change_gold(self, user_id: str, amount: int, *, save: bool = True) -> bool:
         """
         安全结算金币。
         :return: bool 是否扣款成功（如果是扣钱且余额不足，返回 False 拦截防贷款）
@@ -226,7 +236,8 @@ class LuckBank:
                 return False
 
             self._data[user_id]["total_gold"] += amount
-            self._save_data_sync()
+            if save:
+                self._save_data_sync()
             return True
 
     # 兼容旧代码调用（后续可移除）
@@ -262,6 +273,23 @@ class LuckBank:
                 # 只保留最近 3 天战报
                 self._prune_battle_logs(self._data[user_id], days=3, now=now_dt)
                 
+                self._save_data_sync()
+
+    async def log_battle(self, user_id: str, message: str, *, save: bool = True):
+        async with self.lock:
+            changed = self._append_battle_log_unlocked(user_id, message)
+            if changed and save:
+                self._save_data_sync()
+
+    async def log_battles(self, entries: list[tuple[str, str]]):
+        if not entries:
+            return
+        async with self.lock:
+            now_dt = datetime.now()
+            changed = False
+            for user_id, message in entries:
+                changed = self._append_battle_log_unlocked(str(user_id), str(message), now_dt) or changed
+            if changed:
                 self._save_data_sync()
 
     async def get_all_users(self) -> dict:

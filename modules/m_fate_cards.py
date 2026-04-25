@@ -6,6 +6,25 @@ from astrbot.api.event import AstrMessageEvent
 from astrbot.api.message_components import Plain, Image
 from ..core.logic_gate import find_gate_block, format_gate_block_message, GATE_DRAW_FATE_CARD
 from ..core.title_engine import TitleEngine
+from ..core.json_cache import load_json_cached
+
+
+def _normalize_fate_cards(raw_cards) -> list[dict]:
+    normalized = []
+    for card in raw_cards if isinstance(raw_cards, list) else []:
+        if not isinstance(card, dict):
+            continue
+        try:
+            gold = int(card.get("gold", card.get("value", 0)) or 0)
+        except Exception:
+            gold = 0
+        normalized.append({
+            "name": str(card.get("name", "") or "").strip() or "鏈懡鍚嶅懡杩愮墝",
+            "text": str(card.get("text", "涓€寮犵绉樼殑鍗＄墝") or "涓€寮犵绉樼殑鍗＄墝"),
+            "gold": gold,
+            "filename": str(card.get("filename", "") or ""),
+        })
+    return normalized
 
 
 
@@ -36,6 +55,14 @@ def load_cards_config(config: dict | None = None):
             })
         return normalized
     return []
+
+def load_cards_config(config: dict | None = None):
+    """Cached override for fate card config loading."""
+    config_path = (config or {}).get("_storage_paths", {}).get("fate_cards_file")
+    if config_path and config_path.exists():
+        return load_json_cached(config_path, default=[], normalize=_normalize_fate_cards)
+    return []
+
 
 async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max_limit: int = 3):
     """处理 /luck 抽卡 (命运牌) 逻辑"""

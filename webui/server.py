@@ -14,6 +14,7 @@ from pathlib import Path
 from aiohttp import web, ClientSession, ClientTimeout
 
 from ..core.title_engine import TitleEngine
+from ..core.json_cache import load_json_cached, invalidate_json_cache
 from ..core.lazy_engine import (
     build_func_draft,
     _choose_local_image,
@@ -333,6 +334,7 @@ def _atomic_write(path: Path, data):
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         shutil.move(str(tmp), str(path))
+        invalidate_json_cache(path)
     except Exception:
         if tmp and tmp.exists():
             tmp.unlink()
@@ -340,13 +342,7 @@ def _atomic_write(path: Path, data):
 
 
 def _read_json(path: Path, default=None):
-    if not path.exists():
-        return default if default is not None else {}
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return default if default is not None else {}
+    return load_json_cached(path, default={} if default is None else default)
 
 
 def _deep_merge_dict(base: dict, override: dict) -> dict:

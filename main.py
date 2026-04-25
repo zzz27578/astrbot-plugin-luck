@@ -9,6 +9,7 @@ from .modules.m_sign_in import handle_sign_in
 
 # ================= 🔌 核心底座与模块导入 =================
 from .core.luck_bank import LuckBank
+from .core.json_cache import load_json_cached
 from .core.plugin_storage import PLUGIN_NAME, get_base_storage_paths, get_runtime_context, migrate_legacy_storage
 from .modules import m_sign_in, m_fate_cards, m_func_cards
 from .webui.server import start_webui
@@ -31,9 +32,8 @@ def _load_runtime_override(runtime_config_file: str) -> dict:
     if not os.path.exists(runtime_config_file):
         return {}
     try:
-        with open(runtime_config_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, dict) else {}
+        data = load_json_cached(runtime_config_file, default={})
+        return data if isinstance(data, dict) else {}
     except Exception:
         return {}
 
@@ -151,8 +151,7 @@ def _load_group_access_config(plugin_name: str = PLUGIN_NAME) -> dict:
         group_access_file = base_paths["plugin_data_dir"] / "group_access_control.json"
         if not group_access_file.exists():
             return default_cfg
-        with open(group_access_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        data = load_json_cached(group_access_file, default=default_cfg)
         if not isinstance(data, dict):
             return default_cfg
         mode = str(data.get("mode", "off")).strip().lower()

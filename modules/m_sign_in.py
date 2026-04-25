@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timedelta
 from astrbot.api.event import AstrMessageEvent
 from ..core.title_engine import TitleEngine
+from ..core.json_cache import load_json_cached
 
 # ================= 🔮 原汁原味的异世界观配置区 🔮 =================
 GOOD_THINGS = [
@@ -31,9 +32,8 @@ def _load_sign_in_texts(config: dict | None = None):
     sign_in_file = str((config or {}).get("_storage_paths", {}).get("sign_in_texts_file", ""))
     try:
         if sign_in_file and os.path.exists(sign_in_file):
-            with open(sign_in_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data if isinstance(data, dict) else {}
+            data = load_json_cached(sign_in_file, default={})
+            return data if isinstance(data, dict) else {}
     except Exception:
         pass
     return {}
@@ -241,7 +241,7 @@ async def handle_leaderboard(event: AstrMessageEvent, bank, config: dict | None 
     board_length = settings["board_length"]
     full_list = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0), reverse=True)
     top_n = full_list[:board_length]
-    bottom_n = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0), reverse=False)[:board_length]
+    bottom_n = sorted(full_list[-board_length:], key=lambda x: x[1].get("total_gold", 0))
 
     result = ["📜 ✦ 异世界·金币双榜 ✦ 📜", "", "🏆 【金币·封神榜】"]
     visible_users = set()
@@ -295,7 +295,7 @@ async def handle_leaderboard_v2(event: AstrMessageEvent, bank, config: dict | No
     board_length = settings["board_length"]
     full_list = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0), reverse=True)
     top_n = full_list[:board_length]
-    bottom_n = sorted(all_users.items(), key=lambda x: x[1].get("total_gold", 0))[:board_length]
+    bottom_n = sorted(full_list[-board_length:], key=lambda x: x[1].get("total_gold", 0))
 
     result = [settings["title"]]
     visible_users = set()

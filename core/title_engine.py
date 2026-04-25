@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from .plugin_storage import CONFIG_DIR
+from .json_cache import load_json_cached
 
 
 class TitleEngine:
@@ -56,12 +57,7 @@ class TitleEngine:
     def load_titles_config(cls, config: dict | None = None) -> list[dict]:
         path = (config or {}).get("_storage_paths", {}).get("titles_config_file")
         target = path if isinstance(path, Path) else cls.DEFAULT_TITLES_FILE
-        try:
-            with open(target, "r", encoding="utf-8") as f:
-                raw = json.load(f)
-        except Exception:
-            raw = []
-        return cls.normalize_titles(raw)
+        return load_json_cached(target, default=[], normalize=cls.normalize_titles)
 
     @classmethod
     def normalize_titles(cls, raw_titles) -> list[dict]:

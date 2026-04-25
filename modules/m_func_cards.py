@@ -10,6 +10,7 @@ from astrbot.api.message_components import Plain, Image, At
 from ..core.card_engine import CardEngine
 from ..core.dice_engine import DiceEngine
 from ..core.title_engine import TitleEngine
+from ..core.json_cache import load_json_cached
 from ..core.logic_gate import (
     find_gate_block,
     format_gate_block_message,
@@ -532,6 +533,42 @@ def load_func_cards_config(config: dict = None, include_disabled_dice: bool = Fa
 
 
 # ---- 默认稀有度权重 (rarity 1~5) ----
+def _normalize_cached_func_cards(raw_cards) -> list[dict]:
+    valid_cards = []
+    for card in raw_cards if isinstance(raw_cards, list) else []:
+        if not isinstance(card, dict):
+            continue
+
+        card_name = str(card.get("card_name", "")).strip()
+        if not card_name:
+            continue
+
+        rarity_raw = card.get("rarity", 1)
+        rarity = int(rarity_raw) if str(rarity_raw).lstrip("-").isdigit() else 1
+        valid_cards.append({
+            "card_name": card_name,
+            "type": card.get("type", "unknown"),
+            "description": card.get("description", "一张神秘的战术卡"),
+            "filename": card.get("filename", ""),
+            "tags": card.get("tags", []),
+            "rarity": rarity,
+        })
+    return valid_cards
+
+
+def load_func_cards_config(config: dict = None, include_disabled_dice: bool = False):
+    storage_paths = (config or {}).get("_storage_paths", {})
+    config_path = storage_paths.get("func_cards_file")
+    if config_path is None or not config_path.exists():
+        return []
+
+    valid_cards = load_json_cached(config_path, default=[], normalize=_normalize_cached_func_cards)
+    dice_enabled = True if config is None else config.get("func_cards_settings", {}).get("enable_dice_cards", True)
+    if include_disabled_dice or dice_enabled:
+        return valid_cards
+    return [entry for entry in valid_cards if not _is_dice_card_by_tags(entry.get("tags", []))]
+
+
 _DEFAULT_RARITY_WEIGHTS = {1: 30, 2: 30, 3: 28, 4: 11, 5: 1}
 # 同档去重窗口与降权系数（后台隐藏逻辑，不对外展示）
 _DEDUP_WINDOW = 5
@@ -907,8 +944,10 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dic
         # 超时自动迎战：可被护盾拦截
         if _consume_target_shield_for_duel(target_data):
             await bank.save_user_data()
-            await bank.log_battle(challenger_uid, f"对 {target_name} 发起对赌失败：对方护盾挡下了自动迎战。")
-            await bank.log_battle(target_uid, f"{challenger_name} 对你发起的对赌被【无懈可击】挡下。")
+            await bank.log_battles([
+                (challenger_uid, f"对 {target_name} 发起对赌失败：对方护盾挡下了自动迎战。"),
+                (target_uid, f"{challenger_name} 对你发起的对赌被【无懈可击】挡下。"),
+            ])
             return (
                 f"🎰【盘口播报】{target_name} 半天没接话，系统刚想替他上桌！\n"
                 f"🛡️ 结果【无懈可击】当场炸开，把这口被迫应战直接拍飞。\n"
@@ -973,14 +1012,10 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dic
     lines.append(result_line)
 
     report = "\n".join(lines)
-    await bank.log_battle(
-        challenger_uid,
-        _build_duel_log_summary(target_name, stake, c_final, t_final, result_line, is_challenger=True),
-    )
-    await bank.log_battle(
-        target_uid,
-        _build_duel_log_summary(challenger_name, stake, t_final, c_final, result_line, is_challenger=False),
-    )
+    await bank.log_battles([
+        (challenger_uid, _build_duel_log_summary(target_name, stake, c_final, t_final, result_line, is_challenger=True)),
+        (target_uid, _build_duel_log_summary(challenger_name, stake, t_final, c_final, result_line, is_challenger=False)),
+    ])
     return report
 
 
@@ -1301,8 +1336,10 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
         f"🎟️ {challenger_name} 今日公开对赌剩余次数：{remain}"
     )
 
-    await bank.log_battle(session["challenger_uid"], f"发起公开对赌，对手：{target_name}，赌注 {stake}。结果：{duel_result['result_line']}")
-    await bank.log_battle(session["target_uid"], f"应战公开对赌，对手：{challenger_name}，赌注 {stake}。结果：{duel_result['result_line']}")
+    await bank.log_battles([
+        (session["challenger_uid"], f"发起公开对赌，对手：{target_name}，赌注 {stake}。结果：{duel_result['result_line']}"),
+        (session["target_uid"], f"应战公开对赌，对手：{challenger_name}，赌注 {stake}。结果：{duel_result['result_line']}"),
+    ])
     yield event.plain_result(final_report)
 
 
@@ -1600,7 +1637,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
         if current_paid_draws >= paid_daily_limit:
             yield event.plain_result(f"⚠️ 天道法则限制：每天最多只能进行 {paid_daily_limit} 次额外付费抽取。")
             return
-        success = await bank.change_gold(user_id, -draw_cost)
+        success = await bank.change_gold(user_id, -draw_cost, save=False)
         if not success:
             yield event.plain_result(f"📉 金币不足或已坠入深渊！每次额外抽取需要 {draw_cost} 金币。")
             return
@@ -1650,6 +1687,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
 
     card = _pick_func_card(cards_config, config, user_data)
     if not card:
+        await bank.save_user_data()
         yield event.plain_result("⚠️ 功能牌卡池为空，无法完成抽取。")
         return
 
@@ -2037,16 +2075,16 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{remaining_slot_count}/{get_max_func_card_slots(config)}"
     
     log_msg = f"使用了 [{target_card_name}]"
-    await bank.log_battle(user_id, f"{log_msg}。结果：{report_str}")
-
+    battle_log_entries = [(user_id, f"{log_msg}。结果：{report_str}")]
     if is_aoe:
         for aoe_event in engine.last_aoe_events:
             target_uid_evt = str(aoe_event.get("target_uid", ""))
             if not target_uid_evt or target_uid_evt == user_id:
                 continue
-            await bank.log_battle(target_uid_evt, _build_aoe_target_log(user_name, target_card_name, aoe_event))
+            battle_log_entries.append((target_uid_evt, _build_aoe_target_log(user_name, target_card_name, aoe_event)))
     elif target_id != user_id:
-        await bank.log_battle(target_id, f"遭到 {user_name} {log_msg}。结果：{report_str}")
+        battle_log_entries.append((target_id, f"遭到 {user_name} {log_msg}。结果：{report_str}"))
+    await bank.log_battles(battle_log_entries)
 
     if is_aoe and aoe_chain:
         yield event.chain_result(aoe_chain)

@@ -123,9 +123,21 @@ def _extract_at_target(event: AstrMessageEvent) -> tuple[str | None, str | None]
             qq = getattr(comp, "qq", None)
             if qq:
                 qq_str = str(qq).strip()
+                if qq_str.lower() in {"all", "notify_all", "all_members", "0"}:
+                    continue
                 if qq_str:
                     return qq_str, f"群友({qq_str})"
     return None, None
+
+
+def _has_at_all_target(event: AstrMessageEvent) -> bool:
+    for comp in event.get_messages():
+        if isinstance(comp, At):
+            qq = str(getattr(comp, "qq", "") or "").strip().lower()
+            if qq in {"all", "notify_all", "all_members", "0"}:
+                return True
+    raw_text = str(getattr(event, "message_str", "") or "")
+    return bool(re.search(r"@(?:全体成员|全体|全员)", raw_text))
 
 
 
@@ -456,11 +468,16 @@ class LuckPlugin(Star):
                 return [(sender_id, user_data)], target_name, text
 
         for alias in ("全体成员", "全体", "全员"):
-            if text.startswith(alias):
+            if text.startswith(alias) or text.startswith(f"@{alias}"):
                 target_scope = "all"
                 target_name = "全体成员"
-                text = text[len(alias):].strip()
+                text = re.sub(rf"^@?{re.escape(alias)}", "", text, count=1).strip()
                 break
+
+        if target_scope != "all" and _has_at_all_target(event):
+            target_scope = "all"
+            target_name = "全体成员"
+            text = re.sub(r"^@(?:全体成员|全体|全员)\s*", "", text).strip()
 
         if target_scope == "all":
             all_users = await bank.get_all_users()

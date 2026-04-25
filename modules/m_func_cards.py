@@ -731,6 +731,25 @@ def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: 
     return components
 
 
+def _build_duel_log_summary(opponent_name: str, stake: int, c_final: int, t_final: int, result_line: str, *, is_challenger: bool) -> str:
+    role_text = "发起公开对赌" if is_challenger else "应战公开对赌"
+    return f"{role_text}，对手：{opponent_name}，赌注 {stake}。点数 {c_final}:{t_final}。结果：{result_line}"
+
+
+def _build_aoe_target_log(user_name: str, card_name: str, aoe_event: dict) -> str:
+    amount = int(aoe_event.get("amount", 0) or 0)
+    if aoe_event.get("type") == "aoe_heal":
+        return f"被 {user_name} 的 [{card_name}] 波及，恢复 {amount} 金币。"
+    if aoe_event.get("type") == "aoe_cleanse":
+        removed_status = str(aoe_event.get("removed_status", "") or "").strip()
+        if removed_status:
+            return f"被 {user_name} 的 [{card_name}] 波及，净化了 [{removed_status}]。"
+        return f"被 {user_name} 的 [{card_name}] 波及，但没有可净化状态。"
+    if bool(aoe_event.get("blocked", False)):
+        return f"被 {user_name} 的 [{card_name}] 波及，但被【无懈可击】挡下。"
+    return f"被 {user_name} 的 [{card_name}] 波及，损失 {amount} 金币。"
+
+
 
 def _build_karma_title_report(user_data: dict, config: dict | None = None) -> str:
     sync_events = TitleEngine.sync_titles(user_data, config)
@@ -888,8 +907,8 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dic
         # 超时自动迎战：可被护盾拦截
         if _consume_target_shield_for_duel(target_data):
             await bank.save_user_data()
-            await bank.log_battle(challenger_uid, f"使用了 [{card_name}]。结果：对方护盾触发，自动迎战阶段被拦截。")
-            await bank.log_battle(target_uid, f"遭到 {challenger_name} 使用了 [{card_name}]。结果：你触发了无懈可击，成功拒绝自动迎战。")
+            await bank.log_battle(challenger_uid, f"对 {target_name} 发起对赌失败：对方护盾挡下了自动迎战。")
+            await bank.log_battle(target_uid, f"{challenger_name} 对你发起的对赌被【无懈可击】挡下。")
             return (
                 f"🎰【盘口播报】{target_name} 半天没接话，系统刚想替他上桌！\n"
                 f"🛡️ 结果【无懈可击】当场炸开，把这口被迫应战直接拍飞。\n"
@@ -954,8 +973,14 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dic
     lines.append(result_line)
 
     report = "\n".join(lines)
-    await bank.log_battle(challenger_uid, f"使用了 [{card_name}]。结果：{report}")
-    await bank.log_battle(target_uid, f"遭到 {challenger_name} 使用了 [{card_name}]。结果：{report}")
+    await bank.log_battle(
+        challenger_uid,
+        _build_duel_log_summary(target_name, stake, c_final, t_final, result_line, is_challenger=True),
+    )
+    await bank.log_battle(
+        target_uid,
+        _build_duel_log_summary(challenger_name, stake, t_final, c_final, result_line, is_challenger=False),
+    )
     return report
 
 
@@ -1276,8 +1301,8 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
         f"🎟️ {challenger_name} 今日公开对赌剩余次数：{remain}"
     )
 
-    await bank.log_battle(session["challenger_uid"], f"发起了与 {target_name} 的公开对赌，赌注 {stake}。结果：{duel_result['result_line']}")
-    await bank.log_battle(session["target_uid"], f"应战了 {challenger_name} 的公开对赌，赌注 {stake}。结果：{duel_result['result_line']}")
+    await bank.log_battle(session["challenger_uid"], f"发起公开对赌，对手：{target_name}，赌注 {stake}。结果：{duel_result['result_line']}")
+    await bank.log_battle(session["target_uid"], f"应战公开对赌，对手：{challenger_name}，赌注 {stake}。结果：{duel_result['result_line']}")
     yield event.plain_result(final_report)
 
 
@@ -2019,18 +2044,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             target_uid_evt = str(aoe_event.get("target_uid", ""))
             if not target_uid_evt or target_uid_evt == user_id:
                 continue
-
-            amount = int(aoe_event.get("amount", 0))
-            blocked = bool(aoe_event.get("blocked", False))
-            if aoe_event.get("type") == "aoe_heal":
-                target_report = f"受到 {user_name} 的范围援助 [{target_card_name}]。结果：✨ 恢复 {amount} 金币。"
-            else:
-                if blocked:
-                    target_report = f"遭到 {user_name} 的范围攻击 [{target_card_name}]。结果：🛡️ 你触发了【无懈可击】，成功挡下这次波及！"
-                else:
-                    target_report = f"遭到 {user_name} 的范围攻击 [{target_card_name}]。结果：💥 你被范围波及，损失 {amount} 金币。"
-
-            await bank.log_battle(target_uid_evt, target_report)
+            await bank.log_battle(target_uid_evt, _build_aoe_target_log(user_name, target_card_name, aoe_event))
     elif target_id != user_id:
         await bank.log_battle(target_id, f"遭到 {user_name} {log_msg}。结果：{report_str}")
 

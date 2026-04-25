@@ -1767,6 +1767,28 @@ function humanizeTag(tag) {
   }
 }
 
+function isAoeEffectKey(key) {
+  return ['aoe_damage', 'aoe_heal', 'aoe_cleanse'].includes(String(key || ''));
+}
+
+function getAoeRiskHint() {
+  return '高范围 AOE 容易刷出超长播报与战报；40+ 人建议谨慎，100+ 人可能造成卡顿甚至功能牌结算卡死。';
+}
+
+function renderEffectParamInputs(effect, params, idx) {
+  if (!params.length) return '<div class="helper">此效果无额外参数</div>';
+  const chosenKey = String(effect?.key || '');
+  return params.map((name, pi) => {
+    const showRisk = isAoeEffectKey(chosenKey) && name === '人数';
+    return `
+      <div class="field">
+        <input class="input" placeholder="${esc(name)}" value="${esc(effect.params?.[pi] || '')}" onchange="setEffectParam(${idx}, ${pi}, this.value)">
+        ${showRisk ? `<div style="margin-top:6px; font-size:11px; line-height:1.6; color:#c24b40; font-weight:700;">${esc(getAoeRiskHint())}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
 function showToast(text, bad = false) {
   const el = $('#toast');
   el.textContent = text;
@@ -3815,6 +3837,7 @@ function openEffectGlossary() {
                 <div class="glossary-title"><span>${esc(item.name)}</span><span class="badge">${esc(effectGroupLabelMap[group] || group)}</span></div>
                 <div class="glossary-desc">${esc(item.desc || '暂无说明')}</div>
                 <div class="glossary-param">${item.params?.length ? `参数：${esc(item.params.join(' / '))}` : '参数：无额外参数'}</div>
+                ${isAoeEffectKey(item.key) ? `<div style="margin-top:8px; font-size:11px; line-height:1.7; color:#c24b40; font-weight:700;">风险提示：${esc(getAoeRiskHint())}</div>` : ''}
               </article>`).join('')}
           </div>
         </details>`).join('')}
@@ -4709,7 +4732,7 @@ function renderEffectRows() {
         </div>
         <div class="field"><label>效果说明</label><div class="tag-preview">${esc(chosen.desc || effectLabel(effect))}</div></div>
         <div class="effect-param-grid">
-          <div class="field"><label>参数</label><div class="field-grid ${params.length >= 3 ? 'three' : ''}">${params.map((name, pi) => `<input class="input" placeholder="${esc(name)}" value="${esc(effect.params?.[pi] || '')}" onchange="setEffectParam(${idx}, ${pi}, this.value)">`).join('') || '<div class="helper">此效果无额外参数</div>'}</div></div>
+          <div class="field"><label>参数</label><div class="field-grid ${params.length >= 3 ? 'three' : ''}">${renderEffectParamInputs(effect, params, idx)}</div></div>
           <div class="field"><label>操作</label><button class="btn-danger" onclick="removeEffectRow(${idx})"><span class="btn-text">删除效果</span></button></div>
         </div>
       </div>`;

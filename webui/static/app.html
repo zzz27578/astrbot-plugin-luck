@@ -29,6 +29,7 @@
   --shard-text: #0d120f;
   --shard-text-muted: #5f7368;
   --danger: #d93829;
+  --home-shell-slant: 72px;
 
   /* Fonts */
   --font-headline: 'Space Grotesk', 'Source Han Sans SC', sans-serif;
@@ -46,6 +47,14 @@ body.chassis {
   height: 100vh;
   overflow: hidden;
   position: relative;
+}
+body.chassis:not(.ui-ready) .glass-top,
+body.chassis:not(.ui-ready) .glass-side,
+body.chassis:not(.ui-ready) .shard-header,
+body.chassis:not(.ui-ready) #statsPages,
+body.chassis:not(.ui-ready) #configPages > :not(#page-home),
+body.chassis:not(.ui-ready) .toolbar-actions {
+  display: none !important;
 }
 .ambient-orb {
   display: none; /* 移除环境光发光球 */
@@ -105,6 +114,13 @@ body.chassis {
   background: var(--glass-base);
   pointer-events: none;
   z-index: 0;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.app-layout.ui-shell-pre-enter .glass-top::after,
+.app-layout.ui-shell-side-hold .glass-top::after,
+.app-layout.ui-shell-home-exit .glass-top::after {
+  opacity: 1;
 }
 /* 流动的生化脉冲横线 */
 .energy-line-h {
@@ -373,6 +389,8 @@ body.chassis {
 .col-12 { grid-column: span 12; } .col-8 { grid-column: span 8; } .col-7 { grid-column: span 7; } .col-6 { grid-column: span 6; } .col-5 { grid-column: span 5; } .col-4 { grid-column: span 4; }
 
 #page-home { display: flex; position: fixed; inset: 0; margin: 0; padding: 0; z-index: 35; }
+#page-home.home-shell-return { z-index: 70; }
+#page-home.home-return-target .home-showcase { opacity: 0; }
 
 .glass-top,
 .shard-header {
@@ -526,6 +544,39 @@ body.chassis {
 .app-layout.ui-shell-enter #configPages,
 .app-layout.ui-shell-enter #statsPages { transition-delay: 0.26s; }
 
+.app-layout.ui-shell-home-exit .glass-top,
+.app-layout.ui-shell-home-exit .glass-side,
+.app-layout.ui-shell-home-exit .shard-header,
+.app-layout.ui-shell-home-exit #configPages,
+.app-layout.ui-shell-home-exit #statsPages {
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.28s ease,
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-layout.ui-shell-home-exit .glass-top,
+.app-layout.ui-shell-home-exit .shard-header {
+  transform: translate3d(0, -24px, 0);
+}
+
+.app-layout.ui-shell-home-exit .glass-side {
+  transform: translate3d(-18px, 0, 0);
+}
+
+.app-layout.ui-shell-home-exit #configPages,
+.app-layout.ui-shell-home-exit #statsPages {
+  transform: translate3d(0, 12px, 0);
+}
+
+.app-layout.ui-shell-home-exit .glass-top .brand,
+.app-layout.ui-shell-home-exit .glass-top .top-nav,
+.app-layout.ui-shell-home-exit .glass-top .top-right-zone {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
 .home-showcase {
   width: 100vw;
   height: 100vh;
@@ -606,7 +657,7 @@ body.chassis {
   height: 100%;
   background: var(--shard-bg);
   z-index: 20;
-  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
   box-shadow: -20px 0 60px rgba(0,0,0,0.6);
   padding: 80px 64px 80px 10%;
   display: flex;
@@ -783,7 +834,7 @@ body.chassis {
   padding: 72px 56px 72px 8%;
   opacity: 1;
   pointer-events: auto;
-  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
   box-shadow: none;
   background: #ffffff;
 }
@@ -819,7 +870,7 @@ body.chassis {
   min-width: 0;
   opacity: 0;
   padding: 72px 56px 72px 8%;
-  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
   box-shadow: none;
   transition:
     left 0.56s cubic-bezier(0.22, 1, 0.36, 1),
@@ -866,7 +917,7 @@ body.chassis {
   padding: 72px 56px 72px 8%;
   opacity: 1;
   pointer-events: auto;
-  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
   box-shadow: none;
   background: #ffffff;
 }
@@ -906,6 +957,52 @@ body.chassis {
 
 .home-sidebar-flight.is-active {
   opacity: 0;
+}
+
+.home-return-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 76;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(57,229,184,0.08), transparent 28%),
+    linear-gradient(180deg, #0a0d0b 0%, #060807 100%);
+}
+
+.home-return-overlay .return-white {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 200px;
+  background: #ffffff;
+  clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
+  will-change: left;
+  transition: left 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-return-overlay .return-top {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 72px;
+  background: var(--glass-base);
+  opacity: 1;
+  will-change: opacity, transform;
+  transition:
+    opacity 0.18s ease,
+    transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-return-overlay.is-active .return-white {
+  left: 46vw;
+}
+
+.home-return-overlay.is-active .return-top {
+  opacity: 0;
+  transform: translate3d(0, -20px, 0);
 }
 
 .home-splash,
@@ -2859,8 +2956,11 @@ const uiTransitionState = {
   homeBodyRevealTimer: null,
   homeSideRevealTimer: null,
   homeSidebarFlightCleanup: null,
+  homeReturnOverlayCleanup: null,
+  homeReturnTimer: null,
   shellEnterTimer: null,
   isMorphingToConfig: false,
+  isReturningHome: false,
 };
 
 function clearHomeMorphTimer(resetLock = true) {
@@ -2884,7 +2984,20 @@ function clearHomeMorphTimer(resetLock = true) {
     uiTransitionState.homeSidebarFlightCleanup();
     uiTransitionState.homeSidebarFlightCleanup = null;
   }
+  if (uiTransitionState.homeReturnOverlayCleanup) {
+    uiTransitionState.homeReturnOverlayCleanup();
+    uiTransitionState.homeReturnOverlayCleanup = null;
+  }
+  if (uiTransitionState.homeReturnTimer) {
+    clearTimeout(uiTransitionState.homeReturnTimer);
+    uiTransitionState.homeReturnTimer = null;
+  }
+  const homePage = $('#page-home');
+  if (homePage) homePage.classList.remove('home-shell-return', 'home-return-target');
+  const showcase = document.querySelector('.home-showcase');
+  if (showcase) showcase.classList.remove('shell-return-prep', 'shell-return-active');
   if (resetLock) uiTransitionState.isMorphingToConfig = false;
+  if (resetLock) uiTransitionState.isReturningHome = false;
 }
 
 function resetHomeMorphState() {
@@ -2901,6 +3014,29 @@ function removeHomeSidebarFlight() {
   if (!uiTransitionState.homeSidebarFlightCleanup) return;
   uiTransitionState.homeSidebarFlightCleanup();
   uiTransitionState.homeSidebarFlightCleanup = null;
+}
+
+function removeHomeReturnOverlay() {
+  if (!uiTransitionState.homeReturnOverlayCleanup) return;
+  uiTransitionState.homeReturnOverlayCleanup();
+  uiTransitionState.homeReturnOverlayCleanup = null;
+}
+
+function createHomeReturnOverlay() {
+  removeHomeReturnOverlay();
+  const overlay = document.createElement('div');
+  overlay.className = 'home-return-overlay';
+  overlay.innerHTML = '<div class="return-white"></div><div class="return-top"></div>';
+  document.body.appendChild(overlay);
+  uiTransitionState.homeReturnOverlayCleanup = () => {
+    overlay.remove();
+  };
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlay.classList.add('is-active');
+    });
+  });
+  return overlay;
 }
 
 function createHomeSidebarFlight(showcase) {
@@ -2944,7 +3080,7 @@ function clearShellEnterAnimation() {
     uiTransitionState.shellEnterTimer = null;
   }
   const appLayout = $('.app-layout');
-  if (appLayout) appLayout.classList.remove('ui-shell-pre-enter', 'ui-shell-enter', 'ui-shell-body-hold', 'ui-shell-side-hold');
+  if (appLayout) appLayout.classList.remove('ui-shell-pre-enter', 'ui-shell-enter', 'ui-shell-body-hold', 'ui-shell-side-hold', 'ui-shell-home-exit');
 }
 
 function startPreparedShellEnterAnimation() {
@@ -2974,6 +3110,51 @@ function startShellEnterAnimation() {
   startPreparedShellEnterAnimation();
 }
 
+function transitionShellToHomeReady(fromView) {
+  if (uiTransitionState.isReturningHome) return;
+  uiTransitionState.isReturningHome = true;
+  clearHomeMorphTimer(false);
+  removeHomeSidebarFlight();
+
+  state.topView = 'home';
+  syncTopViewButtons('home');
+  state.homeAccessVerified = true;
+  state.homeStage = 'ready';
+  renderHome();
+
+  const appLayout = $('.app-layout');
+  const homePages = $('#homePages');
+  const homePage = $('#page-home');
+  const showcase = document.querySelector('.home-showcase');
+  if (!appLayout || !homePages || !homePage || !showcase) {
+    uiTransitionState.isReturningHome = false;
+    renderHome();
+    return;
+  }
+
+  homePages.style.display = 'block';
+  homePage.classList.add('home-shell-return');
+  homePage.classList.add('home-return-target');
+  createHomeReturnOverlay();
+  appLayout.classList.remove('ui-shell-pre-enter', 'ui-shell-enter', 'ui-shell-body-hold', 'ui-shell-side-hold');
+  appLayout.classList.add('ui-shell-home-exit');
+
+  uiTransitionState.homeReturnTimer = setTimeout(() => {
+    $('.glass-side').style.display = 'none';
+    $('.glass-top').style.display = 'none';
+    $('.shard-header').style.display = 'none';
+    $('#configPages').style.display = 'none';
+    $('#statsPages').style.display = 'none';
+    $('.toolbar-actions').style.display = 'none';
+    appLayout.classList.remove('ui-shell-home-exit');
+    homePage.classList.remove('home-shell-return', 'home-return-target');
+    showcase.classList.remove('shell-return-prep', 'shell-return-active');
+    removeHomeReturnOverlay();
+    uiTransitionState.homeReturnTimer = null;
+    uiTransitionState.isReturningHome = false;
+  }, fromView === 'stats' ? 520 : 500);
+}
+
 function openExternalLink(url) {
   if (!url) return;
   window.open(url, '_blank', 'noopener,noreferrer');
@@ -2981,18 +3162,20 @@ function openExternalLink(url) {
 
 function beginHomeLoginFlow() {
   if (state.homeStage !== 'intro') return;
+  const nextStage = state.homeAccessVerified ? 'ready' : 'auth';
   const showcase = document.querySelector('.home-showcase');
   if (!showcase) {
-    state.homeStage = 'auth';
+    state.homeStage = nextStage;
     renderHome();
     return;
   }
   showcase.classList.add('intro-collapse');
   clearTimeout(beginHomeLoginFlow.timer);
   beginHomeLoginFlow.timer = setTimeout(() => {
-    state.homeStage = 'auth';
+    state.homeStage = nextStage;
     renderHome();
-    $('#homeInlinePassword')?.focus();
+    if (nextStage === 'auth') $('#homeInlinePassword')?.focus();
+    if (nextStage === 'ready') $('#homeInlineInitBtn')?.focus();
   }, 540);
 }
 
@@ -3014,17 +3197,22 @@ function submitHomeAccess() {
   showToast('权限验证通过，已解锁初始化入口。');
 }
 
+function restartHomeVerification() {
+  state.homeAccessVerified = false;
+  state.homeStage = 'auth';
+  renderHome();
+  setTimeout(() => $('#homeInlinePassword')?.focus(), 30);
+}
+
 function returnHomeIntro() {
   clearTimeout(beginHomeLoginFlow.timer);
   const showcase = document.querySelector('.home-showcase');
   if (!showcase || state.homeStage === 'intro') {
-    state.homeAccessVerified = false;
     state.homeStage = 'intro';
     renderHome();
     return;
   }
   showcase.classList.add('return-home');
-  state.homeAccessVerified = false;
   clearTimeout(returnHomeIntro.timer);
   returnHomeIntro.timer = setTimeout(() => {
     state.homeStage = 'intro';
@@ -3492,19 +3680,25 @@ const apiDelete = (path) => requestJson(path, { method: 'DELETE' });
 const apiDeleteProfileById = (profileId) => apiPost('/api/profile_remove', { profile_id: profileId });
 
 function setTopView(view) {
+    const prevView = state.topView;
     state.topView = view;
     syncTopViewButtons(view);
     if (view === 'home') {
-      clearShellEnterAnimation();
-      resetHomeMorphState();
-      $('.glass-side').style.display = 'none';
-      $('.glass-top').style.display = 'none';
-      $('#homePages').style.display = 'block';
-      $('.shard-header').style.display = 'none';
-      $('#configPages').style.display = 'none';
-      $('#statsPages').style.display = 'none';
-      $('.toolbar-actions').style.display = 'none';
-      renderHome();
+      if (prevView === 'home') {
+        clearShellEnterAnimation();
+        resetHomeMorphState();
+        $('.glass-side').style.display = 'none';
+        $('.glass-top').style.display = 'none';
+        $('#homePages').style.display = 'block';
+        $('.shard-header').style.display = 'none';
+        $('#configPages').style.display = 'none';
+        $('#statsPages').style.display = 'none';
+        $('.toolbar-actions').style.display = 'none';
+        renderHome();
+        return;
+      }
+      const fromView = prevView === 'stats' ? 'stats' : 'config';
+      transitionShellToHomeReady(fromView);
       return;
     }
     const leavingHome = getComputedStyle($('#homePages')).display !== 'none';
@@ -5736,8 +5930,9 @@ function triggerSystemMorph() {
 
 function renderHome() {
   const homeStage = state.homeStage || 'intro';
-  const statusText = homeStage === 'ready' ? 'ACCESS VERIFIED' : 'AWAITING AUTHORIZATION';
-  const statusCopy = homeStage === 'ready'
+  const panelReady = homeStage === 'ready' || (homeStage === 'intro' && state.homeAccessVerified);
+  const statusText = panelReady ? 'ACCESS VERIFIED' : 'AWAITING AUTHORIZATION';
+  const statusCopy = panelReady
     ? '口令验证通过。现在可以执行初始化并接入，进入方案管理。'
     : '请输入访问口令，通过验证后再执行初始化并接入。';
   const stageClass = homeStage === 'ready' ? 'stage-ready' : homeStage === 'auth' ? 'stage-auth' : 'stage-intro';
@@ -5755,7 +5950,6 @@ function renderHome() {
           </div>
           <div class="home-splash-actions">
             <button class="home-splash-btn primary" onclick="beginHomeLoginFlow()">登录系统</button>
-            <button class="home-splash-btn" onclick="openExternalLink('${CONTROL_HUB_REPO_URL}')">仓库地址</button>
           </div>
         </div>
       </div>
@@ -5800,10 +5994,10 @@ function renderHome() {
         <div class="home-login-shell">
           <div class="home-login-card">
             <div class="home-login-kicker">ACCESS PANEL</div>
-            <div class="home-login-title">${homeStage === 'ready' ? '验证通过' : '身份验证'}</div>
+            <div class="home-login-title">${panelReady ? '验证通过' : '身份验证'}</div>
             <div class="home-login-desc">${statusCopy}</div>
 
-            ${homeStage === 'ready' ? `
+            ${panelReady ? `
               <div class="home-login-confirm">
                 当前身份已确认。下一步执行初始化并接入，系统将通过平移动画切入方案管理界面。
               </div>
@@ -5822,12 +6016,15 @@ function renderHome() {
             `}
 
             <div class="home-login-actions">
-              ${homeStage === 'ready'
+              ${panelReady
                 ? `<button class="btn-strong" id="homeInlineInitBtn" type="button" onclick="triggerSystemMorph()"><span class="btn-text">初始化并接入</span></button>`
                 : `<button class="btn-strong" type="button" onclick="submitHomeAccess()"><span class="btn-text">验证口令</span></button>`
               }
+              ${panelReady
+                ? `<button class="btn" type="button" onclick="restartHomeVerification()"><span class="btn-text">重新验证</span></button>`
+                : ''
+              }
               <button class="btn" type="button" onclick="returnHomeIntro()"><span class="btn-text">返回首页</span></button>
-              <button class="btn" type="button" onclick="openExternalLink('${CONTROL_HUB_REPO_URL}')"><span class="btn-text">仓库地址</span></button>
             </div>
           </div>
         </div>
@@ -6963,6 +7160,7 @@ function bindEvents() {
 Object.assign(window, {
   beginHomeLoginFlow,
   submitHomeAccess,
+  restartHomeVerification,
   toggleHomeAccessVisibility,
   returnHomeIntro,
   openExternalLink,
@@ -7083,9 +7281,17 @@ Object.assign(window, {
 async function bootstrapWebUi() {
   if (bootstrapWebUi.started) return;
   bootstrapWebUi.started = true;
+  state.topView = 'home';
+  state.homeStage = 'intro';
+  state.homeAccessVerified = false;
+  renderHome();
   ensureLazyProgressHud();
   bindEvents();
-  await loadAll();
+  try {
+    await loadAll();
+  } finally {
+    document.body.classList.add('ui-ready');
+  }
 }
 
 window.__startWebUi = bootstrapWebUi;

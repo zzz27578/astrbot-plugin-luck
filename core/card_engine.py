@@ -307,7 +307,7 @@ class CardEngine:
                 target_data["total_gold"] -= actual_steal
                 source_data["total_gold"] += actual_steal
                 net = actual_steal - cost
-                reports.append(f"🔥 你燃烧 {cost} 金币发动豪赌，强夺 {target_name} {actual_steal} 金币！（净收益 {net:+d}）")
+                reports.append(f"🔥 你燃烧 {cost} 金币发动全力突袭，强夺 {target_name} {actual_steal} 金币！（净收益 {net:+d}）")
 
                 bounty_bonus = self._apply_bounty_bonus(source_data, target_data)
                 if bounty_bonus > 0:

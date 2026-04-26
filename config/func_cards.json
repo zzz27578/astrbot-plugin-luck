@@ -88,9 +88,9 @@
     "rarity": 3
   },
   {
-    "card_name": "孤注一掷",
+    "card_name": "孤掷突袭",
     "type": "attack",
-    "description": "【史诗-豪赌牌】发动后先掷骰，再按点数决定消耗与掠夺额度（可被后续幸运/增骰机制影响）。",
+    "description": "【史诗-突袭牌】发动后先掷骰，再按点数决定消耗与掠夺额度（可被后续幸运/增骰机制影响）。",
     "filename": "",
     "tags": ["dice_rule:all_in_raid_v1"],
     "rarity": 3
@@ -104,9 +104,9 @@
     "rarity": 3
   },
   {
-    "card_name": "生死对赌",
+    "card_name": "生死决斗",
     "type": "attack",
-    "description": "【史诗-对赌牌】向目标发起 60 秒应战对局。主动确认应战时防御失效；超时自动迎战可被防御拦截。",
+    "description": "【史诗-决斗牌】向目标发起 60 秒应战对局。主动确认应战时防御失效；超时自动迎战可被防御拦截。",
     "filename": "",
     "tags": ["dice_duel:30"],
     "rarity": 3

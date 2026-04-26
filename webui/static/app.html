@@ -2877,8 +2877,8 @@ const defaultTitleCatalog = {
     { key: 'attack_success', name: '攻击成功次数', param: '阈值' },
     { key: 'heal_success', name: '治疗成功次数', param: '阈值' },
     { key: 'defense_success', name: '防御成功次数', param: '阈值' },
-    { key: 'duel_win', name: '对赌胜利次数', param: '阈值' },
-    { key: 'duel_count', name: '参与对赌次数', param: '阈值' },
+    { key: 'duel_win', name: '决斗胜利次数', param: '阈值' },
+    { key: 'duel_count', name: '参与决斗次数', param: '阈值' },
     { key: 'gold_total', name: '金币总量', param: '阈值' },
     { key: 'luck_value', name: '今日运势', param: '阈值' },
     { key: 'title_count', name: '拥有称号数量', param: '阈值' },
@@ -2895,7 +2895,7 @@ const defaultTitleCatalog = {
     { key: 'pity_threshold_mod', name: '保底阈值修正', param: '数值' },
     { key: 'steal_bonus', name: '偷取收益加成', param: '百分比' },
     { key: 'aoe_range_bonus', name: '群体波及人数增加', param: '人数' },
-    { key: 'duel_stake_bonus', name: '对赌赢金加成', param: '百分比' },
+    { key: 'duel_stake_bonus', name: '决斗胜利金币加成', param: '百分比' },
   ],
 };
 
@@ -3474,7 +3474,7 @@ const effectCatalog = {
     { key: 'strip_buff_gain', name: '夺取增益并加爆率', params: ['百分比', '小时'], desc: '移除目标身上 1 个正面状态，然后给你自己附加功能牌爆率提升，持续指定小时数。是拆增益加自强化的反制型效果。' },
     { key: 'aoe_damage', name: '群体攻击', params: ['最小值', '最大值', '人数'], desc: '从全群里随机抽固定人数作为目标；如果配置人数超过当前可用目标数，就自动按全体可用目标结算。每个人分别造成一段随机金币伤害，会被“无懈可击”完整挡掉。' },
     { key: 'dice_rule', name: '骰子规则', params: ['规则键'], desc: '触发一套指定的骰子规则，具体效果由规则键决定，属于给骰子玩法挂特殊结算。' },
-    { key: 'dice_duel', name: '对赌', params: ['底注'], desc: '向目标发起一次带底注的骰子对赌，双方确认后按骰点结算输赢和金币转移。' }
+    { key: 'dice_duel', name: '骰子决斗', params: ['投入'], desc: '向目标发起一次带基础投入的骰子决斗，双方确认后按骰点判定攻防，并结算金币胜负。' }
   ],
   heal: [
     { key: 'cleanse', name: '单体净化', params: [], desc: '移除目标身上 1 个负面状态。只会清负面，不会误删护盾、反甲、好运加护这类正面状态。' },
@@ -3609,7 +3609,7 @@ function humanizeTag(tag) {
     case 'strip_buff_gain': return `夺取增益并获得 ${p[0]}% 爆率 ${p[1]} 小时`;
     case 'aoe_damage': return `群攻 ${p[0]}-${p[1]}，固定 ${p[2]} 人（不足则全体）`;
     case 'dice_rule': return `骰子规则 ${p[0]}`;
-    case 'dice_duel': return `对赌底注 ${p[0]}`;
+    case 'dice_duel': return `决斗投入 ${p[0]}`;
         case 'cleanse': return '单体净化负面状态';
     case 'aoe_cleanse': return `群体净化，固定 ${p[0]} 人（不足则全体）`;
     case 'aoe_heal': return `群体回复 ${p[0]}-${p[1]}，固定 ${p[2]} 人（不足则全体）`;
@@ -4302,9 +4302,9 @@ function renderRuntime() {
       <section class="panel col-4">
         <div class="panel-head"><div><div class="panel-title">模块开关</div></div></div>
         ${toggleBox('命运牌系统', '开启后才会启用命运牌相关抽取与每日上限配置。', 'fate_cards_settings.enable', c.fate_cards_settings.enable)}
-        ${toggleBox('功能牌系统', '关闭时，功能牌的经济、稀有度和对赌相关配置都会锁定。', 'func_cards_settings.enable', f.enable)}
+        ${toggleBox('功能牌系统', '关闭时，功能牌的经济、稀有度和决斗相关配置都会锁定。', 'func_cards_settings.enable', f.enable)}
         ${toggleBox('骰子牌系统', '控制骰子功能牌与相关规则入口是否开放。', 'func_cards_settings.enable_dice_cards', f.enable_dice_cards)}
-        ${toggleBox('公开对赌模式', '开启后，才允许配置每日次数与赌注范围。', 'func_cards_settings.enable_public_duel_mode', f.enable_public_duel_mode)}
+        ${toggleBox('公开决斗模式', '开启后，才允许配置每日次数与投入范围。', 'func_cards_settings.enable_public_duel_mode', f.enable_public_duel_mode)}
         ${toggleBox('同稀有度优先不重复', '开启后，抽到功能牌时会尽量避免连续给出同稀有度重复内容。', 'func_cards_settings.enable_rarity_dedup', f.enable_rarity_dedup)}
       </section>
 
@@ -4335,11 +4335,11 @@ function renderRuntime() {
         </div>
 
         <div class="config-block ${duelEnabled ? '' : 'locked'}">
-          <div class="config-kicker">公开对赌</div>
+          <div class="config-kicker">公开决斗</div>
           <div class="runtime-grid">
-            ${numField('对赌每日次数', 'func_cards_settings.public_duel_daily_limit', f.public_duel_daily_limit, !duelEnabled, 'min="1" max="50"')}
-            ${numField('最小赌注', 'func_cards_settings.public_duel_min_stake', f.public_duel_min_stake, !duelEnabled, 'min="1" max="1000000"')}
-            ${numField('最大赌注', 'func_cards_settings.public_duel_max_stake', f.public_duel_max_stake, !duelEnabled, 'min="1" max="1000000"')}
+            ${numField('决斗每日次数', 'func_cards_settings.public_duel_daily_limit', f.public_duel_daily_limit, !duelEnabled, 'min="1" max="50"')}
+            ${numField('最小投入', 'func_cards_settings.public_duel_min_stake', f.public_duel_min_stake, !duelEnabled, 'min="1" max="1000000"')}
+            ${numField('最大投入', 'func_cards_settings.public_duel_max_stake', f.public_duel_max_stake, !duelEnabled, 'min="1" max="1000000"')}
           </div>
         </div>
 
@@ -4529,7 +4529,7 @@ function getPanelPreviewMock() {
     titles: [
       '🟢 星穹见证者 - 功能牌爆率 +10%',
       '🟢 风暴借火者 - 每日额外免费抽取 +1',
-      '⚪ 深渊回声 - 公开对赌胜利金币 +8%',
+      '⚪ 深渊回声 - 公开决斗胜利金币 +8%',
       '⚪ 旧梦收集家 - 功能牌护盾时长 +1小时',
       '⚪ 荆棘行者 - 反伤比例 +10%',
       '⚪ 未央之客 - 善恶业报波动 -1',
@@ -4558,7 +4558,7 @@ function getPanelPreviewMock() {
     ],
     battleLogs: [
       '[04-25 20:14] 使用了 [绝对零度]。结果：目标被冻结 2小时。',
-      '[04-25 20:17] 发起公开对赌。结果：胜利并赢得 88 金币。',
+      '[04-25 20:17] 发起公开决斗。结果：点数压制对手，赢得 88 金币。',
       '[04-25 20:19] 遭到群体攻击。结果：无懈可击触发。',
       '[04-25 20:25] 管理员授予了 [南蛮入侵]。',
       '[04-25 20:29] 使用了 [命运转盘]。结果：净化负面状态。',
@@ -5457,7 +5457,7 @@ function titleCatalogTip(kind, key) {
     attack_success: '适合战士、输出型称号。',
     heal_success: '适合治疗、辅助型称号。',
     defense_success: '适合护盾、防御型称号。',
-    duel_win: '适合赌徒、决斗王类型称号。',
+    duel_win: '适合决斗王、常胜者类型称号。',
     duel_count: '按参与次数累计，不要求每次都赢。',
     gold_total: '按当前持有金币判断，适合财富类称号。',
     luck_value: '按今日运势值判断，适合幸运类称号。',
@@ -5473,7 +5473,7 @@ function titleCatalogTip(kind, key) {
     pity_threshold_mod: '调整保底阈值，负数通常更强。',
     steal_bonus: '提升偷取类效果的实际收益。',
     aoe_range_bonus: '让群体效果额外波及更多目标。',
-    duel_stake_bonus: '提升对赌获胜后的额外金币收益。',
+    duel_stake_bonus: '提升决斗获胜后的额外金币收益。',
   };
   return tips[key] || '这个项目可以直接用于称号配置。';
 }

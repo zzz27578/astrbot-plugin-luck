@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 
 _FALLBACK_DICE_RULES: Dict[str, Dict[str, Any]] = {
     "all_in_raid_v1": {
-        "name": "孤注一掷",
+        "name": "孤掷突袭",
         "dice": {"count": 1, "sides": 6, "keep": "sum"},
         "outcomes": [
             {
@@ -34,7 +34,7 @@ _FALLBACK_DICE_RULES: Dict[str, Dict[str, Any]] = {
                 "min": 3,
                 "max": 4,
                 "outcome_id": "mid",
-                "title": "【中签】赌对一半，强夺得手。",
+                "title": "【中签】时机过半，强夺得手。",
                 "payload": {"op": "sac_steal", "cost": 20, "steal": 32, "reserve": 1},
             },
             {
@@ -48,7 +48,7 @@ _FALLBACK_DICE_RULES: Dict[str, Dict[str, Any]] = {
                 "min": 6,
                 "max": 6,
                 "outcome_id": "crit",
-                "title": "【天命暴击】命运眷顾，梭哈成功！",
+                "title": "【天命暴击】命运眷顾，全力出击成功！",
                 "payload": {"op": "sac_steal", "cost": 36, "steal": 72, "reserve": 1},
             },
         ],

@@ -379,7 +379,7 @@ class LuckPlugin(Star):
                 yield res
             return
 
-        if cmd_str.startswith("对赌"):
+        if cmd_str.startswith(("对赌", "决斗")):
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
@@ -395,7 +395,7 @@ class LuckPlugin(Star):
                 yield res
             return
 
-        if cmd_str.startswith("加注"):
+        if cmd_str.startswith(("加注", "追加投入")):
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
@@ -432,7 +432,7 @@ class LuckPlugin(Star):
         if cmd_str in exact_cmds or cmd_str.startswith("面板@") or cmd_str.startswith("面板 @"):
             return True
 
-        if cmd_str.startswith(("丢弃", "使用", "启用", "停用", "对赌", "加注", "佩戴称号", "卸下称号")):
+        if cmd_str.startswith(("丢弃", "使用", "启用", "停用", "对赌", "决斗", "加注", "追加投入", "佩戴称号", "卸下称号")):
             return True
 
         return False
@@ -843,13 +843,13 @@ class LuckPlugin(Star):
             "/luck 停用卡名",
             "/luck 丢弃卡名",
             "",
-            "【骰子 / 对赌】",
+            "【骰子 / 决斗】",
             f"骰子功能牌：{'✅开启' if dice_cards_enabled else '❌关闭'}",
-            f"公开对赌：{'✅开启' if duel_enabled else '❌关闭'}",
-            f"赌注范围：{duel_min} ~ {duel_max} 金币",
-            f"/luck 对赌@某人 金额  (每日{duel_limit}次)",
+            f"公开决斗：{'✅开启' if duel_enabled else '❌关闭'}",
+            f"决斗投入范围：{duel_min} ~ {duel_max} 金币",
+            f"/luck 决斗@某人 金额  (每日{duel_limit}次)",
             "/luck 确认",
-            "/luck 加注 金额",
+            "/luck 追加投入 金额",
             "━━━━━━━━━━━━",
             "💡 看详细规则：/luck 帮助",
         ]
@@ -874,8 +874,8 @@ class LuckPlugin(Star):
             "【1. 输入规则】",
             "• 多数指令支持无空格写法",
             "• 例：使用绝对零度@某人",
-            "• 对赌接受：/luck 确认",
-            "• 对赌抬注：/luck 加注 金额",
+            "• 决斗确认：/luck 确认",
+            "• 追加投入：/luck 追加投入 金额",
             "",
             "【2. 基础玩法】",
             f"• 运势：{'开启' if sign_enabled else '关闭'}",
@@ -895,16 +895,16 @@ class LuckPlugin(Star):
             "• 启用/停用卡名 -> 防御牌",
             "• 丢弃卡名 -> 清卡槽",
             "",
-            "【4. 骰子与对赌】",
+            "【4. 骰子与决斗】",
             f"• 骰子牌：{'开启' if dice_cards_enabled else '关闭'}",
-            f"• 公开对赌：{'开启' if duel_enabled else '关闭'}",
+            f"• 公开决斗：{'开启' if duel_enabled else '关闭'}",
             f"• 每日发起上限：{duel_limit}",
-            f"• 赌注范围：{duel_min} ~ {duel_max} 金币",
-            "• 发起指令：/luck 对赌@某人 金额",
-            "• 接受指令：/luck 确认",
-            "• 加注指令：/luck 加注 金额",
-            "• 免费公开局必须双方明确确认，不会自动代打",
-            "• 同时仅允许1场公开局",
+            f"• 决斗投入范围：{duel_min} ~ {duel_max} 金币",
+            "• 发起指令：/luck 决斗@某人 金额",
+            "• 应战确认：/luck 确认",
+            "• 追加投入：/luck 追加投入 金额",
+            "• 公开决斗必须双方明确确认，不会自动代打",
+            "• 同时仅允许 1 场公开决斗",
             "",
             "【5. 善恶值】",
             "• 主动攻击 -> 善恶值下降",
@@ -913,7 +913,7 @@ class LuckPlugin(Star):
             "━━━━━━━━━━━━",
             "❓ 常见问题",
             "• 指令失败：先看对应系统是否开启",
-            "• 对赌失败：可能已有人在对局，或赌注超出上下限",
+            "• 决斗失败：可能已有人在对局，或投入超出上下限",
             "• 牌用不了：看 /luck 面板状态",
         ]
 

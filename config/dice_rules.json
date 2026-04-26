@@ -1,6 +1,6 @@
 {
   "all_in_raid_v1": {
-    "name": "孤注一掷",
+    "name": "孤掷突袭",
     "dice": {
       "count": 1,
       "sides": 6,
@@ -47,7 +47,7 @@
         "min": 6,
         "max": 6,
         "outcome_id": "crit",
-        "title": "【天命暴击】命运眷顾，梭哈成功！",
+        "title": "【天命暴击】命运眷顾，全力出击成功！",
         "payload": {
           "op": "sac_steal",
           "cost": 36,

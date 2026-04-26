@@ -200,7 +200,7 @@ def _translate_tag_to_human_desc(tag: str) -> str:
     if key == "strip_buff_gain": return f"剥夺目标 1 个增益，自身爆率提升 {parts[1] if len(parts)>1 else 0}% 持续 {parts[2] if len(parts)>2 else 0} 小时"
     if key == "aoe_damage": return f"群攻：固定 {parts[3] if len(parts)>3 else (parts[2] if len(parts)>2 else 0)} 人，不足则按全体结算；每人分别造成 {parts[1] if len(parts)>1 else 0}~{parts[2] if len(parts)>2 else 0} 金币伤害"
     if key == "dice_rule": return f"对骰局挂载特殊玩法规则"
-    if key == "dice_duel": return f"向目标发起最低底注为 {parts[1] if len(parts)>1 else 20} 的对赌局"
+    if key == "dice_duel": return f"向目标发起一场最低投入为 {parts[1] if len(parts)>1 else 20} 的骰子决斗"
     if key == "cleanse": return "单体净化 1 个负面状态"
     if key == "aoe_cleanse": return f"群辅：固定 {parts[1] if len(parts)>1 else 0} 人，不足则按全体结算；每人各净化 1 个负面状态"
     if key == "aoe_heal": return f"群辅：固定 {parts[3] if len(parts)>3 else (parts[2] if len(parts)>2 else 0)} 人，不足则按全体结算；每人分别恢复 {parts[1] if len(parts)>1 else 0}~{parts[2] if len(parts)>2 else 0} 金币"

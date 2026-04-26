@@ -65,6 +65,26 @@ def _normalize_card_lookup_name(name: str) -> str:
     return text
 
 
+_CARD_NAME_DISPLAY_ALIASES = {
+    "孤注一掷": "孤掷突袭",
+    "生死对赌": "生死决斗",
+}
+_CARD_NAME_LOOKUP_ALIASES = {
+    _normalize_card_lookup_name(old): _normalize_card_lookup_name(new)
+    for old, new in _CARD_NAME_DISPLAY_ALIASES.items()
+}
+
+
+def _canonical_card_lookup_name(name: str) -> str:
+    normalized = _normalize_card_lookup_name(name)
+    return _CARD_NAME_LOOKUP_ALIASES.get(normalized, normalized)
+
+
+def _display_card_name(name: str) -> str:
+    text = str(name or "").strip()
+    return _CARD_NAME_DISPLAY_ALIASES.get(text, text)
+
+
 def _card_name_matches(candidate: str, requested: str) -> bool:
     candidate_text = str(candidate or "").strip()
     requested_text = str(requested or "").strip()
@@ -72,7 +92,7 @@ def _card_name_matches(candidate: str, requested: str) -> bool:
         return False
     if candidate_text == requested_text:
         return True
-    return _normalize_card_lookup_name(candidate_text) == _normalize_card_lookup_name(requested_text)
+    return _canonical_card_lookup_name(candidate_text) == _canonical_card_lookup_name(requested_text)
 
 
 def _find_inventory_card_index(inventory: list, requested_name: str) -> int:
@@ -881,8 +901,8 @@ def _format_aoe_chain(user_id: str, user_name: str, card_name: str, aoe_events: 
 
 
 def _build_duel_log_summary(opponent_name: str, stake: int, c_final: int, t_final: int, result_line: str, *, is_challenger: bool) -> str:
-    role_text = "发起公开对赌" if is_challenger else "应战公开对赌"
-    return f"{role_text}，对手：{opponent_name}，赌注 {stake}。点数 {c_final}:{t_final}。结果：{result_line}"
+    role_text = "发起公开决斗" if is_challenger else "应战公开决斗"
+    return f"{role_text}，对手：{opponent_name}，决斗投入 {stake}。点数 {c_final}:{t_final}。结果：{result_line}"
 
 
 def _build_aoe_target_log(user_name: str, card_name: str, aoe_event: dict) -> str:
@@ -997,7 +1017,7 @@ async def _resolve_public_duel_result(bank, session: dict, config: dict) -> dict
         bonus_gold = int(transfer * c_bonus_pct / 100) if c_bonus_pct > 0 else 0
         challenger_data["total_gold"] += (transfer + bonus_gold)
         bonus_msg = f"（含称号加成 +{bonus_gold}）" if bonus_gold > 0 else ""
-        result_line = f"🏆 {challenger_name} 一把掀翻赌桌，卷走 {transfer}{bonus_msg} 金币！"
+        result_line = f"🏆 {challenger_name} 点数压制对手，取得决斗胜利，赢得 {transfer}{bonus_msg} 金币！"
         winner_uid = challenger_uid
         loser_uid = target_uid
     elif t_final > c_final:
@@ -1007,12 +1027,12 @@ async def _resolve_public_duel_result(bank, session: dict, config: dict) -> dict
         bonus_gold = int(transfer * t_bonus_pct / 100) if t_bonus_pct > 0 else 0
         target_data["total_gold"] += (transfer + bonus_gold)
         bonus_msg = f"（含称号加成 +{bonus_gold}）" if bonus_gold > 0 else ""
-        result_line = f"🏆 {target_name} 当场反杀，反卷 {transfer}{bonus_msg} 金币！"
+        result_line = f"🏆 {target_name} 抓住破绽完成逆转，取得决斗胜利，赢得 {transfer}{bonus_msg} 金币！"
         winner_uid = target_uid
         loser_uid = challenger_uid
     else:
         transfer = 0
-        result_line = "🤝 双方点数相同，赌桌僵住，这一局和了。"
+        result_line = "🤝 双方点数相同，这场决斗打成平手。"
         winner_uid = ""
         loser_uid = ""
 
@@ -1040,14 +1060,14 @@ async def calculate_rank(bank, user_id):
 
 
 async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dict) -> str:
-    """执行一场骰子对赌并返回播报文本。"""
+    """执行一场骰子决斗并返回播报文本。"""
     challenger_uid = session["challenger_uid"]
 
     target_uid = session["target_uid"]
     challenger_name = session["challenger_name"]
     target_name = session["target_name"]
     stake = int(session.get("stake", 20))
-    card_name = session.get("card_name", "对赌契约")
+    card_name = session.get("card_name", "决斗契约")
 
     challenger_data = await bank.get_user_data(challenger_uid, challenger_name)
     target_data = await bank.get_user_data(target_uid, target_name)
@@ -1057,13 +1077,13 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dic
         if _consume_target_shield_for_duel(target_data):
             await bank.save_user_data()
             await bank.log_battles([
-                (challenger_uid, f"对 {target_name} 发起对赌失败：对方护盾挡下了自动迎战。"),
-                (target_uid, f"{challenger_name} 对你发起的对赌被【无懈可击】挡下。"),
+                (challenger_uid, f"对 {target_name} 发起决斗失败：对方护盾挡下了自动迎战。"),
+                (target_uid, f"{challenger_name} 对你发起的决斗被【无懈可击】挡下。"),
             ])
             return (
-                f"🎰【盘口播报】{target_name} 半天没接话，系统刚想替他上桌！\n"
-                f"🛡️ 结果【无懈可击】当场炸开，把这口被迫应战直接拍飞。\n"
-                f"💥 围观的人一阵起哄：这桌没打起来，先散场！"
+                f"⚔️【决斗播报】{target_name} 半天没接话，系统刚想替他判定应战！\n"
+                f"🛡️ 结果【无懈可击】当场炸开，把这次被迫应战直接拍飞。\n"
+                f"💥 围观的人一阵起哄：这场没打起来，先散场！"
             )
 
     dice_engine = DiceEngine()
@@ -1096,7 +1116,7 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dic
             bonus_gold = int(transfer * c_bonus_pct / 100) if c_bonus_pct > 0 else 0
             challenger_data["total_gold"] += (transfer + bonus_gold)
             bonus_msg = f"（含加成+{bonus_gold}）" if bonus_gold > 0 else ""
-            result_line = f"🏆 {challenger_name} 胜出，卷走 {transfer}{bonus_msg} 金币！"
+            result_line = f"🏆 {challenger_name} 点数领先，成功压制对手，赢得 {transfer}{bonus_msg} 金币！"
     elif t_final > c_final:
         if stake <= 0:
             result_line = f"🏆 {target_name} 反杀成功！"
@@ -1107,18 +1127,18 @@ async def _resolve_duel(bank, session: dict, is_active_accept: bool, config: dic
             bonus_gold = int(transfer * t_bonus_pct / 100) if t_bonus_pct > 0 else 0
             target_data["total_gold"] += (transfer + bonus_gold)
             bonus_msg = f"（含加成+{bonus_gold}）" if bonus_gold > 0 else ""
-            result_line = f"🏆 {target_name} 反杀成功，反卷 {transfer}{bonus_msg} 金币！"
+            result_line = f"🏆 {target_name} 点数反超，完成逆转，赢得 {transfer}{bonus_msg} 金币！"
     else:
         result_line = "🤝 双方点数相同，本局和局。"
 
 
     await bank.save_user_data()
 
-    mode_text = "主动应战（防御失效）" if is_active_accept else "超时自动迎战（可被防御）"
+    mode_text = "主动确认应战（防御失效）" if is_active_accept else "超时自动判定应战（可被防御）"
     lines = [
-        f"🎰【赌场播报】{challenger_name} vs {target_name}",
+        f"⚔️【决斗播报】{challenger_name} vs {target_name}",
         f"🧾 对局模式：{mode_text}",
-        f"🎲 {challenger_name} 掷出：{c_final} | {target_name} 掷出：{t_final}",
+        f"🎲 点数判定：{challenger_name} {c_final} | {target_name} {t_final}",
     ]
     lines.extend(reroll_msgs)
     lines.append(result_line)
@@ -1137,7 +1157,7 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
 
     async with PENDING_DUEL_LOCK:
         if not PENDING_DUEL.get("active") or (group_id and str(PENDING_DUEL.get("group_id", "")) != group_id):
-            yield event.plain_result("🎲 当前没有待确认的对赌局。")
+            yield event.plain_result("🎲 当前没有待确认的决斗。")
             return
 
         phase = PENDING_DUEL.get("phase")
@@ -1154,10 +1174,10 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
                 return
 
             if not await _has_enough_gold(bank, challenger_uid, challenger_name, stake):
-                yield event.plain_result(f"⚠️ 发起者 {challenger_name} 当前金币不足 {stake}，这桌赌注开不起来。")
+                yield event.plain_result(f"⚠️ 发起者 {challenger_name} 当前金币不足 {stake}，这场决斗无法成立。")
                 return
             if not await _has_enough_gold(bank, target_uid, target_name, stake):
-                yield event.plain_result(f"⚠️ {target_name} 当前金币不足 {stake}，接不起这口锅。")
+                yield event.plain_result(f"⚠️ {target_name} 当前金币不足 {stake}，接不下这场决斗。")
                 return
 
             PENDING_DUEL["confirmed"] = True
@@ -1169,22 +1189,22 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
 
             if source_kind == "free":
                 msg = (
-                    f"🔥【盘口播报】{target_name} 直接拍板接战！\n"
-                    f"💰 当前赌注锁定：{stake} 金币\n"
-                    f"📢 周围已经有人开始起哄，这局马上开摇！"
+                    f"⚔️【决斗播报】{target_name} 直接拍板应战！\n"
+                    f"💰 当前决斗投入锁定：{stake} 金币\n"
+                    f"📢 周围已经有人开始起哄，这场马上进入点数判定！"
                 )
             else:
-                msg = f"🔥【盘口播报】{target_name} 点头应战！\n人都围上来了，骰子马上落桌。"
+                msg = f"⚔️【决斗播报】{target_name} 点头应战！\n人都围上来了，点数判定马上开始。"
         elif phase == "await_challenger_raise_confirm":
             if user_id != challenger_uid:
-                yield event.plain_result("⚠️ 现在轮到发起者决定接不接这口加注。")
+                yield event.plain_result("⚠️ 现在轮到发起者决定要不要接下这次追加投入。")
                 return
 
             if not await _has_enough_gold(bank, challenger_uid, challenger_name, stake):
-                yield event.plain_result(f"⚠️ 你的金币不足 {stake}，接不起对方抬到天上的赌注。")
+                yield event.plain_result(f"⚠️ 你的金币不足 {stake}，接不下对方提升后的决斗投入。")
                 return
             if not await _has_enough_gold(bank, target_uid, target_name, stake):
-                yield event.plain_result(f"⚠️ {target_name} 当前金币不足 {stake}，加注后的赌桌已失效。")
+                yield event.plain_result(f"⚠️ {target_name} 当前金币不足 {stake}，追加投入后的决斗已失效。")
                 return
 
             PENDING_DUEL["confirmed"] = True
@@ -1194,12 +1214,12 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
             if confirm_event:
                 confirm_event.set()
             msg = (
-                f"🔥【盘口播报】{challenger_name} 一把把筹码推回场中央！\n"
-                f"💰 双方确认加注后赌注：{stake} 金币\n"
-                f"📢 场子已经彻底热起来了，谁手抖谁就等着被全场笑。"
+                f"⚔️【决斗播报】{challenger_name} 一把将投入推回场中央！\n"
+                f"💰 双方确认追加投入后：{stake} 金币\n"
+                f"📢 场子已经彻底热起来了，接下来就看谁的点数更稳。"
             )
         else:
-            yield event.plain_result("🎲 这桌赌局当前不在确认阶段。")
+            yield event.plain_result("🎲 这场决斗当前不在确认阶段。")
             return
 
     yield event.plain_result(msg)
@@ -1209,24 +1229,24 @@ async def handle_raise_duel(event: AstrMessageEvent, bank):
     user_id = event.get_sender_id()
     group_id = _extract_group_id_from_event(event)
     raw_text = event.message_str.replace("/luck", "").strip()
-    match = re.search(r"加注\s*(-?\d+)", raw_text)
+    match = re.search(r"(?:加注|追加投入)\s*(-?\d+)", raw_text)
     if not match:
-        yield event.plain_result("⚠️ 加注格式：/luck 加注 金额")
+        yield event.plain_result("⚠️ 追加投入格式：/luck 追加投入 金额")
         return
 
     raise_stake = int(match.group(1))
 
     async with PENDING_DUEL_LOCK:
         if not PENDING_DUEL.get("active") or (group_id and str(PENDING_DUEL.get("group_id", "")) != group_id):
-            yield event.plain_result("🎲 当前没有可加注的对赌局。")
+            yield event.plain_result("🎲 当前没有可追加投入的决斗。")
             return
 
         if PENDING_DUEL.get("source_kind") != "free":
-            yield event.plain_result("⚠️ 只有日常公开对赌支持手动加注。")
+            yield event.plain_result("⚠️ 只有日常公开决斗支持手动追加投入。")
             return
 
         if PENDING_DUEL.get("phase") != "await_target":
-            yield event.plain_result("⚠️ 这桌赌局当前不能加注。")
+            yield event.plain_result("⚠️ 这场决斗当前不能追加投入。")
             return
 
         target_uid = PENDING_DUEL.get("target_uid")
@@ -1238,19 +1258,19 @@ async def handle_raise_duel(event: AstrMessageEvent, bank):
         min_stake = int(PENDING_DUEL.get("min_stake", 1))
 
         if user_id != target_uid:
-            yield event.plain_result("⚠️ 只有被挑战者可以在应战阶段抬注。")
+            yield event.plain_result("⚠️ 只有被挑战者可以在应战阶段追加投入。")
             return
         if raise_stake <= current_stake:
-            yield event.plain_result(f"⚠️ 加注金额必须大于当前赌注 {current_stake}。")
+            yield event.plain_result(f"⚠️ 追加投入金额必须大于当前决斗投入 {current_stake}。")
             return
         if raise_stake < min_stake or raise_stake > max_stake:
-            yield event.plain_result(f"⚠️ 赌注必须位于 {min_stake} ~ {max_stake} 金币之间。")
+            yield event.plain_result(f"⚠️ 决斗投入必须位于 {min_stake} ~ {max_stake} 金币之间。")
             return
         if not await _has_enough_gold(bank, target_uid, target_name, raise_stake):
-            yield event.plain_result(f"⚠️ 你的金币不足 {raise_stake}，别空手抬价。")
+            yield event.plain_result(f"⚠️ 你的金币不足 {raise_stake}，无法完成这次追加投入。")
             return
         if not await _has_enough_gold(bank, challenger_uid, challenger_name, raise_stake):
-            yield event.plain_result(f"⚠️ {challenger_name} 当前金币不足 {raise_stake}，你这口价已经把他抬出桌外了。")
+            yield event.plain_result(f"⚠️ {challenger_name} 当前金币不足 {raise_stake}，你这次追加投入已经超出对方承受范围。")
             return
 
         PENDING_DUEL["stake"] = raise_stake
@@ -1263,8 +1283,8 @@ async def handle_raise_duel(event: AstrMessageEvent, bank):
             confirm_event.set()
 
     yield event.plain_result(
-        f"💥【盘口播报】{target_name} 反手把赌注抬到 {raise_stake} 金币！\n"
-        f"📣 场边已经叫起来了——现在轮到 {challenger_name} 发送「/luck 确认」接下这口加注。"
+        f"⚔️【决斗播报】{target_name} 反手把决斗投入提高到 {raise_stake} 金币！\n"
+        f"📣 场边已经叫起来了——现在轮到 {challenger_name} 发送「/luck 确认」接下这次追加投入。"
     )
 
 
@@ -1276,7 +1296,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
 
     duel_cfg = _get_public_duel_settings(config)
     if not duel_cfg["enabled"]:
-        yield event.plain_result("🎲 公开对赌模式未开启。")
+        yield event.plain_result("🎲 公开决斗模式未开启。")
         return
 
     user_data = await bank.get_user_data(user_id, user_name)
@@ -1289,7 +1309,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
         user_data["pure_dice_count"] = 0
 
     if int(user_data.get("pure_dice_count", 0)) >= daily_limit:
-        yield event.plain_result(f"⛔ 你今天的公开对赌次数已用尽（{daily_limit}/{daily_limit}）。")
+        yield event.plain_result(f"⛔ 你今天的公开决斗次数已用尽（{daily_limit}/{daily_limit}）。")
         return
 
     target_id = None
@@ -1299,26 +1319,26 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
             break
 
     if not target_id:
-        yield event.plain_result("⚠️ 公开对赌必须 @ 一名目标。示例：/luck 对赌 @某人 50")
+        yield event.plain_result("⚠️ 公开决斗必须 @ 一名目标。示例：/luck 决斗 @某人 50")
         return
 
     if target_id == user_id:
-        yield event.plain_result("⚠️ 不能和自己对赌。")
+        yield event.plain_result("⚠️ 不能和自己发起决斗。")
         return
 
     raw_text = event.message_str.replace("/luck", "").strip()
-    if not raw_text.startswith("对赌"):
-        yield event.plain_result("⚠️ 对赌格式：/luck 对赌@某人 金额")
+    if not raw_text.startswith(("对赌", "决斗")):
+        yield event.plain_result("⚠️ 决斗格式：/luck 决斗@某人 金额")
         return
 
     stake = _extract_duel_stake(raw_text)
     if stake is None:
         stake = min_stake
     if stake < min_stake or stake > max_stake:
-        yield event.plain_result(f"⚠️ 赌注必须位于 {min_stake} ~ {max_stake} 金币之间。")
+        yield event.plain_result(f"⚠️ 决斗投入必须位于 {min_stake} ~ {max_stake} 金币之间。")
         return
     if not await _has_enough_gold(bank, user_id, user_name, stake):
-        yield event.plain_result(f"⚠️ 你的金币不足 {stake}，没资格拍这桌。")
+        yield event.plain_result(f"⚠️ 你的金币不足 {stake}，无法发起这场决斗。")
         return
 
     all_users = await bank.get_all_users()
@@ -1326,7 +1346,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
 
     async with PENDING_DUEL_LOCK:
         if PENDING_DUEL.get("active") and str(PENDING_DUEL.get("group_id", "")) == group_id:
-            yield event.plain_result("🎰 当前已有对局进行中，请稍候再开盘。")
+            yield event.plain_result("⚔️ 当前已有决斗进行中，请稍候再发起。")
             return
 
         confirm_event = asyncio.Event()
@@ -1338,7 +1358,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
             "challenger_name": user_name,
             "target_uid": target_id,
             "target_name": target_name,
-            "card_name": "公开对赌",
+            "card_name": "公开决斗",
             "stake": stake,
             "min_stake": min_stake,
             "max_stake": max_stake,
@@ -1353,10 +1373,10 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
         })
 
     yield event.plain_result(
-        f"🎰【盘口播报】{user_name} 把 {stake} 金币往场中央一甩，点名要和 {target_name} 见真章！\n"
-        f"📣 请 {target_name} 在 60 秒内发送「/luck 确认」接战，或发送「/luck 加注 金额」把场面继续抬高。\n"
-        f"💰 本桌限额：{min_stake} ~ {max_stake} 金币\n"
-        f"👀 这局不代打，得双方亲自点头，围观的人可都等着看呢。"
+        f"⚔️【决斗播报】{user_name} 向 {target_name} 发起公开决斗，双方将按点数判定攻防！\n"
+        f"📣 请 {target_name} 在 60 秒内发送「/luck 确认」应战，或发送「/luck 追加投入 金额」提升决斗投入。\n"
+        f"💰 本场投入范围：{min_stake} ~ {max_stake} 金币\n"
+        f"👀 这场不代打，得双方亲自点头，围观的人可都等着看呢。"
     )
 
     try:
@@ -1365,7 +1385,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
         async with PENDING_DUEL_LOCK:
             if PENDING_DUEL.get("session_id"):
                 _reset_pending_duel()
-        yield event.plain_result("⌛ 60 秒过去，场边都快喊累了，还是没人接话。这局只能散了。")
+        yield event.plain_result("⌛ 60 秒过去，场边都快喊累了，还是没人接话。这场决斗只能取消。")
         return
 
     async with PENDING_DUEL_LOCK:
@@ -1389,7 +1409,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
 
     if response_action == "raise":
         yield event.plain_result(
-            f"😈【盘口播报】赌注已经被抬到 {current_stake} 金币！\n"
+            f"⚔️【决斗播报】决斗投入已经被提升到 {current_stake} 金币！\n"
             f"📣 现在全场都盯着 {user_name} —— 60 秒内发送「/luck 确认」，接不接就这一句。"
         )
         try:
@@ -1398,7 +1418,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
             async with PENDING_DUEL_LOCK:
                 if PENDING_DUEL.get("session_id"):
                     _reset_pending_duel()
-            yield event.plain_result("⌛ 发起者迟迟没回话，围观的人先哄起来了。这口加注没人接，本局作废。")
+            yield event.plain_result("⌛ 发起者迟迟没回话，围观的人先哄起来了。这次追加投入没人接，这场决斗作废。")
             return
 
         async with PENDING_DUEL_LOCK:
@@ -1406,7 +1426,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
             _reset_pending_duel()
 
     if not session:
-        yield event.plain_result("⚠️ 场子状态有点乱，这局没能顺利立起来。")
+        yield event.plain_result("⚠️ 对局状态有点乱，这场决斗没能顺利立起来。")
         return
 
     user_data["pure_dice_count"] = int(user_data.get("pure_dice_count", 0)) + 1
@@ -1421,8 +1441,8 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
     stake = duel_result["stake"]
 
     yield event.plain_result(
-        f"🎲【盘口播报】赌局锁死！\n"
-        f"{challenger_name} 与 {target_name} 各自按住 {stake} 金币，场边已经开始猜谁会先翻车。"
+        f"⚔️【决斗播报】决斗锁定！\n"
+        f"{challenger_name} 与 {target_name} 各自按住 {stake} 金币，场边已经开始猜谁会先拿下点数优势。"
     )
     await asyncio.sleep(DUEL_STAGE_DELAY_SEC)
 
@@ -1441,16 +1461,16 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
     await asyncio.sleep(DUEL_STAGE_DELAY_SEC)
 
     final_report = (
-        f"💥【盘口终局】\n"
+        f"💥【决斗终局】\n"
         f"🎲 最终点数：{challenger_name} {challenger_roll['final_total']} vs {target_name} {target_roll['final_total']}\n"
         f"{duel_result['result_line']}\n"
         f"📣 场边已经吵成一片。\n"
-        f"🎟️ {challenger_name} 今日公开对赌剩余次数：{remain}"
+        f"🎟️ {challenger_name} 今日公开决斗剩余次数：{remain}"
     )
 
     await bank.log_battles([
-        (session["challenger_uid"], f"发起公开对赌，对手：{target_name}，赌注 {stake}。结果：{duel_result['result_line']}"),
-        (session["target_uid"], f"应战公开对赌，对手：{challenger_name}，赌注 {stake}。结果：{duel_result['result_line']}"),
+        (session["challenger_uid"], f"发起公开决斗，对手：{target_name}，决斗投入 {stake}。结果：{duel_result['result_line']}"),
+        (session["target_uid"], f"应战公开决斗，对手：{challenger_name}，决斗投入 {stake}。结果：{duel_result['result_line']}"),
     ])
     yield event.plain_result(final_report)
 
@@ -1625,7 +1645,7 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
     for i in range(slot_limit):
         if i < slot_count:
             card = slot_cards[i]
-            card_name = card.get("card_name", "未知卡牌")
+            card_name = _display_card_name(card.get("card_name", "未知卡牌"))
 
             if card.get("is_broken", False):
                 reason = str(card.get("broken_reason", "") or "").strip()
@@ -1641,7 +1661,7 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
     if extra_cards:
         slot_lines.append("  管理员授予牌（不占战术卡槽）")
         for idx, card in enumerate(extra_cards, 1):
-            card_name = card.get("card_name", "未知卡牌")
+            card_name = _display_card_name(card.get("card_name", "未知卡牌"))
             if card.get("is_broken", False):
                 reason = str(card.get("broken_reason", "") or "").strip()
                 status_tag = f" (💔已销毁：{reason})" if reason else " (💔已销毁)"
@@ -1862,6 +1882,7 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
     if found_index != -1:
         discarded_card = inventory.pop(found_index)
         real_card_name = str(discarded_card.get("card_name", "") or target_card_name).strip() or target_card_name
+        display_card_name = _display_card_name(real_card_name)
         cards_config = load_func_cards_config(config or {}, include_disabled_dice=True)
         card_cfg = _find_card_config_by_name(cards_config, real_card_name) or {}
         removed_status = False
@@ -1882,7 +1903,7 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
 
         if discarded_card.get("no_slot", False):
             status_note += " (天赐牌不占卡槽)"
-        yield event.plain_result(f"🗑️ 你将 [{real_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{_format_slot_count(inventory, config or {})}")
+        yield event.plain_result(f"🗑️ 你将 [{display_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{_format_slot_count(inventory, config or {})}")
     else:
 
         yield event.plain_result(f"❓ 你的库存中并未发现名为 [{target_card_name}] 的战术牌。")
@@ -1918,7 +1939,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         yield event.plain_result(f"❓ 你的库存中并未发现 [{target_card_name}]。")
         return
 
-    target_card_name = str(inventory[found_index].get("card_name", "") or target_card_name).strip() or target_card_name
+    target_card_name = _display_card_name(str(inventory[found_index].get("card_name", "") or target_card_name).strip() or target_card_name)
         
     # 💡 战损拦截：破烂的牌无法被使用
     if inventory[found_index].get("is_broken", False):
@@ -2022,10 +2043,10 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         )
         return
 
-    # 🎰 对赌卡：进入确认窗口（并发锁）
+    # ⚔️ 决斗卡：进入确认窗口（并发锁）
     if is_dice_duel:
         if not target_id or target_id == user_id:
-            yield event.plain_result("⚠️ 对赌必须 @ 一名其他玩家。")
+            yield event.plain_result("⚠️ 决斗必须 @ 一名其他玩家。")
             return
 
         duel_tag = next((str(t) for t in tags if str(t).startswith("dice_duel:")), "dice_duel:20")
@@ -2037,7 +2058,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         async with PENDING_DUEL_LOCK:
             current_group_id = str((config or {}).get("_group_id", "")).strip()
             if PENDING_DUEL.get("active") and str(PENDING_DUEL.get("group_id", "")) == current_group_id:
-                yield event.plain_result("🎰 当前已有对局进行中，请稍候再开盘。")
+                yield event.plain_result("⚔️ 当前已有决斗进行中，请稍候再发起。")
                 return
 
             target_name_duel = target_data.get("name", f"群友({target_id})")
@@ -2065,10 +2086,10 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             })
 
         yield event.plain_result(
-            f"🎰【盘口播报】{user_name} 向 {target_name_duel} 发起了高压对赌！\n"
-            f"💰 本局筹码：{stake} 金币\n"
+            f"⚔️【决斗播报】{user_name} 向 {target_name_duel} 发起了高压决斗！\n"
+            f"💰 本局投入：{stake} 金币\n"
             f"📣 请 {target_name_duel} 在 60 秒内回复「/luck 确认」应战！\n"
-            f"👀 围观的人已经让开位置，就等你们开这一局。"
+            f"👀 围观的人已经让开位置，就等你们开这一场。"
         )
 
         accepted = False
@@ -2082,7 +2103,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             session = dict(PENDING_DUEL)
             _reset_pending_duel()
 
-                # 对赌牌消耗
+                # 决斗牌消耗
         inventory.pop(found_index)
 
         report_str = await _resolve_duel(bank, session, accepted, config)
@@ -2250,7 +2271,7 @@ async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_act
         return
 
     card = inventory[found_index]
-    target_card_name = str(card.get("card_name", "") or target_card_name).strip() or target_card_name
+    target_card_name = _display_card_name(str(card.get("card_name", "") or target_card_name).strip() or target_card_name)
 
     # 💡 战损拦截：破烂的牌不能挂载
     if card.get("is_broken", False):

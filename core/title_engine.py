@@ -22,8 +22,8 @@ class TitleEngine:
         "attack_success": "攻击成功次数",
         "heal_success": "治疗成功次数",
         "defense_success": "防御成功次数",
-        "duel_win": "对赌胜利次数",
-        "duel_count": "参与对赌次数",
+        "duel_win": "决斗胜利次数",
+        "duel_count": "参与决斗次数",
         "gold_total": "金币总量",
         "luck_value": "今日运势",
         "title_count": "拥有称号数量",
@@ -41,7 +41,7 @@ class TitleEngine:
         "pity_threshold_mod": "保底阈值修正",
         "steal_bonus": "偷取收益加成",
         "aoe_range_bonus": "群体波及人数增加",
-        "duel_stake_bonus": "对赌赢金加成",
+        "duel_stake_bonus": "决斗胜利金币加成",
     }
 
 
@@ -118,8 +118,8 @@ class TitleEngine:
                 {"key": "attack_success", "name": "攻击成功次数", "param": "阈值"},
                 {"key": "heal_success", "name": "治疗成功次数", "param": "阈值"},
                 {"key": "defense_success", "name": "防御成功次数", "param": "阈值"},
-                {"key": "duel_win", "name": "对赌胜利次数", "param": "阈值"},
-                {"key": "duel_count", "name": "参与对赌次数", "param": "阈值"},
+                {"key": "duel_win", "name": "决斗胜利次数", "param": "阈值"},
+                {"key": "duel_count", "name": "参与决斗次数", "param": "阈值"},
                 {"key": "gold_total", "name": "金币总量", "param": "阈值"},
                 {"key": "luck_value", "name": "今日运势", "param": "阈值"},
                 {"key": "title_count", "name": "拥有称号数量", "param": "阈值"},
@@ -136,7 +136,7 @@ class TitleEngine:
                 {"key": "pity_threshold_mod", "name": "保底阈值修正", "param": "数值"},
                                 {"key": "steal_bonus", "name": "偷取收益加成", "param": "百分比"},
                 {"key": "aoe_range_bonus", "name": "群体波及人数增加", "param": "人数"},
-                {"key": "duel_stake_bonus", "name": "对赌赢金加成", "param": "百分比"},
+                {"key": "duel_stake_bonus", "name": "决斗胜利金币加成", "param": "百分比"},
 
             ],
         }
@@ -342,7 +342,7 @@ class TitleEngine:
             elif eff_type == "aoe_range_bonus":
                 lines.append(f"群体波及人数 +{value}")
             elif eff_type == "duel_stake_bonus":
-                lines.append(f"对赌赢金 +{value}%")
+                lines.append(f"决斗胜利金币 +{value}%")
 
 
         return lines

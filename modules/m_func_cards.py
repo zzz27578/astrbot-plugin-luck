@@ -1841,7 +1841,7 @@ async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
 
 
 
-async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: str):
+async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: str, config: dict | None = None):
     user_id = event.get_sender_id()
     user_name = event.get_sender_name()
     target_card_name = str(target_card_name or "").strip()
@@ -1861,6 +1861,12 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
 
     if found_index != -1:
         discarded_card = inventory.pop(found_index)
+        real_card_name = str(discarded_card.get("card_name", "") or target_card_name).strip() or target_card_name
+        cards_config = load_func_cards_config(config or {}, include_disabled_dice=True)
+        card_cfg = _find_card_config_by_name(cards_config, real_card_name) or {}
+        removed_status = False
+        if discarded_card.get("is_active"):
+            removed_status = _remove_defense_statuses_for_card(user_data, card_cfg)
         await bank.save_user_data()
 
 
@@ -1871,10 +1877,12 @@ async def handle_discard_card(event: AstrMessageEvent, bank, target_card_name: s
             status_note = f" (清理了废铁：{reason})" if reason else " (清理了废铁)"
         elif discarded_card.get("is_active"):
             status_note = " (撤销了护盾阵眼)"
+            if removed_status:
+                status_note += " (同步清理了生效状态)"
 
         if discarded_card.get("no_slot", False):
             status_note += " (天赐牌不占卡槽)"
-        yield event.plain_result(f"🗑️ 你将 [{target_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{_format_slot_count(inventory, config)}")
+        yield event.plain_result(f"🗑️ 你将 [{real_card_name}] 扔进了虚空裂缝{status_note}。\n🎴 当前卡槽：{_format_slot_count(inventory, config or {})}")
     else:
 
         yield event.plain_result(f"❓ 你的库存中并未发现名为 [{target_card_name}] 的战术牌。")

@@ -366,7 +366,7 @@ class LuckPlugin(Star):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
             target_card = cmd_str.replace("丢弃", "").strip()
-            async for res in m_func_cards.handle_discard_card(event, bank, target_card):
+            async for res in m_func_cards.handle_discard_card(event, bank, target_card, current_config):
                 yield res
             return
 

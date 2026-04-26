@@ -192,6 +192,8 @@ class CardEngine:
                 target_data["total_gold"] += reflect
             return reflect
 
+        return 0
+
 
 
     def _remove_one_negative_status(self, target_data: dict) -> dict | None:
@@ -262,7 +264,7 @@ class CardEngine:
                 if bounty_bonus > 0:
                     reports.append(f"🎯 悬赏印记发作！{target_name} 额外损失 {bounty_bonus} 金币，并被你一并卷走。")
 
-                reflected = self._apply_thorn_reflect(source_data, target_data, actual_steal)
+                reflected = int(self._apply_thorn_reflect(source_data, target_data, actual_steal) or 0)
                 if reflected > 0:
                     reports.append(f"🪞 目标反甲触发！你被反震 {reflected} 金币。")
 
@@ -311,7 +313,7 @@ class CardEngine:
                 if bounty_bonus > 0:
                     reports.append(f"🎯 悬赏印记发作！{target_name} 又被追加剥走 {bounty_bonus} 金币。")
 
-                reflected = self._apply_thorn_reflect(source_data, target_data, actual_steal)
+                reflected = int(self._apply_thorn_reflect(source_data, target_data, actual_steal) or 0)
                 if reflected > 0:
                     reports.append(f"🪞 目标反甲触发！你被反震 {reflected} 金币。")
 
@@ -484,7 +486,7 @@ class CardEngine:
                 if bounty_bonus > 0:
                     reports.append(f"🎯 悬赏印记顺势炸开，{target_name} 额外又掉了 {bounty_bonus} 金币，并被你收走。")
 
-                reflected = self._apply_thorn_reflect(source_data, target_data, actual)
+                reflected = int(self._apply_thorn_reflect(source_data, target_data, actual) or 0)
                 if reflected > 0:
                     reports.append(f"🪞 目标反甲触发！你被反震 {reflected} 金币。")
 
@@ -605,7 +607,7 @@ class CardEngine:
                         t_data["total_gold"] -= actual_dmg
                         bounty_bonus = self._apply_bounty_bonus(source_data, t_data)
 
-                        reflected = self._apply_thorn_reflect(source_data, t_data, actual_dmg)
+                        reflected = int(self._apply_thorn_reflect(source_data, t_data, actual_dmg) or 0)
                         shown_dmg = max(0, actual_dmg - reflected) + bounty_bonus
                         hit_logs.append(f"{t_name}(-{shown_dmg})")
 

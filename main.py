@@ -262,6 +262,10 @@ class LuckPlugin(Star):
             async for res in self._handle_admin_grant(event, user_id, cmd_str, bank, current_config):
                 yield res
             return
+        if cmd_str.startswith("丢弃功能牌") or cmd_str.startswith("丢弃称号"):
+            async for res in self._handle_admin_discard(event, user_id, cmd_str, bank, current_config):
+                yield res
+            return
 
                 # ================= 📖 2. 菜单与帮助路由 =================
         if cmd_str in ["", "菜单", "功能菜单", "menu"]:
@@ -706,6 +710,94 @@ class LuckPlugin(Star):
         ]
         if title_desc:
             lines.insert(2, f"📝 {title_desc}")
+        yield event.plain_result("\n".join(lines))
+
+    async def _handle_admin_discard(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
+        if not self._is_extra_admin(sender_id, current_config):
+            yield event.plain_result("⚡ 狂妄！你未拥有天道权限，无法篡改世界线！")
+            return
+
+        sender_name = event.get_sender_name()
+        discard_titles = cmd_str.startswith("丢弃称号")
+        prefix = "丢弃称号" if discard_titles else "丢弃功能牌"
+
+        target_users, target_name, raw_text_or_error = await self._resolve_admin_targets(
+            event,
+            bank,
+            sender_id,
+            sender_name,
+            cmd_str.replace(prefix, "", 1).strip(),
+        )
+        if not target_users:
+            yield event.plain_result(raw_text_or_error)
+            return
+
+        target_item_name = raw_text_or_error.strip()
+        if not target_item_name:
+            if discard_titles:
+                yield event.plain_result("⚠️ 参数解析失败。\n正确格式：\n/luck 丢弃称号 自己 称号名\n/luck 丢弃称号 @某人 称号名\n/luck 丢弃称号 全体成员 称号名")
+            else:
+                yield event.plain_result("⚠️ 参数解析失败。\n正确格式：\n/luck 丢弃功能牌 自己 卡名\n/luck 丢弃功能牌 @某人 卡名\n/luck 丢弃功能牌 全体成员 卡名")
+            return
+
+        if target_name == "全体成员":
+            success_names = []
+            failed = []
+            for uid, user_data in target_users:
+                if discard_titles:
+                    result = await m_func_cards.admin_discard_title(bank, current_config, uid, user_data.get("name", f"群友({uid})"), target_item_name)
+                else:
+                    result = await m_func_cards.admin_discard_func_card(bank, current_config, uid, user_data.get("name", f"群友({uid})"), target_item_name)
+                if result.get("ok"):
+                    success_names.append(user_data.get("name", f"群友({uid})"))
+                else:
+                    failed.append((user_data.get("name", f"群友({uid})"), result.get("error", "未知错误")))
+
+            if not success_names:
+                yield event.plain_result(failed[0][1] if failed else "⚠️ 没有任何成员处理成功。")
+                return
+
+            preview = "、".join(success_names[:10])
+            if len(success_names) > 10:
+                preview += "……"
+            lines = [
+                "🗑️ 【天道剥离】",
+                f"已为全体成员统一丢弃：{'称号' if discard_titles else '功能牌'}【{target_item_name}】",
+                f"👥 成功人数：{len(success_names)}",
+                f"📢 处理名单：{preview}",
+            ]
+            if failed:
+                lines.append(f"⚠️ 失败人数：{len(failed)}")
+            yield event.plain_result("\n".join(lines))
+            return
+
+        target_uid, user_data = target_users[0]
+        if discard_titles:
+            result = await m_func_cards.admin_discard_title(bank, current_config, target_uid, user_data.get("name", target_name), target_item_name)
+        else:
+            result = await m_func_cards.admin_discard_func_card(bank, current_config, target_uid, user_data.get("name", target_name), target_item_name)
+        if not result.get("ok"):
+            yield event.plain_result(result.get("error", "⚠️ 丢弃失败。"))
+            return
+
+        if discard_titles:
+            lines = [
+                "🗑️ 【天道剥离】",
+                f"已从 {target_name} 身上移除称号：【{result['title_name']}】",
+                f"🎽 当前佩戴：{result.get('equipped_count', 0)}/{result.get('max_equipped', 1)}",
+            ]
+        else:
+            extra_note = ""
+            if result.get("removed_status"):
+                extra_note = "\n🛡️ 对应的防御状态也已一并卸除。"
+            elif result.get("was_active"):
+                extra_note = "\n🛡️ 该牌原本处于启用状态，已强制下线。"
+            slot_note = "（管理员授予牌，不占卡槽）" if result.get("no_slot") else ""
+            lines = [
+                "🗑️ 【天道剥离】",
+                f"已从 {target_name} 的库存中移除功能牌：【{result['card_name']}】{slot_note}{extra_note}",
+                f"🎴 当前卡槽：{result.get('slot_text', '-')}",
+            ]
         yield event.plain_result("\n".join(lines))
 
 

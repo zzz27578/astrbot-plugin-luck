@@ -341,6 +341,80 @@ async def grant_admin_title(bank, config: dict, user_id: str, user_name: str, ti
     }
 
 
+def _remove_defense_statuses_for_card(user_data: dict, card_cfg: dict | None) -> bool:
+    remove_names = []
+    for tag in (card_cfg or {}).get("tags", []):
+        if tag == "add_shield":
+            remove_names.append("无懈可击")
+        elif str(tag).startswith("thorn_armor:"):
+            remove_names.append("反甲")
+    if not remove_names:
+        return False
+    before = len(user_data.get("statuses", []))
+    user_data["statuses"] = [
+        st for st in user_data.get("statuses", [])
+        if st.get("name") not in set(remove_names)
+    ]
+    return len(user_data.get("statuses", [])) != before
+
+
+async def admin_discard_func_card(bank, config: dict, user_id: str, user_name: str, card_name: str) -> dict:
+    user_data = await bank.get_user_data(user_id, user_name)
+    inventory = user_data.get("inventory", [])
+    found_index = _find_inventory_card_index(inventory, card_name)
+    if found_index == -1:
+        return {"ok": False, "error": f"⚠️ {user_name} 的库存中没有找到功能牌【{card_name}】。"}
+
+    discarded_card = inventory.pop(found_index)
+    real_card_name = str(discarded_card.get("card_name", "") or card_name).strip() or card_name
+    cards_config = load_func_cards_config(config, include_disabled_dice=True)
+    card_cfg = _find_card_config_by_name(cards_config, real_card_name) or {}
+    removed_status = False
+    if discarded_card.get("is_active"):
+        removed_status = _remove_defense_statuses_for_card(user_data, card_cfg)
+
+    await bank.save_user_data()
+    return {
+        "ok": True,
+        "card_name": real_card_name,
+        "removed_status": removed_status,
+        "was_active": bool(discarded_card.get("is_active", False)),
+        "was_broken": bool(discarded_card.get("is_broken", False)),
+        "no_slot": bool(discarded_card.get("no_slot", False)),
+        "slot_text": _format_slot_count(inventory, config),
+    }
+
+
+async def admin_discard_title(bank, config: dict, user_id: str, user_name: str, title_name: str) -> dict:
+    user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+
+    owned = user_data.get("titles", [])
+    equipped = user_data.get("equipped_titles", [])
+    manual_titles = user_data.get("manual_titles", [])
+
+    had_owned = title_name in owned
+    had_equipped = title_name in equipped
+    had_manual = title_name in manual_titles
+    if not any([had_owned, had_equipped, had_manual]):
+        return {"ok": False, "error": f"⚠️ {user_name} 当前并未持有称号【{title_name}】。"}
+
+    user_data["titles"] = [name for name in owned if name != title_name]
+    user_data["equipped_titles"] = [name for name in equipped if name != title_name]
+    user_data["manual_titles"] = [name for name in manual_titles if name != title_name]
+
+    await bank.save_user_data()
+    return {
+        "ok": True,
+        "title_name": title_name,
+        "removed_owned": had_owned,
+        "removed_equipped": had_equipped,
+        "removed_manual": had_manual,
+        "equipped_count": len(TitleEngine.get_equipped_titles(user_data, config)),
+        "max_equipped": TitleEngine.get_max_equipped_titles(config),
+    }
+
+
 def _parse_action_card_name(raw_text: str, action: str) -> str:
     text = str(raw_text or "").replace("\u3000", " ").strip()
     if text.startswith(action):
@@ -567,6 +641,44 @@ def load_func_cards_config(config: dict = None, include_disabled_dice: bool = Fa
     if include_disabled_dice or dice_enabled:
         return valid_cards
     return [entry for entry in valid_cards if not _is_dice_card_by_tags(entry.get("tags", []))]
+
+
+def _validate_aoe_tags(tags: list) -> str:
+    for raw_tag in tags or []:
+        tag = str(raw_tag or "").strip()
+        if tag.startswith(("aoe_damage:", "aoe_heal:")):
+            parts = tag.split(":")
+            if len(parts) != 4:
+                return f"⚠️ 群体效果标签格式错误：{tag}\n正确格式应为：{parts[0] if parts else 'aoe_damage'}:最小值:最大值:人数"
+            try:
+                min_val = int(str(parts[1]).strip())
+                max_val = int(str(parts[2]).strip())
+                count = int(str(parts[3]).strip())
+            except (TypeError, ValueError):
+                return f"⚠️ 群体效果标签参数无效：{tag}\n请确认最小值、最大值、人数都填写为整数。"
+            if min_val < 0 or max_val < min_val or count < 1:
+                return f"⚠️ 群体效果标签参数越界：{tag}\n要求：最小值 >= 0，最大值 >= 最小值，人数 >= 1。"
+        elif tag.startswith("aoe_cleanse:"):
+            parts = tag.split(":")
+            if len(parts) != 2:
+                return f"⚠️ 群体净化标签格式错误：{tag}\n正确格式应为：aoe_cleanse:人数"
+            try:
+                count = int(str(parts[1]).strip())
+            except (TypeError, ValueError):
+                return f"⚠️ 群体净化标签参数无效：{tag}\n请确认人数填写为整数。"
+            if count < 1:
+                return f"⚠️ 群体净化标签参数越界：{tag}\n要求：人数 >= 1。"
+    return ""
+
+
+def _derive_runtime_card_type(card_type: str, tags: list) -> str:
+    resolved = str(card_type or "attack").strip() or "attack"
+    normalized_tags = [str(tag or "").strip() for tag in (tags or [])]
+    if any(tag.startswith("aoe_damage:") for tag in normalized_tags):
+        return "attack"
+    if any(tag.startswith(("aoe_heal:", "aoe_cleanse:")) for tag in normalized_tags):
+        return "heal"
+    return resolved
 
 
 _DEFAULT_RARITY_WEIGHTS = {1: 30, 2: 30, 3: 28, 4: 11, 5: 1}
@@ -1427,6 +1539,9 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
     user_name = target_name or viewer_name
 
     user_data = await bank.get_user_data(user_id, user_name)
+    TitleEngine.ensure_user_title_fields(user_data)
+    sync_events = TitleEngine.sync_titles(user_data, config)
+    should_save_panel = bool(sync_events)
     rank = await calculate_rank(bank, user_id)
 
     panel_title = config.get("ui_settings", {}).get("panel_title", "【个人状态观测仪】")
@@ -1464,11 +1579,11 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
             
     if len(valid_statuses) != len(statuses):
         user_data["statuses"] = valid_statuses
-        await bank.save_user_data()
+        should_save_panel = True
 
 
     if _sync_expired_defense_cards(user_data, config):
-        await bank.save_user_data()
+        should_save_panel = True
     now_ts = int(time.time())
     dice_status_lines = []
     for st in valid_statuses:
@@ -1578,6 +1693,8 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
         lines.append(f"{section.get('emoji', '•')} 【{section.get('label', section_id)}】")
         lines.extend(section_lines_map.get(section_id, ["  暂无数据。"]))
 
+    if should_save_panel:
+        await bank.save_user_data()
     yield event.plain_result("\n".join(lines))
 
 async def handle_draw_func_card(event: AstrMessageEvent, bank, config: dict):
@@ -1813,11 +1930,17 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
     card_type = card_cfg.get("type", "unknown")
     tags = card_cfg.get("tags", [])
+    effective_card_type = _derive_runtime_card_type(card_type, tags)
     is_aoe = any(t.startswith("aoe_") for t in tags)
     is_dice_duel = any(str(t).startswith("dice_duel:") for t in tags)
     is_reroll_bless = any(str(t) == "dice_reroll_lowest_once" for t in tags)
+    if is_aoe:
+        aoe_error = _validate_aoe_tags(tags)
+        if aoe_error:
+            yield event.plain_result(aoe_error)
+            return
 
-    if card_type == "defense":
+    if effective_card_type == "defense":
         yield event.plain_result(f"🛡️ [{target_card_name}] 是防御牌，无法直接使用。\n👉 请发送：/luck 启用 {target_card_name}")
         return
 
@@ -1840,7 +1963,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         if is_dice_duel:
             is_random = False
 
-        if card_type == "attack":
+        if effective_card_type == "attack":
             if not target_id and not is_random:
                 yield event.plain_result(f"⚠️ 施法中断！使用【{target_card_name}】必须指定目标。\n👉 请 @ 一名群友，或者在指令最后加上“随机”。")
                 return
@@ -1855,11 +1978,11 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
                 target_name = participant_users.get(target_id, {}).get("name", all_users.get(target_id, {}).get("name", f"群友({target_id})"))
                 yield event.plain_result(f"🎲 命运的轮盘开始转动... 法术锁定了盲打目标：{target_name}！")
 
-        elif card_type == "heal":
+        elif effective_card_type == "heal":
             if not target_id:
                 target_id = user_id
 
-        if card_type == "attack" and target_id == user_id:
+        if effective_card_type == "attack" and target_id == user_id:
             yield event.plain_result("⚠️ 异界法则禁止将恶意法术倾泻在自己身上！")
             return
 
@@ -1990,7 +2113,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     evil_bonus = 0
     title_effects = TitleEngine.calculate_effects(user_data, config)
     karma_report = ""
-    if card_type == "attack":
+    if effective_card_type == "attack":
         if user_data.get("last_attack_date") != today:
             user_data["last_attack_date"] = today
             user_data["daily_attack_count"] = 1
@@ -2004,7 +2127,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         if evil_bonus > 0:
             user_data["total_gold"] += evil_bonus
             karma_report += f"\n😈 【称号加成】攻击奖励触发，额外获得 {evil_bonus} 金币！"
-    elif card_type == "heal" and (target_id != user_id or is_aoe):
+    elif effective_card_type == "heal" and (target_id != user_id or is_aoe):
         user_data["karma_value"] += 1
         karma_report = "\n👼 【善意涌动】福泽四方，善恶值 +1！"
 
@@ -2014,9 +2137,9 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     user_data.pop("_title_effects", None)
 
     user_data["total_func_cards_used"] = int(user_data.get("total_func_cards_used", 0) or 0) + 1
-    if card_type == "attack" and battle_reports:
+    if effective_card_type == "attack" and battle_reports:
         user_data["total_attack_success"] = int(user_data.get("total_attack_success", 0) or 0) + 1
-    elif card_type == "heal" and battle_reports:
+    elif effective_card_type == "heal" and battle_reports:
         user_data["total_heal_success"] = int(user_data.get("total_heal_success", 0) or 0) + 1
         heal_bonus = int(title_effects.get("heal_gold_bonus", 0) or 0)
         if heal_bonus > 0:
@@ -2030,6 +2153,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     aoe_chain = None
     if is_aoe:
         aoe_kind = "damage"
+        aoe_detail_text = "\n".join(str(line) for line in battle_reports if str(line).strip())
 
         if any(t.startswith("aoe_heal:") for t in tags):
             aoe_kind = "heal"
@@ -2043,7 +2167,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             )
             affected_count = len(aoe_events)
             total_heal = sum(int(e.get("amount", 0)) for e in aoe_events)
-            report_str = f"🌿 范围援助命中 {affected_count} 人（含自己），总恢复 {total_heal} 金币。"
+            report_str = aoe_detail_text or f"🌿 范围援助命中 {affected_count} 人（含自己），总恢复 {total_heal} 金币。"
         elif aoe_kind == "cleanse":
             aoe_events = sorted(
                 engine.last_aoe_events,
@@ -2051,13 +2175,13 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             )
             affected_count = len(aoe_events)
             cleaned_count = sum(1 for e in aoe_events if e.get("removed_status"))
-            report_str = f"✨ 群体净化影响 {affected_count} 人（含自己），实际解除 {cleaned_count} 个负面状态。"
+            report_str = aoe_detail_text or f"✨ 群体净化影响 {affected_count} 人（含自己），实际解除 {cleaned_count} 个负面状态。"
         else:
             aoe_events = [e for e in engine.last_aoe_events if e.get("target_uid") != user_id]
             affected_count = len(aoe_events)
             blocked_count = sum(1 for e in aoe_events if e.get("blocked"))
             total_damage = sum(int(e.get("amount", 0)) for e in aoe_events)
-            report_str = f"🏹 范围攻击命中 {affected_count} 人（免疫 {blocked_count} 人），总造成 {total_damage} 金币伤害。"
+            report_str = aoe_detail_text or f"🏹 范围攻击命中 {affected_count} 人（免疫 {blocked_count} 人），总造成 {total_damage} 金币伤害。"
     else:
         report_str = "\n".join(battle_reports) if battle_reports else "💨 法术消散在风中，似乎什么也没发生..."
     
@@ -2065,14 +2189,11 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     remaining_slot_count = _get_slot_count(inventory)
 
     if is_aoe:
-        aoe_chain = _format_aoe_chain(user_id, user_name, target_card_name, aoe_events, aoe_kind, karma_report, remaining_slot_count, config)
+        aoe_chain = None
 
     await bank.save_user_data()
 
-    if is_aoe:
-        final_msg = None
-    else:
-        final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{remaining_slot_count}/{get_max_func_card_slots(config)}"
+    final_msg = f"⚡ {user_name} 打出了 [{target_card_name}]！\n━━━━━━━━\n{report_str}{karma_report}\n🎴 当前卡槽：{remaining_slot_count}/{get_max_func_card_slots(config)}"
     
     log_msg = f"使用了 [{target_card_name}]"
     battle_log_entries = [(user_id, f"{log_msg}。结果：{report_str}")]
@@ -2086,10 +2207,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
         battle_log_entries.append((target_id, f"遭到 {user_name} {log_msg}。结果：{report_str}"))
     await bank.log_battles(battle_log_entries)
 
-    if is_aoe and aoe_chain:
-        yield event.chain_result(aoe_chain)
-    else:
-        yield event.plain_result(final_msg)
+    yield event.plain_result(final_msg)
 
 async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_activate: bool, config: dict = None):
     user_id = event.get_sender_id()

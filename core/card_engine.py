@@ -80,6 +80,33 @@ def _filter_participant_uids(all_users: dict, exclude: set | None = None) -> lis
     return result
 
 
+def _parse_aoe_range_tag(tag: str, expected_key: str) -> tuple[int, int, int] | None:
+    parts = str(tag or "").split(":")
+    if len(parts) != 4 or parts[0] != expected_key:
+        return None
+    try:
+        min_val = int(str(parts[1]).strip())
+        max_val = int(str(parts[2]).strip())
+        count = int(str(parts[3]).strip())
+    except (TypeError, ValueError):
+        return None
+    min_val = max(0, min_val)
+    max_val = max(min_val, max_val)
+    count = max(1, count)
+    return min_val, max_val, count
+
+
+def _parse_aoe_count_tag(tag: str, expected_key: str) -> int | None:
+    parts = str(tag or "").split(":")
+    if len(parts) != 2 or parts[0] != expected_key:
+        return None
+    try:
+        count = int(str(parts[1]).strip())
+    except (TypeError, ValueError):
+        return None
+    return max(1, count)
+
+
 class CardEngine:
     def __init__(self):
         self.last_aoe_events = []
@@ -527,11 +554,15 @@ class CardEngine:
             # ----------------------------------------
             elif tag.startswith("aoe_damage:"):
                 if not all_users or not source_uid: continue
-                _, min_val, max_val, count = tag.split(":")
-                min_val, max_val, count = int(min_val), int(max_val), int(count)
+                parsed = _parse_aoe_range_tag(tag, "aoe_damage")
+                if not parsed:
+                    reports.append("⚠️ 群体攻击配置无效，正确格式应为：aoe_damage:最小值:最大值:人数")
+                    continue
+                min_val, max_val, count = parsed
                 
                 valid_targets = _filter_participant_uids(all_users, {source_uid})
-                selected = random.sample(valid_targets, min(count, len(valid_targets)))
+                target_count = min(count, len(valid_targets))
+                selected = random.sample(valid_targets, target_count)
                 
                 if not selected:
                     reports.append("💨 虚空之中空无一人，大军迷路了...")
@@ -595,11 +626,15 @@ class CardEngine:
             # ----------------------------------------
             elif tag.startswith("aoe_heal:"):
                 if not all_users or not source_uid: continue
-                _, min_val, max_val, count = tag.split(":")
-                min_val, max_val, count = int(min_val), int(max_val), int(count)
+                parsed = _parse_aoe_range_tag(tag, "aoe_heal")
+                if not parsed:
+                    reports.append("⚠️ 群体回复配置无效，正确格式应为：aoe_heal:最小值:最大值:人数")
+                    continue
+                min_val, max_val, count = parsed
                 
                 valid_targets = _filter_participant_uids(all_users, {source_uid})
-                selected_others = random.sample(valid_targets, min(count - 1, len(valid_targets)))
+                other_count = min(max(0, count - 1), len(valid_targets))
+                selected_others = random.sample(valid_targets, other_count)
                 selected = [source_uid] + selected_others
                 
                 hit_logs = []
@@ -617,13 +652,15 @@ class CardEngine:
                         "amount": heal,
                         "blocked": False,
                     })
-                    
-                            
+                reports.append(f"🌿 盛宴洒向全场！波及目标：{', '.join(hit_logs)}")
+
             elif tag.startswith("aoe_cleanse:"):
                 if not all_users or not source_uid:
                     continue
-                _, count = tag.split(":")
-                count = max(1, int(count))
+                count = _parse_aoe_count_tag(tag, "aoe_cleanse")
+                if count is None:
+                    reports.append("⚠️ 群体净化配置无效，正确格式应为：aoe_cleanse:人数")
+                    continue
 
                 valid_targets = _filter_participant_uids(all_users, {source_uid})
                 selected_others = random.sample(valid_targets, min(max(0, count - 1), len(valid_targets)))

@@ -199,12 +199,18 @@ class TitleEngine:
         title_map = {item["name"]: item for item in title_cfgs}
         owned = user_data.setdefault("titles", [])
         equipped = user_data.setdefault("equipped_titles", [])
-        manual_titles = set(user_data.setdefault("manual_titles", []))
+        manual_titles_raw = user_data.setdefault("manual_titles", [])
+        manual_titles = set(manual_titles_raw)
         events: list[tuple[str, str]] = []
 
         for title_name in list(owned):
             cfg = title_map.get(title_name)
             if not cfg:
+                owned.remove(title_name)
+                if title_name in equipped:
+                    equipped.remove(title_name)
+                manual_titles.discard(title_name)
+                events.append(("lost", title_name))
                 continue
             if title_name in manual_titles:
                 continue
@@ -213,6 +219,9 @@ class TitleEngine:
                 if title_name in equipped:
                     equipped.remove(title_name)
                 events.append(("lost", title_name))
+
+        user_data["manual_titles"] = [title_name for title_name in manual_titles_raw if title_name in title_map and title_name in owned]
+        user_data["equipped_titles"] = [title_name for title_name in equipped if title_name in owned]
 
         for cfg in title_cfgs:
             title_name = cfg["name"]

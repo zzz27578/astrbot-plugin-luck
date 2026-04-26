@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理中枢 - WULING_SYS (Integrated)</title>
+  <title>控制中枢</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <!-- integrated: styles.css -->
 <style>
@@ -23,10 +23,10 @@
   --on-accent: #ffffff;
   
   /* Shard Theme (纯净生机白) - 右侧的白底世界 */
-  --shard-bg: #f2f5f3; 
-  --shard-surface: #ffffff; 
-  --shard-border: #c2cfc8; 
-  --shard-text: #0d120f; 
+  --shard-bg: #ffffff;
+  --shard-surface: #ffffff;
+  --shard-border: #c2cfc8;
+  --shard-text: #0d120f;
   --shard-text-muted: #5f7368;
   --danger: #d93829;
 
@@ -222,7 +222,7 @@ body.chassis {
   position: relative;
   z-index: 30;
   /* 宽广的青绿柔和内阴影，让黑白两界如同丝滑的能量层融合 */
-  box-shadow: inset 24px 0 48px -12px rgba(43, 176, 140, 0.15);
+  box-shadow: none;
   overflow-y: auto;
 }
 
@@ -234,8 +234,6 @@ body.chassis {
   align-items: flex-end;
   background: var(--shard-surface);
   position: relative;
-  background-image: radial-gradient(rgba(184, 194, 190, 0.4) 1px, transparent 1px);
-  background-size: 16px 16px;
   flex-shrink: 0;
 }
 .shard-header-content .kicker { font-family: var(--font-headline); font-size: 11px; color: var(--shard-text-muted); letter-spacing: 4px; margin-bottom: 4px; font-weight: 800; display: block; }
@@ -329,8 +327,8 @@ body.chassis {
 
 .solid-btn .plus-mark { color: var(--accent); margin-left: 6px; font-size: 14px; font-weight: 900; }
 .solid-btn:hover, .btn-strong:hover {
-  background: #050706; 
-  color: #1A9E5E; 
+  background: #050706;
+  color: #1A9E5E;
   border-color: #1A9E5E;
   box-shadow: inset 0 0 0 1px #1A9E5E;
 }
@@ -352,13 +350,1388 @@ body.chassis {
 
 .pages { padding: 40px 48px; flex: 1; }
 .page { display: none; gap: 24px; }
-.page.active { display: grid; animation: pageFadeUp 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+.page.active { display: grid; animation: pageFadeUp 0.42s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
 @keyframes pageFadeUp {
-  from { opacity: 0; transform: translateY(40px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
+#page-home.page.active { animation: none; }
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); gap: 24px; }
 .col-12 { grid-column: span 12; } .col-8 { grid-column: span 8; } .col-7 { grid-column: span 7; } .col-6 { grid-column: span 6; } .col-5 { grid-column: span 5; } .col-4 { grid-column: span 4; }
+
+#page-home { display: flex; position: fixed; inset: 0; margin: 0; padding: 0; z-index: 35; }
+
+.glass-top,
+.shard-header {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 0.25s ease,
+    transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.glass-side {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 0.18s ease,
+    transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.app-layout.ui-shell-side-hold .glass-side {
+  pointer-events: none;
+}
+
+.glass-top .brand,
+.glass-top .top-right-zone,
+.glass-side .energy-line-v,
+.glass-side .nav-title,
+.glass-side .nav-btn,
+.glass-side .side-footer,
+.shard-header .shard-header-content,
+.shard-header .shard-toolbar {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.glass-top .top-nav {
+  opacity: 1;
+  transition: opacity 0.28s ease;
+}
+
+.glass-top .top-btn,
+.glass-top .brand .logo-mark,
+.glass-top .brand .big-title,
+.glass-top .chip,
+.glass-top .top-status,
+.glass-top .energy-line-h {
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.glass-top .top-btn {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+    color 0.2s ease;
+}
+
+#configPages,
+#statsPages {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 0.25s ease,
+    transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.app-layout.ui-shell-pre-enter .glass-top,
+.app-layout.ui-shell-pre-enter .shard-header {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-layout.ui-shell-pre-enter .glass-top,
+.app-layout.ui-shell-pre-enter .shard-header {
+  transform: translate3d(0, -34px, 0);
+}
+
+.app-layout.ui-shell-pre-enter .glass-top .brand,
+.app-layout.ui-shell-pre-enter .glass-top .top-right-zone,
+.app-layout.ui-shell-pre-enter .shard-header .shard-header-content,
+.app-layout.ui-shell-pre-enter .shard-header .shard-toolbar {
+  opacity: 0;
+  transform: translate3d(0, -18px, 0);
+}
+
+.app-layout.ui-shell-pre-enter .glass-top .top-nav {
+  opacity: 1;
+}
+
+.app-layout.ui-shell-pre-enter .glass-top .top-btn {
+  opacity: 0;
+  transform: translate3d(0, -18px, 0);
+}
+
+.app-layout.ui-shell-pre-enter .glass-side .energy-line-v,
+.app-layout.ui-shell-pre-enter .glass-side .nav-title,
+.app-layout.ui-shell-pre-enter .glass-side .nav-btn,
+.app-layout.ui-shell-pre-enter .glass-side .side-footer {
+  opacity: 0;
+  transform: translate3d(-20px, 0, 0);
+}
+
+.app-layout.ui-shell-side-hold .glass-side .energy-line-v,
+.app-layout.ui-shell-side-hold .glass-side .nav-title,
+.app-layout.ui-shell-side-hold .glass-side .nav-btn,
+.app-layout.ui-shell-side-hold .glass-side .side-footer {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-14px, 0, 0);
+}
+
+.app-layout.ui-shell-pre-enter #configPages,
+.app-layout.ui-shell-pre-enter #statsPages {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+}
+
+.app-layout.ui-shell-body-hold .shard-header,
+.app-layout.ui-shell-body-hold #configPages,
+.app-layout.ui-shell-body-hold #statsPages {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 16px, 0);
+}
+
+.app-layout.ui-shell-enter .glass-top { transition-delay: 0s; }
+.app-layout.ui-shell-enter .glass-side { transition-delay: 0s; }
+.app-layout.ui-shell-enter .shard-header { transition-delay: 0.18s; }
+.app-layout.ui-shell-enter .glass-top .brand { transition-delay: 0.1s; }
+.app-layout.ui-shell-enter .glass-top .top-right-zone { transition-delay: 0.14s; }
+.app-layout.ui-shell-enter .glass-top .top-btn:nth-child(1) { transition-delay: 0.1s; }
+.app-layout.ui-shell-enter .glass-top .top-btn:nth-child(2) { transition-delay: 0.13s; }
+.app-layout.ui-shell-enter .glass-top .top-btn:nth-child(3) { transition-delay: 0.16s; }
+.app-layout.ui-shell-enter .glass-side .energy-line-v { transition-delay: 0.08s; }
+.app-layout.ui-shell-enter .glass-side .nav-title { transition-delay: 0.08s; }
+.app-layout.ui-shell-enter .glass-side .nav-btn:nth-child(1) { transition-delay: 0.08s; }
+.app-layout.ui-shell-enter .glass-side .nav-btn:nth-child(2) { transition-delay: 0.1s; }
+.app-layout.ui-shell-enter .glass-side .nav-btn:nth-child(3) { transition-delay: 0.12s; }
+.app-layout.ui-shell-enter .glass-side .nav-btn:nth-child(4) { transition-delay: 0.14s; }
+.app-layout.ui-shell-enter .glass-side .nav-btn:nth-child(5) { transition-delay: 0.16s; }
+.app-layout.ui-shell-enter .glass-side .nav-btn:nth-child(6) { transition-delay: 0.18s; }
+.app-layout.ui-shell-enter .glass-side .nav-btn:nth-child(7) { transition-delay: 0.2s; }
+.app-layout.ui-shell-enter .glass-side .side-footer { transition-delay: 0.16s; }
+.app-layout.ui-shell-enter .shard-header .shard-header-content { transition-delay: 0.22s; }
+.app-layout.ui-shell-enter .shard-header .shard-toolbar { transition-delay: 0.24s; }
+.app-layout.ui-shell-enter #configPages,
+.app-layout.ui-shell-enter #statsPages { transition-delay: 0.26s; }
+
+.home-showcase {
+  width: 100vw;
+  height: 100vh;
+  background: #0d110f;
+  color: #e6ede9;
+  overflow: hidden;
+  display: block;
+  position: relative;
+  font-family: var(--font-body);
+}
+
+.showcase-noise {
+  display: none;
+}
+
+.showcase-grid-bg {
+  display: none;
+}
+
+.showcase-left {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  transition:
+    width 0.82s cubic-bezier(0.19, 1, 0.22, 1),
+    background 0.42s ease,
+    opacity 0.34s ease;
+}
+
+.sc-crosshair {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.sc-crosshair::before,
+.sc-crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,0.2);
+}
+
+.sc-crosshair::before { top: 50%; left: -8px; right: -8px; height: 1px; }
+.sc-crosshair::after { left: 50%; top: -8px; bottom: -8px; width: 1px; }
+
+.sc-top-info {
+  font-family: var(--font-headline);
+  display: grid;
+  gap: 8px;
+  padding: 48px;
+}
+
+.sc-terminal {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.4);
+  padding: 48px;
+}
+
+.sc-terminal .highlight { color: var(--accent); font-weight: bold; }
+
+.showcase-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 50%;
+  width: auto;
+  min-width: 0;
+  height: 100%;
+  background: var(--shard-bg);
+  z-index: 20;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+  padding: 80px 64px 80px 10%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--shard-text);
+  transition:
+    left 0.82s cubic-bezier(0.19, 1, 0.22, 1),
+    padding 0.82s cubic-bezier(0.19, 1, 0.22, 1),
+    opacity 0.34s ease,
+    clip-path 0.82s cubic-bezier(0.19, 1, 0.22, 1),
+    background 0.42s ease,
+    box-shadow 0.42s ease;
+}
+
+.sr-header {
+  margin-bottom: 48px;
+  border-bottom: 2px solid var(--shard-text);
+  padding-bottom: 24px;
+  transition:
+    opacity 0.34s ease,
+    transform 0.52s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.sr-kicker {
+  font-family: var(--font-headline);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: block;
+}
+
+.pathway-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.1);
+  padding: 32px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.34s ease,
+    transform 0.52s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.pathway-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.pw-left { display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 2; }
+.pw-num { font-family: var(--font-headline); font-size: 10px; font-weight: 900; color: var(--shard-text-muted); }
+.pw-name { font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: var(--shard-text); letter-spacing: 1px; }
+.pw-en { font-family: var(--font-headline); font-size: 11px; font-weight: 800; color: var(--shard-text-muted); letter-spacing: 2px; }
+.pw-arrow { font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: rgba(0,0,0,0.1); position: relative; z-index: 2; transition: transform 0.24s ease, color 0.24s ease; }
+
+.pathway-btn:hover { background: #050706; border-color: #050706; }
+.pathway-btn:hover::before { background: var(--accent); }
+.pathway-btn:hover .pw-num { color: rgba(255,255,255,0.4); }
+.pathway-btn:hover .pw-name { color: #ffffff; }
+.pathway-btn:hover .pw-en { color: var(--accent); }
+.pathway-btn:hover .pw-arrow { color: var(--accent); transform: translateX(8px); }
+
+.showcase-left, .showcase-right {
+  transition:
+    width 0.34s cubic-bezier(0.25, 1, 0.5, 1),
+    left 0.34s cubic-bezier(0.25, 1, 0.5, 1),
+    top 0.34s cubic-bezier(0.25, 1, 0.5, 1),
+    padding 0.34s cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 0.3s ease,
+    background 0.34s ease;
+}
+
+/* 黑白两块整体左推并逐步淡出，直到接近真实壳层位置 */
+.home-showcase.morph-active {
+  background: var(--shard-bg) !important;
+}
+
+.home-showcase.morph-active .showcase-left {
+  opacity: 0 !important;
+  transition: opacity 0.08s ease !important;
+}
+
+.home-showcase.morph-active .showcase-right {
+  left: 200px !important;
+  width: auto !important;
+  padding: 0 !important;
+  clip-path: none !important;
+  background: var(--shard-bg) !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+  transition:
+    left 0.34s cubic-bezier(0.25, 1, 0.5, 1),
+    padding 0.34s cubic-bezier(0.25, 1, 0.5, 1),
+    clip-path 0.34s cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 0.12s ease 0.22s,
+    background 0.34s ease !important;
+}
+
+/* 文字先退场，把注意力交给黑白两块的推动 */
+.home-showcase.morph-active .home-auth-shell,
+.home-showcase.morph-active .home-login-shell {
+  opacity: 0 !important;
+  transform: none !important;
+  transition: opacity 0.08s ease !important;
+  pointer-events: none;
+}
+
+.home-showcase.stage-intro {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(57,229,184,0.08), transparent 26%),
+    linear-gradient(180deg, #0a0d0b 0%, #060807 100%);
+}
+
+.home-showcase.stage-intro .showcase-left {
+  width: 100%;
+  pointer-events: none;
+}
+
+.home-showcase.stage-intro .showcase-right {
+  left: 100%;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  clip-path: inset(0 0 0 0);
+  box-shadow: none;
+}
+
+.home-showcase.stage-intro .home-auth-shell {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(18px);
+}
+
+.home-showcase.stage-intro .home-splash {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.home-showcase.stage-intro.intro-collapse .showcase-left,
+.home-showcase.stage-intro.intro-collapse .showcase-right,
+.home-showcase.stage-auth .showcase-left,
+.home-showcase.stage-auth .showcase-right,
+.home-showcase.stage-ready .showcase-left,
+.home-showcase.stage-ready .showcase-right {
+  pointer-events: auto;
+}
+
+.home-showcase.stage-intro.intro-collapse .showcase-left {
+  width: 46vw;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(57,229,184,0.08), transparent 28%),
+    linear-gradient(180deg, #0a0d0b 0%, #060807 100%);
+}
+
+.home-showcase.stage-intro.intro-collapse .showcase-right {
+  left: 46vw;
+  width: auto;
+  min-width: 0;
+  padding: 72px 56px 72px 8%;
+  opacity: 1;
+  pointer-events: auto;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  box-shadow: none;
+  background: #ffffff;
+}
+
+.home-showcase.stage-intro.intro-collapse .home-splash {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.home-showcase.stage-intro.intro-collapse .home-auth-shell {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0.22s;
+}
+
+.home-showcase.return-home .showcase-left,
+.home-showcase.return-home .showcase-right {
+  pointer-events: none;
+}
+
+.home-showcase.return-home .showcase-left {
+  width: 100%;
+  transition:
+    width 0.56s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.36s ease,
+    opacity 0.24s ease;
+}
+
+.home-showcase.return-home .showcase-right {
+  left: 100%;
+  width: auto;
+  min-width: 0;
+  opacity: 0;
+  padding: 72px 56px 72px 8%;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  box-shadow: none;
+  transition:
+    left 0.56s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.1s ease 0.42s,
+    padding 0.56s cubic-bezier(0.22, 1, 0.36, 1),
+    clip-path 0.56s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.24s ease;
+}
+
+.home-showcase.return-home .home-auth-shell {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(28px, 0, 0);
+  transition:
+    opacity 0.12s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-showcase.return-home .home-splash {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0);
+  transition-delay: 0.4s;
+}
+
+.home-showcase.stage-auth:not(.return-home),
+.home-showcase.stage-ready:not(.return-home) {
+  background: #0d110f;
+}
+
+.home-showcase.stage-auth:not(.return-home) .showcase-left,
+.home-showcase.stage-ready:not(.return-home) .showcase-left {
+  width: 46vw;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(57,229,184,0.08), transparent 28%),
+    linear-gradient(180deg, #0a0d0b 0%, #060807 100%);
+}
+
+.home-showcase.stage-auth:not(.return-home) .showcase-right,
+.home-showcase.stage-ready:not(.return-home) .showcase-right {
+  left: 46vw;
+  width: auto;
+  min-width: 0;
+  padding: 72px 56px 72px 8%;
+  opacity: 1;
+  pointer-events: auto;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  box-shadow: none;
+  background: #ffffff;
+}
+
+.home-showcase.stage-auth:not(.return-home) .home-splash,
+.home-showcase.stage-ready:not(.return-home) .home-splash {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-20px);
+}
+
+.home-showcase.stage-auth:not(.return-home) .home-auth-shell,
+.home-showcase.stage-ready:not(.return-home) .home-auth-shell {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.home-sidebar-flight {
+  position: fixed;
+  inset: auto;
+  z-index: 45;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(57,229,184,0.08), transparent 28%),
+    linear-gradient(180deg, #0a0d0b 0%, #060807 100%);
+  will-change: left, top, width, height, opacity;
+  opacity: 1;
+  transition:
+    left 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.14s ease 0.32s;
+}
+
+.home-sidebar-flight.is-active {
+  opacity: 0;
+}
+
+.home-splash,
+.home-auth-shell,
+.home-auth-left-main,
+.home-terminal-block,
+.home-login-card {
+  transition:
+    opacity 0.34s ease,
+    transform 0.52s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.home-splash {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.home-splash-core {
+  width: min(760px, 100%);
+  text-align: center;
+  display: grid;
+  gap: 22px;
+}
+
+.home-splash-kicker {
+  font-family: var(--font-headline);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: rgba(255,255,255,0.42);
+}
+
+.home-splash-title {
+  margin: 0;
+  font-family: var(--font-headline);
+  font-size: clamp(64px, 10vw, 120px);
+  line-height: 0.94;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: #eef6f1;
+}
+
+.home-splash-desc {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  font-size: 15px;
+  line-height: 1.9;
+  color: rgba(230,237,233,0.68);
+}
+
+.home-splash-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.home-splash-btn {
+  min-width: 180px;
+  height: 48px;
+  padding: 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: transparent;
+  color: #e8efea;
+  font-family: var(--font-headline);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+
+.home-splash-btn.primary {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.home-splash-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(57,229,184,0.38);
+  color: #fff;
+}
+
+.home-auth-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-auth-left-main {
+  position: relative;
+  z-index: 3;
+  padding: 54px 48px 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.home-auth-heading {
+  display: grid;
+  gap: 12px;
+  transform-origin: left top;
+  will-change: transform, opacity, filter;
+}
+
+.home-auth-meta {
+  display: grid;
+  gap: 14px;
+  transform-origin: left top;
+}
+
+.home-auth-kicker {
+  font-family: var(--font-headline);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.46);
+}
+
+.home-auth-title {
+  margin: 0;
+  font-family: var(--font-headline);
+  font-size: clamp(40px, 5vw, 74px);
+  line-height: 0.98;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #f3f7f4;
+  white-space: nowrap;
+}
+
+.home-auth-desc {
+  max-width: 520px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: rgba(230,237,233,0.68);
+}
+
+.home-auth-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+  color: rgba(255,255,255,0.72);
+}
+
+.home-auth-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #39e5b8;
+  box-shadow: 0 0 10px rgba(57,229,184,0.7);
+}
+
+.home-terminal-block {
+  margin-top: auto;
+  position: relative;
+  z-index: 3;
+  padding: 0 48px 48px;
+  display: grid;
+  gap: 14px;
+}
+
+.home-terminal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-terminal-title {
+  font-family: var(--font-headline);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.4);
+}
+
+.home-terminal-panel {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  padding: 16px 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.home-terminal-line {
+  display: flex;
+  gap: 12px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.75;
+  color: rgba(230,237,233,0.66);
+}
+
+.home-terminal-prefix {
+  color: #39e5b8;
+  flex-shrink: 0;
+}
+
+.home-login-shell {
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+
+.home-login-card {
+  width: min(460px, 100%);
+  border: none;
+  background: #ffffff;
+  padding: 34px 34px 30px;
+  box-shadow: none;
+  display: grid;
+  gap: 18px;
+}
+
+.home-login-kicker {
+  font-family: var(--font-headline);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--shard-text-muted);
+}
+
+.home-login-title {
+  font-family: var(--font-headline);
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--shard-text);
+}
+
+.home-login-desc {
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--shard-text-muted);
+}
+
+.home-login-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.home-login-hint {
+  padding: 4px 0 0;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--shard-text-muted);
+}
+
+.home-login-confirm {
+  padding: 12px 0 0;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #155c39;
+}
+
+@media (max-width: 1120px) {
+  .home-showcase.stage-auth,
+  .home-showcase.stage-ready,
+  .home-showcase.stage-intro.intro-collapse {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .home-showcase.stage-auth .showcase-left,
+  .home-showcase.stage-ready .showcase-left,
+  .home-showcase.stage-intro.intro-collapse .showcase-left {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-height: 48vh;
+  }
+
+  .home-showcase.stage-auth .showcase-right,
+  .home-showcase.stage-ready .showcase-right,
+  .home-showcase.stage-intro.intro-collapse .showcase-right {
+    position: relative;
+    inset: auto;
+    left: auto;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    clip-path: none;
+    padding: 28px 22px 44px;
+  }
+}
+
+@media (max-width: 760px) {
+  .home-splash {
+    padding: 24px;
+  }
+
+  .home-splash-title {
+    font-size: 54px;
+    letter-spacing: 3px;
+  }
+
+  .home-splash-actions,
+  .home-login-actions {
+    flex-direction: column;
+  }
+
+  .home-splash-btn,
+  .home-login-actions .btn,
+  .home-login-actions .btn-strong {
+    width: 100%;
+  }
+
+  .home-auth-left-main,
+  .home-terminal-block {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .home-login-card {
+    padding: 26px 22px 24px;
+  }
+}
+
+.showcase-left-main,
+.showcase-left-stream,
+.showcase-right-shell {
+  transition:
+    opacity 0.34s ease,
+    transform 0.52s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.showcase-left-main {
+  padding: 48px 48px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: relative;
+  z-index: 3;
+}
+
+.home-kicker {
+  font-family: var(--font-headline);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.48);
+}
+
+.home-hero-title {
+  font-family: var(--font-headline);
+  font-size: clamp(48px, 6vw, 86px);
+  line-height: 0.94;
+  font-weight: 900;
+  letter-spacing: 4px;
+  margin: 0;
+  color: #f3f7f4;
+  text-transform: uppercase;
+}
+
+.home-hero-desc {
+  max-width: 620px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: rgba(230, 237, 233, 0.72);
+}
+
+.home-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-chip {
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.72);
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.home-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
+.home-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 188px;
+  height: 48px;
+  padding: 0 22px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: transparent;
+  color: #e8efea;
+  font-family: var(--font-headline);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition:
+    border-color 0.22s ease,
+    background 0.22s ease,
+    color 0.22s ease,
+    transform 0.22s ease;
+}
+
+.home-cta-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(57,229,184,0.4);
+  color: #fff;
+}
+
+.home-cta-btn.primary {
+  background: rgba(57,229,184,0.1);
+  border-color: rgba(57,229,184,0.34);
+  color: #dff7ef;
+  box-shadow: inset 0 0 0 1px rgba(57,229,184,0.14);
+}
+
+.home-cta-btn.primary:hover {
+  background: rgba(57,229,184,0.18);
+}
+
+.showcase-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.showcase-stat-card {
+  padding: 16px 16px 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+}
+
+.showcase-stat-label {
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.42);
+  margin-bottom: 12px;
+}
+
+.showcase-stat-value {
+  font-family: var(--font-headline);
+  font-size: 30px;
+  font-weight: 900;
+  color: #f3f7f4;
+  line-height: 1;
+}
+
+.showcase-stat-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.6;
+}
+
+.showcase-left-stream {
+  margin-top: auto;
+  padding: 0 48px 48px;
+  display: grid;
+  gap: 12px;
+  position: relative;
+  z-index: 3;
+}
+
+.home-stream-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-stream-title {
+  font-family: var(--font-headline);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.42);
+}
+
+.home-stream-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.58);
+}
+
+.home-stream-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #39e5b8;
+  box-shadow: 0 0 8px rgba(57,229,184,0.8);
+}
+
+.home-stream-panel {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  padding: 16px 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.home-log-line {
+  display: flex;
+  gap: 12px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: rgba(230,237,233,0.68);
+}
+
+.home-log-prefix {
+  color: #39e5b8;
+  flex-shrink: 0;
+}
+
+.showcase-right-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.showcase-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.showcase-feature-card {
+  position: relative;
+  padding: 18px 18px 20px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(242,246,243,0.94));
+  overflow: hidden;
+}
+
+.showcase-feature-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #111714, #39e5b8);
+  opacity: 0.9;
+}
+
+.showcase-feature-index {
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--shard-text-muted);
+  margin-bottom: 10px;
+}
+
+.showcase-feature-title {
+  font-family: var(--font-headline);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--shard-text);
+  margin-bottom: 8px;
+}
+
+.showcase-feature-note {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--shard-text-muted);
+}
+
+.showcase-repo-strip,
+.showcase-access-panel {
+  border: 1px solid rgba(0,0,0,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(241,245,242,0.96));
+  padding: 22px 24px;
+}
+
+.showcase-repo-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.repo-strip-title,
+.access-panel-title {
+  font-family: var(--font-headline);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--shard-text);
+}
+
+.repo-strip-note,
+.access-panel-note {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--shard-text-muted);
+}
+
+.repo-strip-actions,
+.access-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.home-light-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--shard-border);
+  background: transparent;
+  color: var(--shard-text);
+  font-family: var(--font-headline);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.home-light-btn:hover {
+  border-color: #1a9e5e;
+  color: #1a9e5e;
+  background: rgba(26,158,94,0.05);
+}
+
+.home-light-btn.primary {
+  background: #0b100d;
+  border-color: #0b100d;
+  color: #f3f7f4;
+}
+
+.home-light-btn.primary:hover {
+  background: #111714;
+  border-color: #1a9e5e;
+  color: #39e5b8;
+}
+
+.access-step-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.access-step {
+  padding: 14px 14px 16px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.6);
+}
+
+.access-step-num {
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--shard-text-muted);
+  margin-bottom: 10px;
+}
+
+.access-step-name {
+  font-family: var(--font-headline);
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--shard-text);
+  margin-bottom: 8px;
+}
+
+.access-step-note {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--shard-text-muted);
+}
+
+.access-step.active {
+  border-color: rgba(57,229,184,0.44);
+  box-shadow: inset 0 0 0 1px rgba(57,229,184,0.18);
+}
+
+.access-step.done {
+  border-color: rgba(17,23,20,0.18);
+  background: linear-gradient(180deg, rgba(237,244,240,0.9), rgba(247,250,248,0.95));
+}
+
+.access-status-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.access-status-copy {
+  font-size: 12px;
+  color: var(--shard-text-muted);
+  line-height: 1.8;
+}
+
+.access-status-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(26,158,94,0.24);
+  background: rgba(26,158,94,0.08);
+  color: #0e6e43;
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+}
+
+.access-auth-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.access-auth-note {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--shard-text-muted);
+}
+
+.access-auth-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.access-auth-hint {
+  padding: 12px 14px;
+  border: 1px dashed rgba(0,0,0,0.12);
+  color: var(--shard-text-muted);
+  font-size: 11px;
+  line-height: 1.8;
+  background: rgba(255,255,255,0.5);
+}
+
+@media (max-width: 1180px) {
+  .home-showcase {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .showcase-right {
+    width: 100%;
+    min-width: 0;
+    clip-path: none;
+    padding: 32px 24px 48px;
+  }
+
+  .showcase-left-main,
+  .showcase-left-stream {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .showcase-stat-grid,
+  .showcase-highlight-grid,
+  .access-step-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .showcase-repo-strip {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .showcase-left-main {
+    padding-top: 72px;
+  }
+
+  .home-hero-title {
+    font-size: 42px;
+    letter-spacing: 2px;
+  }
+
+  .showcase-stat-grid,
+  .showcase-highlight-grid,
+  .access-step-list {
+    grid-template-columns: 1fr;
+  }
+
+  .home-cta-row,
+  .repo-strip-actions,
+  .access-panel-actions {
+    width: 100%;
+  }
+
+  .home-cta-btn,
+  .home-light-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .access-status-line {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 
 /* 内部卡片与面板 */
 .panel {
@@ -1019,6 +2392,34 @@ body.chassis {
   .panel-toggle-grid { grid-template-columns: 1fr; }
 }
 
+/* ================= 顶栏通电序列动画 (Boot Sequence) ================= */
+@keyframes boot-fade-bg { 0% { background: transparent; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); } 100% { background: var(--glass-base); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); } }
+@keyframes boot-slide-in { 0% { opacity: 0; transform: translateX(-30px); } 100% { opacity: 1; transform: translateX(0); } }
+@keyframes boot-slide-in-right { 0% { opacity: 0; transform: translateX(30px); } 100% { opacity: 1; transform: translateX(0); } }
+@keyframes boot-line-grow { 0% { left: 50%; right: 50%; opacity: 0; } 100% { left: 0; right: 0; opacity: 1; } }
+
+.glass-top.boot-sequence { animation: boot-fade-bg 0.4s ease-out forwards; }
+.glass-top.boot-sequence .brand,
+.glass-top.boot-sequence .top-right-zone,
+.glass-top.boot-sequence .energy-line-h {
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+/* 序列节点按时间轴依次通电 */
+.glass-top.boot-sequence .brand { animation: boot-slide-in 0.4s cubic-bezier(0, 0.9, 0.1, 1) 0.05s forwards; }
+.glass-top.boot-sequence .top-right-zone { animation: boot-slide-in-right 0.4s cubic-bezier(0, 0.9, 0.1, 1) 0.25s forwards; }
+.glass-top.boot-sequence .energy-line-h { animation: boot-line-grow 0.5s cubic-bezier(0.19, 1, 0.22, 1) 0.15s forwards; }
+
+.glass-top.boot-sequence .top-btn {
+  opacity: 0;
+  animation: boot-slide-in 0.36s cubic-bezier(0, 0.9, 0.1, 1) forwards;
+}
+
+.glass-top.boot-sequence .top-btn:nth-child(1) { animation-delay: 0.10s; }
+.glass-top.boot-sequence .top-btn:nth-child(2) { animation-delay: 0.14s; }
+.glass-top.boot-sequence .top-btn:nth-child(3) { animation-delay: 0.18s; }
+
 </style>
 </head>
 <body class="chassis">
@@ -1034,11 +2435,11 @@ body.chassis {
       <div class="top-left-zone">
         <div class="brand">
           <span class="logo-mark">///</span>
-          <span class="big-title">管理中枢</span>
+          <span class="big-title">控制中枢</span>
         </div>
                 <nav class="top-nav">
-          <button class="top-btn" onclick="setTopView('home')"><span class="btn-text">首页</span></button>
-          <button class="top-btn active" onclick="setTopView('config')"><span class="btn-text">方案管理</span></button>
+          <button class="top-btn active" onclick="setTopView('home')"><span class="btn-text">首页</span></button>
+          <button class="top-btn" onclick="setTopView('config')"><span class="btn-text">方案管理</span></button>
           <button class="top-btn" onclick="setTopView('stats')"><span class="btn-text">数据大盘</span></button>
         </nav>
       </div>
@@ -1392,6 +2793,8 @@ const state = {
 
   currentProfile: 'default',
   activePage: 'overview',
+  topView: 'home',
+  homeStage: 'intro',
   profiles: [],
   runtimeConfig: {},
   groupAccess: { mode: 'off', blacklist: [], whitelist: [] },
@@ -1429,12 +2832,226 @@ const state = {
   pendingDelete: { kind: '', index: -1 },
   pendingAssetDelete: { kind: '', file: '' },
   pendingTitleDelete: -1,
+  homeAccessVerified: false,
 };
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 const uniqueStrings = (list) => Array.from(new Set((list || []).filter(Boolean)));
+const CONTROL_HUB_REPO_URL = 'https://github.com/zzz27578/astrbot-plugin-luck';
+const uiTransitionState = {
+  homeMorphTimer: null,
+  homeShellEnterTimer: null,
+  homeBodyRevealTimer: null,
+  homeSideRevealTimer: null,
+  homeSidebarFlightCleanup: null,
+  shellEnterTimer: null,
+  isMorphingToConfig: false,
+};
+
+function clearHomeMorphTimer(resetLock = true) {
+  if (uiTransitionState.homeMorphTimer) {
+    clearTimeout(uiTransitionState.homeMorphTimer);
+    uiTransitionState.homeMorphTimer = null;
+  }
+  if (uiTransitionState.homeShellEnterTimer) {
+    clearTimeout(uiTransitionState.homeShellEnterTimer);
+    uiTransitionState.homeShellEnterTimer = null;
+  }
+  if (uiTransitionState.homeBodyRevealTimer) {
+    clearTimeout(uiTransitionState.homeBodyRevealTimer);
+    uiTransitionState.homeBodyRevealTimer = null;
+  }
+  if (uiTransitionState.homeSideRevealTimer) {
+    clearTimeout(uiTransitionState.homeSideRevealTimer);
+    uiTransitionState.homeSideRevealTimer = null;
+  }
+  if (uiTransitionState.homeSidebarFlightCleanup) {
+    uiTransitionState.homeSidebarFlightCleanup();
+    uiTransitionState.homeSidebarFlightCleanup = null;
+  }
+  if (resetLock) uiTransitionState.isMorphingToConfig = false;
+}
+
+function resetHomeMorphState() {
+  clearHomeMorphTimer();
+  const showcase = document.querySelector('.home-showcase');
+  if (showcase) {
+    showcase.classList.remove('morph-active');
+    showcase.style.opacity = '';
+    showcase.style.transition = '';
+  }
+}
+
+function removeHomeSidebarFlight() {
+  if (!uiTransitionState.homeSidebarFlightCleanup) return;
+  uiTransitionState.homeSidebarFlightCleanup();
+  uiTransitionState.homeSidebarFlightCleanup = null;
+}
+
+function createHomeSidebarFlight(showcase) {
+  removeHomeSidebarFlight();
+  const source = showcase?.querySelector('.showcase-left');
+  const target = $('.glass-side');
+  if (!source || !target) return;
+
+  const sourceRect = source.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const flight = document.createElement('div');
+  flight.className = 'home-sidebar-flight';
+  flight.style.left = `${sourceRect.left}px`;
+  flight.style.top = `${sourceRect.top}px`;
+  flight.style.width = `${sourceRect.width}px`;
+  flight.style.height = `${sourceRect.height}px`;
+  document.body.appendChild(flight);
+
+  uiTransitionState.homeSidebarFlightCleanup = () => {
+    flight.remove();
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      flight.classList.add('is-active');
+      flight.style.left = `${targetRect.left}px`;
+      flight.style.top = `${targetRect.top}px`;
+      flight.style.width = `${targetRect.width}px`;
+      flight.style.height = `${targetRect.height}px`;
+    });
+  });
+}
+
+function clearShellEnterAnimation() {
+  if (uiTransitionState.shellEnterTimer) {
+    clearTimeout(uiTransitionState.shellEnterTimer);
+    uiTransitionState.shellEnterTimer = null;
+  }
+  const appLayout = $('.app-layout');
+  if (appLayout) appLayout.classList.remove('ui-shell-pre-enter', 'ui-shell-enter', 'ui-shell-body-hold', 'ui-shell-side-hold');
+}
+
+function startPreparedShellEnterAnimation() {
+  const appLayout = $('.app-layout');
+  if (!appLayout) return;
+  if (uiTransitionState.shellEnterTimer) {
+    clearTimeout(uiTransitionState.shellEnterTimer);
+    uiTransitionState.shellEnterTimer = null;
+  }
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      appLayout.classList.remove('ui-shell-pre-enter');
+      appLayout.classList.add('ui-shell-enter');
+      uiTransitionState.shellEnterTimer = setTimeout(() => {
+        appLayout.classList.remove('ui-shell-enter');
+        uiTransitionState.shellEnterTimer = null;
+      }, 620);
+    });
+  });
+}
+
+function startShellEnterAnimation() {
+  const appLayout = $('.app-layout');
+  if (!appLayout) return;
+  clearShellEnterAnimation();
+  appLayout.classList.add('ui-shell-pre-enter');
+  startPreparedShellEnterAnimation();
+}
+
+function openExternalLink(url) {
+  if (!url) return;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function beginHomeLoginFlow() {
+  if (state.homeStage !== 'intro') return;
+  const showcase = document.querySelector('.home-showcase');
+  if (!showcase) {
+    state.homeStage = 'auth';
+    renderHome();
+    return;
+  }
+  showcase.classList.add('intro-collapse');
+  clearTimeout(beginHomeLoginFlow.timer);
+  beginHomeLoginFlow.timer = setTimeout(() => {
+    state.homeStage = 'auth';
+    renderHome();
+    $('#homeInlinePassword')?.focus();
+  }, 540);
+}
+
+function toggleHomeAccessVisibility(visible) {
+  const input = $('#homeInlinePassword') || $('#homeAccessCode');
+  if (input) input.type = visible ? 'text' : 'password';
+}
+
+function submitHomeAccess() {
+  const password = ($('#homeInlinePassword')?.value || $('#homeAccessCode')?.value || '').trim();
+  if (!password) {
+    showToast('请输入访问口令。', true);
+    return;
+  }
+  state.homeAccessVerified = true;
+  state.homeStage = 'ready';
+  renderHome();
+  $('#homeInlineInitBtn')?.focus();
+  showToast('权限验证通过，已解锁初始化入口。');
+}
+
+function returnHomeIntro() {
+  clearTimeout(beginHomeLoginFlow.timer);
+  const showcase = document.querySelector('.home-showcase');
+  if (!showcase || state.homeStage === 'intro') {
+    state.homeAccessVerified = false;
+    state.homeStage = 'intro';
+    renderHome();
+    return;
+  }
+  showcase.classList.add('return-home');
+  state.homeAccessVerified = false;
+  clearTimeout(returnHomeIntro.timer);
+  returnHomeIntro.timer = setTimeout(() => {
+    state.homeStage = 'intro';
+    renderHome();
+  }, 620);
+}
+
+function syncTopViewButtons(view) {
+  $$('.top-btn').forEach(btn => {
+    const text = btn.textContent.trim();
+    btn.classList.toggle('active', (view === 'home' && text === '首页') || (view === 'config' && text === '方案管理') || (view === 'stats' && text === '数据大盘'));
+  });
+}
+
+function revealConfigShellForMorph() {
+  state.topView = 'config';
+  syncTopViewButtons('config');
+  $('.glass-top').style.display = 'flex';
+  $('.glass-side').style.display = 'flex';
+  $('#configPages').style.display = 'block';
+  $('#statsPages').style.display = 'none';
+  $('.toolbar-actions').style.display = 'flex';
+  $('.shard-header').style.display = 'flex';
+  setPage(state.activePage);
+  const appLayout = $('.app-layout');
+  if (appLayout) {
+    appLayout.classList.remove('ui-shell-enter');
+    appLayout.classList.add('ui-shell-pre-enter');
+  }
+}
+
+function finalizeConfigMorph() {
+  state.topView = 'config';
+  syncTopViewButtons('config');
+  resetHomeMorphState();
+  $('#homePages').style.display = 'none';
+  $('.glass-top').style.display = 'flex';
+  $('.glass-side').style.display = 'flex';
+  $('#configPages').style.display = 'block';
+  $('#statsPages').style.display = 'none';
+  $('.toolbar-actions').style.display = 'flex';
+  $('.shard-header').style.display = 'flex';
+  setPage(state.activePage);
+}
 
 function getImagePools(kind) {
   return kind === 'fate'
@@ -1650,14 +3267,14 @@ const effectCatalog = {
     { key: 'borrow_blade', name: '借刀伤害', params: ['最小值', '最大值'], desc: '随机找一个第三方群友背锅，对目标造成一段随机金币伤害。伤害值在最小值到最大值之间浮动。' },
     { key: 'bounty_mark', name: '悬赏印记', params: ['小时', '追加金币'], desc: '给目标挂上悬赏印记。持续期间内，只要目标再吃到金币类攻击，就会额外再掉一次指定金币，并把这笔钱送给攻击者。' },
     { key: 'strip_buff_gain', name: '夺取增益并加爆率', params: ['百分比', '小时'], desc: '移除目标身上 1 个正面状态，然后给你自己附加功能牌爆率提升，持续指定小时数。是拆增益加自强化的反制型效果。' },
-    { key: 'aoe_damage', name: '群体攻击', params: ['最小值', '最大值', '人数'], desc: '从全群里随机抽最多指定人数作为目标，对每个人分别造成一段随机金币伤害。会被“无懈可击”护盾完整挡掉，破盾但不掉钱。' },
+    { key: 'aoe_damage', name: '群体攻击', params: ['最小值', '最大值', '人数'], desc: '从全群里随机抽固定人数作为目标；如果配置人数超过当前可用目标数，就自动按全体可用目标结算。每个人分别造成一段随机金币伤害，会被“无懈可击”完整挡掉。' },
     { key: 'dice_rule', name: '骰子规则', params: ['规则键'], desc: '触发一套指定的骰子规则，具体效果由规则键决定，属于给骰子玩法挂特殊结算。' },
     { key: 'dice_duel', name: '对赌', params: ['底注'], desc: '向目标发起一次带底注的骰子对赌，双方确认后按骰点结算输赢和金币转移。' }
   ],
   heal: [
     { key: 'cleanse', name: '单体净化', params: [], desc: '移除目标身上 1 个负面状态。只会清负面，不会误删护盾、反甲、好运加护这类正面状态。' },
-    { key: 'aoe_cleanse', name: '群体净化', params: ['人数'], desc: '随机净化最多指定人数，每个人各移除 1 个负面状态。若对方本来没有负面状态，就不会发生额外效果。' },
-    { key: 'aoe_heal', name: '群体回复', params: ['最小值', '最大值', '人数'], desc: '包含施法者自己在内，对最多指定人数分别随机增加金币。自己必定吃到，剩余名额再从群里随机抽。' },
+    { key: 'aoe_cleanse', name: '群体净化', params: ['人数'], desc: '随机净化固定人数；如果配置人数超过当前可用人数，就自动按全体可用目标结算。每个人各移除 1 个负面状态。' },
+    { key: 'aoe_heal', name: '群体回复', params: ['最小值', '最大值', '人数'], desc: '包含施法者自己在内，对固定人数分别随机增加金币。自己必定吃到；如果配置人数超过当前可用人数，就自动按全体可用目标结算。' },
     { key: 'luck_bless', name: '好运加护', params: ['小时', '百分比'], desc: '给自己附加一个持续状态，在指定小时内提高功能牌爆率。只加你自己，不会加给目标。' },
     { key: 'fate_roulette', name: '命运转盘', params: [], desc: '触发 5 选 1 的随机结果：可能加金币、送护盾、送爆率加成、加金币并净化，也可能反噬自己扣金币。整体上偏正面，但不是百分百稳赚。' },
     { key: 'dice_reroll_lowest_once', name: '最低点重投一次', params: [], desc: '给自己挂上“天命重投”。之后 24 小时内，只要骰子掷出最低点 1，就会自动重投一次，然后这个状态被消耗掉。' }
@@ -1700,6 +3317,12 @@ function categoryLabel(value) {
   return typeLabelMap[value] || value || '未分类';
 }
 
+function normalizeAoeCountParam(value, fallback = 1) {
+  const parsed = Math.floor(Number(value));
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, parsed);
+}
+
 function effectToTag(effect) {
   const p = effect.params || [];
   switch (effect.key) {
@@ -1712,12 +3335,12 @@ function effectToTag(effect) {
     case 'borrow_blade': return `borrow_blade:${p[0] || 0}:${p[1] || 0}`;
     case 'bounty_mark': return `bounty_mark:${p[0] || 0}:${p[1] || 0}`;
     case 'strip_buff_gain': return `strip_buff_gain:${p[0] || 0}:${p[1] || 0}`;
-    case 'aoe_damage': return `aoe_damage:${p[0] || 0}:${p[1] || 0}:${p[2] || 0}`;
+    case 'aoe_damage': return `aoe_damage:${p[0] || 0}:${p[1] || 0}:${normalizeAoeCountParam(p[2], 1)}`;
     case 'dice_rule': return `dice_rule:${p[0] || 'all_in_raid_v1'}`;
     case 'dice_duel': return `dice_duel:${p[0] || 20}`;
         case 'cleanse': return 'cleanse';
-    case 'aoe_cleanse': return `aoe_cleanse:${p[0] || 1}`;
-    case 'aoe_heal': return `aoe_heal:${p[0] || 0}:${p[1] || 0}:${p[2] || 0}`;
+    case 'aoe_cleanse': return `aoe_cleanse:${normalizeAoeCountParam(p[0], 1)}`;
+    case 'aoe_heal': return `aoe_heal:${p[0] || 0}:${p[1] || 0}:${normalizeAoeCountParam(p[2], 1)}`;
 
     case 'luck_bless': return `luck_bless:${p[0] || 0}:${p[1] || 0}`;
     case 'fate_roulette': return 'fate_roulette';
@@ -1779,12 +3402,12 @@ function humanizeTag(tag) {
     case 'borrow_blade': return `借刀造成 ${p[0]}-${p[1]} 伤害`;
     case 'bounty_mark': return `悬赏 ${p[0]} 小时，每次追加 ${p[1]} 金币`;
     case 'strip_buff_gain': return `夺取增益并获得 ${p[0]}% 爆率 ${p[1]} 小时`;
-    case 'aoe_damage': return `群攻 ${p[0]}-${p[1]}，最多 ${p[2]} 人`;
+    case 'aoe_damage': return `群攻 ${p[0]}-${p[1]}，固定 ${p[2]} 人（不足则全体）`;
     case 'dice_rule': return `骰子规则 ${p[0]}`;
     case 'dice_duel': return `对赌底注 ${p[0]}`;
         case 'cleanse': return '单体净化负面状态';
-    case 'aoe_cleanse': return `群体净化，最多 ${p[0]} 人`;
-    case 'aoe_heal': return `群体回复 ${p[0]}-${p[1]}，最多 ${p[2]} 人`;
+    case 'aoe_cleanse': return `群体净化，固定 ${p[0]} 人（不足则全体）`;
+    case 'aoe_heal': return `群体回复 ${p[0]}-${p[1]}，固定 ${p[2]} 人（不足则全体）`;
 
     case 'luck_bless': return `${p[0]} 小时内爆率 +${p[1]}%`;
     case 'fate_roulette': return '命运转盘';
@@ -1852,21 +3475,24 @@ const apiDelete = (path) => requestJson(path, { method: 'DELETE' });
 const apiDeleteProfileById = (profileId) => apiPost('/api/profile_remove', { profile_id: profileId });
 
 function setTopView(view) {
-    $$('.top-btn').forEach(btn => {
-      const text = btn.textContent.trim();
-      btn.classList.toggle('active', (view === 'home' && text === '首页') || (view === 'config' && text === '方案管理') || (view === 'stats' && text === '数据大盘'));
-    });
+    state.topView = view;
+    syncTopViewButtons(view);
     if (view === 'home') {
+      clearShellEnterAnimation();
+      resetHomeMorphState();
       $('.glass-side').style.display = 'none';
+      $('.glass-top').style.display = 'none';
       $('#homePages').style.display = 'block';
+      $('.shard-header').style.display = 'none';
       $('#configPages').style.display = 'none';
       $('#statsPages').style.display = 'none';
       $('.toolbar-actions').style.display = 'none';
-      $('#heroTitle').textContent = '首页';
-      $('#heroDesc').textContent = '查看系统概览入口，并从顶部导航快速进入方案管理或数据大盘。';
       renderHome();
       return;
     }
+    const leavingHome = getComputedStyle($('#homePages')).display !== 'none';
+    resetHomeMorphState();
+    $('.glass-top').style.display = 'flex';
     if (view === 'stats') {
       $('.glass-side').style.display = 'none';
       $('#homePages').style.display = 'none';
@@ -1875,6 +3501,9 @@ function setTopView(view) {
       $('#heroTitle').textContent = '全域数据与生态监控';
       $('#heroDesc').textContent = '直观查阅各节点活跃度、卡池真实分布与经济状态图表，独立切换，不影响当前正在编辑的方案。';
       $('.toolbar-actions').style.display = 'none';
+      $('.shard-header').style.display = 'flex';
+      if (leavingHome) startShellEnterAnimation();
+      else clearShellEnterAnimation();
       renderGlobalStats();
       return;
     }
@@ -1883,6 +3512,9 @@ function setTopView(view) {
     $('#configPages').style.display = 'block';
     $('#statsPages').style.display = 'none';
     $('.toolbar-actions').style.display = 'flex';
+    $('.shard-header').style.display = 'flex';
+    if (leavingHome) startShellEnterAnimation();
+    else clearShellEnterAnimation();
     setPage(state.activePage);
   }
 
@@ -4024,30 +5656,169 @@ function buildFuncRarityDistribution() {
 }
 
 // ===== [ page: stats ] =====================================================
+function triggerSystemMorph() {
+  if (!state.homeAccessVerified) {
+    beginHomeLoginFlow();
+    return;
+  }
+  const showcase = document.querySelector('.home-showcase');
+  if (!showcase) {
+    setTopView('config');
+    return;
+  }
+  if (uiTransitionState.isMorphingToConfig) return;
+  uiTransitionState.isMorphingToConfig = true;
+  clearHomeMorphTimer(false);
+
+  // 1. 准备真实的底层界面（因为层级调整了，此时它们覆盖在原页面上方）
+  state.topView = 'config';
+  syncTopViewButtons('config');
+  $('.glass-top').style.display = 'flex';
+  $('.glass-side').style.display = 'flex';
+  $('#configPages').style.display = 'block';
+  $('#statsPages').style.display = 'none';
+  $('.toolbar-actions').style.display = 'flex';
+  $('.shard-header').style.display = 'flex';
+  setPage(state.activePage);
+
+  const appLayout = $('.app-layout');
+  appLayout.classList.add('ui-shell-pre-enter');
+  appLayout.classList.add('ui-shell-body-hold');
+  appLayout.classList.add('ui-shell-side-hold');
+  appLayout.classList.remove('ui-shell-enter');
+
+  createHomeSidebarFlight(showcase);
+
+  // 2. 旧页面触发变形让位
+  showcase.classList.add('morph-active');
+
+  // 3. 同时唤醒真实的界面元素！
+  // 真正的黑条顶栏会优雅地从天而降！数据内容也会随着旧白板的透明透射出来！
+  uiTransitionState.homeShellEnterTimer = setTimeout(() => {
+    appLayout.classList.remove('ui-shell-pre-enter');
+    appLayout.classList.add('ui-shell-enter');
+    uiTransitionState.homeShellEnterTimer = null;
+  }, 160);
+
+  // 4. 等黑白骨架快推到位，再放白区头部和正文，避免被黑块压住
+  uiTransitionState.homeBodyRevealTimer = setTimeout(() => {
+    appLayout.classList.remove('ui-shell-body-hold');
+    uiTransitionState.homeBodyRevealTimer = null;
+  }, 235);
+
+  // 5. 动画落定后，无痕移除旧节点，再交给真实侧栏接手
+  uiTransitionState.homeMorphTimer = setTimeout(() => {
+    $('#homePages').style.display = 'none';
+    showcase.classList.remove('morph-active');
+    removeHomeSidebarFlight();
+    appLayout.classList.remove('ui-shell-side-hold');
+    uiTransitionState.homeMorphTimer = null;
+    uiTransitionState.isMorphingToConfig = false;
+  }, 430);
+}
+
 function renderHome() {
+  const homeStage = state.homeStage || 'intro';
+  const statusText = homeStage === 'ready' ? 'ACCESS VERIFIED' : 'AWAITING AUTHORIZATION';
+  const statusCopy = homeStage === 'ready'
+    ? '口令验证通过。现在可以执行初始化并接入，进入方案管理。'
+    : '请输入访问口令，通过验证后再执行初始化并接入。';
+  const stageClass = homeStage === 'ready' ? 'stage-ready' : homeStage === 'auth' ? 'stage-auth' : 'stage-intro';
   $('#page-home').innerHTML = `
-    <div class="grid" style="padding:32px 48px;">
-      <section class="panel col-12" style="padding:40px; border-left:4px solid var(--accent);">
-        <div class="tiny" style="color:var(--accent);">[ WULING LUCK RANK CONTROL ]</div>
-        <div style="font-family:var(--font-headline); font-size:34px; font-weight:900; color:var(--shard-text); margin-top:12px;">首页</div>
-        <div class="panel-note" style="margin-top:12px; max-width:780px; line-height:1.9; font-size:13px;">
-          方案相关内容已独立归入“方案管理”。
-          你可以在顶部导航进入数据大盘查看跨方案统计，也可以返回方案管理继续编辑当前方案，不会再被统计页的查看动作影响。
+        <div class="home-showcase ${stageClass}">
+      <div class="showcase-noise"></div>
+      <div class="showcase-grid-bg"></div>
+
+      <div class="home-splash">
+        <div class="home-splash-core">
+          <div class="home-splash-kicker">INDUSTRIAL CONTROL SURFACE</div>
+          <h1 class="home-splash-title">控制中枢</h1>
+          <div class="home-splash-desc">
+            一个面向插件控制台的工业系统首页。先展示身份与入口，再通过登录验证进入接入流程。
+          </div>
+          <div class="home-splash-actions">
+            <button class="home-splash-btn primary" onclick="beginHomeLoginFlow()">登录系统</button>
+            <button class="home-splash-btn" onclick="openExternalLink('${CONTROL_HUB_REPO_URL}')">仓库地址</button>
+          </div>
         </div>
-      </section>
-      <section class="panel col-4" style="padding:24px;">
-        <div class="panel-title">方案管理</div>
-        <div class="panel-note" style="margin-top:8px;">总览、运行配置、签到配置、命运牌、功能牌、称号全部都在这里。</div>
-      </section>
-      <section class="panel col-4" style="padding:24px;">
-        <div class="panel-title">数据大盘</div>
-        <div class="panel-note" style="margin-top:8px;">查看稀有度分布、功能牌持有排行、群组活跃度、财富排行和称号拥有统计。</div>
-      </section>
-      <section class="panel col-4" style="padding:24px;">
-        <div class="panel-title">当前编辑方案</div>
-        <div class="panel-note" style="margin-top:8px;">${esc(getProfileName())}</div>
-      </section>
+      </div>
+
+      <div class="showcase-left">
+        <div class="sc-crosshair" style="top: 48px; left: 48px;"></div>
+        <div class="sc-crosshair" style="bottom: 48px; right: 48px;"></div>
+
+        <div class="home-auth-shell">
+          <div class="home-auth-left-main">
+            <div class="home-auth-heading">
+              <div class="home-auth-kicker">CONTROL ACCESS // STAGE 01</div>
+              <h1 class="home-auth-title">控制中枢</h1>
+            </div>
+            <div class="home-auth-meta">
+              <div class="home-auth-desc">
+                完成身份验证后，执行初始化并接入。左侧保留工业终端氛围，右侧专注口令输入与接入动作。
+              </div>
+              <div class="home-auth-status">
+                <span class="home-auth-status-dot"></span>
+                <span>${statusText}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="home-terminal-block">
+            <div class="home-terminal-head">
+              <div class="home-terminal-title">// COMMAND STREAM</div>
+              <div class="home-stream-status"><span class="home-stream-dot"></span><span>LINK STABLE</span></div>
+            </div>
+            <div class="home-terminal-panel">
+              <div class="home-terminal-line"><span class="home-terminal-prefix">></span><span>BOOTING CONTROL SURFACE...</span></div>
+              <div class="home-terminal-line"><span class="home-terminal-prefix">></span><span>NEURAL ACCESS CHANNEL... <span class="highlight">READY</span></span></div>
+              <div class="home-terminal-line"><span class="home-terminal-prefix">></span><span>AWAITING PASSWORD AUTHORIZATION...</span></div>
+              <div class="home-terminal-line"><span class="home-terminal-prefix">></span><span>POST-AUTH TASK: SYSTEM INITIATE -> CONFIG HUB</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-right">
+        <div class="home-login-shell">
+          <div class="home-login-card">
+            <div class="home-login-kicker">ACCESS PANEL</div>
+            <div class="home-login-title">${homeStage === 'ready' ? '验证通过' : '身份验证'}</div>
+            <div class="home-login-desc">${statusCopy}</div>
+
+            ${homeStage === 'ready' ? `
+              <div class="home-login-confirm">
+                当前身份已确认。下一步执行初始化并接入，系统将通过平移动画切入方案管理界面。
+              </div>
+            ` : `
+              <div class="field">
+                <label>访问口令</label>
+                <input class="input" id="homeInlinePassword" type="password" placeholder="输入访问口令" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
+              </div>
+              <label class="check-strong" style="min-height:36px;">
+                <input type="checkbox" onchange="toggleHomeAccessVisibility(this.checked)">
+                <span>显示口令</span>
+              </label>
+              <div class="home-login-hint">
+                当前为演示接入流程，输入任意非空口令即可继续；后续可以无缝替换成真实后端鉴权。
+              </div>
+            `}
+
+            <div class="home-login-actions">
+              ${homeStage === 'ready'
+                ? `<button class="btn-strong" id="homeInlineInitBtn" type="button" onclick="triggerSystemMorph()"><span class="btn-text">初始化并接入</span></button>`
+                : `<button class="btn-strong" type="button" onclick="submitHomeAccess()"><span class="btn-text">验证口令</span></button>`
+              }
+              <button class="btn" type="button" onclick="returnHomeIntro()"><span class="btn-text">返回首页</span></button>
+              <button class="btn" type="button" onclick="openExternalLink('${CONTROL_HUB_REPO_URL}')"><span class="btn-text">仓库地址</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>`;
+  if (homeStage === 'auth') {
+    setTimeout(() => $('#homeInlinePassword')?.focus(), 30);
+  }
 }
 
 function renderGlobalStats() {
@@ -4215,7 +5986,7 @@ function renderAll() {
   state.statsViewProfile = state.currentProfile;
   renderGlobalStats();
   updateTop();
-  setTopView('config');
+  setTopView(state.topView || 'home');
 }
 
 async function useProfile(id) {
@@ -4800,7 +6571,7 @@ function funcEditorHtml(card) {
           <div class="category-suggest-row">${categories.map(item => `<span class="category-chip">${esc(item.label)}</span>`).join('') || '<span class="helper">暂无分类</span>'}</div>
         </div>
         <div class="field"><label>描述</label><textarea class="textarea" id="funcDesc">${esc(card.description || '')}</textarea></div>
-        <div class="panel-head" style="margin-top:2px;"><div><div class="panel-title">效果引导</div><div class="panel-note">上面“分类”只负责归档展示。下面每条效果都可以独立选择攻击 / 辅助 / 防御，所以同一张牌可以同时拥有多种效果。</div></div><button class="btn" onclick="addEffectRow()"><span class="btn-text">新增效果</span></button></div>
+        <div class="panel-head" style="margin-top:2px;"><div><div class="panel-title">效果引导</div><div class="panel-note">上面的“分类”会参与后端结算，不只是展示。群体攻击会自动按攻击牌保存，群体回复 / 群体净化会自动按辅助牌保存，避免出现能抽到却无法正确使用的情况。</div></div><button class="btn" onclick="addEffectRow()"><span class="btn-text">新增效果</span></button></div>
         <div class="effect-builder" id="effectBuilder">${renderEffectRows()}</div>
         <div class="field"><label>标签预览</label><div class="tag-preview" id="effectPreview">${effectPreviewHtml()}</div></div>
         <div class="row"><button class="btn-strong" onclick="saveFuncEditor()"><span class="btn-text">写入功能牌</span></button></div>
@@ -4846,6 +6617,12 @@ function setEffectRaw(idx, val) {
   state.editingFuncEffects[idx] = { key: 'raw', raw: val };
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
+function deriveFuncTypeFromTags(type, tags = []) {
+  const normalized = (tags || []).map(tag => String(tag || '').trim());
+  if (normalized.some(tag => tag.startsWith('aoe_damage:'))) return 'attack';
+  if (normalized.some(tag => tag.startsWith('aoe_heal:') || tag.startsWith('aoe_cleanse:'))) return 'heal';
+  return String(type || 'attack').trim() || 'attack';
+}
 async function saveFuncEditor() {
 
   const payload = {
@@ -4856,6 +6633,10 @@ async function saveFuncEditor() {
     description: $('#funcDesc')?.value?.trim() || '',
     tags: state.editingFuncEffects.map(effectToTag).filter(Boolean)
   };
+  if (!payload.tags.length) return showToast('至少需要一条有效效果。', true);
+  const duplicated = state.funcCards.some((item, idx) => idx !== state.editingFuncIndex && String(item?.card_name || '').trim() === payload.card_name);
+  if (duplicated) return showToast('功能牌名称重复，请调整。', true);
+  payload.type = deriveFuncTypeFromTags(payload.type, payload.tags);
   mergeFuncCustomCategories([payload.type]);
   if (state.editingFuncIndex >= 0) state.funcCards[state.editingFuncIndex] = payload;
   else state.funcCards.push(payload);
@@ -5163,6 +6944,12 @@ function bindEvents() {
 }
 
 Object.assign(window, {
+  beginHomeLoginFlow,
+  submitHomeAccess,
+  toggleHomeAccessVisibility,
+  returnHomeIntro,
+  openExternalLink,
+  triggerSystemMorph,
   useProfile,
   bindGroupPrompt,
   bindGroupFromPanel,

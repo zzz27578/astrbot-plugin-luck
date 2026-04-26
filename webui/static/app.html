@@ -94,12 +94,25 @@ body.chassis {
   z-index: 50;
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
+
+.glass-top::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 200px;
+  height: 2px;
+  background: var(--glass-base);
+  pointer-events: none;
+  z-index: 0;
+}
 /* 流动的生化脉冲横线 */
 .energy-line-h {
   position: absolute;
   bottom: 0; left: 0; right: 0; height: 1px;
   background: var(--glass-border); /* 移除霓虹发光，改为精巧的结构线 */
   box-shadow: none;
+  z-index: 2;
 }
 
 .top-left-zone { display: flex; align-items: center; gap: 48px; height: 100%; }
@@ -888,7 +901,7 @@ body.chassis {
     top 0.4s cubic-bezier(0.22, 1, 0.36, 1),
     width 0.4s cubic-bezier(0.22, 1, 0.36, 1),
     height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.14s ease 0.32s;
+    opacity 0.12s ease 0.38s;
 }
 
 .home-sidebar-flight.is-active {
@@ -2898,6 +2911,10 @@ function createHomeSidebarFlight(showcase) {
 
   const sourceRect = source.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
+  const targetWidth = Math.round(targetRect.width);
+  const targetTop = 0;
+  const targetLeft = 0;
+  const targetHeight = window.innerHeight || document.documentElement.clientHeight || targetRect.height;
   const flight = document.createElement('div');
   flight.className = 'home-sidebar-flight';
   flight.style.left = `${sourceRect.left}px`;
@@ -2913,10 +2930,10 @@ function createHomeSidebarFlight(showcase) {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       flight.classList.add('is-active');
-      flight.style.left = `${targetRect.left}px`;
-      flight.style.top = `${targetRect.top}px`;
-      flight.style.width = `${targetRect.width}px`;
-      flight.style.height = `${targetRect.height}px`;
+      flight.style.left = `${targetLeft}px`;
+      flight.style.top = `${targetTop}px`;
+      flight.style.width = `${targetWidth}px`;
+      flight.style.height = `${targetHeight}px`;
     });
   });
 }
@@ -5714,7 +5731,7 @@ function triggerSystemMorph() {
     appLayout.classList.remove('ui-shell-side-hold');
     uiTransitionState.homeMorphTimer = null;
     uiTransitionState.isMorphingToConfig = false;
-  }, 430);
+  }, 455);
 }
 
 function renderHome() {

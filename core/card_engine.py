@@ -10,7 +10,8 @@
 # - seal_draw_all:X         -> 封印目标 X 小时，期间无法抽命运牌和功能牌。(例: seal_draw_all:24)
 # - luck_drain:X:Y          -> 抽取目标爆率 Y%，持续 X 小时；目标降低 Y%，施法者提升 Y%。(例: luck_drain:24:8)
 # - sac_steal:X:Y           -> 自损 X 金币后，强夺目标 Y 金币（防自爆：施法后至少保留 1 金币）。(例: sac_steal:20:35)
-# - dice_rule:KEY           -> 触发骰子规则 KEY（规则在 core/dice_engine.py 中配置，可扩展到拼点/决斗等）。
+# - dice_rule:KEY           -> 触发骰子规则 KEY（旧版高级入口，继续兼容）。
+# - lucky_roulette:JSON     -> 触发幸运转盘，按随机数命中不同配置效果。
 # - borrow_blade:X:Y        -> 借来第三方之名发动暗算，对目标造成 X~Y 金币伤害，并在播报中点出“借刀者”。(例: borrow_blade:10:20)
 # - bounty_mark:X:Y         -> 给目标挂上【悬赏印记】X 小时；期间其每次受到金币类攻击时会额外损失 Y 金币，攻击者额外获得 Y 金币。(例: bounty_mark:24:5)
 # - strip_buff_gain:X:Y     -> 移除目标 1 个正面状态，并为施法者附加 X% 功能牌爆率增益，持续 Y 小时。(例: strip_buff_gain:8:24)
@@ -42,6 +43,7 @@
 # ==============================================================================
 # 🔮 异世界·纯净版功能词库引擎 (Pure Keyword Engine) 🔮
 # ==============================================================================
+import json
 import time
 import random
 from .dice_engine import DiceEngine
@@ -105,6 +107,56 @@ def _parse_aoe_count_tag(tag: str, expected_key: str) -> int | None:
     except (TypeError, ValueError):
         return None
     return max(1, count)
+
+
+def _parse_lucky_roulette_tag(tag: str) -> dict | None:
+    raw = str(tag or "").strip()
+    prefix = "lucky_roulette:"
+    if not raw.startswith(prefix):
+        return None
+    payload = raw[len(prefix):].strip()
+    if not payload:
+        return None
+    try:
+        data = json.loads(payload)
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    try:
+        min_val = int(data.get("min", 1) or 1)
+        max_val = int(data.get("max", min_val) or min_val)
+    except (TypeError, ValueError):
+        return None
+    min_val = max(0, min_val)
+    max_val = max(min_val, max_val)
+    normalized_rules = []
+    for item in data.get("rules", []):
+        if not isinstance(item, dict):
+            continue
+        effect = str(item.get("effect", "") or "").strip()
+        if not effect:
+            continue
+        numbers = []
+        for raw_num in item.get("numbers", []):
+            try:
+                num = int(raw_num)
+            except (TypeError, ValueError):
+                continue
+            if min_val <= num <= max_val and num not in numbers:
+                numbers.append(num)
+        if not numbers:
+            continue
+        try:
+            value = int(item.get("value", 0) or 0)
+        except (TypeError, ValueError):
+            value = 0
+        normalized_rules.append({
+            "numbers": sorted(numbers),
+            "effect": effect,
+            "value": value,
+        })
+    return {"min": min_val, "max": max_val, "rules": normalized_rules}
 
 
 class CardEngine:
@@ -194,7 +246,102 @@ class CardEngine:
 
         return 0
 
+    def _apply_lucky_roulette_effect(self, source_data: dict, effect: str, value: int) -> tuple[str, int]:
+        amount = max(0, int(value or 0))
+        if effect in {"func_draw_sub", "fate_draw_sub"}:
+            return "已停用的转盘效果", 0
+        if effect == "gold_add":
+            source_data["total_gold"] = int(source_data.get("total_gold", 0) or 0) + amount
+            return "💰 金币增加", amount
+        if effect == "gold_sub":
+            actual = min(amount, max(0, int(source_data.get("total_gold", 0) or 0)))
+            source_data["total_gold"] = max(0, int(source_data.get("total_gold", 0) or 0) - actual)
+            return "💸 金币减少", actual
+        if effect == "karma_add":
+            source_data["karma_value"] = int(source_data.get("karma_value", 0) or 0) + amount
+            return "😇 善恶值增加", amount
+        if effect == "karma_sub":
+            source_data["karma_value"] = int(source_data.get("karma_value", 0) or 0) - amount
+            return "😈 善恶值减少", amount
+        if effect == "func_draw_add":
+            source_data["today_free_draws"] = int(source_data.get("today_free_draws", 0) or 0) + amount
+            return "🎴 功能牌免费抽数增加", amount
+        if effect == "func_draw_sub":
+            actual = min(amount, max(0, int(source_data.get("today_free_draws", 0) or 0)))
+            source_data["today_free_draws"] = max(0, int(source_data.get("today_free_draws", 0) or 0) - actual)
+            return "🎴 功能牌免费抽数减少", actual
+        if effect == "fate_draw_add":
+            current = int(source_data.get("last_card_draw_count", 0) or 0)
+            actual = min(amount, current)
+            source_data["last_card_draw_count"] = max(0, current - amount)
+            return "🃏 命运牌抽数返还", actual if current > 0 else amount
+        if effect == "fate_draw_sub":
+            source_data["last_card_draw_count"] = int(source_data.get("last_card_draw_count", 0) or 0) + amount
+            return "🃏 命运牌抽数扣减", amount
+        return "⚠️ 未知转盘效果", amount
 
+
+
+    def _apply_lucky_roulette_effect(self, source_data: dict, effect: str, value: int) -> tuple[str, int]:
+        amount = max(0, int(value or 0))
+        if effect in {"func_draw_sub", "fate_draw_sub"}:
+            return "已停用的转盘效果", 0
+        if effect == "gold_add":
+            source_data["total_gold"] = int(source_data.get("total_gold", 0) or 0) + amount
+            return "金币增加", amount
+        if effect == "gold_sub":
+            actual = min(amount, max(0, int(source_data.get("total_gold", 0) or 0)))
+            source_data["total_gold"] = max(0, int(source_data.get("total_gold", 0) or 0) - actual)
+            return "金币减少", actual
+        if effect == "karma_add":
+            source_data["karma_value"] = int(source_data.get("karma_value", 0) or 0) + amount
+            return "善恶值增加", amount
+        if effect == "karma_sub":
+            source_data["karma_value"] = int(source_data.get("karma_value", 0) or 0) - amount
+            return "善恶值减少", amount
+        if effect == "func_draw_add":
+            source_data["today_free_draws"] = int(source_data.get("today_free_draws", 0) or 0) + amount
+            return "功能牌抽数增加", amount
+        if effect == "func_draw_sub":
+            actual = min(amount, max(0, int(source_data.get("today_free_draws", 0) or 0)))
+            source_data["today_free_draws"] = max(0, int(source_data.get("today_free_draws", 0) or 0) - actual)
+            return "功能牌抽数减少", actual
+        if effect == "fate_draw_add":
+            current = int(source_data.get("last_card_draw_count", 0) or 0)
+            source_data["last_card_draw_count"] = current - amount
+            return "命运牌抽数增加", amount
+        if effect == "fate_draw_sub":
+            source_data["last_card_draw_count"] = int(source_data.get("last_card_draw_count", 0) or 0) + amount
+            return "命运牌抽数减少", amount
+        return "未知转盘效果", amount
+
+    def _execute_lucky_roulette_tag(self, source_data: dict, tag: str) -> list[str]:
+        reports: list[str] = []
+        spec = _parse_lucky_roulette_tag(tag)
+        if not spec:
+            reports.append("⚠️ 幸运转盘配置损坏，无法解析本次随机结算。")
+            return reports
+
+        roll = random.randint(int(spec["min"]), int(spec["max"]))
+        reports.append(f"🎰 幸运转盘启动！随机数落在 {roll}（范围 {spec['min']}-{spec['max']}）。")
+        matched_rule = next((rule for rule in spec["rules"] if roll in rule["numbers"]), None)
+        if not matched_rule:
+            reports.append("🍃 转盘停下后空无一物，这次什么都没有发生。")
+            return reports
+
+        label, actual = self._apply_lucky_roulette_effect(
+            source_data,
+            matched_rule["effect"],
+            matched_rule["value"],
+        )
+        num_text = "、".join(str(num) for num in matched_rule["numbers"])
+        if matched_rule["effect"] == "gold_sub" and actual <= 0:
+            reports.append(f"🪙 命中了号码 {num_text}，但你身上已经没有可扣除的金币。")
+        elif matched_rule["effect"] in {"func_draw_sub", "fate_draw_sub"}:
+            reports.append(f"⚠️ 命中了号码 {num_text}，但这条幸运转盘效果已经停用。")
+        else:
+            reports.append(f"✨ 命中了号码 {num_text}：{label} {actual}。")
+        return reports
 
     def _remove_one_negative_status(self, target_data: dict) -> dict | None:
         statuses = target_data.get("statuses", []) if target_data else []
@@ -333,6 +480,32 @@ class CardEngine:
                         on_damage_reflect=self._apply_thorn_reflect,
                     )
                 )
+
+            elif tag.startswith("lucky_roulette:"):
+                reports.extend(self._execute_lucky_roulette_tag(source_data, tag))
+                continue
+                spec = _parse_lucky_roulette_tag(tag)
+                if not spec:
+                    reports.append("⚠️ 幸运转盘配置损坏，无法解析本次随机结算。")
+                    continue
+                roll = random.randint(int(spec["min"]), int(spec["max"]))
+                reports.append(f"🎰 幸运转盘启动！随机数落在 {roll}（范围 {spec['min']}-{spec['max']}）。")
+                matched_rule = next((rule for rule in spec["rules"] if roll in rule["numbers"]), None)
+                if not matched_rule:
+                    reports.append("🍃 转盘停下后空无一物，这次什么都没有发生。")
+                    continue
+                label, actual = self._apply_lucky_roulette_effect(
+                    source_data,
+                    matched_rule["effect"],
+                    matched_rule["value"],
+                )
+                num_text = "、".join(str(num) for num in matched_rule["numbers"])
+                if matched_rule["effect"] == "gold_sub" and actual <= 0:
+                    reports.append(f"🪙 命中了号码 {num_text}，但你身上已经没有可扣除的金币。")
+                elif matched_rule["effect"] == "func_draw_sub" and actual <= 0:
+                    reports.append(f"🎴 命中了号码 {num_text}，但你当前没有可扣减的功能牌免费抽数。")
+                else:
+                    reports.append(f"✨ 命中了号码 {num_text}：{label} {actual}。")
 
             elif tag.startswith("freeze:"):
                 hours = int(tag.split(":")[1])

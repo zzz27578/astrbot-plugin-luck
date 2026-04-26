@@ -66,7 +66,8 @@ def _normalize_card_lookup_name(name: str) -> str:
 
 
 _CARD_NAME_DISPLAY_ALIASES = {
-    "孤注一掷": "孤掷突袭",
+    "孤注一掷": "幸运转盘",
+    "孤掷突袭": "幸运转盘",
     "生死对赌": "生死决斗",
 }
 _CARD_NAME_LOOKUP_ALIASES = {
@@ -536,7 +537,12 @@ async def handle_unequip_title(event: AstrMessageEvent, bank, config: dict, titl
 
 
 def _is_dice_card_by_tags(tags: list) -> bool:
-    return any(str(t).startswith("dice_") or str(t).startswith("dice_rule:") for t in (tags or []))
+    return any(
+        str(t).startswith("dice_")
+        or str(t).startswith("dice_rule:")
+        or str(t).startswith("lucky_roulette:")
+        for t in (tags or [])
+    )
 
 
 def _consume_target_shield_for_duel(target_data: dict) -> bool:
@@ -697,6 +703,8 @@ def _derive_runtime_card_type(card_type: str, tags: list) -> str:
     if any(tag.startswith("aoe_damage:") for tag in normalized_tags):
         return "attack"
     if any(tag.startswith(("aoe_heal:", "aoe_cleanse:")) for tag in normalized_tags):
+        return "heal"
+    if any(tag.startswith("lucky_roulette:") for tag in normalized_tags):
         return "heal"
     return resolved
 
@@ -1635,7 +1643,7 @@ async def handle_panel(event: AstrMessageEvent, bank, config: dict, target_id: s
             m, _ = divmod(r, 60)
             desc_parts.append(f"剩余 {h}小时{m}分")
 
-        desc = "，".join(desc_parts) if desc_parts else st.get("desc", "骰子规则生效中")
+        desc = "，".join(desc_parts) if desc_parts else st.get("desc", "随机判定效果生效中")
         dice_status_lines.append(f"  ▪️ [{name}] - {desc}")
 
     inventory = user_data.get("inventory", [])
@@ -1963,6 +1971,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     is_aoe = any(t.startswith("aoe_") for t in tags)
     is_dice_duel = any(str(t).startswith("dice_duel:") for t in tags)
     is_reroll_bless = any(str(t) == "dice_reroll_lowest_once" for t in tags)
+    is_lucky_roulette = any(str(t).startswith("lucky_roulette:") for t in tags)
     if is_aoe:
         aoe_error = _validate_aoe_tags(tags)
         if aoe_error:
@@ -2008,7 +2017,9 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
                 yield event.plain_result(f"🎲 命运的轮盘开始转动... 法术锁定了盲打目标：{target_name}！")
 
         elif effective_card_type == "heal":
-            if not target_id:
+            if is_lucky_roulette:
+                target_id = user_id
+            elif not target_id:
                 target_id = user_id
 
         if effective_card_type == "attack" and target_id == user_id:

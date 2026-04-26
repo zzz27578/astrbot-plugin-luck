@@ -125,7 +125,7 @@ class DiceEngine:
         if not rule:
             return {
                 "ok": False,
-                "reports": [f"⚠️ 骰子规则不存在：{rule_key}"],
+                "reports": [f"⚠️ 随机模板不存在：{rule_key}"],
                 "rule_key": rule_key,
                 "outcome_id": None,
                 "payload": None,

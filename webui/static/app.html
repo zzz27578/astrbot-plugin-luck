@@ -3473,7 +3473,7 @@ const effectCatalog = {
     { key: 'bounty_mark', name: '悬赏印记', params: ['小时', '追加金币'], desc: '给目标挂上悬赏印记。持续期间内，只要目标再吃到金币类攻击，就会额外再掉一次指定金币，并把这笔钱送给攻击者。' },
     { key: 'strip_buff_gain', name: '夺取增益并加爆率', params: ['百分比', '小时'], desc: '移除目标身上 1 个正面状态，然后给你自己附加功能牌爆率提升，持续指定小时数。是拆增益加自强化的反制型效果。' },
     { key: 'aoe_damage', name: '群体攻击', params: ['最小值', '最大值', '人数'], desc: '从全群里随机抽固定人数作为目标；如果配置人数超过当前可用目标数，就自动按全体可用目标结算。每个人分别造成一段随机金币伤害，会被“无懈可击”完整挡掉。' },
-    { key: 'dice_rule', name: '骰子规则', params: ['规则键'], desc: '触发一套指定的骰子规则，具体效果由规则键决定，属于给骰子玩法挂特殊结算。' },
+    { key: 'lucky_roulette', name: '幸运转盘', params: [], desc: '对自己触发一次幸运转盘。上方设置随机数最小值和最大值，下方按号码决定不同效果；没有配置到的号码会返回“空无一物”。' },
     { key: 'dice_duel', name: '骰子决斗', params: ['投入'], desc: '向目标发起一次带基础投入的骰子决斗，双方确认后按骰点判定攻防，并结算金币胜负。' }
   ],
   heal: [
@@ -3528,6 +3528,88 @@ function normalizeAoeCountParam(value, fallback = 1) {
   return Math.max(1, parsed);
 }
 
+const luckyRouletteOutcomeOptions = [
+  { value: 'gold_add', label: '金币增加' },
+  { value: 'gold_sub', label: '金币减少' },
+  { value: 'karma_add', label: '善恶值增加' },
+  { value: 'karma_sub', label: '善恶值减少' },
+  { value: 'func_draw_add', label: '功能牌抽数增加' },
+  { value: 'fate_draw_add', label: '命运牌抽数增加' },
+];
+
+function createLuckyRouletteRule() {
+  return { numbers: '', effect: 'gold_add', value: '0' };
+}
+
+function parseStrictInt(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  const parsed = Number(text);
+  if (!Number.isInteger(parsed)) return null;
+  return parsed;
+}
+
+function createEffectDraft(group = 'attack', key = '') {
+  if (key === 'lucky_roulette') {
+    return { group, key, params: ['1', '10'], luckyRules: [createLuckyRouletteRule()] };
+  }
+  return { group, key, params: [] };
+}
+
+function parseLuckyRouletteNumbers(raw) {
+  return Array.from(new Set(
+    String(raw || '')
+      .split(/[,，]/)
+      .map(v => Number(String(v || '').trim()))
+      .filter(v => Number.isInteger(v))
+  )).sort((a, b) => a - b);
+}
+
+function normalizeLuckyRouletteEffect(effect = {}, group = 'attack') {
+  const base = Array.isArray(effect.params) ? effect.params.slice(0, 2) : [];
+  const minVal = String(base[0] || '1');
+  const maxVal = String(base[1] || '10');
+  const luckyRules = Array.isArray(effect.luckyRules) && effect.luckyRules.length
+    ? effect.luckyRules.map(rule => ({
+        numbers: String(rule?.numbers || '').trim(),
+        effect: String(rule?.effect || 'gold_add').trim() || 'gold_add',
+        value: String(rule?.value ?? '0'),
+      }))
+    : [createLuckyRouletteRule()];
+  return { group, key: 'lucky_roulette', params: [minVal, maxVal], luckyRules };
+}
+
+function parseLuckyRouletteTag(raw) {
+  const payload = String(raw || '').slice('lucky_roulette:'.length);
+  try {
+    const data = JSON.parse(payload);
+    const effect = normalizeLuckyRouletteEffect({ params: [data?.min ?? 1, data?.max ?? 10], luckyRules: (data?.rules || []).map(item => ({
+      numbers: Array.isArray(item?.numbers) ? item.numbers.join(',') : '',
+      effect: item?.effect || 'gold_add',
+      value: item?.value ?? 0,
+    })) });
+    return effect;
+  } catch (e) {
+    return { key: 'raw', raw };
+  }
+}
+
+function buildLuckyRouletteSpec(effect) {
+  const params = effect?.params || [];
+  const minVal = Math.floor(Number(params[0] || 1));
+  const maxVal = Math.floor(Number(params[1] || minVal || 1));
+  const safeMin = Number.isFinite(minVal) ? Math.max(1, minVal) : 1;
+  const safeMax = Number.isFinite(maxVal) ? Math.max(safeMin, maxVal) : safeMin;
+  const rules = (effect?.luckyRules || []).map(rule => {
+    const numbers = parseLuckyRouletteNumbers(rule?.numbers).filter(num => num >= safeMin && num <= safeMax);
+    const effectType = String(rule?.effect || '').trim();
+    const value = Math.max(0, Math.floor(Number(rule?.value || 0)));
+    if (!numbers.length || !effectType) return null;
+    return { numbers, effect: effectType, value };
+  }).filter(Boolean);
+  return { min: safeMin, max: safeMax, rules };
+}
+
 function effectToTag(effect) {
   const p = effect.params || [];
   switch (effect.key) {
@@ -3541,7 +3623,7 @@ function effectToTag(effect) {
     case 'bounty_mark': return `bounty_mark:${p[0] || 0}:${p[1] || 0}`;
     case 'strip_buff_gain': return `strip_buff_gain:${p[0] || 0}:${p[1] || 0}`;
     case 'aoe_damage': return `aoe_damage:${p[0] || 0}:${p[1] || 0}:${normalizeAoeCountParam(p[2], 1)}`;
-    case 'dice_rule': return `dice_rule:${p[0] || 'all_in_raid_v1'}`;
+    case 'lucky_roulette': return `lucky_roulette:${JSON.stringify(buildLuckyRouletteSpec(effect))}`;
     case 'dice_duel': return `dice_duel:${p[0] || 20}`;
         case 'cleanse': return 'cleanse';
     case 'aoe_cleanse': return `aoe_cleanse:${normalizeAoeCountParam(p[0], 1)}`;
@@ -3572,7 +3654,7 @@ function tagToEffect(tag) {
   if (key === 'bounty_mark') return { key, params: [rest[0] || '', rest[1] || ''] };
   if (key === 'strip_buff_gain') return { key, params: [rest[0] || '', rest[1] || ''] };
   if (key === 'aoe_damage') return { key, params: [rest[0] || '', rest[1] || '', rest[2] || ''] };
-  if (key === 'dice_rule') return { key, params: [rest.join(':') || 'all_in_raid_v1'] };
+  if (key === 'lucky_roulette') return parseLuckyRouletteTag(raw);
   if (key === 'dice_duel') return { key, params: [rest[0] || '20'] };
     if (key === 'cleanse') return { key, params: [] };
   if (key === 'aoe_cleanse') return { key, params: [rest[0] || '1'] };
@@ -3608,7 +3690,10 @@ function humanizeTag(tag) {
     case 'bounty_mark': return `悬赏 ${p[0]} 小时，每次追加 ${p[1]} 金币`;
     case 'strip_buff_gain': return `夺取增益并获得 ${p[0]}% 爆率 ${p[1]} 小时`;
     case 'aoe_damage': return `群攻 ${p[0]}-${p[1]}，固定 ${p[2]} 人（不足则全体）`;
-    case 'dice_rule': return `骰子规则 ${p[0]}`;
+    case 'lucky_roulette': {
+      const spec = buildLuckyRouletteSpec(effect);
+      return `幸运转盘 ${spec.min}-${spec.max}，已配置 ${spec.rules.length} 条号码规则`;
+    }
     case 'dice_duel': return `决斗投入 ${p[0]}`;
         case 'cleanse': return '单体净化负面状态';
     case 'aoe_cleanse': return `群体净化，固定 ${p[0]} 人（不足则全体）`;
@@ -3633,6 +3718,48 @@ function getAoeRiskHint() {
 }
 
 function renderEffectParamInputs(effect, params, idx) {
+  if (String(effect?.key || '') === 'lucky_roulette') {
+    const rules = Array.isArray(effect?.luckyRules) && effect.luckyRules.length ? effect.luckyRules : [createLuckyRouletteRule()];
+    return `
+      <div class="field" style="grid-column:1 / -1;">
+        <div class="field-grid">
+          <div class="field">
+            <label>随机数最小值</label>
+            <input class="input" placeholder="最小值" value="${esc(effect.params?.[0] || '1')}" onchange="setLuckyRouletteBound(${idx}, 0, this.value)">
+          </div>
+          <div class="field">
+            <label>随机数最大值</label>
+            <input class="input" placeholder="最大值" value="${esc(effect.params?.[1] || '10')}" onchange="setLuckyRouletteBound(${idx}, 1, this.value)">
+          </div>
+        </div>
+        <div class="helper" style="margin-top:8px;">未配置到的号码会返回“空无一物”。号码可用逗号分隔，例如：1,2,5</div>
+        <div style="display:grid; gap:10px; margin-top:10px;">
+          ${rules.map((rule, ridx) => `
+            <div style="border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px; display:grid; gap:10px;">
+              <div class="field-grid ${'three'}">
+                <div class="field">
+                  <label>命中号码</label>
+                  <input class="input" placeholder="例如 1,3,5" value="${esc(rule?.numbers || '')}" onchange="setLuckyRouletteRuleField(${idx}, ${ridx}, 'numbers', this.value)">
+                </div>
+                <div class="field">
+                  <label>触发效果</label>
+                  <select class="select" onchange="setLuckyRouletteRuleField(${idx}, ${ridx}, 'effect', this.value)">
+                    ${luckyRouletteOutcomeOptions.map(item => `<option value="${item.value}" ${item.value === String(rule?.effect || 'gold_add') ? 'selected' : ''}>${esc(item.label)}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="field">
+                  <label>数值</label>
+                  <input class="input" type="number" placeholder="数值" value="${esc(rule?.value ?? '0')}" onchange="setLuckyRouletteRuleField(${idx}, ${ridx}, 'value', this.value)">
+                </div>
+              </div>
+              <div class="row"><button class="btn-danger" onclick="removeLuckyRouletteRule(${idx}, ${ridx})"><span class="btn-text">删除这条号码规则</span></button></div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="row" style="margin-top:10px;"><button class="btn" onclick="addLuckyRouletteRule(${idx})"><span class="btn-text">新增号码规则</span></button></div>
+      </div>
+    `;
+  }
   if (!params.length) return '<div class="helper">此效果无额外参数</div>';
   const chosenKey = String(effect?.key || '');
   return params.map((name, pi) => {
@@ -6713,9 +6840,10 @@ function normalizeEffectsForCard(card) {
   const tags = card?.tags || [];
   const parsed = tags.map(tagToEffect).filter(Boolean).map(effect => {
     if (effect.key === 'raw') return effect;
+    if (effect.key === 'lucky_roulette') return normalizeLuckyRouletteEffect(effect, effect.group || 'attack');
     return { ...effect, group: effect.group || getEffectGroupByKey(effect.key, 'attack') };
   });
-  return parsed.length ? parsed : [{ group: 'attack', key: 'steal', params: [] }];
+  return parsed.length ? parsed : [createEffectDraft('attack', 'steal')];
 }
 
 function renderEffectRows() {
@@ -6799,32 +6927,56 @@ function funcEditorHtml(card) {
 
 function setEffectGroup(idx, group) {
   const options = effectCatalog[group] || [];
-  state.editingFuncEffects[idx] = { group, key: options[0]?.key || '', params: [] };
+  state.editingFuncEffects[idx] = createEffectDraft(group, options[0]?.key || '');
   $('#effectBuilder').innerHTML = renderEffectRows();
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function addEffectRow() {
   const group = 'attack';
   const key = effectCatalog[group]?.[0]?.key || '';
-  state.editingFuncEffects.push({ group, key, params: [] });
+  state.editingFuncEffects.push(createEffectDraft(group, key));
   $('#effectBuilder').innerHTML = renderEffectRows();
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function removeEffectRow(idx) {
   state.editingFuncEffects.splice(idx, 1);
-  if (!state.editingFuncEffects.length) state.editingFuncEffects.push({ group: 'attack', key: effectCatalog.attack[0].key, params: [] });
+  if (!state.editingFuncEffects.length) state.editingFuncEffects.push(createEffectDraft('attack', effectCatalog.attack[0].key));
   $('#effectBuilder').innerHTML = renderEffectRows();
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function setEffectKey(idx, key) {
   const group = state.editingFuncEffects[idx]?.group || getEffectGroupByKey(key, 'attack');
-  state.editingFuncEffects[idx] = { group, key, params: [] };
+  state.editingFuncEffects[idx] = createEffectDraft(group, key);
   $('#effectBuilder').innerHTML = renderEffectRows();
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function setEffectParam(idx, pidx, val) {
   state.editingFuncEffects[idx].params ||= [];
   state.editingFuncEffects[idx].params[pidx] = val;
+  $('#effectPreview').innerHTML = effectPreviewHtml();
+}
+function setLuckyRouletteBound(idx, pidx, val) {
+  state.editingFuncEffects[idx].params ||= ['1', '10'];
+  state.editingFuncEffects[idx].params[pidx] = val;
+  $('#effectPreview').innerHTML = effectPreviewHtml();
+}
+function addLuckyRouletteRule(idx) {
+  state.editingFuncEffects[idx].luckyRules ||= [];
+  state.editingFuncEffects[idx].luckyRules.push(createLuckyRouletteRule());
+  $('#effectBuilder').innerHTML = renderEffectRows();
+  $('#effectPreview').innerHTML = effectPreviewHtml();
+}
+function removeLuckyRouletteRule(idx, ridx) {
+  state.editingFuncEffects[idx].luckyRules ||= [];
+  state.editingFuncEffects[idx].luckyRules.splice(ridx, 1);
+  if (!state.editingFuncEffects[idx].luckyRules.length) state.editingFuncEffects[idx].luckyRules.push(createLuckyRouletteRule());
+  $('#effectBuilder').innerHTML = renderEffectRows();
+  $('#effectPreview').innerHTML = effectPreviewHtml();
+}
+function setLuckyRouletteRuleField(idx, ridx, field, val) {
+  state.editingFuncEffects[idx].luckyRules ||= [];
+  state.editingFuncEffects[idx].luckyRules[ridx] ||= createLuckyRouletteRule();
+  state.editingFuncEffects[idx].luckyRules[ridx][field] = val;
   $('#effectPreview').innerHTML = effectPreviewHtml();
 }
 function setEffectRaw(idx, val) {
@@ -6835,10 +6987,50 @@ function deriveFuncTypeFromTags(type, tags = []) {
   const normalized = (tags || []).map(tag => String(tag || '').trim());
   if (normalized.some(tag => tag.startsWith('aoe_damage:'))) return 'attack';
   if (normalized.some(tag => tag.startsWith('aoe_heal:') || tag.startsWith('aoe_cleanse:'))) return 'heal';
+  if (normalized.some(tag => tag.startsWith('lucky_roulette:'))) return 'heal';
   return String(type || 'attack').trim() || 'attack';
 }
+
+function validateLuckyRouletteEffect(effect) {
+  const rawMin = parseStrictInt(effect?.params?.[0]);
+  const rawMax = parseStrictInt(effect?.params?.[1]);
+  if (rawMin === null || rawMax === null) return '幸运转盘的最小值和最大值都必须是整数。';
+  if (rawMin < 1) return '幸运转盘的最小值至少要从 1 开始。';
+  if (rawMax < rawMin) return '幸运转盘的最大值不能小于最小值。';
+
+  const occupiedNumbers = new Map();
+  let configuredRuleCount = 0;
+  for (const [index, rule] of (effect.luckyRules || []).entries()) {
+    const rawNumbers = String(rule?.numbers || '').trim();
+    const rawValue = String(rule?.value ?? '').trim();
+    const effectType = String(rule?.effect || '').trim();
+    const hasAnyInput = rawNumbers || rawValue || effectType;
+    if (!hasAnyInput) continue;
+    if (!rawNumbers) return `幸运转盘第 ${index + 1} 条号码规则还没有填写命中号码。`;
+    const parsed = parseLuckyRouletteNumbers(rawNumbers);
+    if (!parsed.length) return `幸运转盘号码规则「${rawNumbers}」无效，请用逗号分隔整数。`;
+    const outOfRange = parsed.find(num => num < rawMin || num > rawMax);
+    if (outOfRange !== undefined) return `幸运转盘号码 ${outOfRange} 不在 ${rawMin}-${rawMax} 范围内。`;
+    const valueInt = parseStrictInt(rawValue === '' ? null : rawValue);
+    if (valueInt === null || valueInt < 0) return `幸运转盘第 ${index + 1} 条号码规则的数值必须是大于等于 0 的整数。`;
+    for (const num of parsed) {
+      if (occupiedNumbers.has(num)) return `幸运转盘号码 ${num} 被重复配置了，请保证每个号码只对应一条规则。`;
+      occupiedNumbers.set(num, index);
+    }
+    configuredRuleCount += 1;
+  }
+  if (configuredRuleCount <= 0) return '幸运转盘至少需要配置 1 条号码规则。';
+  return '';
+}
+
 async function saveFuncEditor() {
 
+  for (const effect of state.editingFuncEffects) {
+    if (effect?.key === 'lucky_roulette') {
+      const rouletteError = validateLuckyRouletteEffect(effect);
+      if (rouletteError) return showToast(rouletteError, true);
+    }
+  }
   const payload = {
     card_name: $('#funcName')?.value?.trim() || '未命名功能牌',
     type: $('#funcType')?.value?.trim() || 'attack',
@@ -7212,7 +7404,11 @@ Object.assign(window, {
   addEffectRow,
   removeEffectRow,
   setEffectKey,
-    setEffectParam,
+  setEffectParam,
+  setLuckyRouletteBound,
+  addLuckyRouletteRule,
+  removeLuckyRouletteRule,
+  setLuckyRouletteRuleField,
   setEffectRaw,
   saveFuncEditor,
 

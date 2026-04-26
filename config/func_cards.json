@@ -88,11 +88,11 @@
     "rarity": 3
   },
   {
-    "card_name": "孤掷突袭",
-    "type": "attack",
-    "description": "【史诗-突袭牌】发动后先掷骰，再按点数决定消耗与掠夺额度（可被后续幸运/增骰机制影响）。",
+    "card_name": "幸运转盘",
+    "type": "heal",
+    "description": "【史诗-转盘牌】启动后在 1 到 5 之间随机命中一个号码，并按预设结果结算：可能加金币、扣金币、增加善恶值，或返还抽牌机会。",
     "filename": "",
-    "tags": ["dice_rule:all_in_raid_v1"],
+    "tags": ["lucky_roulette:{\"min\":1,\"max\":5,\"rules\":[{\"numbers\":[1],\"effect\":\"gold_add\",\"value\":88},{\"numbers\":[2],\"effect\":\"gold_sub\",\"value\":40},{\"numbers\":[3],\"effect\":\"karma_add\",\"value\":2},{\"numbers\":[4],\"effect\":\"func_draw_add\",\"value\":1},{\"numbers\":[5],\"effect\":\"fate_draw_add\",\"value\":1}]}"],
     "rarity": 3
   },
   {

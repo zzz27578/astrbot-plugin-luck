@@ -60,6 +60,7 @@ BUILTIN_DEFAULT_COPY_FROM = "__builtin_default__"
 BLANK_COPY_FROM = "__blank__"
 WEBUI_DEFAULT_ACCESS_PASSWORD = "12345678"
 WEBUI_SESSION_COOKIE = "luck_webui_session"
+WEBUI_ACCESS_CONFIG_FILE = BASE_PATHS["plugin_data_dir"] / "webui_access_config.json"
 _WEBUI_ACCESS_PASSWORD = WEBUI_DEFAULT_ACCESS_PASSWORD
 _AUTH_SESSIONS: set[str] = set()
 
@@ -699,6 +700,13 @@ def _default_runtime_config() -> dict:
 def _normalize_access_password(value) -> str:
     text = str(value or "").strip()
     return text or WEBUI_DEFAULT_ACCESS_PASSWORD
+
+
+def _load_current_access_password() -> str:
+    data = _read_json(WEBUI_ACCESS_CONFIG_FILE, {})
+    if isinstance(data, dict):
+        return _normalize_access_password(data.get("access_password", _WEBUI_ACCESS_PASSWORD))
+    return _normalize_access_password(_WEBUI_ACCESS_PASSWORD)
 
 
 def _get_session_token(request: web.Request) -> str:
@@ -1781,9 +1789,10 @@ async def api_access_verify(request):
     if not isinstance(body, dict):
         body = {}
     password = str(body.get("password", "") or "")
+    expected_password = _load_current_access_password()
     if not password.strip():
         return web.json_response({"ok": False, "error": "请输入访问口令。"}, status=400)
-    if not secrets.compare_digest(password, _WEBUI_ACCESS_PASSWORD):
+    if not secrets.compare_digest(password, expected_password):
         return web.json_response({"ok": False, "error": "访问口令错误。", "code": "invalid_password"}, status=401)
     token = secrets.token_urlsafe(32)
     _AUTH_SESSIONS.add(token)
@@ -2108,6 +2117,8 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     _ensure_private_dirs()
     migrate_legacy_storage(PLUGIN_NAME)
     _ensure_profile_seed_data(DEFAULT_PROFILE_NAME)
+    if not WEBUI_ACCESS_CONFIG_FILE.exists():
+        _atomic_write(WEBUI_ACCESS_CONFIG_FILE, {"access_password": _normalize_access_password(_WEBUI_ACCESS_PASSWORD)})
     app = web.Application(middlewares=[auth_middleware])
 
         # API 路由

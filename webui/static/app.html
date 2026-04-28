@@ -7602,9 +7602,9 @@ async function bootstrapWebUi() {
   state.homeStage = 'intro';
   state.homeAccessVerified = false;
   state.homePasswordVisible = false;
-  renderHome();
   ensureLazyProgressHud();
   bindEvents();
+  setTopView('home');
   try {
     await syncHomeAccessStatus();
   } finally {

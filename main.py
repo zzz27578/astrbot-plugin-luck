@@ -2,6 +2,7 @@ import os
 import re
 import json
 import asyncio
+from pathlib import Path
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api.message_components import *
@@ -36,6 +37,15 @@ def _load_runtime_override(runtime_config_file: str) -> dict:
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
+
+
+def _write_webui_access_password(password: str, plugin_name: str = PLUGIN_NAME) -> Path:
+    base_paths = get_base_storage_paths(plugin_name)
+    password_file = base_paths["plugin_data_dir"] / "webui_access_config.json"
+    password_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(password_file, "w", encoding="utf-8") as f:
+        json.dump({"access_password": str(password or "").strip() or "12345678"}, f, ensure_ascii=False, indent=2)
+    return password_file
 
 
 def _normalize_public_duel_runtime(config: dict) -> dict:
@@ -198,6 +208,7 @@ class LuckPlugin(Star):
         if webui_cfg.get("enable", False):
             webui_port = int(webui_cfg.get("port", 4399) or 4399)
             webui_access_password = str(webui_cfg.get("access_password", "12345678") or "12345678").strip() or "12345678"
+            _write_webui_access_password(webui_access_password, self.name or PLUGIN_NAME)
             from multiprocessing import Process
             from .webui.server import run_server_process
             self._webui_process = Process(

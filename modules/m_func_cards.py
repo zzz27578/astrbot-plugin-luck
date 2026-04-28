@@ -110,6 +110,29 @@ def _find_card_config_by_name(cards_config: list, requested_name: str) -> dict |
     return None
 
 
+def _search_func_cards_by_name(cards_config: list, requested_name: str) -> list[dict]:
+    requested_text = str(requested_name or "").strip()
+    if not requested_text:
+        return []
+
+    exact = _find_card_config_by_name(cards_config, requested_text)
+    if exact:
+        return [exact]
+
+    canonical_query = _canonical_card_lookup_name(requested_text)
+    matches: list[dict] = []
+    seen: set[str] = set()
+    for card in cards_config or []:
+        card_name = str(card.get("card_name", "") or "").strip()
+        if not card_name:
+            continue
+        canonical_name = _canonical_card_lookup_name(card_name)
+        if canonical_query and canonical_query in canonical_name and canonical_name not in seen:
+            matches.append(card)
+            seen.add(canonical_name)
+    return matches
+
+
 def _is_slotless_card(card: dict | None) -> bool:
     return bool((card or {}).get("no_slot", False))
 
@@ -695,6 +718,122 @@ def _validate_aoe_tags(tags: list) -> str:
             if count < 1:
                 return f"⚠️ 群体净化标签参数越界：{tag}\n要求：人数 >= 1。"
     return ""
+
+
+_FUNC_CARD_RARITY_LABELS = {
+    1: "⚪ 普通",
+    2: "🔹 稀有",
+    3: "🟣 史诗",
+    4: "🟠 传说",
+    5: "🔴 神话",
+}
+
+_FUNC_CARD_TYPE_LABELS = {
+    "attack": "攻击",
+    "heal": "辅助",
+    "defense": "防御",
+}
+
+
+def _humanize_func_card_tag(tag: str) -> str:
+    raw = str(tag or "").strip()
+    if not raw:
+        return ""
+    parts = raw.split(":")
+    key = parts[0]
+
+    if key == "steal":
+        return f"偷取目标 {parts[1] if len(parts) > 1 else 0} 金币"
+    if key == "freeze":
+        return f"冻结目标 {parts[1] if len(parts) > 1 else 0} 小时，期间无法抽牌和出牌"
+    if key == "silence":
+        return f"沉默目标 {parts[1] if len(parts) > 1 else 0} 小时，期间无法使用功能牌"
+    if key == "seal_draw_all":
+        return f"封锁目标抽牌 {parts[1] if len(parts) > 1 else 0} 小时"
+    if key == "luck_drain":
+        return f"抽走目标 {parts[2] if len(parts) > 2 else 0}% 功能牌爆率，持续 {parts[1] if len(parts) > 1 else 0} 小时"
+    if key == "steal_fate":
+        return "偷取目标最近一次命运牌收益"
+    if key == "borrow_blade":
+        return f"借第三方之手，对目标造成 {parts[1] if len(parts) > 1 else 0}~{parts[2] if len(parts) > 2 else 0} 金币伤害"
+    if key == "bounty_mark":
+        return f"给目标挂悬赏印记 {parts[1] if len(parts) > 1 else 0} 小时，期间额外追加 {parts[2] if len(parts) > 2 else 0} 金币损失"
+    if key == "strip_buff_gain":
+        return f"移除目标 1 个增益，并给自己附加 {parts[1] if len(parts) > 1 else 0}% 爆率加成，持续 {parts[2] if len(parts) > 2 else 0} 小时"
+    if key == "aoe_damage":
+        return f"群体攻击：最多波及 {parts[3] if len(parts) > 3 else 0} 人，每人受到 {parts[1] if len(parts) > 1 else 0}~{parts[2] if len(parts) > 2 else 0} 金币伤害"
+    if key == "dice_rule":
+        return f"触发骰子规则：{parts[1] if len(parts) > 1 else '默认规则'}"
+    if key == "lucky_roulette":
+        return "触发一次幸运转盘，按命中号码结算对应效果"
+    if key == "dice_duel":
+        return f"向目标发起一场最低投入为 {parts[1] if len(parts) > 1 else 20} 的骰子对赌"
+    if key == "cleanse":
+        return "净化 1 个负面状态"
+    if key == "aoe_cleanse":
+        return f"群体净化：最多影响 {parts[1] if len(parts) > 1 else 0} 人，每人净化 1 个负面状态"
+    if key == "aoe_heal":
+        return f"群体治疗：最多影响 {parts[3] if len(parts) > 3 else 0} 人，每人恢复 {parts[1] if len(parts) > 1 else 0}~{parts[2] if len(parts) > 2 else 0} 金币"
+    if key == "luck_bless":
+        return f"给自己附加好运状态，爆率提升 {parts[2] if len(parts) > 2 else 0}%，持续 {parts[1] if len(parts) > 1 else 0} 小时"
+    if key == "fate_roulette":
+        return "触发一次命运转盘"
+    if key == "dice_reroll_lowest_once":
+        return "下次骰到最低点时自动重投 1 次"
+    if key == "add_shield":
+        return "获得 1 层【无懈可击】护盾"
+    if key == "thorn_armor":
+        return f"附加反甲 {parts[1] if len(parts) > 1 else 0} 小时，按 {parts[2] if len(parts) > 2 else 0}% 反弹金币伤害"
+    return raw
+
+
+def _format_func_card_query_text(card: dict) -> str:
+    rarity = _FUNC_CARD_RARITY_LABELS.get(int(card.get("rarity", 1) or 1), "⚪ 普通")
+    card_type = _derive_runtime_card_type(card.get("type", "attack"), card.get("tags", []))
+    type_label = _FUNC_CARD_TYPE_LABELS.get(card_type, card_type or "未知")
+    description = str(card.get("description", "") or "").strip() or "当前没有填写描述。"
+    tag_lines = [
+        f"{idx}. {_humanize_func_card_tag(tag)}"
+        for idx, tag in enumerate(card.get("tags", []) or [], 1)
+        if str(tag or "").strip()
+    ]
+    if not tag_lines:
+        tag_lines = ["1. 暂未配置任何效果词条"]
+
+    lines = [
+        f"🎴【功能牌查询】{_display_card_name(card.get('card_name', '未命名功能牌'))}",
+        f"稀有度：{rarity}",
+        f"类型：{type_label}",
+        f"描述：{description}",
+        "效果：",
+        *tag_lines,
+    ]
+    return "\n".join(lines)
+
+
+async def handle_query_func_card(event: AstrMessageEvent, config: dict, raw_name: str):
+    requested_name = str(raw_name or "").strip()
+    if not requested_name:
+        yield event.plain_result("⚠️ 请输入要查询的功能牌名称。\n示例：/luck 查询 绝对零度")
+        return
+
+    cards_config = load_func_cards_config(config, include_disabled_dice=True)
+    if not cards_config:
+        yield event.plain_result("⚠️ 当前功能牌卡池为空，无法查询。")
+        return
+
+    matches = _search_func_cards_by_name(cards_config, requested_name)
+    if not matches:
+        yield event.plain_result(f"❓ 没有找到功能牌【{requested_name}】。\n请检查卡名，或尽量输入更完整的名称。")
+        return
+
+    if len(matches) > 1:
+        preview = "、".join(f"【{_display_card_name(card.get('card_name', '未命名'))}】" for card in matches[:6])
+        suffix = "……" if len(matches) > 6 else ""
+        yield event.plain_result(f"🔎 找到多张疑似功能牌：{preview}{suffix}\n请把名称再写完整一点后重新查询。")
+        return
+
+    yield event.plain_result(_format_func_card_query_text(matches[0]))
 
 
 def _derive_runtime_card_type(card_type: str, tags: list) -> str:

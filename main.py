@@ -301,6 +301,15 @@ class LuckPlugin(Star):
                 yield res
             return
 
+        if cmd_str.startswith("查询"):
+            if not current_config.get("func_cards_settings", {}).get("enable", True):
+                yield event.plain_result("⚠️ 战术功能牌系统暂未开放。")
+                return
+            card_name = cmd_str.replace("查询", "", 1).strip()
+            async for res in m_func_cards.handle_query_func_card(event, current_config, card_name):
+                yield res
+            return
+
 
         if cmd_str == "查看称号":
             async for res in m_func_cards.handle_view_titles(event, bank, current_config):
@@ -832,6 +841,7 @@ class LuckPlugin(Star):
             f"/luck 抽取功能牌  {'✅' if func_enabled else '❌'}",
             "/luck 面板",
             "/luck 面板@某人",
+            "/luck 查询 功能牌名",
 
             "/luck 查看称号",
             "/luck 佩戴称号 名称",
@@ -887,6 +897,7 @@ class LuckPlugin(Star):
             "• 抽取功能牌 -> 抽牌",
             "• 面板 -> 看卡槽/状态",
             "• 面板@某人 -> 查看对方个人面板",
+            "• 查询 功能牌名 -> 查看这张牌的描述与自动效果说明",
 
             "• 查看称号 -> 看已获称号与佩戴状态",
             "• 佩戴称号 名称 -> 启用称号效果",

@@ -2711,89 +2711,100 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 
 /* ================= 新增：HUD与右侧几何体样式 ================= */
-/* 右侧旋转几何体 (Originium Reactor Astrolabe) */
+/* 右侧：纯粹的 3D 线框拓扑结构 (Tesseract / 3D Cube) */
 .ark-geometry-core {
   position: absolute;
-  right: 12vw;
+  right: 15vw;
   top: 50%;
-  transform: translateY(-50%);
-  width: 560px;
-  height: 560px;
+  /* 去除整体容器的极端旋转，将 3D 透视视距给到父级，让内部的立方体拥有真正的自由翻滚空间 */
+  transform: translateY(-50%) perspective(1200px);
+  width: 400px;
+  height: 400px;
   pointer-events: none;
   z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.85;
+  transform-style: preserve-3d;
 }
+
+/* 立方体容器本身，执行全方位的 3D 旋转 */
+.ark-3d-cube {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  transform-style: preserve-3d;
+  animation: cube-spin 20s infinite linear;
+}
+
+/* 定义立方体的 6 个面，全部为极简发光线框 */
+.cube-face {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  /* 极其纯粹的机械线框，无多余填充 */
+  background: rgba(57, 229, 184, 0.02);
+  border: 1px solid rgba(57, 229, 184, 0.45);
+  box-shadow: inset 0 0 15px rgba(57, 229, 184, 0.1);
+}
+
+/* 6 个面的空间坐标变换 (边长 240px，向外位移 120px) */
+.cube-face.front  { transform: rotateY(  0deg) translateZ(120px); }
+.cube-face.back   { transform: rotateY(180deg) translateZ(120px); }
+.cube-face.right  { transform: rotateY( 90deg) translateZ(120px); }
+.cube-face.left   { transform: rotateY(-90deg) translateZ(120px); }
+.cube-face.top    { transform: rotateX( 90deg) translateZ(120px); }
+.cube-face.bottom { transform: rotateX(-90deg) translateZ(120px); }
+
+/* 在立方体表面绘制内部的十字结构支撑线 */
+.cube-face::after,
+.cube-face::before {
+  content: '';
+  position: absolute;
+  background: rgba(57, 229, 184, 0.2);
+}
+.cube-face::before {
+  top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%);
+}
+.cube-face::after {
+  left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%);
+}
+
+/* 全息投影底座，位于立方体下方 */
 .ark-geo-ring {
   position: absolute;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-/* 最外层：慢速顺时针，上下带高亮边框 */
-.outer-ring {
-  width: 100%;
-  height: 100%;
-  border: 1px solid rgba(57,229,184,0.15);
-  border-left: 2px solid rgba(57,229,184,0.5);
-  border-right: 2px solid rgba(57,229,184,0.5);
-  animation: ark-spin-cw 45s linear infinite;
-}
-/* 外围辅轨：中速逆时针虚线 */
-.outer-orbit {
-  width: 88%;
-  height: 88%;
-  border: 1px dashed rgba(255,255,255,0.15);
-  animation: ark-spin-ccw 30s linear infinite;
-}
-/* 中层机甲切角：六边形，顺时针中速，带内核辐射光 */
-.middle-poly {
-  width: 68%;
-  height: 68%;
-  background: radial-gradient(circle, rgba(57,229,184,0.02) 20%, rgba(57,229,184,0.08) 80%);
-  border: 1px solid rgba(57,229,184,0.6);
-  border-radius: 0 !important; /* 覆盖圆角限制，强制六边形 */
-  clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
-  animation: ark-spin-cw 20s linear infinite;
-}
-/* 六边形内圈线 */
-.middle-poly::before {
-  content: ''; 
-  position: absolute;
-  inset: 10px;
-  border: 1px solid rgba(255,255,255,0.15);
-  clip-path: inherit;
-}
-/* 核心内圈：快速逆时针密集虚线 */
-.inner-dashed {
-  width: 46%;
-  height: 46%;
-  border: 3px dashed rgba(57,229,184,0.35);
-  animation: ark-spin-ccw 12s linear infinite;
-}
-/* 绝对静止的核心十字准星与光环 */
-.ark-geo-center-cross {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border: 2px solid rgba(255,255,255,0.2);
   border-radius: 50%;
-  box-shadow: 0 0 24px rgba(57,229,184,0.4);
+  transform-style: preserve-3d;
 }
-.ark-geo-center-cross::before, .ark-geo-center-cross::after {
-  content: ''; 
-  position: absolute; 
-  background: var(--accent);
+.endfield-base-plate {
+  position: absolute;
+  width: 480px;
+  height: 480px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  /* 底座放平，营造投影仪台面的感觉 */
+  transform: translateY(220px) rotateX(75deg);
+  border-radius: 50%;
+  box-shadow: 0 0 60px rgba(57,229,184,0.1);
+  animation: ark-spin-cw 40s linear infinite;
 }
-.ark-geo-center-cross::before {
-  top: 50%; left: -30px; right: -30px; height: 1px; transform: translateY(-50%);
+/* 底座上的同心切角标记 */
+.endfield-base-plate::after {
+  content: '';
+  position: absolute;
+  inset: 20px;
+  border: 1px solid rgba(57, 229, 184, 0.3);
+  clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
 }
-.ark-geo-center-cross::after {
-  left: 50%; top: -30px; bottom: -30px; width: 1px; transform: translateX(-50%);
+
+@keyframes cube-spin {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  100% { transform: rotateX(360deg) rotateY(720deg) rotateZ(360deg); }
 }
+@keyframes ark-spin-cw { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes ark-spin-ccw { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
 
 @keyframes ark-spin-cw { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 @keyframes ark-spin-ccw { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
@@ -6455,20 +6466,26 @@ function renderHome() {
                 <!-- 贯穿的工业基准线 -->
         <div class="ark-baseline"></div>
 
-                <!-- 右侧：动态机能风复合几何体 (Astrolabe / Reactor) -->
+                <!-- 右侧：纯粹的 3D 线框拓扑结构 (Tesseract / 3D Cube) -->
                 <div class="ark-geometry-core">
-                  <div class="ark-geo-ring outer-ring"></div>
-                  <div class="ark-geo-ring outer-orbit"></div>
-                  <div class="ark-geo-ring middle-poly"></div>
-                  <div class="ark-geo-ring inner-dashed"></div>
-                  <div class="ark-geo-center-cross"></div>
+                  <!-- 悬浮的三维立方体 -->
+                  <div class="ark-3d-cube">
+                    <div class="cube-face front"></div>
+                    <div class="cube-face back"></div>
+                    <div class="cube-face right"></div>
+                    <div class="cube-face left"></div>
+                    <div class="cube-face top"></div>
+                    <div class="cube-face bottom"></div>
+                  </div>
+                  <!-- 底部的全息投影底座 -->
+                  <div class="ark-geo-ring endfield-base-plate"></div>
                 </div>
 
         <div class="home-splash-core ark-hero-core">
                     <div class="ark-header-block">
                       <div class="home-splash-kicker ark-kicker">
                         <span class="ark-blink-rect"></span>
-                        <span>// INDUSTRIAL CONTROL SURFACE // SEC-01</span>
+                        <span>// ENDFIELD PROTOCOL // SYS.OP.NOMINAL</span>
                       </div>
                       <h1 class="home-splash-title ark-title">控制中枢</h1>
                       <div class="ark-subtitle-en">CENTRAL COMMAND MODULE ACTIVE</div>

@@ -2574,6 +2574,261 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .glass-top.boot-sequence .top-btn:nth-child(2) { animation-delay: 0.14s; }
 .glass-top.boot-sequence .top-btn:nth-child(3) { animation-delay: 0.18s; }
 
+/* ================= 5. 方舟结构美学：首页大字重构 ================= */
+.home-splash.ark-splash {
+  align-items: center;
+  justify-content: flex-start;
+  /* 取消父级强推，将定位权交给具体的内部元素，以实现中心卡位 */
+  padding: 8vh 0 0 0; 
+}
+.ark-bg-watermark {
+  position: absolute;
+  bottom: -2vh; /* 水印彻底沉底，作为庞大机库的墙面地标 */
+  right: 2vw;
+  font-family: var(--font-headline);
+  font-size: 28vh; /* 进一步放大，增强巨物压迫感 */
+  font-weight: 900;
+  line-height: 0.8;
+  color: rgba(255,255,255,0.02);
+  text-align: right;
+  pointer-events: none;
+  z-index: 1;
+  letter-spacing: -12px;
+  white-space: nowrap;
+  user-select: none;
+}
+.ark-baseline {
+  position: absolute;
+  left: 8vw; /* 整体左移，留出右侧几何仪轨的巨大空间 */
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(57,229,184,0) 0%, rgba(57,229,184,0.25) 25%, rgba(57,229,184,0.25) 75%, rgba(57,229,184,0) 100%);
+  z-index: 2;
+}
+.ark-baseline::after {
+  content: '';
+  position: absolute;
+  top: 50%; /* 标尺高亮段严格卡准屏幕几何中心 */
+  left: -2px;
+  width: 5px;
+  height: 120px; /* 拉长指示器，更像机械准星 */
+  transform: translateY(-50%);
+  background: var(--accent);
+}
+.home-splash-core.ark-hero-core {
+  position: relative;
+  z-index: 10;
+  text-align: left;
+  /* 整体左移至 12vw 起步，把右侧庞大空间让给动态几何体 */
+  padding-left: 12vw; 
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 48px; /* 拉开标题和按钮的间距 */
+  width: auto;
+  max-width: 100%;
+}
+.ark-header-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.ark-kicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+.ark-blink-rect {
+  width: 8px;
+  height: 14px;
+  background: var(--accent);
+  animation: ark-pulse 1.5s infinite step-end;
+}
+@keyframes ark-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.ark-title {
+  font-size: clamp(64px, 10vw, 120px);
+  letter-spacing: 16px;
+  margin-left: 8px; /* 稍微抵消第一个字符字间距导致的右偏 */
+  line-height: 1.1;
+  text-shadow: none;
+  color: #ffffff;
+}
+.ark-subtitle-en {
+  font-family: var(--font-headline);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 12px;
+  color: rgba(255,255,255,0.3);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 16px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+
+.ark-actions {
+  /* 配合标题的 margin-left: 8px 视觉补偿，让按钮与大字的视觉左边界严格对齐 */
+  margin-left: 8px;
+}
+.ark-login-btn {
+  position: relative;
+  background: #e6ede9;
+  color: #080a09;
+  border: none;
+  height: 56px;
+  padding: 0 24px 0 32px;
+  font-family: var(--font-headline);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  cursor: pointer;
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  transition: 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.ark-login-btn::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--accent);
+  transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1); /* 加强并保留极其惊艳的从左至右伪滑动效果 */
+}
+.ark-login-btn:hover {
+  background: #ffffff;
+  transform: translateX(8px);
+}
+.ark-login-btn:hover::before {
+  width: 100%; /* 从左向右瞬间能量灌满 */
+}
+
+/* ================= 新增：HUD与右侧几何体样式 ================= */
+/* 右侧旋转几何体 (Originium Reactor Astrolabe) */
+.ark-geometry-core {
+  position: absolute;
+  right: 12vw;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 560px;
+  height: 560px;
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+}
+.ark-geo-ring {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 最外层：慢速顺时针，上下带高亮边框 */
+.outer-ring {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(57,229,184,0.15);
+  border-left: 2px solid rgba(57,229,184,0.5);
+  border-right: 2px solid rgba(57,229,184,0.5);
+  animation: ark-spin-cw 45s linear infinite;
+}
+/* 外围辅轨：中速逆时针虚线 */
+.outer-orbit {
+  width: 88%;
+  height: 88%;
+  border: 1px dashed rgba(255,255,255,0.15);
+  animation: ark-spin-ccw 30s linear infinite;
+}
+/* 中层机甲切角：六边形，顺时针中速，带内核辐射光 */
+.middle-poly {
+  width: 68%;
+  height: 68%;
+  background: radial-gradient(circle, rgba(57,229,184,0.02) 20%, rgba(57,229,184,0.08) 80%);
+  border: 1px solid rgba(57,229,184,0.6);
+  border-radius: 0 !important; /* 覆盖圆角限制，强制六边形 */
+  clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+  animation: ark-spin-cw 20s linear infinite;
+}
+/* 六边形内圈线 */
+.middle-poly::before {
+  content: ''; 
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  clip-path: inherit;
+}
+/* 核心内圈：快速逆时针密集虚线 */
+.inner-dashed {
+  width: 46%;
+  height: 46%;
+  border: 3px dashed rgba(57,229,184,0.35);
+  animation: ark-spin-ccw 12s linear infinite;
+}
+/* 绝对静止的核心十字准星与光环 */
+.ark-geo-center-cross {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 50%;
+  box-shadow: 0 0 24px rgba(57,229,184,0.4);
+}
+.ark-geo-center-cross::before, .ark-geo-center-cross::after {
+  content: ''; 
+  position: absolute; 
+  background: var(--accent);
+}
+.ark-geo-center-cross::before {
+  top: 50%; left: -30px; right: -30px; height: 1px; transform: translateY(-50%);
+}
+.ark-geo-center-cross::after {
+  left: 50%; top: -30px; bottom: -30px; width: 1px; transform: translateX(-50%);
+}
+
+@keyframes ark-spin-cw { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes ark-spin-ccw { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+
+.ark-login-btn .ark-btn-text,
+.ark-login-btn .ark-btn-arrow {
+  position: relative;
+  z-index: 1;
+  transition: color 0.3s ease;
+}
+.ark-login-btn:hover .ark-btn-text,
+.ark-login-btn:hover .ark-btn-arrow {
+  color: #ffffff;
+}
+.ark-btn-arrow {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.ark-login-btn:hover .ark-btn-arrow {
+  transform: translateX(6px);
+}
+@media (max-width: 760px) {
+  /* 移动端缩小右侧旋转几何体并降低透明度，作为背景点缀 */
+  .ark-geometry-core { opacity: 0.15; right: -10vw; transform: translateY(-50%) scale(0.6); }
+  .ark-bg-watermark { font-size: 15vh; top: 15%; right: -10%; }
+  .home-splash.ark-splash { padding: 0 6%; justify-content: center; }
+  .ark-baseline { display: none; }
+  .home-splash-core.ark-hero-core { padding-left: 0; align-items: center; text-align: center; }
+  .ark-header-block { align-items: center; }
+  .ark-title { font-size: 56px; letter-spacing: 8px; margin-left: 0; }
+  .ark-subtitle-en { letter-spacing: 4px; }
+  .ark-desc { flex-direction: column; align-items: center; text-align: center; }
+  .ark-desc-line { width: 40px; height: 3px; }
+}
 </style>
 </head>
 <body class="chassis">
@@ -6190,16 +6445,43 @@ function renderHome() {
       <div class="showcase-noise"></div>
       <div class="showcase-grid-bg"></div>
 
-      <div class="home-splash">
-        <div class="home-splash-core">
-          <div class="home-splash-kicker">INDUSTRIAL CONTROL SURFACE</div>
-          <h1 class="home-splash-title">控制中枢</h1>
-          <div class="home-splash-desc">
-            一个面向插件控制台的工业系统首页。先展示身份与入口，再通过登录验证进入接入流程。
-          </div>
-          <div class="home-splash-actions">
-            <button class="home-splash-btn primary" onclick="beginHomeLoginFlow()">登录系统</button>
-          </div>
+            <div class="home-splash ark-splash">
+        <!-- 巨型背景水印，营造宏大空间感 -->
+        <div class="ark-bg-watermark">
+          <span>TERRA</span><br>
+          <span>SYSTEM</span>
+        </div>
+        
+                <!-- 贯穿的工业基准线 -->
+        <div class="ark-baseline"></div>
+
+                <!-- 右侧：动态机能风复合几何体 (Astrolabe / Reactor) -->
+                <div class="ark-geometry-core">
+                  <div class="ark-geo-ring outer-ring"></div>
+                  <div class="ark-geo-ring outer-orbit"></div>
+                  <div class="ark-geo-ring middle-poly"></div>
+                  <div class="ark-geo-ring inner-dashed"></div>
+                  <div class="ark-geo-center-cross"></div>
+                </div>
+
+        <div class="home-splash-core ark-hero-core">
+                    <div class="ark-header-block">
+                      <div class="home-splash-kicker ark-kicker">
+                        <span class="ark-blink-rect"></span>
+                        <span>// INDUSTRIAL CONTROL SURFACE // SEC-01</span>
+                      </div>
+                      <h1 class="home-splash-title ark-title">控制中枢</h1>
+                      <div class="ark-subtitle-en">CENTRAL COMMAND MODULE ACTIVE</div>
+                    </div>
+
+          
+
+          <div class="home-splash-actions ark-actions">
+                      <button class="ark-login-btn" onclick="beginHomeLoginFlow()">
+                        <span class="ark-btn-text">SYSTEM LOGIN // 登录系统</span>
+                        <svg class="ark-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7" stroke-width="2"/></svg>
+                      </button>
+                    </div>
         </div>
       </div>
 

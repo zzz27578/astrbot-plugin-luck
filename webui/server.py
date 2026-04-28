@@ -8,6 +8,7 @@ import tempfile
 import shutil
 import random
 import re
+import secrets
 import uuid
 from urllib.parse import urlparse
 from pathlib import Path
@@ -57,6 +58,10 @@ DEFAULT_TITLES_CONFIG_FILE = CONFIG_DIR / "titles_config.json"
 BUILTIN_DEFAULT_COPY_FROM = "__builtin_default__"
 
 BLANK_COPY_FROM = "__blank__"
+WEBUI_DEFAULT_ACCESS_PASSWORD = "12345678"
+WEBUI_SESSION_COOKIE = "luck_webui_session"
+_WEBUI_ACCESS_PASSWORD = WEBUI_DEFAULT_ACCESS_PASSWORD
+_AUTH_SESSIONS: set[str] = set()
 
 # 默认签到文案（fallback）
 DEFAULT_SIGN_IN_TEXTS = {
@@ -689,6 +694,39 @@ def _default_runtime_config() -> dict:
         },
 
     }
+
+
+def _normalize_access_password(value) -> str:
+    text = str(value or "").strip()
+    return text or WEBUI_DEFAULT_ACCESS_PASSWORD
+
+
+def _get_session_token(request: web.Request) -> str:
+    return str(request.cookies.get(WEBUI_SESSION_COOKIE, "") or "").strip()
+
+
+def _is_authenticated_request(request: web.Request) -> bool:
+    token = _get_session_token(request)
+    return bool(token) and token in _AUTH_SESSIONS
+
+
+def _is_public_request_path(path: str) -> bool:
+    if path in {"/", "/api/access/status", "/api/access/verify", "/api/access/logout", "/favicon.ico"}:
+        return True
+    return path.startswith("/static/")
+
+
+@web.middleware
+async def auth_middleware(request: web.Request, handler):
+    path = request.path
+    if _is_public_request_path(path) or _is_authenticated_request(request):
+        return await handler(request)
+    if path.startswith("/api/"):
+        return web.json_response(
+            {"ok": False, "error": "请先完成访问口令验证。", "code": "auth_required"},
+            status=401,
+        )
+    raise web.HTTPFound("/")
 
 
 def _seed_profile_from_builtin_defaults(paths: dict):
@@ -1731,6 +1769,46 @@ async def api_check_missing_images(request):
         return web.json_response({"ok": False, "error": str(e), "missing": []}, status=500)
 
 
+async def api_access_status(request):
+    return web.json_response({"ok": True, "verified": _is_authenticated_request(request)})
+
+
+async def api_access_verify(request):
+    try:
+        body = await request.json() if request.can_read_body else {}
+    except Exception:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+    password = str(body.get("password", "") or "")
+    if not password.strip():
+        return web.json_response({"ok": False, "error": "请输入访问口令。"}, status=400)
+    if not secrets.compare_digest(password, _WEBUI_ACCESS_PASSWORD):
+        return web.json_response({"ok": False, "error": "访问口令错误。", "code": "invalid_password"}, status=401)
+    token = secrets.token_urlsafe(32)
+    _AUTH_SESSIONS.add(token)
+    response = web.json_response({"ok": True, "verified": True})
+    response.set_cookie(
+        WEBUI_SESSION_COOKIE,
+        token,
+        httponly=True,
+        samesite="Lax",
+        secure=False,
+        path="/",
+        max_age=86400,
+    )
+    return response
+
+
+async def api_access_logout(request):
+    token = _get_session_token(request)
+    if token:
+        _AUTH_SESSIONS.discard(token)
+    response = web.json_response({"ok": True, "verified": False})
+    response.del_cookie(WEBUI_SESSION_COOKIE, path="/")
+    return response
+
+
 async def api_profile_overview(request):
     try:
         profiles = [_collect_profile_stats(pid) for pid in _list_profile_ids()]
@@ -2006,9 +2084,11 @@ _runner = None
 _site = None
 
 
-def run_server_process(port: int):
+def run_server_process(port: int, access_password: str = WEBUI_DEFAULT_ACCESS_PASSWORD):
     """给 multiprocessing.Process 调用的同步入口"""
     import asyncio
+    global _WEBUI_ACCESS_PASSWORD
+    _WEBUI_ACCESS_PASSWORD = _normalize_access_password(access_password)
 
     async def _serve():
         await start_webui(host="0.0.0.0", port=port)
@@ -2028,9 +2108,12 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     _ensure_private_dirs()
     migrate_legacy_storage(PLUGIN_NAME)
     _ensure_profile_seed_data(DEFAULT_PROFILE_NAME)
-    app = web.Application()
+    app = web.Application(middlewares=[auth_middleware])
 
         # API 路由
+    app.router.add_get("/api/access/status", api_access_status)
+    app.router.add_post("/api/access/verify", api_access_verify)
+    app.router.add_post("/api/access/logout", api_access_logout)
     app.router.add_get("/api/profile_overview", api_profile_overview)
     app.router.add_post("/api/profiles", api_create_profile)
     app.router.add_post("/api/profile_meta", api_update_profile_meta)

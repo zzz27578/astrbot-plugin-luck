@@ -1278,6 +1278,50 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   color: #155c39;
 }
 
+.password-input-wrap {
+  position: relative;
+}
+
+.password-input-wrap .input {
+  padding-right: 52px;
+}
+
+.password-eye-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(25, 33, 29, 0.48);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.password-eye-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+.password-eye-btn:hover,
+.password-eye-btn.is-active {
+  color: #1A9E5E;
+}
+
+.password-eye-btn:focus-visible {
+  outline: 2px solid rgba(26, 158, 94, 0.28);
+  outline-offset: 2px;
+  color: #1A9E5E;
+}
+
 @media (max-width: 1120px) {
   .home-showcase.stage-auth,
   .home-showcase.stage-ready,
@@ -2943,6 +2987,7 @@ const state = {
   pendingAssetDelete: { kind: '', file: '' },
   pendingTitleDelete: -1,
   homeAccessVerified: false,
+  homePasswordVisible: false,
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -3160,6 +3205,31 @@ function openExternalLink(url) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
+function getHomeAccessEyeIcon(visible) {
+  return visible
+    ? '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10.58 10.58A2 2 0 0 0 13.41 13.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.88 5.09A10.94 10.94 0 0 1 12 4.9c5.23 0 9.27 3.39 10.5 7.1a11.67 11.67 0 0 1-4.18 5.71" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.61 6.61C4.44 7.86 2.91 9.73 1.5 12c1.23 3.71 5.27 7.1 10.5 7.1 1.81 0 3.48-.41 4.95-1.11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M1.5 12C2.73 8.29 6.77 4.9 12 4.9S21.27 8.29 22.5 12C21.27 15.71 17.23 19.1 12 19.1S2.73 15.71 1.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>';
+}
+
+function showHomeAuthView(message = '') {
+  state.topView = 'home';
+  state.homeAccessVerified = false;
+  state.homePasswordVisible = false;
+  state.homeStage = 'auth';
+  clearShellEnterAnimation();
+  resetHomeMorphState();
+  syncTopViewButtons('home');
+  if ($('.glass-side')) $('.glass-side').style.display = 'none';
+  if ($('.glass-top')) $('.glass-top').style.display = 'none';
+  if ($('#homePages')) $('#homePages').style.display = 'block';
+  if ($('.shard-header')) $('.shard-header').style.display = 'none';
+  if ($('#configPages')) $('#configPages').style.display = 'none';
+  if ($('#statsPages')) $('#statsPages').style.display = 'none';
+  if ($('.toolbar-actions')) $('.toolbar-actions').style.display = 'none';
+  renderHome();
+  if (message) showToast(message, true);
+}
+
 function beginHomeLoginFlow() {
   if (state.homeStage !== 'intro') return;
   const nextStage = state.homeAccessVerified ? 'ready' : 'auth';
@@ -3179,26 +3249,59 @@ function beginHomeLoginFlow() {
   }, 540);
 }
 
-function toggleHomeAccessVisibility(visible) {
+function toggleHomeAccessVisibility(forceVisible) {
+  const visible = typeof forceVisible === 'boolean' ? forceVisible : !state.homePasswordVisible;
+  state.homePasswordVisible = visible;
   const input = $('#homeInlinePassword') || $('#homeAccessCode');
   if (input) input.type = visible ? 'text' : 'password';
+  const toggle = $('#homePasswordToggle');
+  if (toggle) {
+    toggle.innerHTML = getHomeAccessEyeIcon(visible);
+    toggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
+    toggle.setAttribute('aria-label', visible ? '隐藏口令' : '显示口令');
+    toggle.classList.toggle('is-active', visible);
+  }
 }
 
-function submitHomeAccess() {
+async function submitHomeAccess() {
   const password = ($('#homeInlinePassword')?.value || $('#homeAccessCode')?.value || '').trim();
   if (!password) {
     showToast('请输入访问口令。', true);
     return;
   }
-  state.homeAccessVerified = true;
-  state.homeStage = 'ready';
-  renderHome();
-  $('#homeInlineInitBtn')?.focus();
-  showToast('权限验证通过，已解锁初始化入口。');
+  const btn = window.event?.currentTarget?.closest?.('button') || document.querySelector('.home-login-actions .btn-strong');
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('busy');
+    }
+    await apiPost('/api/access/verify', { password });
+    state.homeAccessVerified = true;
+    state.homeStage = 'ready';
+    await loadAll();
+    renderHome();
+    $('#homeInlineInitBtn')?.focus();
+    showToast('权限验证通过，已解锁初始化入口。');
+  } catch (e) {
+    state.homeAccessVerified = false;
+    state.homeStage = 'auth';
+    showToast(e?.message || '访问口令验证失败。', true);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('busy');
+    }
+  }
 }
 
-function restartHomeVerification() {
+async function restartHomeVerification() {
+  try {
+    await apiPost('/api/access/logout', {});
+  } catch (e) {
+    console.warn('logout failed:', e);
+  }
   state.homeAccessVerified = false;
+  state.homePasswordVisible = false;
   state.homeStage = 'auth';
   renderHome();
   setTimeout(() => $('#homeInlinePassword')?.focus(), 30);
@@ -3796,6 +3899,9 @@ const requestJson = async (path, options = {}) => {
 
   const data = JSON.parse(text);
   if (!response.ok) {
+    if (response.status === 401 && data?.code === 'auth_required') {
+      showHomeAuthView('当前登录态已失效，请重新输入访问口令。');
+    }
     throw new Error(data?.error || `请求失败: ${path} [${response.status}]`);
   }
   return data;
@@ -4077,6 +4183,22 @@ async function loadAll(showMessage = false) {
   } catch (e) {
     console.error(e);
     showToast('载入失败，请检查后端接口。', true);
+  }
+}
+
+async function syncHomeAccessStatus() {
+  try {
+    const res = await apiGet('/api/access/status');
+    state.homeAccessVerified = !!res.verified;
+    if (state.homeAccessVerified) {
+      await loadAll();
+    } else {
+      state.homeStage = 'intro';
+    }
+  } catch (e) {
+    console.warn('syncHomeAccessStatus failed:', e);
+    state.homeAccessVerified = false;
+    state.homeStage = 'intro';
   }
 }
 
@@ -6131,14 +6253,13 @@ function renderHome() {
             ` : `
               <div class="field">
                 <label>访问口令</label>
-                <input class="input" id="homeInlinePassword" type="password" placeholder="输入访问口令" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
+                <div class="password-input-wrap">
+                  <input class="input" id="homeInlinePassword" type="${state.homePasswordVisible ? 'text' : 'password'}" placeholder="输入访问口令" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
+                  <button class="password-eye-btn ${state.homePasswordVisible ? 'is-active' : ''}" id="homePasswordToggle" type="button" aria-label="${state.homePasswordVisible ? '隐藏口令' : '显示口令'}" aria-pressed="${state.homePasswordVisible ? 'true' : 'false'}" onclick="toggleHomeAccessVisibility()">${getHomeAccessEyeIcon(state.homePasswordVisible)}</button>
+                </div>
               </div>
-              <label class="check-strong" style="min-height:36px;">
-                <input type="checkbox" onchange="toggleHomeAccessVisibility(this.checked)">
-                <span>显示口令</span>
-              </label>
               <div class="home-login-hint">
-                当前为演示接入流程，输入任意非空口令即可继续；后续可以无缝替换成真实后端鉴权。
+                访问口令现在会提交到后端校验。口令由 AstrBot 插件配置项提供，默认值为 12345678。
               </div>
             `}
 
@@ -7480,11 +7601,12 @@ async function bootstrapWebUi() {
   state.topView = 'home';
   state.homeStage = 'intro';
   state.homeAccessVerified = false;
+  state.homePasswordVisible = false;
   renderHome();
   ensureLazyProgressHud();
   bindEvents();
   try {
-    await loadAll();
+    await syncHomeAccessStatus();
   } finally {
     document.body.classList.add('ui-ready');
   }

@@ -197,11 +197,12 @@ class LuckPlugin(Star):
         webui_cfg = self._base_config.get("webui_settings", {})
         if webui_cfg.get("enable", False):
             webui_port = int(webui_cfg.get("port", 4399) or 4399)
+            webui_access_password = str(webui_cfg.get("access_password", "12345678") or "12345678").strip() or "12345678"
             from multiprocessing import Process
             from .webui.server import run_server_process
             self._webui_process = Process(
                 target=run_server_process,
-                args=(webui_port,),
+                args=(webui_port, webui_access_password),
                 daemon=True
             )
             self._webui_process.start()

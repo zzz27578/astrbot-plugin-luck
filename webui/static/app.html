@@ -42,7 +42,7 @@ html { min-height: 100%; font-size: 14px; }
 /* 1. 环境光底座 (为毛玻璃提供高级折射效果) */
 body.chassis {
   font-family: var(--font-body);
-  background-color: #1a201d; /* 柔和的底层深灰 */
+  background-color: #060807; /* 首页退场或截图边缘也保持同一深色基底 */
   color: var(--chassis-text);
   height: 100vh;
   overflow: hidden;
@@ -388,7 +388,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); gap: 24px; }
 .col-12 { grid-column: span 12; } .col-8 { grid-column: span 8; } .col-7 { grid-column: span 7; } .col-6 { grid-column: span 6; } .col-5 { grid-column: span 5; } .col-4 { grid-column: span 4; }
 
-#page-home { display: flex; position: fixed; inset: 0; margin: 0; padding: 0; z-index: 35; }
+#page-home { display: flex; position: fixed; inset: 0; margin: 0; padding: 0; z-index: 35; height: 100vh; min-height: 100vh; }
 #page-home.home-shell-return { z-index: 70; }
 #page-home.home-return-target .home-showcase { opacity: 0; }
 
@@ -580,6 +580,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .home-showcase {
   width: 100vw;
   height: 100vh;
+  min-height: 100vh;
   background: #0d110f;
   color: #e6ede9;
   overflow: hidden;
@@ -655,7 +656,9 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   width: auto;
   min-width: 0;
   height: 100%;
-  background: var(--shard-bg);
+  background: #f2f6f4;
+  background-image: radial-gradient(rgba(26, 158, 94, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
   z-index: 20;
   clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
   box-shadow: -20px 0 60px rgba(0,0,0,0.6);
@@ -671,6 +674,33 @@ body.chassis:not(.ui-ready) .toolbar-actions {
     clip-path 0.82s cubic-bezier(0.19, 1, 0.22, 1),
     background 0.42s ease,
     box-shadow 0.42s ease;
+}
+
+.showcase-right::before {
+  content: 'ACCESS // CONTROL';
+  position: absolute;
+  top: 180px;
+  right: -80px;
+  font-family: var(--font-headline);
+  font-size: 140px;
+  font-weight: 900;
+  color: rgba(26, 158, 94, 0.03);
+  transform: rotate(90deg);
+  transform-origin: right top;
+  pointer-events: none;
+  letter-spacing: -2px;
+  white-space: nowrap;
+}
+
+.showcase-right::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--home-shell-slant);
+  background: linear-gradient(90deg, rgba(26, 158, 94, 0.08), transparent);
+  pointer-events: none;
 }
 
 .sr-header {
@@ -836,7 +866,9 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   pointer-events: auto;
   clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
   box-shadow: none;
-  background: #ffffff;
+  background: #f2f6f4;
+  background-image: radial-gradient(rgba(26, 158, 94, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .home-showcase.stage-intro.intro-collapse .home-splash {
@@ -919,7 +951,9 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   pointer-events: auto;
   clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
   box-shadow: none;
-  background: #ffffff;
+  background: #f2f6f4;
+  background-image: radial-gradient(rgba(26, 158, 94, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .home-showcase.stage-auth:not(.return-home) .home-splash,
@@ -1223,35 +1257,129 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 
 .home-login-card {
-  width: min(460px, 100%);
-  border: none;
-  background: #ffffff;
-  padding: 34px 34px 30px;
-  box-shadow: none;
+  width: min(480px, 100%);
+  border: 1px solid rgba(26, 158, 94, 0.15);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 48px 44px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.04), inset 0 0 0 1px rgba(255,255,255,0.6);
   display: grid;
-  gap: 18px;
+  gap: 20px;
+  position: relative;
+}
+
+.home-login-card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 32px;
+  height: 32px;
+  border-top: 3px solid var(--accent);
+  border-left: 3px solid var(--accent);
+}
+
+.home-login-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 32px;
+  height: 32px;
+  border-bottom: 3px solid var(--accent);
+  border-right: 3px solid var(--accent);
+}
+
+.home-login-card .field {
+  display: grid;
+  gap: 10px;
+}
+
+.home-login-card .field label {
+  color: var(--shard-text-muted);
+  font-family: var(--font-headline);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.home-login-card .input {
+  background: #f5f8f6;
+  border: 1px solid rgba(26, 158, 94, 0.15);
+  border-bottom: 2px solid rgba(26, 158, 94, 0.4);
+  padding: 16px 20px;
+  font-size: 16px;
+  font-family: var(--font-headline);
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--shard-text);
+  transition: all 0.3s ease;
+}
+
+.home-login-card .input:focus {
+  background: #ffffff;
+  border-color: rgba(26, 158, 94, 0.4);
+  border-bottom-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(26, 158, 94, 0.06);
+}
+
+.home-login-card .btn-strong {
+  height: 52px;
+  padding: 0 32px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  background: var(--shard-text);
+  color: var(--shard-surface);
+}
+
+.home-login-card .btn-strong:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(26, 158, 94, 0.25);
+}
+
+.home-login-card .btn {
+  height: 52px;
+  font-size: 14px;
+  letter-spacing: 2px;
 }
 
 .home-login-kicker {
   font-family: var(--font-headline);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: 3px;
-  color: var(--shard-text-muted);
+  letter-spacing: 6px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.home-login-kicker::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 4px;
+  background: var(--accent);
 }
 
 .home-login-title {
   font-family: var(--font-headline);
-  font-size: 34px;
+  font-size: 42px;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 4px;
   color: var(--shard-text);
+  margin-top: -4px;
 }
 
 .home-login-desc {
-  font-size: 12px;
-  line-height: 1.9;
+  font-size: 13px;
+  line-height: 1.8;
   color: var(--shard-text-muted);
+  border-left: 2px solid rgba(26, 158, 94, 0.3);
+  padding-left: 14px;
+  margin-bottom: 8px;
 }
 
 .home-login-actions {
@@ -1261,21 +1389,22 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 
 .home-login-hint {
-  padding: 4px 0 0;
-  border: none;
-  background: transparent;
+  padding: 12px 16px;
+  border: 1px solid rgba(26, 158, 94, 0.1);
+  background: rgba(26, 158, 94, 0.04);
   font-size: 11px;
   line-height: 1.8;
-  color: var(--shard-text-muted);
+  color: #4a5c53;
 }
 
 .home-login-confirm {
-  padding: 12px 0 0;
-  border: none;
-  background: transparent;
-  font-size: 12px;
+  padding: 16px;
+  border: 1px dashed rgba(26, 158, 94, 0.3);
+  background: rgba(26, 158, 94, 0.05);
+  font-size: 13px;
   line-height: 1.8;
   color: #155c39;
+  font-weight: 500;
 }
 
 .password-input-wrap {
@@ -2578,15 +2707,49 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .home-splash.ark-splash {
   align-items: center;
   justify-content: flex-start;
-  /* 取消父级强推，将定位权交给具体的内部元素，以实现中心卡位 */
-  padding: 8vh 0 0 0; 
+  padding: 0;
+  background:
+    linear-gradient(90deg, rgba(57,229,184,0.055) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, #080b09 0%, #030504 100%);
+  background-size: 112px 100%, auto;
+}
+.home-splash.ark-splash::before,
+.home-splash.ark-splash::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+.home-splash.ark-splash::before {
+  left: 8vw;
+  top: 27vh;
+  width: min(54vw, 780px);
+  height: 33vh;
+  z-index: 3;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+    linear-gradient(90deg, rgba(57,229,184,0.08) 0 4px, transparent 4px);
+  border-top: 1px solid rgba(230,237,233,0.12);
+  border-bottom: 1px solid rgba(230,237,233,0.09);
+  clip-path: polygon(0 0, 94% 0, 100% 18%, 100% 100%, 7% 100%, 0 84%);
+  animation: ark-panel-breathe 7.6s ease-in-out infinite;
+}
+.home-splash.ark-splash::after {
+  right: -4vw;
+  top: 0;
+  bottom: 0;
+  width: 38vw;
+  z-index: 2;
+  background:
+    linear-gradient(135deg, rgba(238,246,241,0.06), rgba(57,229,184,0.016) 48%, rgba(0,0,0,0));
+  clip-path: polygon(28% 0, 100% 0, 100% 100%, 0 100%, 16% 62%, 0 32%);
+  animation: ark-slice-drift 12s ease-in-out infinite;
 }
 .ark-bg-watermark {
   position: absolute;
-  bottom: -2vh; /* 水印彻底沉底，作为庞大机库的墙面地标 */
-  right: 2vw;
+  bottom: -3vh;
+  right: -1vw;
   font-family: var(--font-headline);
-  font-size: 28vh; /* 进一步放大，增强巨物压迫感 */
+  font-size: 30vh;
   font-weight: 900;
   line-height: 0.8;
   color: rgba(255,255,255,0.02);
@@ -2615,17 +2778,17 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   height: 120px; /* 拉长指示器，更像机械准星 */
   transform: translateY(-50%);
   background: var(--accent);
+  animation: ark-baseline-lock 3.8s ease-in-out infinite;
 }
 .home-splash-core.ark-hero-core {
   position: relative;
-  z-index: 10;
+  z-index: 14;
   text-align: left;
-  /* 整体左移至 12vw 起步，把右侧庞大空间让给动态几何体 */
   padding-left: 12vw; 
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 48px; /* 拉开标题和按钮的间距 */
+  gap: 46px;
   width: auto;
   max-width: 100%;
 }
@@ -2633,6 +2796,28 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  position: relative;
+}
+.ark-header-block::before {
+  content: 'PRTS-04';
+  position: absolute;
+  right: -72px;
+  top: -22px;
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: rgba(230,237,233,0.28);
+}
+.ark-header-block::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: -18px;
+  bottom: -10px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(230,237,233,0.24), rgba(57,229,184,0.16), transparent);
+  animation: ark-line-phase 5.2s ease-in-out infinite;
 }
 .ark-kicker {
   display: flex;
@@ -2652,12 +2837,13 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 @keyframes ark-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .ark-title {
-  font-size: clamp(64px, 10vw, 120px);
-  letter-spacing: 16px;
+  font-size: clamp(70px, 9.2vw, 118px);
+  letter-spacing: 14px;
   margin-left: 8px; /* 稍微抵消第一个字符字间距导致的右偏 */
   line-height: 1.1;
   text-shadow: none;
   color: #ffffff;
+  position: relative;
 }
 .ark-subtitle-en {
   font-family: var(--font-headline);
@@ -2670,11 +2856,27 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   margin-top: 8px;
   width: 100%;
 }
+.ark-subtitle-en::before {
+  content: 'A-01';
+  display: inline-block;
+  margin-right: 18px;
+  color: rgba(57,229,184,0.65);
+}
 
 
 .ark-actions {
   /* 配合标题的 margin-left: 8px 视觉补偿，让按钮与大字的视觉左边界严格对齐 */
   margin-left: 8px;
+  position: relative;
+}
+.ark-actions::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: -18px;
+  width: 86px;
+  height: 1px;
+  background: rgba(57,229,184,0.42);
 }
 .ark-login-btn {
   position: relative;
@@ -2711,103 +2913,220 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 
 /* ================= 新增：HUD与右侧几何体样式 ================= */
-/* 右侧：纯粹的 3D 线框拓扑结构 (Tesseract / 3D Cube) */
 .ark-geometry-core {
   position: absolute;
-  right: 15vw;
-  top: 50%;
-  /* 去除整体容器的极端旋转，将 3D 透视视距给到父级，让内部的立方体拥有真正的自由翻滚空间 */
-  transform: translateY(-50%) perspective(1200px);
-  width: 400px;
-  height: 400px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform-style: preserve-3d;
+  z-index: 4;
+  overflow: hidden;
 }
 
-/* 立方体容器本身，执行全方位的 3D 旋转 */
-.ark-3d-cube {
+/* 鹰角风（Arknights）极简雷达场 */
+.ark-hud-stage {
   position: absolute;
-  width: 240px;
-  height: 240px;
-  transform-style: preserve-3d;
-  animation: cube-spin 20s infinite linear;
+  right: -15vw;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100vh;
+  height: 100vh;
+  max-width: 1200px;
+  max-height: 1200px;
+  border-radius: 50%;
 }
 
-/* 定义立方体的 6 个面，全部为极简发光线框 */
-.cube-face {
+/* 极细但高亮延伸十字基准线 */
+.ark-cross-v, .ark-cross-h {
   position: absolute;
-  width: 240px;
-  height: 240px;
-  /* 极其纯粹的机械线框，无多余填充 */
-  background: rgba(57, 229, 184, 0.02);
-  border: 1px solid rgba(57, 229, 184, 0.45);
-  box-shadow: inset 0 0 15px rgba(57, 229, 184, 0.1);
+  background: rgba(26, 158, 94, 0.6);
+  box-shadow: 0 0 12px rgba(26, 158, 94, 0.4);
+}
+.ark-cross-v {
+  left: 50%;
+  top: -30vh;
+  bottom: -30vh;
+  width: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, transparent, rgba(26, 158, 94, 0.6) 15%, rgba(26, 158, 94, 0.6) 85%, transparent);
+}
+.ark-cross-h {
+  top: 50%;
+  left: -40vw;
+  right: 10vw;
+  height: 1px;
+  transform: translateY(-50%);
+  background: linear-gradient(to right, transparent, rgba(26, 158, 94, 0.6) 15%, rgba(26, 158, 94, 0.6) 85%, transparent);
 }
 
-/* 6 个面的空间坐标变换 (边长 240px，向外位移 120px) */
-.cube-face.front  { transform: rotateY(  0deg) translateZ(120px); }
-.cube-face.back   { transform: rotateY(180deg) translateZ(120px); }
-.cube-face.right  { transform: rotateY( 90deg) translateZ(120px); }
-.cube-face.left   { transform: rotateY(-90deg) translateZ(120px); }
-.cube-face.top    { transform: rotateX( 90deg) translateZ(120px); }
-.cube-face.bottom { transform: rotateX(-90deg) translateZ(120px); }
+/* 雷达环层级（增粗增强可见度） */
+.ark-ring-outer, .ark-ring-mid, .ark-ring-inner, .ark-ring-ticks {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50% !important;
+}
 
-/* 在立方体表面绘制内部的十字结构支撑线 */
-.cube-face::after,
-.cube-face::before {
+.ark-ring-outer {
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(230, 237, 233, 0.15);
+  box-shadow: inset 0 3px 0 0 rgba(26, 158, 94, 0.35);
+  animation: ark-spin-v-slow 50s linear infinite;
+}
+
+/* 伴随外环旋转的发光节点，体现精密感 */
+.ark-orbit-node, .ark-orbit-node-opp {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--accent);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.ark-orbit-node { top: -4px; }
+.ark-orbit-node-opp { bottom: -4px; background: rgba(230, 237, 233, 0.8); box-shadow: 0 0 8px rgba(230, 237, 233, 0.5); }
+
+/* 极密仪表刻度圈：用渐变遮罩做出精密的齿轮刻度 */
+.ark-ring-ticks {
+  width: 82%;
+  height: 82%;
+  background: repeating-conic-gradient(from 0deg, rgba(230, 237, 233, 0.45) 0deg 0.5deg, transparent 0.5deg 2deg);
+  -webkit-mask: radial-gradient(circle, transparent 66%, #000 66.5%, #000 68%, transparent 68.5%);
+  mask: radial-gradient(circle, transparent 66%, #000 66.5%, #000 68%, transparent 68.5%);
+  animation: ark-spin-v-slow-rev 180s linear infinite;
+}
+
+/* 中环：改为更粗更亮的虚线，并且旋转速度加快 */
+.ark-ring-mid {
+  width: 60%;
+  height: 60%;
+  border: 2px dashed rgba(26, 158, 94, 0.35);
+  animation: ark-spin-v-slow-rev 35s linear infinite;
+}
+
+/* 内环：粗重的不对称边框，非常明显的旋转标志 */
+.ark-ring-inner {
+  width: 32%;
+  height: 32%;
+  border: 3px solid transparent;
+  border-top-color: rgba(26, 158, 94, 0.7);
+  border-right-color: rgba(230, 237, 233, 0.5);
+  animation: ark-spin-v-slow 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 核心准星节点 */
+.ark-core-node {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 16px var(--accent);
+}
+.ark-core-cross-h, .ark-core-cross-v {
+  position: absolute;
+  background: var(--accent);
+}
+.ark-core-cross-h {
+  top: 50%; left: -16px; right: -16px; height: 1px;
+  transform: translateY(-50%);
+}
+.ark-core-cross-v {
+  left: 50%; top: -16px; bottom: -16px; width: 1px;
+  transform: translateX(-50%);
+}
+
+.ark-core-node::after {
   content: '';
   position: absolute;
-  background: rgba(57, 229, 184, 0.2);
-}
-.cube-face::before {
-  top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%);
-}
-.cube-face::after {
-  left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%);
-}
-
-/* 全息投影底座，位于立方体下方 */
-.ark-geo-ring {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--accent);
   border-radius: 50%;
-  transform-style: preserve-3d;
-}
-.endfield-base-plate {
-  position: absolute;
-  width: 480px;
-  height: 480px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  /* 底座放平，营造投影仪台面的感觉 */
-  transform: translateY(220px) rotateX(75deg);
-  border-radius: 50%;
-  box-shadow: 0 0 60px rgba(57,229,184,0.1);
-  animation: ark-spin-cw 40s linear infinite;
-}
-/* 底座上的同心切角标记 */
-.endfield-base-plate::after {
-  content: '';
-  position: absolute;
-  inset: 20px;
-  border: 1px solid rgba(57, 229, 184, 0.3);
-  clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+  opacity: 0.6;
+  animation: ark-pulse-ring 2.5s ease-out infinite;
 }
 
-@keyframes cube-spin {
-  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-  100% { transform: rotateX(360deg) rotateY(720deg) rotateZ(360deg); }
+/* 极简刻度参数：增大字体，增加对比度 */
+.ark-deg-label {
+  position: absolute;
+  font-family: var(--font-headline);
+  font-size: 14px;
+  font-weight: 900;
+  color: rgba(230, 237, 233, 0.6);
+  letter-spacing: 2px;
+  text-align: center;
 }
-@keyframes ark-spin-cw { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-@keyframes ark-spin-ccw { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+.ark-deg-label .micro {
+  display: block;
+  font-size: 9px;
+  color: rgba(26, 158, 94, 0.8);
+  margin-top: 2px;
+  letter-spacing: 3px;
+}
+.ark-deg-label.top    { left: 50%; top: -48px; transform: translateX(-50%); }
+.ark-deg-label.right  { top: 50%; right: -64px; transform: translateY(-50%); }
+.ark-deg-label.bottom { left: 50%; bottom: -48px; transform: translateX(-50%); }
+.ark-deg-label.left   { top: 50%; left: -64px; transform: translateY(-50%); }
 
-@keyframes ark-spin-cw { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-@keyframes ark-spin-ccw { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+/* 右下角信息组：更清晰醒目 */
+.ark-hud-metrics {
+  position: absolute;
+  right: 18%;
+  bottom: 22%;
+  font-family: var(--font-headline);
+  font-size: 11px;
+  line-height: 2;
+  color: rgba(230, 237, 233, 0.55);
+  letter-spacing: 3px;
+  text-align: right;
+}
+.ark-hud-metrics .ark-highlight {
+  color: var(--accent);
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(26, 158, 94, 0.4);
+  animation: ark-blink-text 2s step-end infinite;
+}
+.ark-hud-barcode {
+  margin-top: 8px;
+  height: 4px;
+  width: 100%;
+  background: repeating-linear-gradient(to right, rgba(230, 237, 233, 0.4) 0, rgba(230, 237, 233, 0.4) 2px, transparent 2px, transparent 4px, rgba(26, 158, 94, 0.6) 4px, rgba(26, 158, 94, 0.6) 5px, transparent 5px, transparent 8px);
+}
+
+@keyframes ark-spin-v-slow { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes ark-spin-v-slow-rev { 100% { transform: translate(-50%, -50%) rotate(-360deg); } }
+@keyframes ark-pulse-ring {
+  0% { width: 8px; height: 8px; opacity: 0.8; box-shadow: inset 0 0 4px var(--accent); }
+  100% { width: 160px; height: 160px; opacity: 0; box-shadow: inset 0 0 12px var(--accent); }
+}
+@keyframes ark-blink-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes ark-panel-breathe {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+@keyframes ark-slice-drift {
+  0%, 100% { transform: translateX(0); opacity: 0.82; }
+  50% { transform: translateX(10px); opacity: 0.94; }
+}
+@keyframes ark-baseline-lock {
+  0%, 100% { height: 120px; opacity: 0.95; }
+  50% { height: 146px; opacity: 0.68; }
+}
+@keyframes ark-line-phase {
+  0%, 100% { opacity: 0.6; transform: scaleX(0.96); }
+  50% { opacity: 1; transform: scaleX(1); }
+}
+
 
 .ark-login-btn .ark-btn-text,
 .ark-login-btn .ark-btn-arrow {
@@ -2828,8 +3147,8 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   transform: translateX(6px);
 }
 @media (max-width: 760px) {
-  /* 移动端缩小右侧旋转几何体并降低透明度，作为背景点缀 */
-  .ark-geometry-core { opacity: 0.15; right: -10vw; transform: translateY(-50%) scale(0.6); }
+  /* 移动端让右侧结构退成背景层，避免和标题争抢空间 */
+  .ark-geometry-core { opacity: 0.18; right: -26vw; width: 560px; transform: none; }
   .ark-bg-watermark { font-size: 15vh; top: 15%; right: -10%; }
   .home-splash.ark-splash { padding: 0 6%; justify-content: center; }
   .ark-baseline { display: none; }
@@ -2839,6 +3158,8 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   .ark-subtitle-en { letter-spacing: 4px; }
   .ark-desc { flex-direction: column; align-items: center; text-align: center; }
   .ark-desc-line { width: 40px; height: 3px; }
+  .ark-actions { width: 100%; margin-left: 0; justify-content: center; }
+  .ark-login-btn { width: min(100%, 312px); padding: 0 18px 0 22px; gap: 16px; font-size: 12px; justify-content: space-between; }
 }
 </style>
 </head>
@@ -6466,20 +6787,42 @@ function renderHome() {
                 <!-- 贯穿的工业基准线 -->
         <div class="ark-baseline"></div>
 
-                <!-- 右侧：纯粹的 3D 线框拓扑结构 (Tesseract / 3D Cube) -->
-                <div class="ark-geometry-core">
-                  <!-- 悬浮的三维立方体 -->
-                  <div class="ark-3d-cube">
-                    <div class="cube-face front"></div>
-                    <div class="cube-face back"></div>
-                    <div class="cube-face right"></div>
-                    <div class="cube-face left"></div>
-                    <div class="cube-face top"></div>
-                    <div class="cube-face bottom"></div>
-                  </div>
-                  <!-- 底部的全息投影底座 -->
-                  <div class="ark-geo-ring endfield-base-plate"></div>
-                </div>
+                                <!-- 极简方舟风机能监控环 (带高精密细节) -->
+                                <div class="ark-geometry-core">
+                                  <div class="ark-hud-stage">
+                                    <div class="ark-cross-v"></div>
+                                    <div class="ark-cross-h"></div>
+                    
+                                    <!-- 极密仪表刻度圈 -->
+                                    <div class="ark-ring-ticks"></div>
+                    
+                                    <div class="ark-ring-outer">
+                                      <div class="ark-orbit-node"></div>
+                                      <div class="ark-orbit-node-opp"></div>
+                                    </div>
+                                    <div class="ark-ring-mid"></div>
+                                    <div class="ark-ring-inner"></div>
+                    
+                                    <div class="ark-core-node">
+                                      <div class="ark-core-cross-h"></div>
+                                      <div class="ark-core-cross-v"></div>
+                                    </div>
+
+                                    <!-- 高级测量方位标识 -->
+                                    <div class="ark-deg-label top">000<span class="micro">N-POLE.SYS</span></div>
+                                    <div class="ark-deg-label right">090<span class="micro">E-POLE.SYS</span></div>
+                                    <div class="ark-deg-label bottom">180<span class="micro">S-POLE.SYS</span></div>
+                                    <div class="ark-deg-label left">270<span class="micro">W-POLE.SYS</span></div>
+                    
+                                    <!-- 右下角机能指标与条码纹理 -->
+                                    <div class="ark-hud-metrics">
+                                      <div>RADAR_SYNC // <span class="ark-highlight">STABLE</span></div>
+                                      <div>GEO.LOCK // ACTIVE</div>
+                                      <div>ORBIT_VEL // 0.08X</div>
+                                      <div class="ark-hud-barcode"></div>
+                                    </div>
+                                  </div>
+                                </div>
 
         <div class="home-splash-core ark-hero-core">
                     <div class="ark-header-block">

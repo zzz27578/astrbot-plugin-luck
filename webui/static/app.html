@@ -2972,8 +2972,38 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   width: 100%;
   height: 100%;
   border: 2px solid rgba(230, 237, 233, 0.15);
-  box-shadow: inset 0 3px 0 0 rgba(26, 158, 94, 0.35);
+  border-left-color: rgba(26, 158, 94, 0.6);
+  border-bottom-color: rgba(26, 158, 94, 0.3);
+  box-shadow: inset 0 3px 0 0 rgba(26, 158, 94, 0.35), -6px 0 16px rgba(26, 158, 94, 0.2);
   animation: ark-spin-v-slow 50s linear infinite;
+}
+
+/* 动态追踪目标锁定框 */
+.ark-track-target {
+  position: absolute;
+  width: 12px; height: 12px;
+  border: 1px solid rgba(26, 158, 94, 0.6);
+  background: rgba(26, 158, 94, 0.15);
+  box-shadow: 0 0 12px rgba(26, 158, 94, 0.3);
+  z-index: 5;
+}
+.ark-track-target::after {
+  content: 'OBJ.01';
+  position: absolute; top: -14px; left: 14px;
+  font-family: var(--font-headline); font-size: 9px; font-weight: 800; color: rgba(26, 158, 94, 0.8);
+  white-space: nowrap;
+}
+.t1 { top: 35%; left: 65%; animation: ark-float-t1 7s ease-in-out infinite alternate; }
+.t2 { bottom: 28%; right: 68%; animation: ark-float-t2 9s ease-in-out infinite alternate-reverse; }
+.t2::after { content: 'OBJ.02'; color: rgba(230, 237, 233, 0.7); }
+
+@keyframes ark-float-t1 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-30px, 15px); }
+}
+@keyframes ark-float-t2 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(20px, -25px); }
 }
 
 /* 伴随外环旋转的发光节点，体现精密感 */
@@ -2994,17 +3024,27 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .ark-ring-ticks {
   width: 82%;
   height: 82%;
-  background: repeating-conic-gradient(from 0deg, rgba(230, 237, 233, 0.45) 0deg 0.5deg, transparent 0.5deg 2deg);
+  background: repeating-conic-gradient(from 0deg, rgba(230, 237, 233, 0.25) 0deg 0.5deg, transparent 0.5deg 2deg);
   -webkit-mask: radial-gradient(circle, transparent 66%, #000 66.5%, #000 68%, transparent 68.5%);
   mask: radial-gradient(circle, transparent 66%, #000 66.5%, #000 68%, transparent 68.5%);
   animation: ark-spin-v-slow-rev 180s linear infinite;
 }
+/* 不对称的高亮刻度微光段 */
+.ark-ring-ticks::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(26, 158, 94, 0.9) 0deg 0.5deg, transparent 0.5deg 2deg);
+  -webkit-mask: conic-gradient(from 0deg, transparent 0deg, #000 15deg 35deg, transparent 50deg, transparent 190deg, #000 200deg 215deg, transparent 230deg);
+  mask: conic-gradient(from 0deg, transparent 0deg, #000 15deg 35deg, transparent 50deg, transparent 190deg, #000 200deg 215deg, transparent 230deg);
+}
 
-/* 中环：改为更粗更亮的虚线，并且旋转速度加快 */
+/* 中环：稍微调低一点透明度，强化主次 */
 .ark-ring-mid {
   width: 60%;
   height: 60%;
-  border: 2px dashed rgba(26, 158, 94, 0.35);
+  border: 2px dashed rgba(26, 158, 94, 0.2);
   animation: ark-spin-v-slow-rev 35s linear infinite;
 }
 
@@ -3106,8 +3146,8 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 @keyframes ark-spin-v-slow { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
 @keyframes ark-spin-v-slow-rev { 100% { transform: translate(-50%, -50%) rotate(-360deg); } }
 @keyframes ark-pulse-ring {
-  0% { width: 8px; height: 8px; opacity: 0.8; box-shadow: inset 0 0 4px var(--accent); }
-  100% { width: 160px; height: 160px; opacity: 0; box-shadow: inset 0 0 12px var(--accent); }
+  0% { width: 8px; height: 8px; opacity: 0.8; box-shadow: inset 0 0 8px var(--accent); }
+  100% { width: 320px; height: 320px; opacity: 0; box-shadow: inset 0 0 24px var(--accent); border-width: 2px; }
 }
 @keyframes ark-blink-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 @keyframes ark-panel-breathe {
@@ -6793,6 +6833,10 @@ function renderHome() {
                                     <div class="ark-cross-v"></div>
                                     <div class="ark-cross-h"></div>
                     
+                                    <!-- 动态追踪目标锁定框 -->
+                                    <div class="ark-track-target t1"></div>
+                                    <div class="ark-track-target t2"></div>
+
                                     <!-- 极密仪表刻度圈 -->
                                     <div class="ark-ring-ticks"></div>
                     

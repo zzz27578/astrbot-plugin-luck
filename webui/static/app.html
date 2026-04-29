@@ -2912,28 +2912,115 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   width: 100%; /* 从左向右瞬间能量灌满 */
 }
 
-/* ================= 新增：HUD与右侧几何体样式 ================= */
+/* ================= 新增：HUD与雷达几何体样式 ================= */
 .ark-geometry-core {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 4;
+  z-index: 1;
   overflow: hidden;
 }
 
-/* 鹰角风（Arknights）极简雷达场 */
-.ark-hud-stage {
-  position: absolute;
+/* 首屏状态下的雷达位置（偏右） */
+.home-splash .ark-geometry-core .ark-hud-stage {
   right: -15vw;
   top: 50%;
   transform: translateY(-50%);
+}
+
+/* 身份验证页状态下的雷达位置（偏左，漏出另一半） */
+.home-auth-shell .ark-geometry-core {
+  /* 降低一点层级，不遮挡左侧的文字 */
+  z-index: 0;
+  opacity: 0.82; /* 调亮暗面雷达，但略低于纯黑色满亮度 */
+}
+.home-auth-shell .ark-geometry-core .ark-hud-stage {
+  left: -20vw;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* 通用雷达容器场 */
+.ark-hud-stage {
+  position: absolute;
   width: 100vh;
   height: 100vh;
   max-width: 1200px;
   max-height: 1200px;
   border-radius: 50%;
+  /* 转场时透明度和缩放的平滑过渡。恢复原版时间 */
+  transition: opacity 0.4s ease, transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* ----- 阶段状态控制：消失与显现 ----- */
+/* 首页状态：验证页雷达缩小并透明隐藏 */
+.home-showcase.stage-intro .home-auth-shell .ark-hud-stage {
+  opacity: 0;
+  transform: translateY(-50%) scale(0.85);
+}
+/* 首页状态：首页雷达常驻 */
+.home-showcase.stage-intro .home-splash .ark-hud-stage {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+/* 验证页状态：首页雷达放大并透明隐藏 */
+.home-showcase.stage-auth .home-splash .ark-hud-stage,
+.home-showcase.stage-ready .home-splash .ark-hud-stage,
+.home-showcase.intro-collapse .home-splash .ark-hud-stage {
+  opacity: 0;
+  transform: translateY(-50%) scale(1.15);
+}
+
+/* 当从验证页返回首页时：首页雷达平滑复原，不再突兀跳出 */
+.home-showcase.return-home .home-splash .ark-hud-stage {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+/* 验证页状态：验证页雷达恢复原大小并显现 */
+.home-showcase.stage-auth .home-auth-shell .ark-hud-stage,
+.home-showcase.stage-ready .home-auth-shell .ark-hud-stage,
+.home-showcase.intro-collapse .home-auth-shell .ark-hud-stage {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+/* 
+ * 单次强力阻尼启动：极速接管，然后无缝衔接至极慢的无限匀速旋转。
+ * 使用极其夸张的贝塞尔曲线 (0.0, 1.0, 0.05, 1.0) 营造“瞬间飞速，随后被生生刹住”的机能感。
+ */
+
+/* ----- 对于逆时针的齿轮刻度圈 ----- */
+.home-showcase.intro-collapse .home-auth-shell .ark-ring-ticks,
+.home-showcase.stage-auth .home-auth-shell .ark-ring-ticks,
+.home-showcase.return-home .home-splash .ark-ring-ticks {
+  /* 利用负数 delay (-0.4s) 让动画提前开始，页面亮起时直接进入狂暴刹车阶段 */
+  animation: 
+    ark-startup-burst-rev 2.8s cubic-bezier(0.0, 1.0, 0.05, 1.0) -0.4s 1, 
+    ark-spin-v-slow-rev 180s linear infinite 2.4s;
+}
+
+/* ----- 对于顺时针的最外层粗圈 ----- */
+.home-showcase.intro-collapse .home-auth-shell .ark-ring-outer,
+.home-showcase.stage-auth .home-auth-shell .ark-ring-outer,
+.home-showcase.return-home .home-splash .ark-ring-outer {
+  animation: 
+    ark-startup-burst 2.8s cubic-bezier(0.0, 1.0, 0.05, 1.0) -0.4s 1, 
+    ark-spin-v-slow 50s linear infinite 2.4s;
+}
+
+/* 顺时针强阻尼爆发：为了在 -0.4s 的 delay 下仍然表现出惊人速度，我们加大旋转的初始角度到 -240度 */
+@keyframes ark-startup-burst {
+  0% { transform: translate(-50%, -50%) rotate(-240deg); }
+  100% { transform: translate(-50%, -50%) rotate(0deg); }
+}
+
+/* 逆时针强阻尼爆发 */
+@keyframes ark-startup-burst-rev {
+  0% { transform: translate(-50%, -50%) rotate(240deg); }
+  100% { transform: translate(-50%, -50%) rotate(0deg); }
 }
 
 /* 极细但高亮延伸十字基准线 */
@@ -3866,7 +3953,7 @@ function beginHomeLoginFlow() {
     renderHome();
     return;
   }
-  showcase.classList.add('intro-collapse');
+    showcase.classList.add('intro-collapse');
   clearTimeout(beginHomeLoginFlow.timer);
   beginHomeLoginFlow.timer = setTimeout(() => {
     state.homeStage = nextStage;
@@ -3942,7 +4029,7 @@ function returnHomeIntro() {
     renderHome();
     return;
   }
-  showcase.classList.add('return-home');
+    showcase.classList.add('return-home');
   clearTimeout(returnHomeIntro.timer);
   returnHomeIntro.timer = setTimeout(() => {
     state.homeStage = 'intro';
@@ -6827,46 +6914,46 @@ function renderHome() {
                 <!-- 贯穿的工业基准线 -->
         <div class="ark-baseline"></div>
 
-                                <!-- 极简方舟风机能监控环 (带高精密细节) -->
-                                <div class="ark-geometry-core">
-                                  <div class="ark-hud-stage">
-                                    <div class="ark-cross-v"></div>
-                                    <div class="ark-cross-h"></div>
-                    
-                                    <!-- 动态追踪目标锁定框 -->
-                                    <div class="ark-track-target t1"></div>
-                                    <div class="ark-track-target t2"></div>
+                                        <!-- 极简方舟风机能监控环 (首屏雷达) -->
+        <div class="ark-geometry-core">
+          <div class="ark-hud-stage">
+            <div class="ark-cross-v"></div>
+            <div class="ark-cross-h"></div>
+            
+            <!-- 动态追踪目标锁定框 -->
+            <div class="ark-track-target t1"></div>
+            <div class="ark-track-target t2"></div>
+  
+            <!-- 极密仪表刻度圈 -->
+            <div class="ark-ring-ticks"></div>
+            
+            <div class="ark-ring-outer">
+              <div class="ark-orbit-node"></div>
+              <div class="ark-orbit-node-opp"></div>
+            </div>
+            <div class="ark-ring-mid"></div>
+            <div class="ark-ring-inner"></div>
+            
+            <div class="ark-core-node">
+              <div class="ark-core-cross-h"></div>
+              <div class="ark-core-cross-v"></div>
+            </div>
 
-                                    <!-- 极密仪表刻度圈 -->
-                                    <div class="ark-ring-ticks"></div>
-                    
-                                    <div class="ark-ring-outer">
-                                      <div class="ark-orbit-node"></div>
-                                      <div class="ark-orbit-node-opp"></div>
-                                    </div>
-                                    <div class="ark-ring-mid"></div>
-                                    <div class="ark-ring-inner"></div>
-                    
-                                    <div class="ark-core-node">
-                                      <div class="ark-core-cross-h"></div>
-                                      <div class="ark-core-cross-v"></div>
-                                    </div>
-
-                                    <!-- 高级测量方位标识 -->
-                                    <div class="ark-deg-label top">000<span class="micro">N-POLE.SYS</span></div>
-                                    <div class="ark-deg-label right">090<span class="micro">E-POLE.SYS</span></div>
-                                    <div class="ark-deg-label bottom">180<span class="micro">S-POLE.SYS</span></div>
-                                    <div class="ark-deg-label left">270<span class="micro">W-POLE.SYS</span></div>
-                    
-                                    <!-- 右下角机能指标与条码纹理 -->
-                                    <div class="ark-hud-metrics">
-                                      <div>RADAR_SYNC // <span class="ark-highlight">STABLE</span></div>
-                                      <div>GEO.LOCK // ACTIVE</div>
-                                      <div>ORBIT_VEL // 0.08X</div>
-                                      <div class="ark-hud-barcode"></div>
-                                    </div>
-                                  </div>
-                                </div>
+            <!-- 高级测量方位标识 -->
+            <div class="ark-deg-label top">000<span class="micro">N-POLE.SYS</span></div>
+            <div class="ark-deg-label right">090<span class="micro">E-POLE.SYS</span></div>
+            <div class="ark-deg-label bottom">180<span class="micro">S-POLE.SYS</span></div>
+            <div class="ark-deg-label left">270<span class="micro">W-POLE.SYS</span></div>
+            
+            <!-- 右下角机能指标与条码纹理 -->
+            <div class="ark-hud-metrics">
+              <div>RADAR_SYNC // <span class="ark-highlight">STABLE</span></div>
+              <div>GEO.LOCK // ACTIVE</div>
+              <div>ORBIT_VEL // 0.08X</div>
+              <div class="ark-hud-barcode"></div>
+            </div>
+          </div>
+        </div>
 
         <div class="home-splash-core ark-hero-core">
                     <div class="ark-header-block">
@@ -6889,11 +6976,42 @@ function renderHome() {
         </div>
       </div>
 
-      <div class="showcase-left">
+            <div class="showcase-left">
         <div class="sc-crosshair" style="top: 48px; left: 48px;"></div>
         <div class="sc-crosshair" style="bottom: 48px; right: 48px;"></div>
 
         <div class="home-auth-shell">
+          
+                    <!-- 验证页雷达（展示被遮盖的另一半） -->
+          <div class="ark-geometry-core">
+            <div class="ark-hud-stage">
+              <!-- 中心基准保持不变 -->
+                            <div class="ark-cross-v"></div>
+                            <div class="ark-cross-h"></div>
+                            <div class="ark-track-target t1"></div>
+              
+                            <!-- 外圈齿轮带有阻尼启动 -->
+                            <div class="ark-ring-ticks"></div>
+              <div class="ark-ring-outer">
+                <div class="ark-orbit-node"></div>
+                <div class="ark-orbit-node-opp"></div>
+              </div>
+              
+              <!-- 内圈与中心节点不受启动动画影响，保持原有缓动 -->
+              <div class="ark-ring-mid"></div>
+              <div class="ark-ring-inner"></div>
+              <div class="ark-core-node">
+                <div class="ark-core-cross-h"></div>
+                <div class="ark-core-cross-v"></div>
+              </div>
+              
+              <div class="ark-deg-label top">000<span class="micro">N-POLE.SYS</span></div>
+              <div class="ark-deg-label right">090<span class="micro">E-POLE.SYS</span></div>
+              <div class="ark-deg-label bottom">180<span class="micro">S-POLE.SYS</span></div>
+              <div class="ark-deg-label left">270<span class="micro">W-POLE.SYS</span></div>
+            </div>
+          </div>
+
           <div class="home-auth-left-main">
             <div class="home-auth-heading">
               <div class="home-auth-kicker">CONTROL ACCESS // STAGE 01</div>
@@ -6901,25 +7019,12 @@ function renderHome() {
             </div>
             <div class="home-auth-meta">
               <div class="home-auth-desc">
-                完成身份验证后，执行初始化并接入。左侧保留工业终端氛围，右侧专注口令输入与接入动作。
+                完成身份验证后，执行系统接入。<br>当前系统处于锁定戒备状态，正在验证操作权限。
               </div>
               <div class="home-auth-status">
                 <span class="home-auth-status-dot"></span>
                 <span>${statusText}</span>
               </div>
-            </div>
-          </div>
-
-          <div class="home-terminal-block">
-            <div class="home-terminal-head">
-              <div class="home-terminal-title">// COMMAND STREAM</div>
-              <div class="home-stream-status"><span class="home-stream-dot"></span><span>LINK STABLE</span></div>
-            </div>
-            <div class="home-terminal-panel">
-              <div class="home-terminal-line"><span class="home-terminal-prefix">></span><span>BOOTING CONTROL SURFACE...</span></div>
-              <div class="home-terminal-line"><span class="home-terminal-prefix">></span><span>NEURAL ACCESS CHANNEL... <span class="highlight">READY</span></span></div>
-              <div class="home-terminal-line"><span class="home-terminal-prefix">></span><span>AWAITING PASSWORD AUTHORIZATION...</span></div>
-              <div class="home-terminal-line"><span class="home-terminal-prefix">></span><span>POST-AUTH TASK: SYSTEM INITIATE -> CONFIG HUB</span></div>
             </div>
           </div>
         </div>

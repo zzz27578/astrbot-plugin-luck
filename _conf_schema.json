@@ -71,6 +71,48 @@
       }
     }
   },
+  "visitor_collab": {
+    "type": "object",
+    "description": "访客协作与临时授权",
+    "items": {
+      "enable": {
+        "type": "bool",
+        "description": "开启访客协作",
+        "default": true,
+        "hint": "开启后，WebUI 会提供访客身份、临时密钥和待审核区域。"
+      },
+      "public_access_mode": {
+        "type": "string",
+        "description": "公网入口模式",
+        "default": "manual",
+        "hint": "manual=手动填写公网地址；cloudflare_quick_tunnel=使用用户自行安装的 cloudflared 临时通道；custom=使用自定义反代/公网地址。"
+      },
+      "cloudflared_path": {
+        "type": "string",
+        "description": "cloudflared 路径",
+        "default": "",
+        "hint": "可填写 cloudflared 可执行文件路径。也可以在 WebUI 访客协作页点击自动安装，插件会下载到插件数据目录。"
+      },
+      "custom_public_url": {
+        "type": "string",
+        "description": "自定义访客公网地址",
+        "default": "",
+        "hint": "可填写 trycloudflare.com、ngrok、frp、反向代理或自有域名地址，用于拼接访客登录入口。"
+      },
+      "allow_plugin_start_tunnel": {
+        "type": "bool",
+        "description": "允许插件启动 cloudflared",
+        "default": true,
+        "hint": "开启后，WebUI 可以通过按钮启动 cloudflared Quick Tunnel 生成 trycloudflare 临时地址。"
+      },
+      "allow_install_script": {
+        "type": "bool",
+        "description": "显示安装脚本辅助",
+        "default": true,
+        "hint": "开启后，WebUI 可以通过按钮从 Cloudflare 官方 GitHub Release 下载 cloudflared 到插件数据目录。"
+      }
+    }
+  },
   "sign_in_settings": {
     "type": "object",
     "description": "📜 基础运势观测 (签到)",

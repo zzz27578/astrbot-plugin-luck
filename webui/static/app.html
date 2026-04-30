@@ -3861,6 +3861,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
           <button class="top-btn active" onclick="setTopView('home')"><span class="btn-text">首页</span></button>
           <button class="top-btn" onclick="setTopView('config')"><span class="btn-text">方案管理</span></button>
           <button class="top-btn" onclick="setTopView('stats')"><span class="btn-text">数据大盘</span></button>
+          <button class="top-btn" onclick="setTopView('visitor')"><span class="btn-text">访客协作</span></button>
         </nav>
       </div>
       
@@ -3985,6 +3986,9 @@ body.chassis:not(.ui-ready) .toolbar-actions {
         </div>
         <div class="pages" id="statsPages" style="display:none; padding: 0;">
           <div class="page active" id="page-global-stats" style="display:block;"></div>
+        </div>
+        <div class="pages" id="visitorPages" style="display:none; padding: 0;">
+          <div class="page active" id="page-visitor" style="display:block;"></div>
         </div>
       </main>
     </div>
@@ -4257,6 +4261,12 @@ const state = {
   homePasswordDraft: '',
   homeAuthTerminalState: 'idle',
   homeAuthTerminalMessage: '',
+  identity: { type: 'anonymous', permissions: {} },
+  visitorRoles: [],
+  visitorKeys: [],
+  visitorDrafts: [],
+  visitorTunnel: { config: {}, detected_path: '', local_url: '', quick_tunnel_command: '', install_hint: '', docs: [] },
+  visitorCloudflaredNoticeShown: false,
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -4562,7 +4572,8 @@ async function submitHomeAccess() {
     renderHome();
   }
   try {
-    await apiPost('/api/access/verify', { password });
+    const loginRes = await apiPost('/api/access/verify', { password });
+    state.identity = loginRes.identity || { type: 'anonymous', permissions: {} };
     state.homeAccessVerified = true;
     state.homeStage = 'ready';
     state.homePasswordDraft = '';
@@ -4668,7 +4679,7 @@ function getHomeAuthTerminalLines(panelReady) {
 function syncTopViewButtons(view) {
   $$('.top-btn').forEach(btn => {
     const text = btn.textContent.trim();
-    btn.classList.toggle('active', (view === 'home' && text === '首页') || (view === 'config' && text === '方案管理') || (view === 'stats' && text === '数据大盘'));
+    btn.classList.toggle('active', (view === 'home' && text === '首页') || (view === 'config' && text === '方案管理') || (view === 'stats' && text === '数据大盘') || (view === 'visitor' && text === '访客协作'));
   });
 }
 
@@ -5268,6 +5279,7 @@ function setTopView(view) {
         $('.shard-header').style.display = 'none';
         $('#configPages').style.display = 'none';
         $('#statsPages').style.display = 'none';
+        $('#visitorPages').style.display = 'none';
         $('.toolbar-actions').style.display = 'none';
         renderHome();
         return;
@@ -5284,6 +5296,7 @@ function setTopView(view) {
       $('#homePages').style.display = 'none';
       $('#configPages').style.display = 'none';
       $('#statsPages').style.display = 'block';
+      $('#visitorPages').style.display = 'none';
       $('#heroTitle').textContent = '全域数据与生态监控';
       $('#heroDesc').textContent = '直观查阅各节点活跃度、卡池真实分布与经济状态图表，独立切换，不影响当前正在编辑的方案。';
       $('.toolbar-actions').style.display = 'none';
@@ -5293,10 +5306,26 @@ function setTopView(view) {
       renderGlobalStats();
       return;
     }
+    if (view === 'visitor') {
+      $('.glass-side').style.display = 'none';
+      $('#homePages').style.display = 'none';
+      $('#configPages').style.display = 'none';
+      $('#statsPages').style.display = 'none';
+      $('#visitorPages').style.display = 'block';
+      $('#heroTitle').textContent = '访客协作与临时授权';
+      $('#heroDesc').textContent = '管理访客身份、临时密钥、Cloudflare 临时通道和待审核改动。';
+      $('.toolbar-actions').style.display = 'none';
+      $('.shard-header').style.display = 'flex';
+      if (leavingHome) startShellEnterAnimation();
+      else clearShellEnterAnimation();
+      renderVisitor();
+      return;
+    }
     $('.glass-side').style.display = 'flex';
     $('#homePages').style.display = 'none';
     $('#configPages').style.display = 'block';
     $('#statsPages').style.display = 'none';
+    $('#visitorPages').style.display = 'none';
     $('.toolbar-actions').style.display = 'flex';
     $('.shard-header').style.display = 'flex';
     if (leavingHome) startShellEnterAnimation();
@@ -5515,11 +5544,47 @@ async function changeStatsProfile(pid) {
 }
 
 
+async function loadVisitor() {
+  try {
+    const stateRes = await apiGet('/api/visitor/state');
+    if (stateRes.ok) {
+      state.identity = stateRes.identity || { type: 'anonymous', permissions: {} };
+      if (Array.isArray(stateRes.roles)) state.visitorRoles = stateRes.roles;
+    }
+    const draftsRes = await apiGet('/api/visitor/drafts');
+    if (draftsRes.ok) state.visitorDrafts = draftsRes.drafts || [];
+    if (state.identity.type === 'admin') {
+      const [rolesRes, keysRes, tunnelRes] = await Promise.all([
+        apiGet('/api/visitor/roles'),
+        apiGet('/api/visitor/keys'),
+        apiGet('/api/visitor/tunnel'),
+      ]);
+      if (rolesRes.ok) state.visitorRoles = rolesRes.roles || [];
+      if (keysRes.ok) state.visitorKeys = keysRes.keys || [];
+      if (tunnelRes.ok) {
+        state.visitorTunnel = tunnelRes;
+        if (tunnelRes.detected && !state.visitorCloudflaredNoticeShown) {
+          state.visitorCloudflaredNoticeShown = true;
+          showToast('cloudflared 检测正常，可以使用托管临时地址。');
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('loadVisitor failed:', e);
+  }
+}
+
 
 async function loadAll(showMessage = false) {
   try {
-    await loadProfiles();
-    await refreshActiveProfileData();
+    if (state.identity.type === 'visitor') {
+      state.profiles = [{ profile_id: state.currentProfile || 'default', display_name: '当前方案', groups: [], is_default: true }];
+      await Promise.all([loadRuntime(), loadSignin(), loadFate(), loadCards(), loadTitles()]);
+    } else {
+      await loadProfiles();
+      await refreshActiveProfileData();
+    }
+    await loadVisitor();
     renderAll();
     if (showMessage) showToast('载入成功');
   } catch (e) {
@@ -5532,6 +5597,7 @@ async function syncHomeAccessStatus() {
   try {
     const res = await apiGet('/api/access/status');
     state.homeAccessVerified = !!res.verified;
+    state.identity = res.identity || { type: 'anonymous', permissions: {} };
     if (state.homeAccessVerified) {
       await loadAll();
     } else {
@@ -7896,6 +7962,266 @@ function renderGlobalStats() {
   `;
 }
 
+function permissionChips(perms = {}) {
+  const defs = [
+    ['can_view', '查看'],
+    ['can_create_func_card', '新增功能牌'],
+    ['can_edit_func_card', '修改功能牌'],
+    ['can_delete_func_card', '删除功能牌'],
+    ['can_upload_image', '上传图片'],
+    ['can_use_lazy_batch_cards', '懒狗批量'],
+    ['can_use_lazy_batch_images', '批量图片'],
+    ['can_edit_runtime', '运行配置'],
+    ['can_edit_signin', '签到配置'],
+    ['can_edit_titles', '称号配置'],
+  ];
+  const chips = defs.filter(([key]) => perms[key]).map(([, label]) => `<span class="badge">${label}</span>`);
+  chips.push(`<span class="badge ${perms.requires_review === false ? 'light' : ''}">${perms.requires_review === false ? '免审核' : '需要审核'}</span>`);
+  chips.push(`<span class="badge light">单次 ${Number(perms.max_cards_per_submit || 0)} 项</span>`);
+  chips.push(`<span class="badge light">图片 ${Number(perms.max_images_per_submit || 0)} 张</span>`);
+  return chips.join('');
+}
+
+function renderDraftBrief(draft) {
+  const statusText = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }[draft.status] || draft.status || '未知';
+  const adminActions = state.identity.type === 'admin' && draft.status === 'pending'
+    ? `<div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="reviewVisitorDraft('${esc(draft.id)}','approve')"><span class="btn-text">通过</span></button><button class="btn-danger" onclick="reviewVisitorDraft('${esc(draft.id)}','reject')"><span class="btn-text">拒绝</span></button></div>`
+    : '';
+  return `<div class="archive-card" style="margin-bottom:12px;">
+    <div class="row between">
+      <div>
+        <div class="card-title">${esc(draft.summary || draft.resource_type || '访客改动')}</div>
+        <div class="muted">ID: ${esc(draft.id)} · 身份: ${esc(draft.role_name || '')} · 方案: ${esc(draft.profile_id || 'default')}</div>
+      </div>
+      <span class="badge">${esc(statusText)}</span>
+    </div>
+    <pre style="white-space:pre-wrap;max-height:220px;overflow:auto;background:rgba(0,0,0,.04);padding:12px;border:1px solid var(--shard-border);font-size:12px;">${esc(JSON.stringify(draft.after, null, 2).slice(0, 4000))}</pre>
+    ${adminActions}
+  </div>`;
+}
+
+function renderVisitor() {
+  const page = $('#page-visitor');
+  if (!page) return;
+  const isAdmin = state.identity.type === 'admin';
+  const tunnel = state.visitorTunnel || {};
+  const cfg = tunnel.config || {};
+  const detectedOk = !!tunnel.detected;
+  const tunnelStatus = detectedOk
+    ? `<div class="notice success" style="margin-bottom:12px;">检测正常：已找到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
+    : `<div class="notice danger" style="margin-bottom:12px;">未检测到 cloudflared。可以点击下方按钮自动下载到插件数据目录，或手动安装后重新检测。</div>`;
+  const rolesHtml = state.visitorRoles.map(role => `
+    <div class="archive-card" style="margin-bottom:12px;">
+      <div class="row between">
+        <div>
+          <div class="card-title">${esc(role.name)} <span class="muted">(${esc(role.id)})</span></div>
+          <div class="muted">${esc(role.description || '')}</div>
+        </div>
+        <div class="row">
+          <button class="btn-mini" onclick="openVisitorRoleDialog('${esc(role.id)}')"><span class="btn-text">编辑</span></button>
+          ${role.builtin ? '' : `<button class="btn-mini btn-danger" onclick="deleteVisitorRole('${esc(role.id)}')"><span class="btn-text">删除</span></button>`}
+        </div>
+      </div>
+      <div class="row" style="flex-wrap:wrap;margin-top:10px;">${permissionChips(role.permissions || {})}</div>
+    </div>
+  `).join('') || '<div class="empty">暂无身份模板</div>';
+  const roleOptions = state.visitorRoles.map(role => `<option value="${esc(role.id)}">${esc(role.name)} (${esc(role.id)})</option>`).join('');
+  const keysHtml = state.visitorKeys.map(item => `
+    <div class="archive-card" style="margin-bottom:10px;">
+      <div class="row between">
+        <div>
+          <div class="card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}...</div>
+          <div class="muted">状态: ${esc(item.status)} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次 ${item.remark ? '· ' + esc(item.remark) : ''}</div>
+        </div>
+        ${item.status === 'active' ? `<button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">撤销</span></button>` : ''}
+      </div>
+    </div>
+  `).join('') || '<div class="empty">暂无临时密钥</div>';
+  const draftsHtml = state.visitorDrafts.map(renderDraftBrief).join('') || '<div class="empty">暂无待审核改动</div>';
+  page.innerHTML = `
+    <div class="grid">
+      <section class="panel col-12">
+        <div class="panel-header"><div><div class="panel-title">当前身份</div><div class="panel-note">${esc(state.identity.role_name || (isAdmin ? '管理员' : '访客'))}</div></div></div>
+        <div class="row" style="flex-wrap:wrap;">${permissionChips(state.identity.permissions || {})}</div>
+      </section>
+      ${isAdmin ? `
+      <section class="panel col-6">
+        <div class="panel-header"><div><div class="panel-title">Cloudflare 临时通道</div><div class="panel-note">自动检测环境，缺失时可自动下载 cloudflared 到插件数据目录并启动 Quick Tunnel。</div></div></div>
+        ${tunnelStatus}
+        <div class="field"><label>检测到的 cloudflared</label><input class="input" readonly value="${esc(tunnel.detected_path || '未检测到')}"></div>
+        <div class="field"><label>托管临时地址</label><input class="input" readonly value="${esc(tunnel.public_url || cfg.last_public_url || cfg.custom_public_url || '')}" placeholder="尚未生成"></div>
+        <div class="field"><label>推荐启动命令</label><input class="input" readonly value="${esc(tunnel.quick_tunnel_command || '')}"></div>
+        <div class="field"><label>自定义/手动公网地址</label><input class="input" id="visitorPublicUrl" value="${esc(cfg.custom_public_url || '')}" placeholder="https://xxxx.trycloudflare.com"></div>
+        <div class="panel-note">安装提示：${esc(tunnel.install_hint || '')}<br>内置下载源：${esc(tunnel.download_url || '')}<br>插件托管路径：${esc(tunnel.managed_path || '')}</div>
+        <div class="row" style="margin-top:14px;flex-wrap:wrap;">
+          <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">重新检测</span></button>
+          ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : `<button class="btn-strong" onclick="installCloudflared()"><span class="btn-text">自动安装 cloudflared</span></button>`}
+          <button class="btn" onclick="saveVisitorTunnel()"><span class="btn-text">保存手动地址</span></button>
+          <button class="btn" onclick="copyText('${esc(tunnel.quick_tunnel_command || '')}')"><span class="btn-text">复制命令</span></button>
+          ${tunnel.running ? `<button class="btn-danger" onclick="stopVisitorTunnel()"><span class="btn-text">停止通道</span></button>` : ''}
+        </div>
+      </section>
+      <section class="panel col-6">
+        <div class="panel-header"><div><div class="panel-title">生成临时密钥</div><div class="panel-note">密钥即身份凭证，发出后谁拿到谁拥有该权限。</div></div></div>
+        <div class="field"><label>选择身份</label><select class="input" id="visitorRoleSelect">${roleOptions}</select></div>
+        <div class="field"><label>备注</label><input class="input" id="visitorKeyRemark" placeholder="可选，只供管理员辨认"></div>
+        <button class="btn-strong" onclick="createVisitorKey()"><span class="btn-text">生成密钥</span></button>
+        <div id="visitorNewKeyBox" class="panel-note" style="margin-top:14px;"></div>
+      </section>
+      <section class="panel col-6"><div class="panel-header"><div><div class="panel-title">权限身份</div><div class="panel-note">是否需要审核、批量权限和提交上限都由身份决定。</div></div><button class="btn" onclick="openVisitorRoleDialog()"><span class="btn-text">新建身份</span></button></div>${rolesHtml}</section>
+      <section class="panel col-6"><div class="panel-header"><div><div class="panel-title">临时密钥</div><div class="panel-note">可随时撤销。</div></div></div>${keysHtml}</section>
+      ` : ''}
+      <section class="panel col-12"><div class="panel-header"><div><div class="panel-title">${isAdmin ? '待审核改动' : '我的提交'}</div><div class="panel-note">与正式配置区隔离，审核通过后才写入。</div></div></div>${draftsHtml}</section>
+    </div>`;
+}
+
+async function saveVisitorTunnel() {
+  const custom_public_url = $('#visitorPublicUrl')?.value?.trim() || '';
+  const res = await apiPost('/api/visitor/tunnel', { custom_public_url });
+  if (res.ok) {
+    await loadVisitor();
+    renderVisitor();
+    showToast('协作通道地址已保存。');
+  } else showToast(res.error || '保存失败。', true);
+}
+
+async function refreshVisitorTunnel() {
+  await loadVisitor();
+  renderVisitor();
+  showToast(state.visitorTunnel.detected ? 'cloudflared 检测正常，可以生成临时地址。' : '未检测到 cloudflared。', !state.visitorTunnel.detected);
+}
+
+async function installCloudflared() {
+  if (!confirm('将从 Cloudflare 官方 GitHub Release 下载 cloudflared 到插件数据目录，不会安装系统服务或修改 PATH。继续吗？')) return;
+  showToast('正在下载 cloudflared，请稍候...');
+  const res = await apiPost('/api/visitor/cloudflared/install', {});
+  if (!res.ok) return showToast(res.error || '自动安装失败，请按提示手动安装。', true);
+  await loadVisitor();
+  renderVisitor();
+  showToast('cloudflared 已安装到插件数据目录，可以生成临时地址。');
+}
+
+async function startVisitorTunnel() {
+  showToast('正在启动 Cloudflare 临时通道...');
+  const res = await apiPost('/api/visitor/tunnel/start', {});
+  if (!res.ok) return showToast(res.error || '启动临时通道失败。', true);
+  await loadVisitor();
+  renderVisitor();
+  showToast('临时地址已生成。');
+}
+
+async function stopVisitorTunnel() {
+  const res = await apiPost('/api/visitor/tunnel/stop', {});
+  if (!res.ok) return showToast(res.error || '停止失败。', true);
+  await loadVisitor();
+  renderVisitor();
+  showToast('临时通道已停止。');
+}
+
+async function createVisitorKey() {
+  const role_id = $('#visitorRoleSelect')?.value || '';
+  const remark = $('#visitorKeyRemark')?.value?.trim() || '';
+  const res = await apiPost('/api/visitor/keys', { role_id, remark });
+  if (!res.ok) return showToast(res.error || '生成失败。', true);
+  await loadVisitor();
+  renderVisitor();
+  const box = $('#visitorNewKeyBox');
+  const url = res.public_url || '(请先填写或启动公网地址)';
+  if (box) box.innerHTML = `地址：<b>${esc(url)}</b><br>密钥：<b>${esc(res.key)}</b>`;
+  showToast('临时密钥已生成。');
+}
+
+async function revokeVisitorKey(id) {
+  const res = await apiPost(`/api/visitor/keys/${encodeURIComponent(id)}/revoke`, {});
+  if (res.ok) {
+    await loadVisitor();
+    renderVisitor();
+    showToast('密钥已撤销。');
+  } else showToast(res.error || '撤销失败。', true);
+}
+
+async function reviewVisitorDraft(id, action) {
+  const res = await apiPost(`/api/visitor/drafts/${encodeURIComponent(id)}/${action}`, {});
+  if (res.ok) {
+    await loadAll();
+    setTopView('visitor');
+    showToast(action === 'approve' ? '草稿已通过并写入正式配置。' : '草稿已拒绝。');
+  } else showToast(res.error || '审核失败。', true);
+}
+
+function openVisitorRoleDialog(roleId = '') {
+  const current = state.visitorRoles.find(role => role.id === roleId) || null;
+  const currentPerms = current?.permissions || {};
+  const keys = [
+    ['can_view', '允许查看'],
+    ['can_create_func_card', '新增功能牌'],
+    ['can_edit_func_card', '修改功能牌'],
+    ['can_delete_func_card', '删除功能牌'],
+    ['can_create_fate_card', '新增命运牌'],
+    ['can_edit_fate_card', '修改命运牌'],
+    ['can_delete_fate_card', '删除命运牌'],
+    ['can_upload_image', '上传图片'],
+    ['can_delete_image', '删除图片'],
+    ['can_use_lazy_batch_cards', '允许懒狗批量生成'],
+    ['can_use_lazy_batch_images', '允许批量图片绑定'],
+    ['can_edit_runtime', '修改运行配置'],
+    ['can_edit_signin', '修改签到配置'],
+    ['can_edit_titles', '修改称号配置'],
+  ];
+  openDialog(current ? '编辑访客身份' : '新建访客身份', `
+    <div class="grid">
+      <div class="field col-6"><label>身份名称</label><input class="input" id="visitorRoleName" value="${esc(current?.name || '')}" placeholder="例如：功能牌投稿员"></div>
+      <div class="field col-6"><label>身份 ID</label><input class="input" id="visitorRoleId" value="${esc(current?.id || '')}" ${current ? 'readonly' : ''} placeholder="可留空自动生成"></div>
+      <div class="field col-12"><label>说明</label><textarea class="textarea" id="visitorRoleDesc" rows="2">${esc(current?.description || '')}</textarea></div>
+      <div class="field col-4"><label>单次卡片改动上限</label><input class="input" id="visitorRoleMaxCards" type="number" value="${Number(currentPerms.max_cards_per_submit ?? 1)}"></div>
+      <div class="field col-4"><label>单次图片上限</label><input class="input" id="visitorRoleMaxImages" type="number" value="${Number(currentPerms.max_images_per_submit ?? 2)}"></div>
+      <div class="field col-4"><label>待审上限</label><input class="input" id="visitorRoleMaxPending" type="number" value="${Number(currentPerms.max_pending_drafts ?? 3)}"></div>
+      <div class="field col-12"><label><input type="checkbox" id="visitorRoleReview" ${currentPerms.requires_review === false ? '' : 'checked'}> 提交后需要审核</label></div>
+      <div class="col-12" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+        ${keys.map(([key, label]) => `<label class="muted"><input type="checkbox" class="visitor-role-perm" data-key="${key}" ${current ? (currentPerms[key] ? 'checked' : '') : (key === 'can_view' ? 'checked' : '')}> ${label}</label>`).join('')}
+      </div>
+      <div class="col-12"><button class="btn-strong" onclick="saveVisitorRole()"><span class="btn-text">保存身份</span></button></div>
+    </div>
+  `);
+}
+
+async function saveVisitorRole() {
+  const permissions = {};
+  $$('.visitor-role-perm').forEach(input => { permissions[input.dataset.key] = !!input.checked; });
+  permissions.requires_review = !!$('#visitorRoleReview')?.checked;
+  permissions.max_cards_per_submit = Number($('#visitorRoleMaxCards')?.value || 1);
+  permissions.max_images_per_submit = Number($('#visitorRoleMaxImages')?.value || 2);
+  permissions.max_pending_drafts = Number($('#visitorRoleMaxPending')?.value || 3);
+  const body = {
+    id: $('#visitorRoleId')?.value?.trim() || '',
+    name: $('#visitorRoleName')?.value?.trim() || '',
+    description: $('#visitorRoleDesc')?.value?.trim() || '',
+    permissions,
+  };
+  if (!body.name) return showToast('身份名称不能为空。', true);
+  const res = await apiPost('/api/visitor/roles', body);
+  if (!res.ok) return showToast(res.error || '保存身份失败。', true);
+  closeDialog();
+  await loadVisitor();
+  renderVisitor();
+  showToast('访客身份已保存。');
+}
+
+async function deleteVisitorRole(roleId) {
+  if (!confirm('确认删除这个自定义访客身份吗？')) return;
+  const res = await apiDelete(`/api/visitor/roles/${encodeURIComponent(roleId)}`);
+  if (!res.ok) return showToast(res.error || '删除身份失败。', true);
+  await loadVisitor();
+  renderVisitor();
+  showToast('访客身份已删除。');
+}
+
+function copyText(text) {
+  if (!text) return showToast('没有可复制内容。', true);
+  navigator.clipboard?.writeText(text);
+  showToast('已复制。');
+}
+
 
 function renderAll() {
   renderOverview();
@@ -7907,6 +8233,7 @@ function renderAll() {
   renderTitles();
   state.statsViewProfile = state.currentProfile;
   renderGlobalStats();
+  renderVisitor();
   updateTop();
   setTopView(state.topView || 'home');
 }

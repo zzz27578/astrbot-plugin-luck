@@ -10,6 +10,13 @@ import random
 import re
 import secrets
 import uuid
+import hashlib
+import time
+import sys
+import platform
+import stat
+import tarfile
+import subprocess
 from urllib.parse import urlparse
 from pathlib import Path
 from aiohttp import web, ClientSession, ClientTimeout
@@ -61,8 +68,15 @@ BLANK_COPY_FROM = "__blank__"
 WEBUI_DEFAULT_ACCESS_PASSWORD = "12345678"
 WEBUI_SESSION_COOKIE = "luck_webui_session"
 WEBUI_ACCESS_CONFIG_FILE = BASE_PATHS["plugin_data_dir"] / "webui_access_config.json"
+VISITOR_ROLES_FILE = BASE_PATHS["plugin_data_dir"] / "visitor_roles.json"
+VISITOR_KEYS_FILE = BASE_PATHS["plugin_data_dir"] / "visitor_keys.json"
+VISITOR_DRAFTS_FILE = BASE_PATHS["plugin_data_dir"] / "visitor_drafts.json"
+VISITOR_AUDIT_FILE = BASE_PATHS["plugin_data_dir"] / "visitor_audit_logs.json"
+VISITOR_TUNNEL_FILE = BASE_PATHS["plugin_data_dir"] / "visitor_tunnel_config.json"
 _WEBUI_ACCESS_PASSWORD = WEBUI_DEFAULT_ACCESS_PASSWORD
-_AUTH_SESSIONS: set[str] = set()
+_AUTH_SESSIONS: dict[str, dict] = {}
+_CLOUDFLARED_PROCESS = None
+_CLOUDFLARED_PUBLIC_URL = ""
 
 # 默认签到文案（fallback）
 DEFAULT_SIGN_IN_TEXTS = {
@@ -709,13 +723,442 @@ def _load_current_access_password() -> str:
     return _normalize_access_password(_WEBUI_ACCESS_PASSWORD)
 
 
+def verify_webui_admin_password(password: str) -> bool:
+    return secrets.compare_digest(str(password or ""), _load_current_access_password())
+
+
 def _get_session_token(request: web.Request) -> str:
     return str(request.cookies.get(WEBUI_SESSION_COOKIE, "") or "").strip()
 
 
-def _is_authenticated_request(request: web.Request) -> bool:
+def _get_session_identity(request: web.Request) -> dict:
     token = _get_session_token(request)
-    return bool(token) and token in _AUTH_SESSIONS
+    if not token:
+        return {}
+    return _AUTH_SESSIONS.get(token, {})
+
+
+def _is_authenticated_request(request: web.Request) -> bool:
+    return bool(_get_session_identity(request))
+
+
+def _is_admin_request(request: web.Request) -> bool:
+    return _get_session_identity(request).get("type") == "admin"
+
+
+def _is_visitor_request(request: web.Request) -> bool:
+    return _get_session_identity(request).get("type") == "visitor"
+
+
+def _default_permissions(**overrides) -> dict:
+    data = {
+        "can_view": True,
+        "can_create_func_card": False,
+        "can_edit_func_card": False,
+        "can_delete_func_card": False,
+        "can_create_fate_card": False,
+        "can_edit_fate_card": False,
+        "can_delete_fate_card": False,
+        "can_upload_image": False,
+        "can_delete_image": False,
+        "can_edit_titles": False,
+        "can_edit_signin": False,
+        "can_edit_runtime": False,
+        "can_use_lazy_batch_cards": False,
+        "can_use_lazy_batch_images": False,
+        "requires_review": True,
+        "max_cards_per_submit": 1,
+        "max_images_per_submit": 2,
+        "max_pending_drafts": 3,
+        "max_image_size_mb": 5,
+    }
+    data.update(overrides)
+    return data
+
+
+def _default_visitor_roles() -> list[dict]:
+    return [
+        {
+            "id": "readonly",
+            "name": "只读访客",
+            "description": "只能查看配置，不能提交任何改动。",
+            "permissions": _default_permissions(requires_review=True, max_pending_drafts=0),
+            "builtin": True,
+        },
+        {
+            "id": "func_submitter",
+            "name": "功能牌投稿员",
+            "description": "只能新增少量功能牌和上传少量图片，提交后进入审核。",
+            "permissions": _default_permissions(
+                can_create_func_card=True,
+                can_upload_image=True,
+                requires_review=True,
+                max_cards_per_submit=1,
+                max_images_per_submit=2,
+                max_pending_drafts=3,
+            ),
+            "builtin": True,
+        },
+        {
+            "id": "func_collaborator",
+            "name": "功能牌协作者",
+            "description": "可以新增和修改功能牌，不能删除，默认需要审核。",
+            "permissions": _default_permissions(
+                can_create_func_card=True,
+                can_edit_func_card=True,
+                can_upload_image=True,
+                requires_review=True,
+                max_cards_per_submit=5,
+                max_images_per_submit=5,
+                max_pending_drafts=8,
+            ),
+            "builtin": True,
+        },
+        {
+            "id": "trusted_collaborator",
+            "name": "受信协作者",
+            "description": "可新增、修改和上传图片，改动可直接生效，但不能删除核心数据。",
+            "permissions": _default_permissions(
+                can_create_func_card=True,
+                can_edit_func_card=True,
+                can_create_fate_card=True,
+                can_edit_fate_card=True,
+                can_upload_image=True,
+                can_use_lazy_batch_cards=True,
+                requires_review=False,
+                max_cards_per_submit=10,
+                max_images_per_submit=8,
+                max_pending_drafts=20,
+            ),
+            "builtin": True,
+        },
+    ]
+
+
+def _ensure_visitor_files():
+    BASE_PATHS["plugin_data_dir"].mkdir(parents=True, exist_ok=True)
+    if not VISITOR_ROLES_FILE.exists():
+        _atomic_write(VISITOR_ROLES_FILE, _default_visitor_roles())
+    if not VISITOR_KEYS_FILE.exists():
+        _atomic_write(VISITOR_KEYS_FILE, [])
+    if not VISITOR_DRAFTS_FILE.exists():
+        _atomic_write(VISITOR_DRAFTS_FILE, [])
+    if not VISITOR_AUDIT_FILE.exists():
+        _atomic_write(VISITOR_AUDIT_FILE, [])
+    if not VISITOR_TUNNEL_FILE.exists():
+        _atomic_write(VISITOR_TUNNEL_FILE, {
+            "mode": "manual",
+            "cloudflared_path": "",
+            "custom_public_url": "",
+            "allow_plugin_start_tunnel": False,
+            "allow_install_script": False,
+        })
+
+
+def _read_list_file(path: Path) -> list:
+    data = _read_json(path, [])
+    return data if isinstance(data, list) else []
+
+
+def _read_dict_file(path: Path) -> dict:
+    data = _read_json(path, {})
+    return data if isinstance(data, dict) else {}
+
+
+def _load_visitor_roles() -> list[dict]:
+    _ensure_visitor_files()
+    roles = _read_list_file(VISITOR_ROLES_FILE)
+    existing = {str(r.get("id", "")): r for r in roles if isinstance(r, dict)}
+    changed = False
+    for default in _default_visitor_roles():
+        if default["id"] not in existing:
+            roles.append(default)
+            changed = True
+    if changed:
+        _atomic_write(VISITOR_ROLES_FILE, roles)
+    return roles
+
+
+def _role_map() -> dict[str, dict]:
+    return {str(role.get("id", "")): role for role in _load_visitor_roles() if isinstance(role, dict)}
+
+
+def _normalize_role_id(value: str) -> str:
+    text = str(value or "").strip().lower()
+    text = re.sub(r"[^a-z0-9_\-]+", "_", text)
+    return text.strip("_") or f"role_{uuid.uuid4().hex[:8]}"
+
+
+def _find_role_by_name_or_id(value: str) -> dict | None:
+    needle = str(value or "").strip()
+    if not needle:
+        return None
+    roles = _load_visitor_roles()
+    for role in roles:
+        if needle == str(role.get("id", "")) or needle == str(role.get("name", "")):
+            return role
+    lower = needle.lower()
+    for role in roles:
+        if lower == str(role.get("id", "")).lower() or lower == str(role.get("name", "")).lower():
+            return role
+    return None
+
+
+def _hash_secret(secret: str) -> str:
+    return hashlib.sha256(str(secret or "").encode("utf-8")).hexdigest()
+
+
+def _make_visitor_key() -> str:
+    raw = secrets.token_urlsafe(18).replace("_", "").replace("-", "").upper()
+    chunks = [raw[i:i + 4] for i in range(0, min(len(raw), 16), 4)]
+    return "LR-" + "-".join(chunks)
+
+
+def _public_role(role: dict) -> dict:
+    return {
+        "id": role.get("id", ""),
+        "name": role.get("name", ""),
+        "description": role.get("description", ""),
+        "permissions": role.get("permissions", {}),
+        "builtin": bool(role.get("builtin", False)),
+    }
+
+
+def _public_key_record(item: dict) -> dict:
+    return {
+        "id": item.get("id", ""),
+        "key_prefix": item.get("key_prefix", ""),
+        "role_id": item.get("role_id", ""),
+        "role_name": item.get("role_name", ""),
+        "remark": item.get("remark", ""),
+        "status": item.get("status", "active"),
+        "created_at": item.get("created_at", 0),
+        "last_used_at": item.get("last_used_at", 0),
+        "uses": item.get("uses", 0),
+        "submissions": item.get("submissions", 0),
+    }
+
+
+def _permission(request: web.Request, key: str, default=False):
+    identity = _get_session_identity(request)
+    if identity.get("type") == "admin":
+        return True
+    perms = identity.get("permissions", {})
+    return perms.get(key, default)
+
+
+def _session_role_permissions(request: web.Request) -> dict:
+    identity = _get_session_identity(request)
+    if identity.get("type") == "admin":
+        return _default_permissions(
+            can_create_func_card=True,
+            can_edit_func_card=True,
+            can_delete_func_card=True,
+            can_create_fate_card=True,
+            can_edit_fate_card=True,
+            can_delete_fate_card=True,
+            can_upload_image=True,
+            can_delete_image=True,
+            can_edit_titles=True,
+            can_edit_signin=True,
+            can_edit_runtime=True,
+            can_use_lazy_batch_cards=True,
+            can_use_lazy_batch_images=True,
+            requires_review=False,
+            max_cards_per_submit=100,
+            max_images_per_submit=100,
+            max_pending_drafts=999,
+        )
+    return dict(identity.get("permissions", {}) or {})
+
+
+def _visitor_error(message: str, status: int = 403):
+    return web.json_response({"ok": False, "error": message, "code": "permission_denied"}, status=status)
+
+
+def _load_drafts() -> list[dict]:
+    _ensure_visitor_files()
+    return _read_list_file(VISITOR_DRAFTS_FILE)
+
+
+def _save_drafts(drafts: list[dict]):
+    _atomic_write(VISITOR_DRAFTS_FILE, drafts)
+
+
+def _append_audit(event: str, detail: dict):
+    _ensure_visitor_files()
+    logs = _read_list_file(VISITOR_AUDIT_FILE)
+    logs.append({"id": f"audit_{uuid.uuid4().hex[:12]}", "event": event, "at": int(time.time()), "detail": detail})
+    _atomic_write(VISITOR_AUDIT_FILE, logs[-500:])
+
+
+def _count_pending_for_identity(identity: dict) -> int:
+    if not identity or identity.get("type") != "visitor":
+        return 0
+    invite_id = identity.get("invite_id", "")
+    return sum(1 for draft in _load_drafts() if draft.get("invite_id") == invite_id and draft.get("status") == "pending")
+
+
+def _create_review_draft(request: web.Request, resource_type: str, action: str, before, after, summary: str) -> dict:
+    identity = _get_session_identity(request)
+    profile_id = _get_request_profile_id(request)
+    draft = {
+        "id": f"draft_{uuid.uuid4().hex[:12]}",
+        "status": "pending",
+        "resource_type": resource_type,
+        "action": action,
+        "summary": summary,
+        "profile_id": profile_id,
+        "before": before,
+        "after": after,
+        "invite_id": identity.get("invite_id", ""),
+        "key_prefix": identity.get("key_prefix", ""),
+        "role_id": identity.get("role_id", ""),
+        "role_name": identity.get("role_name", ""),
+        "created_at": int(time.time()),
+        "reviewed_at": 0,
+        "reviewer": "",
+    }
+    drafts = _load_drafts()
+    drafts.append(draft)
+    _save_drafts(drafts)
+    _increment_key_counter(identity.get("invite_id", ""), "submissions")
+    _append_audit("draft_created", {"draft_id": draft["id"], "resource_type": resource_type, "summary": summary})
+    return draft
+
+
+def _increment_key_counter(key_id: str, field: str):
+    if not key_id:
+        return
+    keys = _read_list_file(VISITOR_KEYS_FILE)
+    for item in keys:
+        if item.get("id") == key_id:
+            item[field] = int(item.get(field, 0) or 0) + 1
+            item["last_used_at"] = int(time.time())
+            break
+    _atomic_write(VISITOR_KEYS_FILE, keys)
+
+
+def _diff_named_records(kind: str, before: list, after: list) -> dict:
+    key_name = "card_name" if kind == "func" else "name"
+    if kind == "title":
+        key_name = "name"
+    before_map = {str(item.get(key_name, "")).strip(): item for item in before if isinstance(item, dict) and str(item.get(key_name, "")).strip()}
+    after_map = {str(item.get(key_name, "")).strip(): item for item in after if isinstance(item, dict) and str(item.get(key_name, "")).strip()}
+    created = [name for name in after_map if name not in before_map]
+    deleted = [name for name in before_map if name not in after_map]
+    updated = [name for name in after_map if name in before_map and after_map[name] != before_map[name]]
+    return {"created": created, "updated": updated, "deleted": deleted}
+
+
+def _enforce_card_permissions(request: web.Request, kind: str, before: list, after: list) -> tuple[bool, str, dict]:
+    if _is_admin_request(request):
+        return True, "", _diff_named_records(kind, before, after)
+    diff = _diff_named_records(kind, before, after)
+    perms = _session_role_permissions(request)
+    prefix = "func" if kind == "func" else "fate"
+    if diff["created"] and not perms.get(f"can_create_{prefix}_card", False):
+        return False, "当前访客身份不允许新增此类卡片。", diff
+    if diff["updated"] and not perms.get(f"can_edit_{prefix}_card", False):
+        return False, "当前访客身份不允许修改已有卡片。", diff
+    if diff["deleted"] and not perms.get(f"can_delete_{prefix}_card", False):
+        return False, "当前访客身份不允许删除卡片。", diff
+    changed_count = len(diff["created"]) + len(diff["updated"]) + len(diff["deleted"])
+    if changed_count <= 0:
+        return True, "", diff
+    max_cards = max(0, _safe_int(perms.get("max_cards_per_submit", 1), 1))
+    if changed_count > max_cards:
+        return False, f"本次改动 {changed_count} 项，超过当前身份允许的 {max_cards} 项上限。", diff
+    max_pending = max(0, _safe_int(perms.get("max_pending_drafts", 3), 3))
+    if perms.get("requires_review", True) and _count_pending_for_identity(_get_session_identity(request)) >= max_pending:
+        return False, f"当前密钥待审核数量已达到 {max_pending} 项上限。", diff
+    return True, "", diff
+
+
+def _change_summary(kind: str, diff: dict) -> str:
+    label = {"func": "功能牌", "fate": "命运牌", "title": "称号"}.get(kind, kind)
+    parts = []
+    if diff.get("created"):
+        parts.append(f"新增 {len(diff['created'])} 个{label}: " + "、".join(diff["created"][:5]))
+    if diff.get("updated"):
+        parts.append(f"修改 {len(diff['updated'])} 个{label}: " + "、".join(diff["updated"][:5]))
+    if diff.get("deleted"):
+        parts.append(f"删除 {len(diff['deleted'])} 个{label}: " + "、".join(diff["deleted"][:5]))
+    return "；".join(parts) or f"{label}配置无实质变化"
+
+
+def _visitor_pending_response(draft: dict):
+    return web.json_response({"ok": True, "pending_review": True, "draft": draft, "message": "改动已提交到待审核区，管理员批准后才会写入正式配置。"})
+
+
+def _public_session_identity(identity: dict) -> dict:
+    if not identity:
+        return {"type": "anonymous", "permissions": {}}
+    return {
+        "type": identity.get("type", "anonymous"),
+        "role_id": identity.get("role_id", ""),
+        "role_name": identity.get("role_name", "管理员" if identity.get("type") == "admin" else ""),
+        "key_prefix": identity.get("key_prefix", ""),
+        "permissions": identity.get("permissions", {}),
+    }
+
+
+def _admin_identity() -> dict:
+    return {
+        "type": "admin",
+        "role_id": "admin",
+        "role_name": "管理员",
+        "permissions": _default_permissions(
+            can_create_func_card=True,
+            can_edit_func_card=True,
+            can_delete_func_card=True,
+            can_create_fate_card=True,
+            can_edit_fate_card=True,
+            can_delete_fate_card=True,
+            can_upload_image=True,
+            can_delete_image=True,
+            can_edit_titles=True,
+            can_edit_signin=True,
+            can_edit_runtime=True,
+            can_use_lazy_batch_cards=True,
+            can_use_lazy_batch_images=True,
+            requires_review=False,
+            max_cards_per_submit=100,
+            max_images_per_submit=100,
+            max_pending_drafts=999,
+        ),
+    }
+
+
+def _verify_visitor_key(secret: str) -> dict | None:
+    _ensure_visitor_files()
+    secret_hash = _hash_secret(secret)
+    roles = _role_map()
+    keys = _read_list_file(VISITOR_KEYS_FILE)
+    now = int(time.time())
+    matched = None
+    for item in keys:
+        if item.get("status", "active") != "active":
+            continue
+        if secrets.compare_digest(str(item.get("secret_hash", "")), secret_hash):
+            matched = item
+            break
+    if not matched:
+        return None
+    role = roles.get(str(matched.get("role_id", "")))
+    if not role:
+        return None
+    matched["uses"] = int(matched.get("uses", 0) or 0) + 1
+    matched["last_used_at"] = now
+    _atomic_write(VISITOR_KEYS_FILE, keys)
+    return {
+        "type": "visitor",
+        "invite_id": matched.get("id", ""),
+        "key_prefix": matched.get("key_prefix", ""),
+        "role_id": role.get("id", ""),
+        "role_name": role.get("name", ""),
+        "permissions": role.get("permissions", {}),
+    }
 
 
 def _is_public_request_path(path: str) -> bool:
@@ -728,6 +1171,8 @@ def _is_public_request_path(path: str) -> bool:
 async def auth_middleware(request: web.Request, handler):
     path = request.path
     if _is_public_request_path(path) or _is_authenticated_request(request):
+        if _is_visitor_request(request) and path.startswith("/api/") and not _is_visitor_api_path_allowed(request):
+            return _visitor_error("当前访客身份不能访问该管理接口。")
         return await handler(request)
     if path.startswith("/api/"):
         return web.json_response(
@@ -735,6 +1180,42 @@ async def auth_middleware(request: web.Request, handler):
             status=401,
         )
     raise web.HTTPFound("/")
+
+
+def _is_visitor_api_path_allowed(request: web.Request) -> bool:
+    path = request.path
+    method = request.method.upper()
+    if path.startswith("/api/access/") or path.startswith("/api/visitor/drafts") or path == "/api/visitor/state":
+        return True
+    read_paths = {
+        "/api/runtime_config",
+        "/api/fate_cards",
+        "/api/fate_images",
+        "/api/func_cards",
+        "/api/images",
+        "/api/sign_in_texts",
+        "/api/titles",
+        "/api/check_missing_images",
+    }
+    write_paths = {
+        "/api/runtime_config",
+        "/api/fate_cards",
+        "/api/func_cards",
+        "/api/sign_in_texts",
+        "/api/titles",
+        "/api/upload_fate_image",
+        "/api/upload_image",
+        "/api/lazy/batch_fate",
+        "/api/lazy/batch_func",
+        "/api/lazy/auto_bind",
+    }
+    if method == "GET" and path in read_paths:
+        return bool(_permission(request, "can_view", True))
+    if method in {"POST", "PUT", "PATCH"} and path in write_paths:
+        return True
+    if method == "DELETE" and (path.startswith("/api/images/") or path.startswith("/api/fate_images/")):
+        return True
+    return False
 
 
 def _seed_profile_from_builtin_defaults(paths: dict):
@@ -1272,9 +1753,13 @@ async def api_lazy_batch_fate(request):
         body = await request.json() if request.can_read_body else {}
         if not isinstance(body, dict):
             body = {}
+        if _is_visitor_request(request) and not _permission(request, "can_use_lazy_batch_cards"):
+            return _visitor_error("当前访客身份不允许使用懒狗批量生成。")
         paths, _ = _get_request_runtime_config(request)
 
         count = max(1, min(100, _safe_int(body.get("count", 1))))
+        if _is_visitor_request(request):
+            count = min(count, max(1, _safe_int(_permission(request, "max_cards_per_submit", 1), 1)))
         gold_min = _safe_int(body.get("gold_min", -20), -20)
         gold_max = _safe_int(body.get("gold_max", 100), 100)
         image_mode = str(body.get("image_mode", "none")).strip()
@@ -1313,9 +1798,13 @@ async def api_lazy_batch_func(request):
         body = await request.json() if request.can_read_body else {}
         if not isinstance(body, dict):
             body = {}
+        if _is_visitor_request(request) and not _permission(request, "can_use_lazy_batch_cards"):
+            return _visitor_error("当前访客身份不允许使用懒狗批量生成。")
         paths, _ = _get_request_runtime_config(request)
 
         count = max(1, min(100, _safe_int(body.get("count", 1))))
+        if _is_visitor_request(request):
+            count = min(count, max(1, _safe_int(_permission(request, "max_cards_per_submit", 1), 1)))
         allowed_types = body.get("allowed_types")
         if not isinstance(allowed_types, list):
             allowed_types = ["attack", "heal", "defense"]
@@ -1359,6 +1848,8 @@ async def api_lazy_auto_bind(request):
         body = await request.json() if request.can_read_body else {}
         if not isinstance(body, dict):
             body = {}
+        if _is_visitor_request(request) and not _permission(request, "can_use_lazy_batch_images"):
+            return _visitor_error("当前访客身份不允许批量绑定或生成图片。")
         paths, _ = _get_request_runtime_config(request)
         kind = str(body.get("kind", "fate")).strip()
         
@@ -1426,6 +1917,13 @@ async def api_save_runtime_config(request):
             return web.json_response({"ok": False, "error": "config must be object"}, status=400)
         merged = _sanitize_runtime_config(cfg)
         paths = _get_request_profile_paths(request)
+        if _is_visitor_request(request):
+            if not _permission(request, "can_edit_runtime"):
+                return _visitor_error("当前访客身份不允许修改运行配置。")
+            if _permission(request, "requires_review", True):
+                current = _sanitize_runtime_config(_read_json(paths["runtime_config_file"], {}))
+                draft = _create_review_draft(request, "runtime", "replace", current, merged, "修改运行配置")
+                return _visitor_pending_response(draft)
         _atomic_write(paths["runtime_config_file"], merged)
         return web.json_response({"ok": True})
     except Exception as e:
@@ -1446,6 +1944,13 @@ async def api_save_fate_cards(request):
         body = await request.json()
         cards = _normalize_fate_cards(body.get("cards", []))
         paths = _get_request_profile_paths(request)
+        current = _normalize_fate_cards(_read_json(paths["fate_cards_file"], []))
+        ok, error, diff = _enforce_card_permissions(request, "fate", current, cards)
+        if not ok:
+            return _visitor_error(error)
+        if _is_visitor_request(request) and _permission(request, "requires_review", True):
+            draft = _create_review_draft(request, "fate_cards", "replace", current, cards, _change_summary("fate", diff))
+            return _visitor_pending_response(draft)
         _atomic_write(paths["fate_cards_file"], cards)
         return web.json_response({"ok": True, "cards": cards})
     except Exception as e:
@@ -1455,25 +1960,37 @@ async def api_save_fate_cards(request):
 async def api_upload_fate_image(request):
     """上传命运牌图片到 assets/cards/"""
     try:
+        if _is_visitor_request(request) and not _permission(request, "can_upload_image"):
+            return _visitor_error("当前访客身份不允许上传图片。")
         paths = _get_request_profile_paths(request)
         fate_assets_dir = paths["fate_assets_dir"]
         fate_assets_dir.mkdir(parents=True, exist_ok=True)
         reader = await request.multipart()
         uploaded = []
+        max_images = max(1, _safe_int(_permission(request, "max_images_per_submit", 20), 20))
+        max_bytes = max(1, _safe_int(_permission(request, "max_image_size_mb", 20), 20)) * 1024 * 1024
         async for field in reader:
             if field.name == "files":
+                if _is_visitor_request(request) and len(uploaded) >= max_images:
+                    break
                 filename = field.filename
                 if not filename:
                     continue
                 safe_name = Path(filename).name
                 dest = fate_assets_dir / safe_name
+                total = 0
                 with open(dest, "wb") as f:
                     while True:
                         chunk = await field.read_chunk(8192)
                         if not chunk:
                             break
+                        total += len(chunk)
+                        if _is_visitor_request(request) and total > max_bytes:
+                            raise ValueError("图片超过当前访客身份允许的大小上限。")
                         f.write(chunk)
                 uploaded.append(safe_name)
+        if _is_visitor_request(request) and _permission(request, "requires_review", True) and uploaded:
+            _create_review_draft(request, "upload_fate_image", "upload", [], uploaded, f"上传 {len(uploaded)} 张命运牌图片")
         return web.json_response({"ok": True, "uploaded": uploaded})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
@@ -1506,6 +2023,13 @@ async def api_save_func_cards(request):
         body = await request.json()
         cards = _normalize_func_cards(body.get("cards", []))
         paths = _get_request_profile_paths(request)
+        current = _normalize_func_cards(_read_json(paths["func_cards_file"], []))
+        ok, error, diff = _enforce_card_permissions(request, "func", current, cards)
+        if not ok:
+            return _visitor_error(error)
+        if _is_visitor_request(request) and _permission(request, "requires_review", True):
+            draft = _create_review_draft(request, "func_cards", "replace", current, cards, _change_summary("func", diff))
+            return _visitor_pending_response(draft)
         _atomic_write(paths["func_cards_file"], cards)
         return web.json_response({"ok": True, "cards": cards})
     except Exception as e:
@@ -1537,6 +2061,13 @@ async def api_save_sign_in_texts(request):
         body = await request.json()
         texts = _normalize_sign_in_texts(body.get("texts", {}))
         paths = _get_request_profile_paths(request)
+        if _is_visitor_request(request):
+            if not _permission(request, "can_edit_signin"):
+                return _visitor_error("当前访客身份不允许修改签到配置。")
+            if _permission(request, "requires_review", True):
+                current = _normalize_sign_in_texts(_read_json(paths["sign_in_texts_file"], DEFAULT_SIGN_IN_TEXTS))
+                draft = _create_review_draft(request, "signin", "replace", current, texts, "修改签到配置")
+                return _visitor_pending_response(draft)
         _atomic_write(paths["sign_in_texts_file"], texts)
         return web.json_response({"ok": True, "texts": texts})
     except Exception as e:
@@ -1557,6 +2088,14 @@ async def api_save_titles(request):
         body = await request.json()
         titles = _normalize_titles_config(body.get("titles", []))
         paths = _get_request_profile_paths(request)
+        if _is_visitor_request(request):
+            if not _permission(request, "can_edit_titles"):
+                return _visitor_error("当前访客身份不允许修改称号配置。")
+            current = _normalize_titles_config(_read_json(paths["titles_config_file"], []))
+            diff = _diff_named_records("title", current, titles)
+            if _permission(request, "requires_review", True):
+                draft = _create_review_draft(request, "titles", "replace", current, titles, _change_summary("title", diff))
+                return _visitor_pending_response(draft)
         _atomic_write(paths["titles_config_file"], titles)
         return web.json_response({"ok": True, "titles": titles})
     except Exception as e:
@@ -1690,25 +2229,37 @@ async def api_get_user_stats(request):
 async def api_upload_image(request):
     """上传卡图到 assets/func_cards/"""
     try:
+        if _is_visitor_request(request) and not _permission(request, "can_upload_image"):
+            return _visitor_error("当前访客身份不允许上传图片。")
         paths = _get_request_profile_paths(request)
         assets_dir = paths["func_assets_dir"]
         assets_dir.mkdir(parents=True, exist_ok=True)
         reader = await request.multipart()
         uploaded = []
+        max_images = max(1, _safe_int(_permission(request, "max_images_per_submit", 20), 20))
+        max_bytes = max(1, _safe_int(_permission(request, "max_image_size_mb", 20), 20)) * 1024 * 1024
         async for field in reader:
             if field.name == "files":
+                if _is_visitor_request(request) and len(uploaded) >= max_images:
+                    break
                 filename = field.filename
                 if not filename:
                     continue
                 safe_name = Path(filename).name
                 dest = assets_dir / safe_name
+                total = 0
                 with open(dest, "wb") as f:
                     while True:
                         chunk = await field.read_chunk(8192)
                         if not chunk:
                             break
+                        total += len(chunk)
+                        if _is_visitor_request(request) and total > max_bytes:
+                            raise ValueError("图片超过当前访客身份允许的大小上限。")
                         f.write(chunk)
                 uploaded.append(safe_name)
+        if _is_visitor_request(request) and _permission(request, "requires_review", True) and uploaded:
+            _create_review_draft(request, "upload_func_image", "upload", [], uploaded, f"上传 {len(uploaded)} 张功能牌图片")
         return web.json_response({"ok": True, "uploaded": uploaded})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
@@ -1729,6 +2280,8 @@ async def api_list_images(request):
 
 
 async def api_delete_image(request):
+    if _is_visitor_request(request) and not _permission(request, "can_delete_image"):
+        return _visitor_error("当前访客身份不允许删除图片。")
     filename = request.match_info.get("filename", "")
     if not filename:
         return web.json_response({"ok": False, "error": "no filename"}, status=400)
@@ -1746,6 +2299,8 @@ async def api_delete_image(request):
 
 
 async def api_delete_fate_image(request):
+    if _is_visitor_request(request) and not _permission(request, "can_delete_image"):
+        return _visitor_error("当前访客身份不允许删除图片。")
     filename = request.match_info.get("filename", "")
     if not filename:
         return web.json_response({"ok": False, "error": "no filename"}, status=400)
@@ -1778,7 +2333,8 @@ async def api_check_missing_images(request):
 
 
 async def api_access_status(request):
-    return web.json_response({"ok": True, "verified": _is_authenticated_request(request)})
+    identity = _get_session_identity(request)
+    return web.json_response({"ok": True, "verified": bool(identity), "identity": _public_session_identity(identity)})
 
 
 async def api_access_verify(request):
@@ -1816,6 +2372,462 @@ async def api_access_logout(request):
     response = web.json_response({"ok": True, "verified": False})
     response.del_cookie(WEBUI_SESSION_COOKIE, path="/")
     return response
+
+
+async def api_access_status(request):
+    identity = _get_session_identity(request)
+    return web.json_response({"ok": True, "verified": bool(identity), "identity": _public_session_identity(identity)})
+
+
+async def api_access_verify(request):
+    try:
+        body = await request.json() if request.can_read_body else {}
+    except Exception:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+    password = str(body.get("password", "") or "")
+    if not password.strip():
+        return web.json_response({"ok": False, "error": "请输入访问口令。"}, status=400)
+    identity = _admin_identity() if verify_webui_admin_password(password) else _verify_visitor_key(password)
+    if not identity:
+        return web.json_response({"ok": False, "error": "访问口令错误。", "code": "invalid_password"}, status=401)
+    token = secrets.token_urlsafe(32)
+    _AUTH_SESSIONS[token] = identity
+    response = web.json_response({"ok": True, "verified": True, "identity": _public_session_identity(identity)})
+    response.set_cookie(
+        WEBUI_SESSION_COOKIE,
+        token,
+        httponly=True,
+        samesite="Lax",
+        secure=False,
+        path="/",
+        max_age=86400,
+    )
+    return response
+
+
+async def api_access_logout(request):
+    token = _get_session_token(request)
+    if token:
+        _AUTH_SESSIONS.pop(token, None)
+    response = web.json_response({"ok": True, "verified": False})
+    response.del_cookie(WEBUI_SESSION_COOKIE, path="/")
+    return response
+
+
+def visitor_get_roles_summary() -> str:
+    lines = []
+    for role in _load_visitor_roles():
+        perms = role.get("permissions", {})
+        bits = []
+        if perms.get("can_view"):
+            bits.append("可查看")
+        if perms.get("can_create_func_card"):
+            bits.append("可新增功能牌")
+        if perms.get("can_edit_func_card"):
+            bits.append("可修改功能牌")
+        if perms.get("can_upload_image"):
+            bits.append("可上传图片")
+        if perms.get("can_use_lazy_batch_cards"):
+            bits.append("可使用懒狗批量")
+        bits.append("需审核" if perms.get("requires_review", True) else "免审核")
+        lines.append(f"{role.get('name')} ({role.get('id')}): " + "、".join(bits))
+    return "\n".join(lines)
+
+
+def visitor_public_url() -> str:
+    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+    return str(_CLOUDFLARED_PUBLIC_URL or cfg.get("custom_public_url") or cfg.get("last_public_url") or "").strip()
+
+
+def _cloudflared_filename() -> str:
+    return "cloudflared.exe" if sys.platform.startswith("win") else "cloudflared"
+
+
+def _cloudflared_bin_dir() -> Path:
+    return BASE_PATHS["plugin_data_dir"] / "bin"
+
+
+def _cloudflared_managed_path() -> Path:
+    return _cloudflared_bin_dir() / _cloudflared_filename()
+
+
+def _cloudflared_download_asset() -> tuple[str, str]:
+    machine = platform.machine().lower()
+    arch = "arm64" if "arm64" in machine or "aarch64" in machine else "386" if machine in {"x86", "i386", "i686"} else "amd64"
+    if sys.platform.startswith("win"):
+        return f"cloudflared-windows-{arch}.exe", "exe"
+    if sys.platform == "darwin":
+        return f"cloudflared-darwin-{arch}.tgz", "tgz"
+    return f"cloudflared-linux-{arch}", "bin"
+
+
+def _cloudflared_download_url() -> str:
+    asset, _ = _cloudflared_download_asset()
+    return f"https://github.com/cloudflare/cloudflared/releases/latest/download/{asset}"
+
+
+def _valid_cloudflared_path(path: str | Path | None) -> str:
+    if not path:
+        return ""
+    candidate = Path(str(path)).expanduser()
+    if candidate.exists() and candidate.is_file():
+        return str(candidate)
+    return ""
+
+
+def _detect_cloudflared_path() -> str:
+    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+    for candidate in (
+        cfg.get("cloudflared_path", ""),
+        _cloudflared_managed_path(),
+        shutil.which("cloudflared"),
+    ):
+        found = _valid_cloudflared_path(candidate)
+        if found:
+            return found
+    return ""
+
+
+async def _download_cloudflared_binary() -> dict:
+    url = _cloudflared_download_url()
+    asset, kind = _cloudflared_download_asset()
+    bin_dir = _cloudflared_bin_dir()
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    download_path = bin_dir / asset
+    final_path = _cloudflared_managed_path()
+    async with ClientSession(timeout=ClientTimeout(total=300)) as session:
+        async with session.get(url, allow_redirects=True) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"download failed: HTTP {resp.status}")
+            with open(download_path, "wb") as f:
+                while True:
+                    chunk = await resp.content.read(1024 * 256)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+    if kind == "tgz":
+        with tarfile.open(download_path, "r:gz") as tar:
+            member = next((m for m in tar.getmembers() if Path(m.name).name == "cloudflared" and m.isfile()), None)
+            if not member:
+                raise RuntimeError("cloudflared not found in archive")
+            extracted = tar.extractfile(member)
+            if extracted is None:
+                raise RuntimeError("failed to extract cloudflared")
+            with open(final_path, "wb") as f:
+                shutil.copyfileobj(extracted, f)
+        download_path.unlink(missing_ok=True)
+    elif download_path != final_path:
+        shutil.move(str(download_path), str(final_path))
+    if not sys.platform.startswith("win"):
+        final_path.chmod(final_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+    cfg["cloudflared_path"] = str(final_path)
+    _atomic_write(VISITOR_TUNNEL_FILE, cfg)
+    return {"path": str(final_path), "url": url}
+
+
+async def _start_cloudflared_quick_tunnel(local_url: str) -> dict:
+    global _CLOUDFLARED_PROCESS, _CLOUDFLARED_PUBLIC_URL
+    if _CLOUDFLARED_PROCESS and _CLOUDFLARED_PROCESS.returncode is None and _CLOUDFLARED_PUBLIC_URL:
+        return {"public_url": _CLOUDFLARED_PUBLIC_URL, "running": True}
+    path = _detect_cloudflared_path()
+    if not path:
+        raise RuntimeError("cloudflared is not installed")
+    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0
+    _CLOUDFLARED_PROCESS = await asyncio.create_subprocess_exec(
+        path,
+        "tunnel",
+        "--url",
+        local_url,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+        creationflags=creationflags,
+    )
+    pattern = re.compile(r"https://[a-zA-Z0-9\-]+\.trycloudflare\.com")
+    deadline = time.time() + 25
+    while time.time() < deadline:
+        if _CLOUDFLARED_PROCESS.stdout is None:
+            break
+        try:
+            line = await asyncio.wait_for(_CLOUDFLARED_PROCESS.stdout.readline(), timeout=2)
+        except asyncio.TimeoutError:
+            continue
+        if not line:
+            if _CLOUDFLARED_PROCESS.returncode is not None:
+                break
+            continue
+        text = line.decode("utf-8", errors="ignore")
+        match = pattern.search(text)
+        if match:
+            _CLOUDFLARED_PUBLIC_URL = match.group(0)
+            cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+            cfg["last_public_url"] = _CLOUDFLARED_PUBLIC_URL
+            cfg["cloudflared_path"] = path
+            _atomic_write(VISITOR_TUNNEL_FILE, cfg)
+            return {"public_url": _CLOUDFLARED_PUBLIC_URL, "running": True}
+    raise RuntimeError("cloudflared started but no trycloudflare URL was detected")
+
+
+def visitor_create_key_from_role(role_name_or_id: str, remark: str = "") -> dict:
+    role = _find_role_by_name_or_id(role_name_or_id)
+    if not role:
+        return {"ok": False, "error": "未找到该访客身份。"}
+    _ensure_visitor_files()
+    secret = _make_visitor_key()
+    item = {
+        "id": f"key_{uuid.uuid4().hex[:12]}",
+        "secret_hash": _hash_secret(secret),
+        "key_prefix": secret[:10],
+        "role_id": role.get("id", ""),
+        "role_name": role.get("name", ""),
+        "remark": str(remark or "").strip(),
+        "status": "active",
+        "created_at": int(time.time()),
+        "last_used_at": 0,
+        "uses": 0,
+        "submissions": 0,
+    }
+    keys = _read_list_file(VISITOR_KEYS_FILE)
+    keys.append(item)
+    _atomic_write(VISITOR_KEYS_FILE, keys)
+    _append_audit("key_created", {"key_id": item["id"], "role_id": item["role_id"], "remark": item["remark"]})
+    return {"ok": True, "key": secret, "record": _public_key_record(item), "role": _public_role(role), "public_url": visitor_public_url()}
+
+
+def visitor_get_drafts_summary(limit: int = 8) -> str:
+    drafts = [d for d in _load_drafts() if d.get("status") == "pending"]
+    if not drafts:
+        return "当前没有待审核草稿。"
+    lines = []
+    for draft in drafts[:limit]:
+        lines.append(f"{draft.get('id')}: {draft.get('summary') or draft.get('resource_type')} [{draft.get('role_name')}]")
+    if len(drafts) > limit:
+        lines.append(f"还有 {len(drafts) - limit} 条，请到 WebUI 查看。")
+    return "\n".join(lines)
+
+
+def _apply_draft(draft: dict):
+    profile_id = _sanitize_profile_id(draft.get("profile_id") or DEFAULT_PROFILE_NAME)
+    paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+    resource = draft.get("resource_type")
+    after = draft.get("after")
+    if resource == "func_cards":
+        _atomic_write(paths["func_cards_file"], _normalize_func_cards(after if isinstance(after, list) else []))
+    elif resource == "fate_cards":
+        _atomic_write(paths["fate_cards_file"], _normalize_fate_cards(after if isinstance(after, list) else []))
+    elif resource == "titles":
+        _atomic_write(paths["titles_config_file"], _normalize_titles_config(after if isinstance(after, list) else []))
+    elif resource == "signin":
+        _atomic_write(paths["sign_in_texts_file"], _normalize_sign_in_texts(after if isinstance(after, dict) else {}))
+    elif resource == "runtime":
+        _atomic_write(paths["runtime_config_file"], _sanitize_runtime_config(after if isinstance(after, dict) else {}))
+
+
+def visitor_review_draft_by_id(draft_id: str, approve: bool, reviewer: str = "qq") -> dict:
+    drafts = _load_drafts()
+    target = None
+    for draft in drafts:
+        if draft.get("id") == draft_id:
+            target = draft
+            break
+    if not target:
+        return {"ok": False, "error": "未找到草稿。"}
+    if target.get("status") != "pending":
+        return {"ok": False, "error": "该草稿已经处理过。"}
+    if approve:
+        _apply_draft(target)
+        target["status"] = "approved"
+        event_name = "draft_approved"
+    else:
+        target["status"] = "rejected"
+        event_name = "draft_rejected"
+    target["reviewed_at"] = int(time.time())
+    target["reviewer"] = reviewer
+    _save_drafts(drafts)
+    _append_audit(event_name, {"draft_id": draft_id, "reviewer": reviewer})
+    return {"ok": True, "draft": target}
+
+
+async def api_visitor_state(request):
+    identity = _get_session_identity(request)
+    roles = [_public_role(role) for role in _load_visitor_roles()]
+    return web.json_response({
+        "ok": True,
+        "identity": _public_session_identity(identity),
+        "roles": roles if _is_admin_request(request) else [],
+        "public_url": visitor_public_url(),
+    })
+
+
+async def api_visitor_roles(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以管理访客身份。")
+    if request.method == "GET":
+        return web.json_response({"ok": True, "roles": [_public_role(role) for role in _load_visitor_roles()]})
+    body = await request.json()
+    roles = _load_visitor_roles()
+    role_id = _normalize_role_id(body.get("id") or body.get("name"))
+    item = {
+        "id": role_id,
+        "name": str(body.get("name") or role_id).strip(),
+        "description": str(body.get("description") or "").strip(),
+        "permissions": _deep_merge_dict(_default_permissions(), body.get("permissions") if isinstance(body.get("permissions"), dict) else {}),
+        "builtin": False,
+    }
+    roles = [r for r in roles if r.get("id") != role_id]
+    roles.append(item)
+    _atomic_write(VISITOR_ROLES_FILE, roles)
+    return web.json_response({"ok": True, "role": _public_role(item), "roles": [_public_role(role) for role in roles]})
+
+
+async def api_visitor_delete_role(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以删除访客身份。")
+    role_id = request.match_info.get("role_id", "")
+    roles = _load_visitor_roles()
+    target = next((r for r in roles if r.get("id") == role_id), None)
+    if not target:
+        return web.json_response({"ok": False, "error": "身份不存在。"}, status=404)
+    if target.get("builtin"):
+        return web.json_response({"ok": False, "error": "内置身份不能删除，可以新建自定义身份替代。"}, status=400)
+    roles = [r for r in roles if r.get("id") != role_id]
+    _atomic_write(VISITOR_ROLES_FILE, roles)
+    return web.json_response({"ok": True, "roles": [_public_role(role) for role in roles]})
+
+
+async def api_visitor_keys(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以管理临时密钥。")
+    if request.method == "GET":
+        keys = [_public_key_record(item) for item in _read_list_file(VISITOR_KEYS_FILE)]
+        return web.json_response({"ok": True, "keys": keys})
+    body = await request.json()
+    result = visitor_create_key_from_role(body.get("role_id") or body.get("role_name"), body.get("remark", ""))
+    status = 200 if result.get("ok") else 400
+    return web.json_response(result, status=status)
+
+
+async def api_visitor_revoke_key(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以撤销密钥。")
+    key_id = request.match_info.get("key_id", "")
+    keys = _read_list_file(VISITOR_KEYS_FILE)
+    changed = False
+    for item in keys:
+        if item.get("id") == key_id:
+            item["status"] = "revoked"
+            changed = True
+            break
+    if changed:
+        _atomic_write(VISITOR_KEYS_FILE, keys)
+        _append_audit("key_revoked", {"key_id": key_id})
+    return web.json_response({"ok": True, "changed": changed})
+
+
+async def api_visitor_drafts(request):
+    if not _is_authenticated_request(request):
+        return _visitor_error("请先登录。", status=401)
+    drafts = _load_drafts()
+    if not _is_admin_request(request):
+        invite_id = _get_session_identity(request).get("invite_id", "")
+        drafts = [d for d in drafts if d.get("invite_id") == invite_id]
+    return web.json_response({"ok": True, "drafts": drafts})
+
+
+async def api_visitor_review_draft(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以审核草稿。")
+    draft_id = request.match_info.get("draft_id", "")
+    action = request.match_info.get("action", "")
+    result = visitor_review_draft_by_id(draft_id, action == "approve", "webui")
+    return web.json_response(result, status=200 if result.get("ok") else 400)
+
+
+async def api_visitor_tunnel_status(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以查看协作通道。")
+    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+    detected = _detect_cloudflared_path()
+    port = request.app.get("webui_port", 4399)
+    local_url = f"http://127.0.0.1:{port}"
+    system = sys.platform
+    if system.startswith("win"):
+        install_hint = "winget install --id Cloudflare.cloudflared"
+    elif system == "darwin":
+        install_hint = "brew install cloudflared"
+    else:
+        install_hint = "按 Cloudflare 官方文档安装 cloudflared，或下载对应架构二进制。"
+    return web.json_response({
+        "ok": True,
+        "config": cfg,
+        "detected_path": detected or "",
+        "detected": bool(detected),
+        "running": bool(_CLOUDFLARED_PROCESS and _CLOUDFLARED_PROCESS.returncode is None),
+        "public_url": visitor_public_url(),
+        "managed_path": str(_cloudflared_managed_path()),
+        "download_url": _cloudflared_download_url(),
+        "local_url": local_url,
+        "quick_tunnel_command": f"cloudflared tunnel --url {local_url}",
+        "install_hint": install_hint,
+        "docs": [
+            "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/",
+            "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/",
+        ],
+    })
+
+
+async def api_visitor_tunnel_config(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以配置协作通道。")
+    body = await request.json()
+    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+    for key in ("mode", "cloudflared_path", "custom_public_url", "last_public_url"):
+        if key in body:
+            cfg[key] = str(body.get(key) or "").strip()
+    for key in ("allow_plugin_start_tunnel", "allow_install_script"):
+        if key in body:
+            cfg[key] = bool(body.get(key))
+    _atomic_write(VISITOR_TUNNEL_FILE, cfg)
+    return web.json_response({"ok": True, "config": cfg})
+
+
+async def api_visitor_cloudflared_install(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以安装 cloudflared。")
+    try:
+        result = await _download_cloudflared_binary()
+        return web.json_response({"ok": True, **result})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e), "download_url": _cloudflared_download_url()}, status=500)
+
+
+async def api_visitor_tunnel_start(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以启动临时通道。")
+    port = request.app.get("webui_port", 4399)
+    local_url = f"http://127.0.0.1:{port}"
+    try:
+        result = await _start_cloudflared_quick_tunnel(local_url)
+        return web.json_response({"ok": True, **result})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_visitor_tunnel_stop(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以停止临时通道。")
+    global _CLOUDFLARED_PROCESS, _CLOUDFLARED_PUBLIC_URL
+    if _CLOUDFLARED_PROCESS and _CLOUDFLARED_PROCESS.returncode is None:
+        _CLOUDFLARED_PROCESS.terminate()
+        try:
+            await asyncio.wait_for(_CLOUDFLARED_PROCESS.wait(), timeout=5)
+        except asyncio.TimeoutError:
+            _CLOUDFLARED_PROCESS.kill()
+    _CLOUDFLARED_PROCESS = None
+    _CLOUDFLARED_PUBLIC_URL = ""
+    return web.json_response({"ok": True, "running": False})
 
 
 async def api_profile_overview(request):
@@ -2117,14 +3129,30 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     _ensure_private_dirs()
     migrate_legacy_storage(PLUGIN_NAME)
     _ensure_profile_seed_data(DEFAULT_PROFILE_NAME)
+    _ensure_visitor_files()
     if not WEBUI_ACCESS_CONFIG_FILE.exists():
         _atomic_write(WEBUI_ACCESS_CONFIG_FILE, {"access_password": _normalize_access_password(_WEBUI_ACCESS_PASSWORD)})
     app = web.Application(middlewares=[auth_middleware])
+    app["webui_port"] = port
 
         # API 路由
     app.router.add_get("/api/access/status", api_access_status)
     app.router.add_post("/api/access/verify", api_access_verify)
     app.router.add_post("/api/access/logout", api_access_logout)
+    app.router.add_get("/api/visitor/state", api_visitor_state)
+    app.router.add_get("/api/visitor/roles", api_visitor_roles)
+    app.router.add_post("/api/visitor/roles", api_visitor_roles)
+    app.router.add_delete("/api/visitor/roles/{role_id}", api_visitor_delete_role)
+    app.router.add_get("/api/visitor/keys", api_visitor_keys)
+    app.router.add_post("/api/visitor/keys", api_visitor_keys)
+    app.router.add_post("/api/visitor/keys/{key_id}/revoke", api_visitor_revoke_key)
+    app.router.add_get("/api/visitor/drafts", api_visitor_drafts)
+    app.router.add_post("/api/visitor/drafts/{draft_id}/{action:approve|reject}", api_visitor_review_draft)
+    app.router.add_get("/api/visitor/tunnel", api_visitor_tunnel_status)
+    app.router.add_post("/api/visitor/tunnel", api_visitor_tunnel_config)
+    app.router.add_post("/api/visitor/cloudflared/install", api_visitor_cloudflared_install)
+    app.router.add_post("/api/visitor/tunnel/start", api_visitor_tunnel_start)
+    app.router.add_post("/api/visitor/tunnel/stop", api_visitor_tunnel_stop)
     app.router.add_get("/api/profile_overview", api_profile_overview)
     app.router.add_post("/api/profiles", api_create_profile)
     app.router.add_post("/api/profile_meta", api_update_profile_meta)

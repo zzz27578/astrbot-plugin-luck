@@ -2,6 +2,7 @@ import os
 import re
 import json
 import asyncio
+import time
 from pathlib import Path
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
@@ -13,7 +14,15 @@ from .core.luck_bank import LuckBank
 from .core.json_cache import load_json_cached
 from .core.plugin_storage import PLUGIN_NAME, get_base_storage_paths, get_runtime_context, migrate_legacy_storage
 from .modules import m_sign_in, m_fate_cards, m_func_cards
-from .webui.server import start_webui
+from .webui.server import (
+    start_webui,
+    verify_webui_admin_password,
+    visitor_create_key_from_role,
+    visitor_get_drafts_summary,
+    visitor_get_roles_summary,
+    visitor_public_url,
+    visitor_review_draft_by_id,
+)
 
 
 migrate_legacy_storage(PLUGIN_NAME)
@@ -198,6 +207,7 @@ class LuckPlugin(Star):
         self._base_config = config or {}
         self._bank_cache: dict[str, LuckBank] = {}
         self._last_runtime_config = self._base_config
+        self._private_admin_verified_until: dict[str, float] = {}
 
         # 启动时先确保默认 profile 与旧数据迁移到位
         migrate_legacy_storage(self.name or PLUGIN_NAME)
@@ -240,7 +250,16 @@ class LuckPlugin(Star):
         # 第一时间阻断事件，防止底层聊天 AI 抢答
         event.stop_event()
         group_id = _extract_group_id(event)
+        private_cmd_str = _normalize_luck_command(event.get_message_str())
+        private_user_id = event.get_sender_id()
         if not group_id:
+            if private_cmd_str is not None:
+                handled = False
+                async for res in self._handle_private_collab_admin(event, private_user_id, private_cmd_str):
+                    handled = True
+                    yield res
+                if handled:
+                    return
             yield event.plain_result("⚠️ 当前功能仅支持群聊使用，私聊场景不参与签到与排行映射。")
             return
 
@@ -442,6 +461,78 @@ class LuckPlugin(Star):
 
                 # ================= 🚫 兜底处理 =================
         yield event.plain_result(f"❓ 未知的异界法术：{cmd_str}\n发送「/luck 菜单」查看可用口令。")
+
+    async def _handle_private_collab_admin(self, event: AstrMessageEvent, sender_id: str, cmd_str: str):
+        text = str(cmd_str or "").strip()
+        visitor_prefixes = ("管理验证", "访客身份", "生成临时密钥", "生成游客密钥", "访客密钥", "待审核", "同意草稿", "拒绝草稿", "通过草稿")
+        if not text.startswith(visitor_prefixes):
+            return
+        if not self._is_extra_admin(str(sender_id), self._base_config):
+            yield event.plain_result("⚠️ 只有插件管理员可以在私聊中管理访客协作。")
+            return
+
+        if text.startswith("管理验证"):
+            password = text.replace("管理验证", "", 1).strip()
+            if not password:
+                yield event.plain_result("请发送：/luck 管理验证 WebUI管理密码")
+                return
+            if verify_webui_admin_password(password):
+                self._private_admin_verified_until[str(sender_id)] = time.time() + 600
+                yield event.plain_result("✅ 管理验证通过，10 分钟内可以生成访客密钥和审核草稿。")
+            else:
+                yield event.plain_result("⚠️ WebUI 管理密码错误。")
+            return
+
+        if self._private_admin_verified_until.get(str(sender_id), 0) < time.time():
+            yield event.plain_result("请先私聊发送：/luck 管理验证 WebUI管理密码")
+            return
+
+        if text in {"访客身份", "访客密钥"}:
+            yield event.plain_result("【访客身份列表】\n" + visitor_get_roles_summary())
+            return
+
+        if text.startswith(("生成临时密钥", "生成游客密钥")):
+            role_name = text
+            for prefix in ("生成临时密钥", "生成游客密钥"):
+                if role_name.startswith(prefix):
+                    role_name = role_name.replace(prefix, "", 1).strip()
+                    break
+            if not role_name:
+                yield event.plain_result("请发送：/luck 生成临时密钥 功能牌投稿员\n可用身份可用 /luck 访客身份 查看。")
+                return
+            result = visitor_create_key_from_role(role_name)
+            if not result.get("ok"):
+                yield event.plain_result(f"⚠️ {result.get('error', '生成失败')}")
+                return
+            url = result.get("public_url") or visitor_public_url() or "未配置公网地址，请先在 WebUI 的访客协作页填写 trycloudflare 地址。"
+            role = result.get("role", {})
+            yield event.plain_result(
+                "✅ 已生成访客协作密钥\n"
+                f"身份：{role.get('name', role_name)}\n"
+                f"地址：{url}\n"
+                f"密钥：{result.get('key')}\n"
+                "请只把访客密钥发给需要协作的人，不要发送 WebUI 管理密码。"
+            )
+            return
+
+        if text == "待审核":
+            yield event.plain_result("【访客待审核】\n" + visitor_get_drafts_summary())
+            return
+
+        if text.startswith(("同意草稿", "通过草稿", "拒绝草稿")):
+            approve = not text.startswith("拒绝草稿")
+            draft_id = text
+            for prefix in ("同意草稿", "通过草稿", "拒绝草稿"):
+                draft_id = draft_id.replace(prefix, "", 1).strip()
+            if not draft_id:
+                yield event.plain_result("请带上草稿 ID，例如：/luck 同意草稿 draft_xxx")
+                return
+            result = visitor_review_draft_by_id(draft_id, approve, f"qq:{sender_id}")
+            if result.get("ok"):
+                yield event.plain_result("✅ 草稿已通过并写入正式配置。" if approve else "✅ 草稿已拒绝。")
+            else:
+                yield event.plain_result(f"⚠️ {result.get('error', '审核失败')}")
+            return
 
     def _is_func_cards_command(self, cmd_str: str) -> bool:
 

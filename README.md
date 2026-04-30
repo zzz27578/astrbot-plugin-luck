@@ -158,3 +158,58 @@ data/plugin_data/luck_rank/
 - `data/plugin_data/luck_rank/webui_runtime_config.json`
 - `data/plugin_data/luck_rank/cards/*`
 - `data/plugin_data/luck_rank/func_cards/*`
+
+## Cloudflare 开箱即用模式补充
+
+访客协作页会自动检测运行环境中是否存在 `cloudflared`：
+
+- 检测成功时，页面会提示“检测正常”，可以直接点击“生成临时地址”启动 Quick Tunnel。
+- 检测失败时，页面会提供“自动安装 cloudflared”按钮，从 Cloudflare 官方 GitHub Release 下载适配当前系统架构的二进制文件到插件数据目录。
+- 自动安装不会注册系统服务，不会修改系统 PATH，不会改防火墙；下载完成后插件会记录该二进制路径并用于启动临时通道。
+- 如果自动下载失败，页面仍会展示推荐命令、下载地址和手动公网地址输入框，用户可以用 winget、brew、包管理器、ngrok、frp 或自有反代兜底。
+
+身份权限可以直接在“访客协作”页新增和编辑。是否需要审核、是否允许懒狗批量生成、是否允许批量图片、单次卡片/图片上限都会随身份模板保存，生成临时密钥时直接套用该身份。
+
+## Visitor Collaboration / 临时授权协作
+
+WebUI 顶部新增“访客协作”入口。管理员可以预设权限身份并生成临时密钥，访客用密钥登录同一个 WebUI 后，只能按对应身份权限操作。需要审核的身份不会直接写入正式配置，所有改动会进入独立待审核区，管理员通过后才会写入真实配置文件。
+
+默认身份包括：
+
+- 只读访客：只能查看。
+- 功能牌投稿员：可新增少量功能牌和上传少量图片，需要审核。
+- 功能牌协作者：可新增和修改功能牌，需要审核。
+- 受信协作者：可新增、修改、上传图片，可免审核，但不能删除核心配置。
+
+管理员 QQ 私聊命令：
+
+```text
+/luck 管理验证 WebUI管理密码
+/luck 访客身份
+/luck 生成临时密钥 功能牌投稿员
+/luck 待审核
+/luck 同意草稿 draft_xxx
+/luck 拒绝草稿 draft_xxx
+```
+
+这些命令必须在私聊中使用，并且发送者必须是插件管理员。生成密钥和审核草稿前，需要先用 WebUI 管理密码完成二次验证。
+
+### Cloudflare Quick Tunnel
+
+如果不想暴露服务器 IP，可以使用 Cloudflare Quick Tunnel。该功能依赖用户自行安装 `cloudflared`，插件不会静默下载、安装或修改系统环境。WebUI 的“访客协作”页面会检测 `cloudflared` 是否存在，并给出推荐命令：
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:4399
+```
+
+如果 WebUI 端口不是 `4399`，请替换为实际端口。命令运行后会生成 `trycloudflare.com` 临时地址，把它填回“访客协作”页面即可。
+
+兜底方式：
+
+- Windows 可尝试：`winget install --id Cloudflare.cloudflared`
+- macOS 可尝试：`brew install cloudflared`
+- Linux 请按 Cloudflare 官方文档使用包管理器或下载对应架构二进制。
+- 也可以填写 ngrok、frp、反向代理、自有公网地址。
+- 不需要公网时，也可以只使用本地访客权限和审核系统。
+
+注意：Quick Tunnel 地址只在 `cloudflared` 运行期间有效，重启后可能变化。不要把 WebUI 管理密码发给访客，普通协作建议使用“需要审核”的身份。

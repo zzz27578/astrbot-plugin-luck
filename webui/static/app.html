@@ -925,7 +925,9 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   opacity: 1;
   pointer-events: auto;
   transform: translate3d(0, 0, 0);
-  transition-delay: 0.4s;
+  transition:
+    opacity 0.26s ease 0.04s,
+    transform 0s linear;
 }
 
 .home-showcase.stage-auth:not(.return-home),
@@ -1137,9 +1139,9 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .home-auth-left-main {
   position: relative;
   z-index: 3;
-  padding: 54px 48px 24px;
+  padding: 58px 48px 10px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .home-auth-heading {
@@ -1159,8 +1161,8 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   font-family: var(--font-headline);
   font-size: 11px;
   font-weight: 900;
-  letter-spacing: 4px;
-  color: rgba(255,255,255,0.46);
+  letter-spacing: 3px;
+  color: rgba(214, 225, 220, 0.52);
 }
 
 .home-auth-title {
@@ -1176,41 +1178,67 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 .home-auth-desc {
   max-width: 520px;
-  font-size: 14px;
-  line-height: 1.9;
-  color: rgba(230,237,233,0.68);
+  font-size: 13px;
+  line-height: 1.85;
+  color: rgba(230,237,233,0.6);
 }
 
 .home-auth-status {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: fit-content;
-  padding: 10px 14px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.04);
+  min-width: 280px;
+  padding: 12px 16px;
+  border: 1px solid rgba(80, 110, 96, 0.36);
+  background: linear-gradient(90deg, rgba(9, 13, 11, 0.9), rgba(10, 18, 14, 0.7));
   font-family: var(--font-headline);
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 1.6px;
-  color: rgba(255,255,255,0.72);
+  letter-spacing: 1.4px;
+  color: rgba(228, 236, 232, 0.72);
 }
 
-.home-auth-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #39e5b8;
-  box-shadow: 0 0 10px rgba(57,229,184,0.7);
+.home-auth-status-rail {
+  width: 18px;
+  height: 2px;
+  background: rgba(26, 158, 94, 0.82);
+  box-shadow: 0 0 10px rgba(26, 158, 94, 0.18);
+}
+
+.home-auth-status-label {
+  color: rgba(200, 212, 206, 0.42);
+}
+
+.home-auth-status-value {
+  color: rgba(239, 245, 242, 0.9);
+}
+
+.home-auth-status.is-error .home-auth-status-rail {
+  background: rgba(217, 56, 41, 0.88);
+  box-shadow: 0 0 10px rgba(217, 56, 41, 0.16);
+}
+
+.home-auth-status.is-error .home-auth-status-value {
+  color: rgba(255, 213, 208, 0.92);
+}
+
+.home-auth-status.is-success .home-auth-status-rail {
+  background: rgba(34, 197, 94, 0.9);
+}
+
+.home-auth-status.is-success .home-auth-status-value {
+  color: rgba(219, 255, 231, 0.96);
 }
 
 .home-terminal-block {
   margin-top: auto;
   position: relative;
   z-index: 3;
-  padding: 0 48px 48px;
+  padding: 46px 48px 48px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .home-terminal-head {
@@ -1225,15 +1253,30 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 3px;
-  color: rgba(255,255,255,0.4);
+  color: rgba(228, 236, 232, 0.44);
+}
+
+.home-terminal-state {
+  font-family: var(--font-headline);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: rgba(190, 203, 197, 0.42);
 }
 
 .home-terminal-panel {
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  padding: 16px 18px;
+  border: 1px solid rgba(82, 102, 93, 0.3);
+  background:
+    linear-gradient(180deg, rgba(2, 4, 3, 0.9), rgba(0, 0, 0, 0.76));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.02),
+    0 18px 34px rgba(0, 0, 0, 0.24);
+  min-height: 172px;
+  padding: 16px 18px 18px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  overflow: hidden;
+  opacity: 0.9;
 }
 
 .home-terminal-line {
@@ -1241,13 +1284,45 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   gap: 12px;
   font-family: 'Courier New', Courier, monospace;
   font-size: 12px;
-  line-height: 1.75;
-  color: rgba(230,237,233,0.66);
+  line-height: 1.72;
+  color: rgba(220,228,224,0.62);
+  opacity: 0;
+  transform: translateY(5px);
+  animation: home-terminal-line-in 0.32s ease forwards;
+  animation-delay: var(--line-delay, 0s);
+}
+
+.home-terminal-line.is-muted {
+  color: rgba(190, 201, 196, 0.44);
+}
+
+.home-terminal-line.is-error {
+  color: rgba(255, 191, 184, 0.84);
+}
+
+.home-terminal-line.is-success {
+  color: rgba(208, 255, 224, 0.8);
+}
+
+.home-terminal-line.is-warn {
+  color: rgba(245, 223, 170, 0.78);
+}
+
+.home-terminal-content {
+  white-space: pre-wrap;
 }
 
 .home-terminal-prefix {
-  color: #39e5b8;
+  color: rgba(26, 158, 94, 0.86);
   flex-shrink: 0;
+  min-width: 54px;
+}
+
+@keyframes home-terminal-line-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .home-login-shell {
@@ -1258,6 +1333,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 .home-login-card {
   width: min(480px, 100%);
+  min-height: 500px;
   border: 1px solid rgba(26, 158, 94, 0.15);
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
@@ -1265,7 +1341,8 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   padding: 48px 44px;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.04), inset 0 0 0 1px rgba(255,255,255,0.6);
   display: grid;
-  gap: 20px;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 16px;
   position: relative;
 }
 
@@ -1325,32 +1402,56 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 
 .home-login-card .btn-strong {
-  height: 52px;
-  padding: 0 32px;
-  font-size: 14px;
-  letter-spacing: 2px;
-  background: var(--shard-text);
-  color: var(--shard-surface);
+  height: 46px;
+  padding: 0 22px;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  background: #101612;
+  color: #f4faf6;
+  border: 1px solid rgba(26, 158, 94, 0.52);
+  box-shadow:
+    inset 0 0 0 1px rgba(26, 158, 94, 0.16),
+    0 10px 24px rgba(9, 29, 18, 0.16),
+    0 0 22px rgba(26, 158, 94, 0.12);
 }
 
 .home-login-card .btn-strong:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(26, 158, 94, 0.25);
+  background: #121b16;
+  border-color: rgba(26, 158, 94, 0.78);
+  color: #ffffff;
+  box-shadow:
+    inset 0 0 0 1px rgba(26, 158, 94, 0.24),
+    0 0 28px rgba(26, 158, 94, 0.22),
+    0 14px 28px rgba(9, 29, 18, 0.2);
 }
 
 .home-login-card .btn {
-  height: 52px;
-  font-size: 14px;
-  letter-spacing: 2px;
+  height: 46px;
+  padding: 0 18px;
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  background: rgba(255,255,255,0.96);
+  border-color: rgba(26, 158, 94, 0.2);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.7),
+    0 8px 22px rgba(12, 43, 27, 0.08),
+    0 0 18px rgba(26, 158, 94, 0.08);
+}
+
+.home-login-card .btn:hover {
+  background: rgba(255,255,255,1);
+  color: var(--shard-text);
+  border-color: rgba(26, 158, 94, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.8),
+    0 0 22px rgba(26, 158, 94, 0.14),
+    0 12px 28px rgba(12, 43, 27, 0.12);
 }
 
 .home-login-kicker {
-  font-family: var(--font-headline);
   font-size: 12px;
   font-weight: 900;
-  letter-spacing: 6px;
+  letter-spacing: 1px;
   color: var(--accent);
   display: flex;
   align-items: center;
@@ -1368,24 +1469,184 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   font-family: var(--font-headline);
   font-size: 42px;
   font-weight: 900;
-  letter-spacing: 4px;
+  letter-spacing: 2px;
   color: var(--shard-text);
   margin-top: -4px;
+  min-height: 58px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.home-login-title-text {
+  display: inline-block;
+  animation: home-login-title-in 0.34s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.home-login-title.is-ready .home-login-title-text {
+  font-size: 46px;
+  text-shadow: 0 0 12px rgba(26, 158, 94, 0.18);
+}
+
+.home-login-techline {
+  position: relative;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.home-login-techline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(26, 158, 94, 0.26) 18%, rgba(26, 158, 94, 0.08) 82%, transparent);
+  transform: translateY(-50%);
+}
+
+.home-login-techline::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -36%;
+  width: 34%;
+  height: 5px;
+  background: linear-gradient(90deg, transparent, rgba(26, 158, 94, 0.22), rgba(255,255,255,0.92), rgba(26, 158, 94, 0.22), transparent);
+  transform: translateY(-50%);
+  animation: home-techline-scan 2.7s linear infinite;
+}
+
+.home-login-techline.is-ready::after {
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(26, 158, 94, 0.16), rgba(26, 158, 94, 0.95), rgba(255,255,255,0.96), rgba(26, 158, 94, 0.24), transparent);
+  animation-duration: 2.1s;
+}
+
+.home-login-techline-chip,
+.home-login-techline-meta {
+  position: relative;
+  z-index: 1;
+  background: rgba(255,255,255,0.84);
+  padding: 0 10px 0 0;
+}
+
+.home-login-techline-chip {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: rgba(18, 24, 20, 0.7);
+  white-space: nowrap;
+}
+
+.home-login-techline.is-ready .home-login-techline-chip {
+  color: rgba(18, 84, 53, 0.9);
+}
+
+.home-login-techline-meta {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: rgba(90, 107, 98, 0.72);
+  padding-left: 10px;
+  white-space: nowrap;
+}
+
+@keyframes home-techline-scan {
+  to {
+    left: 102%;
+  }
+}
+
+@keyframes home-login-title-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .home-login-desc {
-  font-size: 13px;
-  line-height: 1.8;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--shard-text-muted);
   border-left: 2px solid rgba(26, 158, 94, 0.3);
-  padding-left: 14px;
-  margin-bottom: 8px;
+  padding-left: 12px;
+  margin-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-login-body {
+  min-height: 162px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.home-login-ready-panel {
+  min-height: 162px;
+  border: 1px solid rgba(26, 158, 94, 0.16);
+  background:
+    linear-gradient(180deg, rgba(26, 158, 94, 0.045), rgba(255,255,255,0.36));
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.home-login-ready-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #31453a;
+}
+
+.home-login-ready-row b {
+  font-family: var(--font-headline);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: rgba(26, 158, 94, 0.86);
+}
+
+.home-login-ready-row span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .home-login-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: grid;
+  gap: 10px;
+  align-items: stretch;
+  align-self: end;
+}
+
+.home-login-actions.is-auth {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-login-actions.is-ready {
+  grid-template-columns: 1.15fr 0.9fr 0.9fr;
+}
+
+.home-login-actions .btn,
+.home-login-actions .btn-strong {
+  width: 100%;
+  min-width: 0;
 }
 
 .home-login-hint {
@@ -1399,12 +1660,12 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 .home-login-confirm {
   padding: 16px;
-  border: 1px dashed rgba(26, 158, 94, 0.3);
-  background: rgba(26, 158, 94, 0.05);
+  border: 1px solid rgba(26, 158, 94, 0.16);
+  background: rgba(26, 158, 94, 0.04);
   font-size: 13px;
   line-height: 1.8;
-  color: #155c39;
-  font-weight: 500;
+  color: #184a31;
+  font-weight: 600;
 }
 
 .password-input-wrap {
@@ -1481,6 +1742,11 @@ body.chassis:not(.ui-ready) .toolbar-actions {
     height: auto;
     clip-path: none;
     padding: 28px 22px 44px;
+  }
+
+  .home-login-actions.is-auth,
+  .home-login-actions.is-ready {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2978,6 +3244,9 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .home-showcase.return-home .home-splash .ark-hud-stage {
   opacity: 1;
   transform: translateY(-50%) scale(1);
+  transition:
+    opacity 0.26s ease 0.04s,
+    transform 0.46s cubic-bezier(0.19, 1, 0.22, 1);
 }
 /* 验证页状态：验证页雷达恢复原大小并显现 */
 .home-showcase.stage-auth .home-auth-shell .ark-hud-stage,
@@ -2993,33 +3262,21 @@ body.chassis:not(.ui-ready) .toolbar-actions {
  */
 
 /* ----- 对于逆时针的齿轮刻度圈 ----- */
-.home-showcase.intro-collapse .home-auth-shell .ark-ring-ticks,
-.home-showcase.stage-auth .home-auth-shell .ark-ring-ticks,
-.home-showcase.return-home .home-splash .ark-ring-ticks {
+.home-showcase.intro-collapse .home-auth-shell .ark-ring-ticks-rotor,
+.home-showcase.stage-auth .home-auth-shell .ark-ring-ticks-rotor {
   /* 利用负数 delay (-0.4s) 让动画提前开始，页面亮起时直接进入狂暴刹车阶段 */
-  animation: 
-    ark-startup-burst-rev 2.8s cubic-bezier(0.0, 1.0, 0.05, 1.0) -0.4s 1, 
-    ark-spin-v-slow-rev 180s linear infinite 2.4s;
-}
-
-/* ----- 对于顺时针的最外层粗圈 ----- */
-.home-showcase.intro-collapse .home-auth-shell .ark-ring-outer,
-.home-showcase.stage-auth .home-auth-shell .ark-ring-outer,
-.home-showcase.return-home .home-splash .ark-ring-outer {
-  animation: 
-    ark-startup-burst 2.8s cubic-bezier(0.0, 1.0, 0.05, 1.0) -0.4s 1, 
-    ark-spin-v-slow 50s linear infinite 2.4s;
-}
-
-/* 顺时针强阻尼爆发：为了在 -0.4s 的 delay 下仍然表现出惊人速度，我们加大旋转的初始角度到 -240度 */
-@keyframes ark-startup-burst {
-  0% { transform: translate(-50%, -50%) rotate(-240deg); }
-  100% { transform: translate(-50%, -50%) rotate(0deg); }
+  animation: ark-startup-burst-rev 2.8s cubic-bezier(0.0, 1.0, 0.05, 1.0) -0.4s 1;
 }
 
 /* 逆时针强阻尼爆发 */
 @keyframes ark-startup-burst-rev {
   0% { transform: translate(-50%, -50%) rotate(240deg); }
+  100% { transform: translate(-50%, -50%) rotate(0deg); }
+}
+
+/* 返回首页时使用叠层残影做柔和减速，不打断底层连续旋转 */
+@keyframes ark-return-home-burst-rev {
+  0% { transform: translate(-50%, -50%) rotate(40deg); }
   100% { transform: translate(-50%, -50%) rotate(0deg); }
 }
 
@@ -3047,7 +3304,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 
 /* 雷达环层级（增粗增强可见度） */
-.ark-ring-outer, .ark-ring-mid, .ark-ring-inner, .ark-ring-ticks {
+.ark-ring-outer, .ark-ring-mid, .ark-ring-inner, .ark-ring-ticks-rotor {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -3108,13 +3365,28 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .ark-orbit-node-opp { bottom: -4px; background: rgba(230, 237, 233, 0.8); box-shadow: 0 0 8px rgba(230, 237, 233, 0.5); }
 
 /* 极密仪表刻度圈：用渐变遮罩做出精密的齿轮刻度 */
-.ark-ring-ticks {
+.ark-ring-ticks-rotor {
   width: 82%;
   height: 82%;
+}
+
+.home-showcase.return-home .home-splash .ark-ring-ticks-rotor {
+  animation: ark-return-home-burst-rev 0.82s cubic-bezier(0.18, 0.86, 0.28, 1) 1;
+}
+
+.ark-ring-ticks {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50% !important;
+  transform: translate(-50%, -50%);
   background: repeating-conic-gradient(from 0deg, rgba(230, 237, 233, 0.25) 0deg 0.5deg, transparent 0.5deg 2deg);
   -webkit-mask: radial-gradient(circle, transparent 66%, #000 66.5%, #000 68%, transparent 68.5%);
   mask: radial-gradient(circle, transparent 66%, #000 66.5%, #000 68%, transparent 68.5%);
   animation: ark-spin-v-slow-rev 180s linear infinite;
+  animation-delay: var(--radar-ticks-delay, 0s);
 }
 /* 不对称的高亮刻度微光段 */
 .ark-ring-ticks::after {
@@ -3142,7 +3414,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   border: 3px solid transparent;
   border-top-color: rgba(26, 158, 94, 0.7);
   border-right-color: rgba(230, 237, 233, 0.5);
-  animation: ark-spin-v-slow 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: ark-spin-v-slow 16s linear infinite;
 }
 
 /* 核心准星节点 */
@@ -3702,6 +3974,9 @@ const state = {
   pendingTitleDelete: -1,
   homeAccessVerified: false,
   homePasswordVisible: false,
+  homePasswordDraft: '',
+  homeAuthTerminalState: 'idle',
+  homeAuthTerminalMessage: '',
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -3929,6 +4204,9 @@ function showHomeAuthView(message = '') {
   state.topView = 'home';
   state.homeAccessVerified = false;
   state.homePasswordVisible = false;
+  state.homePasswordDraft = '';
+  state.homeAuthTerminalState = 'idle';
+  state.homeAuthTerminalMessage = '';
   state.homeStage = 'auth';
   clearShellEnterAnimation();
   resetHomeMorphState();
@@ -3947,6 +4225,10 @@ function showHomeAuthView(message = '') {
 function beginHomeLoginFlow() {
   if (state.homeStage !== 'intro') return;
   const nextStage = state.homeAccessVerified ? 'ready' : 'auth';
+  if (nextStage === 'auth') {
+    state.homeAuthTerminalState = 'idle';
+    state.homeAuthTerminalMessage = '';
+  }
   const showcase = document.querySelector('.home-showcase');
   if (!showcase) {
     state.homeStage = nextStage;
@@ -3978,20 +4260,22 @@ function toggleHomeAccessVisibility(forceVisible) {
 }
 
 async function submitHomeAccess() {
-  const password = ($('#homeInlinePassword')?.value || $('#homeAccessCode')?.value || '').trim();
+  const password = ($('#homeInlinePassword')?.value || $('#homeAccessCode')?.value || state.homePasswordDraft || '').trim();
   if (!password) {
     showToast('请输入访问口令。', true);
     return;
   }
-  const btn = window.event?.currentTarget?.closest?.('button') || document.querySelector('.home-login-actions .btn-strong');
+  state.homePasswordDraft = password;
+  state.homeAuthTerminalState = 'verifying';
+  state.homeAuthTerminalMessage = 'validation request pushed to backend verifier';
+  renderHome();
   try {
-    if (btn) {
-      btn.disabled = true;
-      btn.classList.add('busy');
-    }
     await apiPost('/api/access/verify', { password });
     state.homeAccessVerified = true;
     state.homeStage = 'ready';
+    state.homePasswordDraft = '';
+    state.homeAuthTerminalState = 'success';
+    state.homeAuthTerminalMessage = 'welcome back // access channel aligned';
     await loadAll();
     renderHome();
     $('#homeInlineInitBtn')?.focus();
@@ -3999,12 +4283,11 @@ async function submitHomeAccess() {
   } catch (e) {
     state.homeAccessVerified = false;
     state.homeStage = 'auth';
+    state.homeAuthTerminalState = 'error';
+    state.homeAuthTerminalMessage = e?.message || '访问口令验证失败';
+    renderHome();
+    $('#homeInlinePassword')?.focus();
     showToast(e?.message || '访问口令验证失败。', true);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.classList.remove('busy');
-    }
   }
 }
 
@@ -4016,6 +4299,9 @@ async function restartHomeVerification() {
   }
   state.homeAccessVerified = false;
   state.homePasswordVisible = false;
+  state.homePasswordDraft = '';
+  state.homeAuthTerminalState = 'idle';
+  state.homeAuthTerminalMessage = '';
   state.homeStage = 'auth';
   renderHome();
   setTimeout(() => $('#homeInlinePassword')?.focus(), 30);
@@ -4035,6 +4321,57 @@ function returnHomeIntro() {
     state.homeStage = 'intro';
     renderHome();
   }, 620);
+}
+
+function getContinuousSpinDelay(durationMs) {
+  const elapsedMs = performance.now() % durationMs;
+  return `-${(elapsedMs / 1000).toFixed(3)}s`;
+}
+
+function getContinuousAlternateDelay(durationMs) {
+  const elapsedMs = performance.now() % (durationMs * 2);
+  return `-${(elapsedMs / 1000).toFixed(3)}s`;
+}
+
+function getHomeAuthStatusSnapshot(panelReady) {
+  if (panelReady) return { statusClass: 'is-success', statusValue: 'ACCESS LINKED', terminalState: 'SYNC GREEN' };
+  if (state.homeAuthTerminalState === 'verifying') return { statusClass: '', statusValue: 'SIGNATURE CHECK', terminalState: 'HASH FLOW' };
+  if (state.homeAuthTerminalState === 'error') return { statusClass: 'is-error', statusValue: 'ACCESS DENIED', terminalState: 'FAULT TRACE' };
+  return { statusClass: '', statusValue: 'AWAITING CREDENTIAL', terminalState: 'IDLE LISTEN' };
+}
+
+function getHomeAuthTerminalLines(panelReady) {
+  if (panelReady) {
+    return [
+      { prefix: 'AUTH', text: 'credential verified // operator handshake accepted', level: 'is-success' },
+      { prefix: 'CORE', text: 'control spine reattached // route map stabilized', level: 'is-success' },
+      { prefix: 'INIT', text: 'preparing shard workspace // permission lattice online', level: 'is-success' },
+      { prefix: 'QUEUE', text: 'warming module cache // ready for scheme entry', level: '' },
+      { prefix: 'ECHO', text: state.homeAuthTerminalMessage || 'welcome back // central command standing by', level: 'is-muted' },
+    ];
+  }
+  if (state.homeAuthTerminalState === 'verifying') {
+    return [
+      { prefix: 'AUTH', text: 'receiving credential stream // sealing plaintext buffer', level: '' },
+      { prefix: 'HASH', text: 'deriving validation signature // entropy gate engaged', level: '' },
+      { prefix: 'TRACE', text: 'querying permission lattice // awaiting backend verdict', level: 'is-warn' },
+      { prefix: 'QUEUE', text: 'init channel held in standby // no write yet', level: 'is-muted' },
+    ];
+  }
+  if (state.homeAuthTerminalState === 'error') {
+    return [
+      { prefix: 'AUTH', text: 'credential submission rejected by access controller', level: 'is-error' },
+      { prefix: 'FAULT', text: state.homeAuthTerminalMessage || 'unknown access fault', level: 'is-error' },
+      { prefix: 'ROLL', text: 'purging volatile token residue // returning to input loop', level: '' },
+      { prefix: 'QUEUE', text: 'system gate remains locked // awaiting next attempt', level: 'is-muted' },
+    ];
+  }
+  return [
+    { prefix: 'BOOT', text: 'control hub listener active // dark-channel telemetry nominal', level: '' },
+    { prefix: 'LINK', text: 'awaiting operator credential // input route open', level: '' },
+    { prefix: 'AUTH', text: 'backend verifier idle // no signed request detected', level: 'is-muted' },
+    { prefix: 'QUEUE', text: 'init sequence paused until identity grant', level: 'is-muted' },
+  ];
 }
 
 function syncTopViewButtons(view) {
@@ -6894,11 +7231,19 @@ function triggerSystemMorph() {
 function renderHome() {
   const homeStage = state.homeStage || 'intro';
   const panelReady = homeStage === 'ready' || (homeStage === 'intro' && state.homeAccessVerified);
-  const statusText = panelReady ? 'ACCESS VERIFIED' : 'AWAITING AUTHORIZATION';
+  const authSnapshot = getHomeAuthStatusSnapshot(panelReady);
+  const terminalLines = getHomeAuthTerminalLines(panelReady);
   const statusCopy = panelReady
-    ? '口令验证通过。现在可以执行初始化并接入，进入方案管理。'
-    : '请输入访问口令，通过验证后再执行初始化并接入。';
+    ? '身份已确认，初始化入口已就绪'
+    : '输入访问口令后完成身份验证';
+  const techlineLabel = panelReady ? '权限已同步' : '访问验证';
+  const techlineMeta = panelReady ? '可初始化接入' : '等待口令输入';
   const stageClass = homeStage === 'ready' ? 'stage-ready' : homeStage === 'auth' ? 'stage-auth' : 'stage-intro';
+  const radarTargetOneDelay = getContinuousAlternateDelay(7000);
+  const radarTargetTwoDelay = getContinuousAlternateDelay(9000);
+  const radarTicksSpinDelay = getContinuousSpinDelay(180000);
+  const radarOuterSpinDelay = getContinuousSpinDelay(50000);
+  const radarInnerSpinDelay = getContinuousSpinDelay(16000);
   $('#page-home').innerHTML = `
         <div class="home-showcase ${stageClass}">
       <div class="showcase-noise"></div>
@@ -6921,18 +7266,20 @@ function renderHome() {
             <div class="ark-cross-h"></div>
             
             <!-- 动态追踪目标锁定框 -->
-            <div class="ark-track-target t1"></div>
-            <div class="ark-track-target t2"></div>
+            <div class="ark-track-target t1" style="animation-delay:${radarTargetOneDelay};"></div>
+            <div class="ark-track-target t2" style="animation-delay:${radarTargetTwoDelay};"></div>
   
             <!-- 极密仪表刻度圈 -->
-            <div class="ark-ring-ticks"></div>
+            <div class="ark-ring-ticks-rotor">
+              <div class="ark-ring-ticks" style="--radar-ticks-delay:${radarTicksSpinDelay};"></div>
+            </div>
             
-            <div class="ark-ring-outer">
+            <div class="ark-ring-outer" style="animation-delay:${radarOuterSpinDelay};">
               <div class="ark-orbit-node"></div>
               <div class="ark-orbit-node-opp"></div>
             </div>
             <div class="ark-ring-mid"></div>
-            <div class="ark-ring-inner"></div>
+            <div class="ark-ring-inner" style="animation-delay:${radarInnerSpinDelay};"></div>
             
             <div class="ark-core-node">
               <div class="ark-core-cross-h"></div>
@@ -6988,18 +7335,21 @@ function renderHome() {
               <!-- 中心基准保持不变 -->
                             <div class="ark-cross-v"></div>
                             <div class="ark-cross-h"></div>
-                            <div class="ark-track-target t1"></div>
+                            <div class="ark-track-target t1" style="animation-delay:${radarTargetOneDelay};"></div>
+                            <div class="ark-track-target t2" style="animation-delay:${radarTargetTwoDelay};"></div>
               
                             <!-- 外圈齿轮带有阻尼启动 -->
-                            <div class="ark-ring-ticks"></div>
-              <div class="ark-ring-outer">
+                            <div class="ark-ring-ticks-rotor">
+                              <div class="ark-ring-ticks" style="--radar-ticks-delay:${radarTicksSpinDelay};"></div>
+                            </div>
+              <div class="ark-ring-outer" style="animation-delay:${radarOuterSpinDelay};">
                 <div class="ark-orbit-node"></div>
                 <div class="ark-orbit-node-opp"></div>
               </div>
               
               <!-- 内圈与中心节点不受启动动画影响，保持原有缓动 -->
               <div class="ark-ring-mid"></div>
-              <div class="ark-ring-inner"></div>
+              <div class="ark-ring-inner" style="animation-delay:${radarInnerSpinDelay};"></div>
               <div class="ark-core-node">
                 <div class="ark-core-cross-h"></div>
                 <div class="ark-core-cross-v"></div>
@@ -7018,13 +7368,25 @@ function renderHome() {
               <h1 class="home-auth-title">控制中枢</h1>
             </div>
             <div class="home-auth-meta">
-              <div class="home-auth-desc">
-                完成身份验证后，执行系统接入。<br>当前系统处于锁定戒备状态，正在验证操作权限。
+              <div class="home-auth-status ${authSnapshot.statusClass}">
+                <span class="home-auth-status-rail"></span>
+                <span class="home-auth-status-label">ACCESS STATE</span>
+                <span class="home-auth-status-value">${authSnapshot.statusValue}</span>
               </div>
-              <div class="home-auth-status">
-                <span class="home-auth-status-dot"></span>
-                <span>${statusText}</span>
-              </div>
+            </div>
+          </div>
+          <div class="home-terminal-block">
+            <div class="home-terminal-head">
+              <div class="home-terminal-title">SYS.FEED // LIVE CONSOLE</div>
+              <div class="home-terminal-state">${authSnapshot.terminalState}</div>
+            </div>
+            <div class="home-terminal-panel">
+              ${terminalLines.map((line, index) => `
+                <div class="home-terminal-line ${line.level || ''}" style="--line-delay:${(index * 0.06).toFixed(2)}s;">
+                  <span class="home-terminal-prefix">${line.prefix}</span>
+                  <span class="home-terminal-content">${esc(line.text)}</span>
+                </div>
+              `).join('')}
             </div>
           </div>
         </div>
@@ -7032,29 +7394,37 @@ function renderHome() {
 
       <div class="showcase-right">
         <div class="home-login-shell">
-          <div class="home-login-card">
-            <div class="home-login-kicker">ACCESS PANEL</div>
-            <div class="home-login-title">${panelReady ? '验证通过' : '身份验证'}</div>
+          <div class="home-login-card ${panelReady ? 'is-ready' : 'is-auth'}">
+            <div class="home-login-kicker">访问面板</div>
+            <div class="home-login-title ${panelReady ? 'is-ready' : ''}"><span class="home-login-title-text">${panelReady ? '欢迎回来' : '身份验证'}</span></div>
+            <div class="home-login-techline ${panelReady ? 'is-ready' : ''}">
+              <span class="home-login-techline-chip">${techlineLabel}</span>
+              <span class="home-login-techline-meta">${techlineMeta}</span>
+            </div>
             <div class="home-login-desc">${statusCopy}</div>
 
-            ${panelReady ? `
-              <div class="home-login-confirm">
-                当前身份已确认。下一步执行初始化并接入，系统将通过平移动画切入方案管理界面。
-              </div>
-            ` : `
-              <div class="field">
-                <label>访问口令</label>
-                <div class="password-input-wrap">
-                  <input class="input" id="homeInlinePassword" type="${state.homePasswordVisible ? 'text' : 'password'}" placeholder="输入访问口令" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
-                  <button class="password-eye-btn ${state.homePasswordVisible ? 'is-active' : ''}" id="homePasswordToggle" type="button" aria-label="${state.homePasswordVisible ? '隐藏口令' : '显示口令'}" aria-pressed="${state.homePasswordVisible ? 'true' : 'false'}" onclick="toggleHomeAccessVisibility()">${getHomeAccessEyeIcon(state.homePasswordVisible)}</button>
+            <div class="home-login-body">
+              ${panelReady ? `
+                <div class="home-login-ready-panel">
+                  <div class="home-login-ready-row"><b>权限</b><span>已确认</span></div>
+                  <div class="home-login-ready-row"><b>通道</b><span>控制中枢入口可用</span></div>
+                  <div class="home-login-ready-row"><b>状态</b><span>等待初始化接入</span></div>
                 </div>
+              ` : `
+                <div class="field">
+                  <label>访问口令</label>
+                  <div class="password-input-wrap">
+                    <input class="input" id="homeInlinePassword" type="${state.homePasswordVisible ? 'text' : 'password'}" value="${esc(state.homePasswordDraft)}" placeholder="输入访问口令" oninput="state.homePasswordDraft=this.value" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
+                    <button class="password-eye-btn ${state.homePasswordVisible ? 'is-active' : ''}" id="homePasswordToggle" type="button" aria-label="${state.homePasswordVisible ? '隐藏口令' : '显示口令'}" aria-pressed="${state.homePasswordVisible ? 'true' : 'false'}" onclick="toggleHomeAccessVisibility()">${getHomeAccessEyeIcon(state.homePasswordVisible)}</button>
+                  </div>
+                </div>
+                <div class="home-login-hint">
+                  口令会提交到后端校验。默认口令为 12345678，可在插件配置中修改。
+                </div>
+              `}
               </div>
-              <div class="home-login-hint">
-                访问口令现在会提交到后端校验。口令由 AstrBot 插件配置项提供，默认值为 12345678。
-              </div>
-            `}
 
-            <div class="home-login-actions">
+            <div class="home-login-actions ${panelReady ? 'is-ready' : 'is-auth'}">
               ${panelReady
                 ? `<button class="btn-strong" id="homeInlineInitBtn" type="button" onclick="triggerSystemMorph()"><span class="btn-text">初始化并接入</span></button>`
                 : `<button class="btn-strong" type="button" onclick="submitHomeAccess()"><span class="btn-text">验证口令</span></button>`

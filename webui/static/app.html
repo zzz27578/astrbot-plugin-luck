@@ -1168,7 +1168,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .home-auth-title {
   margin: 0;
   font-family: var(--font-headline);
-  font-size: clamp(40px, 5vw, 74px);
+  font-size: clamp(54px, 7vw, 92px);
   line-height: 0.98;
   font-weight: 900;
   letter-spacing: 4px;
@@ -1264,19 +1264,31 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   color: rgba(190, 203, 197, 0.42);
 }
 
+/* Hacker style Terminal Panel */
 .home-terminal-panel {
-  border: 1px solid rgba(82, 102, 93, 0.3);
-  background:
-    linear-gradient(180deg, rgba(2, 4, 3, 0.9), rgba(0, 0, 0, 0.76));
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.02),
-    0 18px 34px rgba(0, 0, 0, 0.24);
-  min-height: 172px;
-  padding: 16px 18px 18px;
+  border: 1px solid rgba(26, 158, 94, 0.3);
+  background: rgba(5, 8, 6, 0.95);
+  box-shadow: 
+    inset 0 0 20px rgba(0, 0, 0, 0.8), 
+    inset 0 0 10px rgba(26, 158, 94, 0.1),
+    0 18px 34px rgba(0, 0, 0, 0.3);
+  min-height: 180px;
+  padding: 16px 20px;
   display: grid;
-  gap: 8px;
+  gap: 6px;
   overflow: hidden;
-  opacity: 0.9;
+  opacity: 0.95;
+  position: relative;
+}
+
+.home-terminal-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .home-terminal-line {
@@ -1284,46 +1296,67 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   gap: 12px;
   font-family: 'Courier New', Courier, monospace;
   font-size: 12px;
-  line-height: 1.72;
-  color: rgba(220,228,224,0.62);
+  line-height: 1.5;
+  color: #39e5b8;
   opacity: 0;
-  transform: translateY(5px);
-  animation: home-terminal-line-in 0.32s ease forwards;
+  animation: term-line-appear 0s forwards;
   animation-delay: var(--line-delay, 0s);
+  position: relative;
+  z-index: 1;
 }
 
-.home-terminal-line.is-muted {
-  color: rgba(190, 201, 196, 0.44);
-}
-
-.home-terminal-line.is-error {
-  color: rgba(255, 191, 184, 0.84);
-}
-
-.home-terminal-line.is-success {
-  color: rgba(208, 255, 224, 0.8);
-}
-
-.home-terminal-line.is-warn {
-  color: rgba(245, 223, 170, 0.78);
-}
-
-.home-terminal-content {
-  white-space: pre-wrap;
+@keyframes term-line-appear {
+  to { opacity: 1; }
 }
 
 .home-terminal-prefix {
-  color: rgba(26, 158, 94, 0.86);
+  color: #1A9E5E;
   flex-shrink: 0;
-  min-width: 54px;
+  min-width: 50px;
+  text-shadow: 0 0 4px rgba(26, 158, 94, 0.5);
+}
+.home-terminal-prefix::after {
+  content: '>';
+  margin-left: 6px;
 }
 
-@keyframes home-terminal-line-in {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.home-terminal-content {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 0;
+  animation: typing-width 0.4s steps(40, end) forwards;
+  animation-delay: calc(var(--line-delay, 0s));
+  text-shadow: 0 0 2px currentColor;
 }
+
+@keyframes typing-width {
+  to { max-width: 100%; }
+}
+
+.home-terminal-line:last-child .home-terminal-content::after {
+  content: '█';
+  display: inline-block;
+  vertical-align: bottom;
+  margin-left: 4px;
+  width: 6px;
+  animation: blink-cursor 1s step-end infinite;
+  color: inherit;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.home-terminal-line.is-muted { color: #4a6b5a; }
+.home-terminal-line.is-muted .home-terminal-prefix { color: #355243; }
+
+.home-terminal-line.is-error { color: #ff3333; text-shadow: 0 0 6px rgba(255, 51, 51, 0.8); }
+.home-terminal-line.is-error .home-terminal-prefix { color: #d93829; text-shadow: 0 0 6px rgba(217, 56, 41, 0.8); }
+
+.home-terminal-line.is-success { color: #22c55e; }
+.home-terminal-line.is-warn { color: #eab308; }
 
 .home-login-shell {
   display: grid;
@@ -1333,7 +1366,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 .home-login-card {
   width: min(480px, 100%);
-  min-height: 500px;
+  height: 540px; /* 绝对锁定高度，避免三个状态间切换时发生伸缩跳动 */
   border: 1px solid rgba(26, 158, 94, 0.15);
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
@@ -1341,7 +1374,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   padding: 48px 44px;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.04), inset 0 0 0 1px rgba(255,255,255,0.6);
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
+  grid-template-rows: auto auto auto auto 1fr auto; /* 显式声明6行，确保1fr分给中间的body吸收报错文本空间 */
   gap: 16px;
   position: relative;
 }
@@ -1382,23 +1415,48 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 
 .home-login-card .input {
-  background: #f5f8f6;
-  border: 1px solid rgba(26, 158, 94, 0.15);
-  border-bottom: 2px solid rgba(26, 158, 94, 0.4);
+  background: rgba(26, 158, 94, 0.02);
+  border: 1px solid rgba(26, 158, 94, 0.2);
+  border-bottom: 2px solid rgba(26, 158, 94, 0.6);
   padding: 16px 20px;
   font-size: 16px;
-  font-family: var(--font-headline);
+  font-family: 'Courier New', Courier, monospace;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--shard-text);
   transition: all 0.3s ease;
+  box-shadow: inset 0 0 10px rgba(26, 158, 94, 0.05);
 }
 
 .home-login-card .input:focus {
-  background: #ffffff;
-  border-color: rgba(26, 158, 94, 0.4);
+  background: rgba(26, 158, 94, 0.05);
+  border-color: rgba(26, 158, 94, 0.5);
   border-bottom-color: var(--accent);
-  box-shadow: 0 4px 16px rgba(26, 158, 94, 0.06);
+  box-shadow: 0 4px 16px rgba(26, 158, 94, 0.1), inset 0 0 15px rgba(26, 158, 94, 0.1);
+  outline: none;
+}
+
+/* Shake error for password fail */
+@keyframes shake-error {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.home-login-card.is-error {
+  border-color: rgba(255, 51, 51, 0.5) !important;
+  box-shadow: 0 0 30px rgba(255, 51, 51, 0.15) !important;
+}
+
+.home-login-card.is-error .input {
+  border-color: #ff3333 !important;
+  border-bottom-color: #ff3333 !important;
+  color: #ff3333 !important;
+  background: rgba(255, 51, 51, 0.05) !important;
+}
+
+.shake-error {
+  animation: shake-error 0.4s ease-in-out;
 }
 
 .home-login-card .btn-strong {
@@ -1480,7 +1538,8 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 .home-login-title-text {
   display: inline-block;
-  animation: home-login-title-in 0.34s cubic-bezier(0.19, 1, 0.22, 1);
+  position: relative;
+  animation: tech-text-reveal 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 }
 
 .home-login-title.is-ready .home-login-title-text {
@@ -1488,89 +1547,68 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   text-shadow: 0 0 12px rgba(26, 158, 94, 0.18);
 }
 
-.home-login-techline {
+.home-login-status-bar {
+  height: 3px;
+  background: rgba(26, 158, 94, 0.15);
+  width: 100%;
   position: relative;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  margin-top: -2px;
+  margin-bottom: 8px;
   overflow: hidden;
 }
 
-.home-login-techline::before {
+.home-login-status-bar::after {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(26, 158, 94, 0.26) 18%, rgba(26, 158, 94, 0.08) 82%, transparent);
-  transform: translateY(-50%);
+  left: 0; top: 0; bottom: 0;
+  width: 20%;
+  background: #1A9E5E;
+  box-shadow: 0 0 10px #1A9E5E;
+  animation: status-bar-scan 2s infinite ease-in-out alternate;
 }
 
-.home-login-techline::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -36%;
-  width: 34%;
-  height: 5px;
-  background: linear-gradient(90deg, transparent, rgba(26, 158, 94, 0.22), rgba(255,255,255,0.92), rgba(26, 158, 94, 0.22), transparent);
-  transform: translateY(-50%);
-  animation: home-techline-scan 2.7s linear infinite;
+.home-login-card.is-ready .home-login-status-bar::after {
+  width: 100%;
+  animation: none;
+  background: #22c55e;
+  box-shadow: 0 0 15px #22c55e;
 }
 
-.home-login-techline.is-ready::after {
-  width: 40%;
-  background: linear-gradient(90deg, transparent, rgba(26, 158, 94, 0.16), rgba(26, 158, 94, 0.95), rgba(255,255,255,0.96), rgba(26, 158, 94, 0.24), transparent);
-  animation-duration: 2.1s;
+.home-login-card.is-error .home-login-status-bar::after {
+  width: 100%;
+  animation: none;
+  background: #ff3333;
+  box-shadow: 0 0 15px #ff3333;
 }
 
-.home-login-techline-chip,
-.home-login-techline-meta {
-  position: relative;
-  z-index: 1;
-  background: rgba(255,255,255,0.84);
-  padding: 0 10px 0 0;
+@keyframes status-bar-scan {
+  0% { left: 0%; width: 10%; }
+  100% { left: 90%; width: 10%; }
 }
 
-.home-login-techline-chip {
+.home-login-error-msg {
+  color: #ff3333;
   font-size: 12px;
-  font-weight: 900;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
   letter-spacing: 1px;
-  color: rgba(18, 24, 20, 0.7);
-  white-space: nowrap;
+  animation: error-msg-pop 0.3s ease forwards;
+}
+.home-login-error-msg::before {
+  content: '⚠';
+  font-size: 14px;
+}
+@keyframes error-msg-pop {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.home-login-techline.is-ready .home-login-techline-chip {
-  color: rgba(18, 84, 53, 0.9);
-}
-
-.home-login-techline-meta {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  color: rgba(90, 107, 98, 0.72);
-  padding-left: 10px;
-  white-space: nowrap;
-}
-
-@keyframes home-techline-scan {
-  to {
-    left: 102%;
-  }
-}
-
-@keyframes home-login-title-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes tech-text-reveal {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-15px); filter: blur(4px); }
+  100% { opacity: 1; clip-path: inset(0 0 0 0); transform: translateX(0); filter: blur(0); }
 }
 
 .home-login-desc {
@@ -1597,35 +1635,75 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 .home-login-ready-panel {
   min-height: 162px;
-  border: 1px solid rgba(26, 158, 94, 0.16);
-  background:
-    linear-gradient(180deg, rgba(26, 158, 94, 0.045), rgba(255,255,255,0.36));
+  border: 1px solid rgba(26, 158, 94, 0.2);
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240,250,245,0.85));
+  box-shadow: 0 8px 24px rgba(26, 158, 94, 0.06), inset 0 0 0 1px #ffffff;
   display: grid;
   align-content: center;
-  gap: 12px;
-  padding: 18px 20px;
+  gap: 16px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 右上角的生机绿柔和光晕 */
+.home-login-ready-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(26, 158, 94, 0.08) 0%, transparent 60%);
+  transform: translate(30%, -30%);
+  pointer-events: none;
 }
 
 .home-login-ready-row {
-  display: grid;
-  grid-template-columns: 72px 1fr;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: #31453a;
+  border-bottom: 1px solid rgba(26, 158, 94, 0.15);
+  padding-bottom: 12px;
+}
+.home-login-ready-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
-.home-login-ready-row b {
+.home-ready-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.home-ready-label b {
   font-family: var(--font-headline);
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: rgba(26, 158, 94, 0.86);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(26, 158, 94, 0.7);
 }
 
-.home-login-ready-row span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.home-ready-label span {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1a3324;
+  letter-spacing: 0.5px;
+}
+
+.home-ready-value {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-headline);
+  font-size: 12px;
+  font-weight: 900;
+  color: #1A9E5E;
+  background: rgba(26, 158, 94, 0.06);
+  border: 1px solid rgba(26, 158, 94, 0.2);
+  padding: 6px 12px;
+  position: relative;
+  z-index: 1;
+  letter-spacing: 1px;
 }
 
 .home-login-actions {
@@ -4262,6 +4340,10 @@ function toggleHomeAccessVisibility(forceVisible) {
 async function submitHomeAccess() {
   const password = ($('#homeInlinePassword')?.value || $('#homeAccessCode')?.value || state.homePasswordDraft || '').trim();
   if (!password) {
+    state.homeAuthTerminalState = 'error';
+    state.homeAuthTerminalMessage = 'FATAL: Empty credential payload provided.';
+    renderHome();
+    setTimeout(() => $('#homeInlinePassword')?.focus(), 30);
     showToast('请输入访问口令。', true);
     return;
   }
@@ -4284,9 +4366,9 @@ async function submitHomeAccess() {
     state.homeAccessVerified = false;
     state.homeStage = 'auth';
     state.homeAuthTerminalState = 'error';
-    state.homeAuthTerminalMessage = e?.message || '访问口令验证失败';
+    state.homeAuthTerminalMessage = e?.message || 'Authentication protocol rejected the request.';
     renderHome();
-    $('#homeInlinePassword')?.focus();
+    setTimeout(() => $('#homeInlinePassword')?.focus(), 30);
     showToast(e?.message || '访问口令验证失败。', true);
   }
 }
@@ -4343,34 +4425,33 @@ function getHomeAuthStatusSnapshot(panelReady) {
 function getHomeAuthTerminalLines(panelReady) {
   if (panelReady) {
     return [
-      { prefix: 'AUTH', text: 'credential verified // operator handshake accepted', level: 'is-success' },
-      { prefix: 'CORE', text: 'control spine reattached // route map stabilized', level: 'is-success' },
-      { prefix: 'INIT', text: 'preparing shard workspace // permission lattice online', level: 'is-success' },
-      { prefix: 'QUEUE', text: 'warming module cache // ready for scheme entry', level: '' },
-      { prefix: 'ECHO', text: state.homeAuthTerminalMessage || 'welcome back // central command standing by', level: 'is-muted' },
+      { prefix: 'root@terra', text: 'auth-client --handshake', level: '' },
+      { prefix: '[ OK ]', text: 'RSA-4096 signature verified successfully.', level: 'is-success' },
+      { prefix: '[ OK ]', text: 'Mounting virtual workspace /dev/vda1...', level: 'is-success' },
+      { prefix: 'root@terra', text: 'Session active. Awaiting commands.', level: 'is-success' }
     ];
   }
   if (state.homeAuthTerminalState === 'verifying') {
     return [
-      { prefix: 'AUTH', text: 'receiving credential stream // sealing plaintext buffer', level: '' },
-      { prefix: 'HASH', text: 'deriving validation signature // entropy gate engaged', level: '' },
-      { prefix: 'TRACE', text: 'querying permission lattice // awaiting backend verdict', level: 'is-warn' },
-      { prefix: 'QUEUE', text: 'init channel held in standby // no write yet', level: 'is-muted' },
+      { prefix: 'root@terra', text: 'auth-client --verify payload.dat', level: '' },
+      { prefix: '[PROC]', text: 'Decrypting credential hash...', level: '' },
+      { prefix: '[PROC]', text: 'Querying IAM lattice...', level: 'is-warn' },
+      { prefix: '[INFO]', text: 'Awaiting backend verdict...', level: 'is-muted' }
     ];
   }
   if (state.homeAuthTerminalState === 'error') {
     return [
-      { prefix: 'AUTH', text: 'credential submission rejected by access controller', level: 'is-error' },
-      { prefix: 'FAULT', text: state.homeAuthTerminalMessage || 'unknown access fault', level: 'is-error' },
-      { prefix: 'ROLL', text: 'purging volatile token residue // returning to input loop', level: '' },
-      { prefix: 'QUEUE', text: 'system gate remains locked // awaiting next attempt', level: 'is-muted' },
+      { prefix: 'root@terra', text: 'auth-client --verify payload.dat', level: '' },
+      { prefix: '[FAIL]', text: 'FATAL: Invalid credential payload provided.', level: 'is-error' },
+      { prefix: '[FAIL]', text: state.homeAuthTerminalMessage || 'Protocol rejected request.', level: 'is-error' },
+      { prefix: '[WARN]', text: 'Intrusion attempt logged. Connection dropped.', level: 'is-error' }
     ];
   }
   return [
-    { prefix: 'BOOT', text: 'control hub listener active // dark-channel telemetry nominal', level: '' },
-    { prefix: 'LINK', text: 'awaiting operator credential // input route open', level: '' },
-    { prefix: 'AUTH', text: 'backend verifier idle // no signed request detected', level: 'is-muted' },
-    { prefix: 'QUEUE', text: 'init sequence paused until identity grant', level: 'is-muted' },
+    { prefix: 'root@terra', text: 'systemctl status auth-daemon', level: '' },
+    { prefix: '[INFO]', text: 'Auth daemon listening on dark-channel.', level: '' },
+    { prefix: '[WAIT]', text: 'Awaiting operator credential input...', level: 'is-muted' },
+    { prefix: '[WAIT]', text: 'Init sequence paused.', level: 'is-muted' }
   ];
 }
 
@@ -7236,8 +7317,6 @@ function renderHome() {
   const statusCopy = panelReady
     ? '身份已确认，初始化入口已就绪'
     : '输入访问口令后完成身份验证';
-  const techlineLabel = panelReady ? '权限已同步' : '访问验证';
-  const techlineMeta = panelReady ? '可初始化接入' : '等待口令输入';
   const stageClass = homeStage === 'ready' ? 'stage-ready' : homeStage === 'auth' ? 'stage-auth' : 'stage-intro';
   const radarTargetOneDelay = getContinuousAlternateDelay(7000);
   const radarTargetTwoDelay = getContinuousAlternateDelay(9000);
@@ -7382,7 +7461,7 @@ function renderHome() {
             </div>
             <div class="home-terminal-panel">
               ${terminalLines.map((line, index) => `
-                <div class="home-terminal-line ${line.level || ''}" style="--line-delay:${(index * 0.06).toFixed(2)}s;">
+                                <div class="home-terminal-line ${line.level || ''}" style="--line-delay:${(index * 0.4).toFixed(2)}s;">
                   <span class="home-terminal-prefix">${line.prefix}</span>
                   <span class="home-terminal-content">${esc(line.text)}</span>
                 </div>
@@ -7393,33 +7472,42 @@ function renderHome() {
       </div>
 
       <div class="showcase-right">
-        <div class="home-login-shell">
-          <div class="home-login-card ${panelReady ? 'is-ready' : 'is-auth'}">
-            <div class="home-login-kicker">访问面板</div>
+                <div class="home-login-shell">
+          <div class="home-login-card ${panelReady ? 'is-ready' : 'is-auth'} ${state.homeAuthTerminalState === 'error' ? 'is-error shake-error' : ''}">
+            <div class="home-login-kicker">SYSTEM LOGIN // 终端权限核验</div>
             <div class="home-login-title ${panelReady ? 'is-ready' : ''}"><span class="home-login-title-text">${panelReady ? '欢迎回来' : '身份验证'}</span></div>
-            <div class="home-login-techline ${panelReady ? 'is-ready' : ''}">
-              <span class="home-login-techline-chip">${techlineLabel}</span>
-              <span class="home-login-techline-meta">${techlineMeta}</span>
-            </div>
+            <div class="home-login-status-bar"></div>
             <div class="home-login-desc">${statusCopy}</div>
 
             <div class="home-login-body">
-              ${panelReady ? `
-                <div class="home-login-ready-panel">
-                  <div class="home-login-ready-row"><b>权限</b><span>已确认</span></div>
-                  <div class="home-login-ready-row"><b>通道</b><span>控制中枢入口可用</span></div>
-                  <div class="home-login-ready-row"><b>状态</b><span>等待初始化接入</span></div>
-                </div>
-              ` : `
+                            ${panelReady ? `
+                              <div class="home-login-ready-panel">
+                                <div class="home-login-ready-row">
+                                  <div class="home-ready-label"><b>AUTH_STATUS</b><span>验证状态</span></div>
+                                  <div class="home-ready-value"><div class="blink-dot" style="position:static; margin-right:8px; width:6px; height:6px;"></div>已授权</div>
+                                </div>
+                                <div class="home-login-ready-row">
+                                  <div class="home-ready-label"><b>UPLINK_NODE</b><span>通道节点</span></div>
+                                  <div class="home-ready-value" style="color:#0f5c35; border-color:rgba(15,92,53,0.2); background:rgba(15,92,53,0.06);">控制中枢</div>
+                                </div>
+                                <div class="home-login-ready-row">
+                                  <div class="home-ready-label"><b>DIRECTIVE</b><span>操作指令</span></div>
+                                  <div class="home-ready-value" style="color:#1a3324; border-color:rgba(26,51,36,0.2); background:rgba(26,51,36,0.04);">等待初始化</div>
+                                </div>
+                              </div>
+                            ` : `
                 <div class="field">
                   <label>访问口令</label>
                   <div class="password-input-wrap">
-                    <input class="input" id="homeInlinePassword" type="${state.homePasswordVisible ? 'text' : 'password'}" value="${esc(state.homePasswordDraft)}" placeholder="输入访问口令" oninput="state.homePasswordDraft=this.value" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
+                    <input class="input" id="homeInlinePassword" type="${state.homePasswordVisible ? 'text' : 'password'}" value="${esc(state.homePasswordDraft)}" placeholder="输入访问口令" oninput="state.homePasswordDraft=this.value; this.closest('.home-login-card')?.classList.remove('is-error', 'shake-error'); document.querySelector('.home-login-error-msg')?.remove();" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
                     <button class="password-eye-btn ${state.homePasswordVisible ? 'is-active' : ''}" id="homePasswordToggle" type="button" aria-label="${state.homePasswordVisible ? '隐藏口令' : '显示口令'}" aria-pressed="${state.homePasswordVisible ? 'true' : 'false'}" onclick="toggleHomeAccessVisibility()">${getHomeAccessEyeIcon(state.homePasswordVisible)}</button>
                   </div>
+                  ${state.homeAuthTerminalState === 'error' ? `
+                    <div class="home-login-error-msg">访问拒绝：口令无效或为空，请重新输入。</div>
+                  ` : ''}
                 </div>
                 <div class="home-login-hint">
-                  口令会提交到后端校验。默认口令为 12345678，可在插件配置中修改。
+                  口令会提交到后端加密核验通道。默认口令为 12345678，可在插件配置中修改。
                 </div>
               `}
               </div>

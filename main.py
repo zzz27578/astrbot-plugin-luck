@@ -254,16 +254,30 @@ class LuckPlugin(Star):
         private_user_id = event.get_sender_id()
         if not group_id:
             if private_cmd_str is not None:
+                if private_cmd_str in {"", "menu", "help", "菜单", "帮助", "规则", "功能菜单"}:
+                    if private_cmd_str in {"help", "帮助", "规则"}:
+                        async for res in self._show_help(event):
+                            yield res
+                    else:
+                        async for res in self._show_menu(event):
+                            yield res
+                    return
                 handled = False
                 async for res in self._handle_private_collab_admin(event, private_user_id, private_cmd_str):
                     handled = True
                     yield res
                 if handled:
                     return
-            yield event.plain_result("⚠️ 当前功能仅支持群聊使用，私聊场景不参与签到与排行映射。")
-            return
+                if self._is_extra_admin(str(private_user_id), self._base_config) and self._private_admin_verified_until.get(str(private_user_id), 0) >= time.time():
+                    group_id = f"private_{private_user_id}"
+                else:
+                    yield event.plain_result("私聊测试全部命令前，请先发送：/luck 管理验证 WebUI管理密码\n菜单与帮助可直接私聊使用。")
+                    return
+            if not group_id:
+                yield event.plain_result("⚠️ 当前功能仅支持群聊使用，私聊场景不参与签到与排行映射。")
+                return
 
-        if not _is_group_access_allowed(group_id, self.name or PLUGIN_NAME):
+        if not str(group_id).startswith("private_") and not _is_group_access_allowed(group_id, self.name or PLUGIN_NAME):
             return
 
         bank, current_config = self._refresh_runtime_config(group_id)

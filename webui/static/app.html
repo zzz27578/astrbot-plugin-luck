@@ -4273,6 +4273,28 @@ const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 const uniqueStrings = (list) => Array.from(new Set((list || []).filter(Boolean)));
+const UI_PREF_KEYS = {
+  topView: 'luck_webui_top_view',
+  activePage: 'luck_webui_active_page',
+  currentProfile: 'luck_webui_current_profile',
+};
+function saveUiPrefs() {
+  try {
+    localStorage.setItem(UI_PREF_KEYS.topView, state.topView || 'config');
+    localStorage.setItem(UI_PREF_KEYS.activePage, state.activePage || 'overview');
+    localStorage.setItem(UI_PREF_KEYS.currentProfile, state.currentProfile || 'default');
+  } catch (e) {}
+}
+function restoreUiPrefs() {
+  try {
+    const topView = localStorage.getItem(UI_PREF_KEYS.topView);
+    const activePage = localStorage.getItem(UI_PREF_KEYS.activePage);
+    const currentProfile = localStorage.getItem(UI_PREF_KEYS.currentProfile);
+    if (topView) state.topView = topView;
+    if (activePage) state.activePage = activePage;
+    if (currentProfile) state.currentProfile = currentProfile;
+  } catch (e) {}
+}
 const CONTROL_HUB_REPO_URL = 'https://github.com/zzz27578/astrbot-plugin-luck';
 const uiTransitionState = {
   homeMorphTimer: null,
@@ -5268,6 +5290,7 @@ const apiDeleteProfileById = (profileId) => apiPost('/api/profile_remove', { pro
 function setTopView(view) {
     const prevView = state.topView;
     state.topView = view;
+    saveUiPrefs();
     syncTopViewButtons(view);
     if (view === 'home') {
       if (prevView === 'home') {
@@ -5336,6 +5359,7 @@ function setTopView(view) {
   
 function setPage(page) {
   state.activePage = page;
+  saveUiPrefs();
   const meta = pageMeta[page];
   if (meta) {
     $('#heroTitle').textContent = meta[0];
@@ -5469,7 +5493,10 @@ function getDeep(obj, path) { return path.split('.').reduce((a, k) => a?.[k], ob
 async function loadProfiles() {
   const res = await apiGet('/api/profile_overview');
   if (res.ok) state.profiles = res.profiles || [];
+  const savedProfile = (() => { try { return localStorage.getItem(UI_PREF_KEYS.currentProfile); } catch (e) { return ''; } })();
+  if (savedProfile && state.profiles.some(p => p.profile_id === savedProfile)) state.currentProfile = savedProfile;
   if (!state.profiles.some(p => p.profile_id === state.currentProfile) && state.profiles[0]) state.currentProfile = state.profiles[0].profile_id;
+  saveUiPrefs();
 }
 async function loadRuntime() {
   const res = await apiGet('/api/runtime_config');
@@ -5600,6 +5627,7 @@ async function syncHomeAccessStatus() {
     state.identity = res.identity || { type: 'anonymous', permissions: {} };
     if (state.homeAccessVerified) {
       await loadAll();
+      state.homeStage = 'ready';
     } else {
       state.homeStage = 'intro';
     }
@@ -6702,17 +6730,17 @@ function renderSignin() {
           ${ranges.map((r, i) => `
             <div class="signin-range" style="background: var(--shard-bg); border: 1px solid var(--shard-border); padding: 16px; display: flex; flex-direction: column;">
               <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-                <div class="field" style="flex: 1;"><label>标签</label><input class="input" style="padding: 8px 12px;" value="${esc(r.label || '')}" onchange="setRange(${i}, 'label', this.value)"></div>
-                <div class="field" style="width: 64px;"><label>金币修正</label><input class="input" style="padding: 8px;" type="number" value="${esc(r.gold_delta ?? 0)}" onchange="setRange(${i}, 'gold_delta', Number(this.value))"></div>
+                <div class="field" style="flex: 1;"><label>标签</label><input class="input" data-range-index="${i}" data-range-field="label" style="padding: 8px 12px;" value="${esc(r.label || '')}" onchange="setRange(${i}, 'label', this.value)"></div>
+                <div class="field" style="width: 64px;"><label>金币修正</label><input class="input" data-range-index="${i}" data-range-field="gold_delta" style="padding: 8px;" type="number" value="${esc(r.gold_delta ?? 0)}" onchange="setRange(${i}, 'gold_delta', Number(this.value))"></div>
               </div>
               <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-                <div class="field" style="flex: 1;"><label>最小值</label><input class="input" style="padding: 8px 12px;" type="number" value="${esc(r.min ?? 0)}" onchange="setRange(${i}, 'min', Number(this.value))"></div>
+                <div class="field" style="flex: 1;"><label>最小值</label><input class="input" data-range-index="${i}" data-range-field="min" style="padding: 8px 12px;" type="number" value="${esc(r.min ?? 0)}" onchange="setRange(${i}, 'min', Number(this.value))"></div>
                 <div style="display:flex; align-items:flex-end; padding-bottom:8px; color:var(--shard-text-muted);">-</div>
-                <div class="field" style="flex: 1;"><label>最大值</label><input class="input" style="padding: 8px 12px;" type="number" value="${esc(r.max ?? 0)}" onchange="setRange(${i}, 'max', Number(this.value))"></div>
+                <div class="field" style="flex: 1;"><label>最大值</label><input class="input" data-range-index="${i}" data-range-field="max" style="padding: 8px 12px;" type="number" value="${esc(r.max ?? 0)}" onchange="setRange(${i}, 'max', Number(this.value))"></div>
               </div>
               <div class="field" style="flex: 1; margin-bottom: 12px;">
                 <label>点评文案（每行一条）</label>
-                <textarea class="textarea" style="min-height: 60px; padding: 8px 12px;" onchange="setRangeComments(${i}, this.value)">${esc((r.comments || []).join('\n'))}</textarea>
+                <textarea class="textarea" data-range-index="${i}" data-range-field="comments" style="min-height: 60px; padding: 8px 12px;" onchange="setRangeComments(${i}, this.value)">${esc((r.comments || []).join('\n'))}</textarea>
               </div>
               <button class="btn-danger icon-btn" style="align-self: flex-end; padding: 0 8px; height: 26px; border-color:transparent; background:transparent;" onclick="removeRange(${i})">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -8053,6 +8081,10 @@ function renderVisitor() {
         <div class="field"><label>推荐启动命令</label><input class="input" readonly value="${esc(tunnel.quick_tunnel_command || '')}"></div>
         <div class="field"><label>自定义/手动公网地址</label><input class="input" id="visitorPublicUrl" value="${esc(cfg.custom_public_url || '')}" placeholder="https://xxxx.trycloudflare.com"></div>
         <div class="panel-note">安装提示：${esc(tunnel.install_hint || '')}<br>内置下载源：${esc(tunnel.download_url || '')}<br>插件托管路径：${esc(tunnel.managed_path || '')}</div>
+        <div id="cloudflaredInstallProgress" style="display:none;margin-top:12px;padding:12px;border:1px solid var(--shard-border);background:rgba(0,0,0,.04);">
+          <div class="row between"><span id="cloudflaredInstallLabel" class="muted">准备下载</span><b id="cloudflaredInstallPct">0%</b></div>
+          <div style="height:8px;background:rgba(0,0,0,.12);overflow:hidden;margin-top:8px;"><div id="cloudflaredInstallBar" style="height:100%;width:0%;background:var(--accent);transition:width .2s ease;"></div></div>
+        </div>
         <div class="row" style="margin-top:14px;flex-wrap:wrap;">
           <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">重新检测</span></button>
           ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : `<button class="btn-strong" onclick="installCloudflared()"><span class="btn-text">自动安装 cloudflared</span></button>`}
@@ -8093,12 +8125,48 @@ async function refreshVisitorTunnel() {
 
 async function installCloudflared() {
   if (!confirm('将从 Cloudflare 官方 GitHub Release 下载 cloudflared 到插件数据目录，不会安装系统服务或修改 PATH。继续吗？')) return;
-  showToast('正在下载 cloudflared，请稍候...');
-  const res = await apiPost('/api/visitor/cloudflared/install', {});
-  if (!res.ok) return showToast(res.error || '自动安装失败，请按提示手动安装。', true);
-  await loadVisitor();
-  renderVisitor();
-  showToast('cloudflared 已安装到插件数据目录，可以生成临时地址。');
+  const start = await apiPost('/api/visitor/cloudflared/install/start', {});
+  if (!start.ok) return showToast(start.error || '无法启动安装任务。', true);
+  showToast('正在下载 cloudflared，进度会显示在页面中。');
+  await pollCloudflaredInstall(start.task_id);
+}
+
+function updateCloudflaredProgress(task) {
+  const box = $('#cloudflaredInstallProgress');
+  if (!box) return;
+  box.style.display = 'block';
+  const pct = Math.max(0, Math.min(100, Number(task.percent || 0)));
+  const total = Number(task.total || 0);
+  const downloaded = Number(task.downloaded || 0);
+  const mb = n => (n / 1024 / 1024).toFixed(1);
+  const label = task.status === 'done'
+    ? `安装完成：${task.version || task.path || ''}`
+    : task.status === 'error'
+      ? `安装失败：${task.error || ''}`
+      : `${task.status || 'downloading'} ${total ? `${mb(downloaded)}MB / ${mb(total)}MB` : ''}`;
+  $('#cloudflaredInstallLabel').textContent = label;
+  $('#cloudflaredInstallPct').textContent = `${pct.toFixed(1)}%`;
+  $('#cloudflaredInstallBar').style.width = `${pct}%`;
+}
+
+async function pollCloudflaredInstall(taskId) {
+  for (;;) {
+    const res = await apiGet(`/api/visitor/cloudflared/install/progress?task_id=${encodeURIComponent(taskId)}`);
+    if (!res.ok) return showToast(res.error || '读取安装进度失败。', true);
+    const task = res.task || {};
+    updateCloudflaredProgress(task);
+    if (task.status === 'done') {
+      await loadVisitor();
+      renderVisitor();
+      showToast('cloudflared 已安装并验证可用，可以生成临时地址。');
+      return;
+    }
+    if (task.status === 'error') {
+      showToast(task.error || '自动安装失败，请按提示手动安装。', true);
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
 }
 
 async function startVisitorTunnel() {
@@ -8240,6 +8308,7 @@ function renderAll() {
 
 async function useProfile(id) {
   state.currentProfile = id;
+  saveUiPrefs();
   state.justActivatedProfile = id;
   await refreshActiveProfileData();
   renderAll();
@@ -8572,7 +8641,24 @@ function setRange(i, key, value) {
   if (key === 'min' || key === 'max') checkRangeOverlap();
 }
 function setRangeComments(i, value) { state.signInTexts.luck_ranges[i].comments = value.split(/\r?\n/).map(v => v.trim()).filter(Boolean); }
+function collectSigninRangesFromDom() {
+  const ranges = (state.signInTexts.luck_ranges || []).map(r => ({ ...r, comments: Array.isArray(r.comments) ? [...r.comments] : [] }));
+  $$('[data-range-index][data-range-field]').forEach(el => {
+    const index = Number(el.dataset.rangeIndex);
+    const field = el.dataset.rangeField;
+    if (!Number.isInteger(index) || !ranges[index]) return;
+    if (field === 'comments') {
+      ranges[index].comments = String(el.value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+    } else if (['min', 'max', 'gold_delta'].includes(field)) {
+      ranges[index][field] = Number(el.value || 0);
+    } else {
+      ranges[index][field] = el.value;
+    }
+  });
+  state.signInTexts.luck_ranges = ranges;
+}
 async function previewSignin() {
+  collectSigninRangesFromDom();
   if (checkRangeOverlap()) return showToast('运势区间存在重叠，请修正变红的区间！', true);
   const ranges = state.signInTexts.luck_ranges || [];
   if (!ranges.length) return showToast('请先配置运势区间。', true);
@@ -8615,9 +8701,11 @@ async function previewSignin() {
   ].join('\n');
 }
 async function saveSignin(show = true) {
+  collectSigninRangesFromDom();
   if (checkRangeOverlap()) return showToast('保存失败：运势区间存在重叠。', true);
   const res = await apiPost('/api/sign_in_texts', { texts: state.signInTexts });
   if (res.ok) {
+    state.signInTexts = res.texts || state.signInTexts;
     if (show) showToast('签到配置已保存。');
   } else if (show) {
     showToast(res.error || '保存失败。', true);
@@ -9385,15 +9473,15 @@ Object.assign(window, {
 async function bootstrapWebUi() {
   if (bootstrapWebUi.started) return;
   bootstrapWebUi.started = true;
-  state.topView = 'home';
+  restoreUiPrefs();
   state.homeStage = 'intro';
   state.homeAccessVerified = false;
   state.homePasswordVisible = false;
   ensureLazyProgressHud();
   bindEvents();
-  setTopView('home');
   try {
     await syncHomeAccessStatus();
+    setTopView(state.homeAccessVerified ? (state.topView || 'config') : 'home');
   } finally {
     document.body.classList.add('ui-ready');
   }

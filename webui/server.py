@@ -77,6 +77,7 @@ _WEBUI_ACCESS_PASSWORD = WEBUI_DEFAULT_ACCESS_PASSWORD
 _AUTH_SESSIONS: dict[str, dict] = {}
 _CLOUDFLARED_PROCESS = None
 _CLOUDFLARED_PUBLIC_URL = ""
+_CLOUDFLARED_INSTALL_TASKS: dict[str, dict] = {}
 
 # 默认签到文案（fallback）
 DEFAULT_SIGN_IN_TEXTS = {
@@ -485,30 +486,32 @@ def _normalize_sign_in_texts(texts) -> dict:
     if isinstance(legacy_comments, dict):
         result["luck_comments"] = legacy_comments
 
-        for item in data.get("luck_ranges", []) if isinstance(data.get("luck_ranges", []), list) else []:
+    raw_ranges = data.get("luck_ranges", [])
+    if isinstance(raw_ranges, list):
+        for item in raw_ranges:
             if not isinstance(item, dict):
                 continue
-        min_val = _safe_int(item.get("min", 1), 1)
-        max_val = _safe_int(item.get("max", 100), 100)
-        if min_val > max_val:
-            min_val, max_val = max_val, min_val
-        result["luck_ranges"].append({
-            "label": str(item.get("label", "") or "新区间").strip() or "新区间",
-                    "min": min_val,
-                    "max": max_val,
-                    "gold_delta": _safe_int(item.get("gold_delta", 0), 0),
-                    "comments": [str(x).strip() for x in item.get("comments", []) if str(x).strip()] if isinstance(item.get("comments", []), list) else [],
-                })
+            min_val = _safe_int(item.get("min", 1), 1)
+            max_val = _safe_int(item.get("max", 100), 100)
+            if min_val > max_val:
+                min_val, max_val = max_val, min_val
+            comments = item.get("comments", [])
+            result["luck_ranges"].append({
+                "label": str(item.get("label", "") or "\u65b0\u533a\u95f4").strip() or "\u65b0\u533a\u95f4",
+                "min": min_val,
+                "max": max_val,
+                "gold_delta": _safe_int(item.get("gold_delta", 0), 0),
+                "comments": [str(x).strip() for x in comments if str(x).strip()] if isinstance(comments, list) else [],
+            })
 
     result["enable_quote"] = bool(data.get("enable_quote", True))
     result["enable_draw_prob"] = bool(data.get("enable_draw_prob", True))
     result["use_custom_quote"] = bool(data.get("use_custom_quote", False))
     result["custom_quotes"] = [str(x).strip() for x in data.get("custom_quotes", []) if str(x).strip()]
     if not result["custom_quotes"]:
-                result["custom_quotes"] = DEFAULT_SIGN_IN_TEXTS.get("custom_quotes", ["这虽然是游戏，但可不是闹着玩的。"])
+        result["custom_quotes"] = DEFAULT_SIGN_IN_TEXTS.get("custom_quotes", [])
 
     return result
-
 
 def _normalize_titles_config(titles) -> list:
     return TitleEngine.normalize_titles(titles)
@@ -2472,9 +2475,30 @@ def _valid_cloudflared_path(path: str | Path | None) -> str:
     if not path:
         return ""
     candidate = Path(str(path)).expanduser()
-    if candidate.exists() and candidate.is_file():
+    if candidate.exists() and candidate.is_file() and _cloudflared_version(candidate).get("ok"):
         return str(candidate)
     return ""
+
+
+def _cloudflared_version(path: str | Path | None) -> dict:
+    if not path:
+        return {"ok": False, "error": "path is empty", "version": ""}
+    candidate = Path(str(path)).expanduser()
+    if not candidate.exists() or not candidate.is_file():
+        return {"ok": False, "error": "file not found", "version": ""}
+    try:
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0
+        result = subprocess.run(
+            [str(candidate), "--version"],
+            capture_output=True,
+            text=True,
+            timeout=8,
+            creationflags=creationflags,
+        )
+        output = (result.stdout or result.stderr or "").strip()
+        return {"ok": result.returncode == 0, "error": "" if result.returncode == 0 else output, "version": output}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc), "version": ""}
 
 
 def _detect_cloudflared_path() -> str:
@@ -2490,23 +2514,37 @@ def _detect_cloudflared_path() -> str:
     return ""
 
 
-async def _download_cloudflared_binary() -> dict:
+async def _download_cloudflared_binary(task_id: str | None = None) -> dict:
     url = _cloudflared_download_url()
     asset, kind = _cloudflared_download_asset()
     bin_dir = _cloudflared_bin_dir()
     bin_dir.mkdir(parents=True, exist_ok=True)
     download_path = bin_dir / asset
     final_path = _cloudflared_managed_path()
+    if task_id:
+        _CLOUDFLARED_INSTALL_TASKS[task_id].update({"status": "downloading", "downloaded": 0, "total": 0, "percent": 0, "url": url})
     async with ClientSession(timeout=ClientTimeout(total=300)) as session:
         async with session.get(url, allow_redirects=True) as resp:
             if resp.status != 200:
                 raise RuntimeError(f"download failed: HTTP {resp.status}")
+            total_size = int(resp.headers.get("Content-Length") or 0)
+            if task_id:
+                _CLOUDFLARED_INSTALL_TASKS[task_id]["total"] = total_size
+            downloaded = 0
             with open(download_path, "wb") as f:
                 while True:
                     chunk = await resp.content.read(1024 * 256)
                     if not chunk:
                         break
                     f.write(chunk)
+                    downloaded += len(chunk)
+                    if task_id:
+                        _CLOUDFLARED_INSTALL_TASKS[task_id].update({
+                            "downloaded": downloaded,
+                            "percent": round((downloaded / total_size) * 100, 1) if total_size else 0,
+                        })
+    if task_id:
+        _CLOUDFLARED_INSTALL_TASKS[task_id].update({"status": "installing", "percent": 98})
     if kind == "tgz":
         with tarfile.open(download_path, "r:gz") as tar:
             member = next((m for m in tar.getmembers() if Path(m.name).name == "cloudflared" and m.isfile()), None)
@@ -2522,10 +2560,13 @@ async def _download_cloudflared_binary() -> dict:
         shutil.move(str(download_path), str(final_path))
     if not sys.platform.startswith("win"):
         final_path.chmod(final_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    version = _cloudflared_version(final_path)
+    if not version.get("ok"):
+        raise RuntimeError(f"cloudflared downloaded but cannot run: {version.get('error')}")
     cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
     cfg["cloudflared_path"] = str(final_path)
     _atomic_write(VISITOR_TUNNEL_FILE, cfg)
-    return {"path": str(final_path), "url": url}
+    return {"path": str(final_path), "url": url, "version": version.get("version", "")}
 
 
 async def _start_cloudflared_quick_tunnel(local_url: str) -> dict:
@@ -2750,6 +2791,7 @@ async def api_visitor_tunnel_status(request):
         return _visitor_error("只有管理员可以查看协作通道。")
     cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
     detected = _detect_cloudflared_path()
+    version_info = _cloudflared_version(detected) if detected else {"ok": False, "version": "", "error": ""}
     port = request.app.get("webui_port", 4399)
     local_url = f"http://127.0.0.1:{port}"
     system = sys.platform
@@ -2764,6 +2806,9 @@ async def api_visitor_tunnel_status(request):
         "config": cfg,
         "detected_path": detected or "",
         "detected": bool(detected),
+        "version": version_info.get("version", ""),
+        "version_ok": bool(version_info.get("ok")),
+        "version_error": version_info.get("error", ""),
         "running": bool(_CLOUDFLARED_PROCESS and _CLOUDFLARED_PROCESS.returncode is None),
         "public_url": visitor_public_url(),
         "managed_path": str(_cloudflared_managed_path()),
@@ -2801,6 +2846,52 @@ async def api_visitor_cloudflared_install(request):
         return web.json_response({"ok": True, **result})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "download_url": _cloudflared_download_url()}, status=500)
+
+
+async def _run_cloudflared_install_task(task_id: str):
+    try:
+        result = await _download_cloudflared_binary(task_id)
+        _CLOUDFLARED_INSTALL_TASKS[task_id].update({
+            "ok": True,
+            "status": "done",
+            "percent": 100,
+            "path": result.get("path", ""),
+            "version": result.get("version", ""),
+        })
+    except Exception as exc:
+        _CLOUDFLARED_INSTALL_TASKS[task_id].update({
+            "ok": False,
+            "status": "error",
+            "error": str(exc),
+        })
+
+
+async def api_visitor_cloudflared_install_start(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以安装 cloudflared。")
+    task_id = f"cf_{uuid.uuid4().hex[:12]}"
+    _CLOUDFLARED_INSTALL_TASKS[task_id] = {
+        "ok": True,
+        "status": "queued",
+        "downloaded": 0,
+        "total": 0,
+        "percent": 0,
+        "error": "",
+        "url": _cloudflared_download_url(),
+        "created_at": int(time.time()),
+    }
+    asyncio.create_task(_run_cloudflared_install_task(task_id))
+    return web.json_response({"ok": True, "task_id": task_id})
+
+
+async def api_visitor_cloudflared_install_progress(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以查看安装进度。")
+    task_id = request.query.get("task_id", "")
+    task = _CLOUDFLARED_INSTALL_TASKS.get(task_id)
+    if not task:
+        return web.json_response({"ok": False, "error": "install task not found"}, status=404)
+    return web.json_response({"ok": True, "task": task})
 
 
 async def api_visitor_tunnel_start(request):
@@ -3151,6 +3242,8 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_get("/api/visitor/tunnel", api_visitor_tunnel_status)
     app.router.add_post("/api/visitor/tunnel", api_visitor_tunnel_config)
     app.router.add_post("/api/visitor/cloudflared/install", api_visitor_cloudflared_install)
+    app.router.add_post("/api/visitor/cloudflared/install/start", api_visitor_cloudflared_install_start)
+    app.router.add_get("/api/visitor/cloudflared/install/progress", api_visitor_cloudflared_install_progress)
     app.router.add_post("/api/visitor/tunnel/start", api_visitor_tunnel_start)
     app.router.add_post("/api/visitor/tunnel/stop", api_visitor_tunnel_stop)
     app.router.add_get("/api/profile_overview", api_profile_overview)

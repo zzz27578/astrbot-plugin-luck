@@ -80,6 +80,7 @@ _AUTH_SESSIONS: dict[str, dict] = {}
 _CLOUDFLARED_PROCESS = None
 _CLOUDFLARED_PUBLIC_URL = ""
 _CLOUDFLARED_INSTALL_TASKS: dict[str, dict] = {}
+_CLOUDFLARED_INSTALL_ASYNC_TASKS: dict[str, asyncio.Task] = {}
 _CLOUDFLARED_DOWNLOAD_SOURCES = [
     {
         "id": "official",
@@ -1064,7 +1065,10 @@ def _create_review_draft(request: web.Request, resource_type: str, action: str, 
         "reviewed_at": 0,
         "reviewer": "",
     }
-    drafts = [d for d in _load_drafts() if d.get("status") == "pending"]
+    all_drafts = _load_drafts()
+    drafts = [d for d in all_drafts if d.get("status") == "pending"]
+    if len(drafts) != len(all_drafts):
+        _save_drafts(drafts)
     drafts.append(draft)
     _save_drafts(drafts)
     _increment_key_counter(identity.get("invite_id", ""), "submissions")
@@ -2549,6 +2553,27 @@ def _cloudflared_partial_path() -> Path:
     return _cloudflared_bin_dir() / asset
 
 
+def _cloudflared_install_paths() -> list[Path]:
+    return [_cloudflared_managed_path(), _cloudflared_partial_path()]
+
+
+def _cleanup_cloudflared_install_files(task_id: str | None = None) -> list[str]:
+    removed = []
+    bin_dir = _cloudflared_bin_dir().resolve()
+    for path in _cloudflared_install_paths():
+        try:
+            resolved = path.resolve()
+            if bin_dir not in resolved.parents and resolved != bin_dir:
+                continue
+            if resolved.exists() and resolved.is_file():
+                resolved.unlink()
+                removed.append(str(resolved))
+                _append_install_log(task_id, f"Removed {resolved.name}")
+        except Exception as exc:
+            _append_install_log(task_id, f"Failed to remove {path.name}: {exc}")
+    return removed
+
+
 def _install_task_public(task: dict | None = None) -> dict:
     if task is None:
         state = _read_dict_file(VISITOR_INSTALL_STATE_FILE)
@@ -2732,6 +2757,8 @@ async def _download_cloudflared_binary(task_id: str | None = None, force: bool =
             last_logged = 0
             with open(download_path, "wb") as f:
                 while True:
+                    if task_id and _CLOUDFLARED_INSTALL_TASKS.get(task_id, {}).get("status") == "cancelled":
+                        raise asyncio.CancelledError()
                     chunk = await resp.content.read(1024 * 256)
                     if not chunk:
                         break
@@ -2987,7 +3014,10 @@ async def api_visitor_revoke_key(request):
 async def api_visitor_drafts(request):
     if not _is_authenticated_request(request):
         return _visitor_error("请先登录。", status=401)
-    drafts = [d for d in _load_drafts() if d.get("status") == "pending"]
+    all_drafts = _load_drafts()
+    drafts = [d for d in all_drafts if d.get("status") == "pending"]
+    if len(drafts) != len(all_drafts):
+        _save_drafts(drafts)
     if not _is_admin_request(request):
         invite_id = _get_session_identity(request).get("invite_id", "")
         drafts = [d for d in drafts if d.get("invite_id") == invite_id]
@@ -3082,6 +3112,9 @@ async def _run_cloudflared_install_task(task_id: str):
     try:
         _append_install_log(task_id, "Install task started.")
         task = _CLOUDFLARED_INSTALL_TASKS.get(task_id) or _read_dict_file(VISITOR_INSTALL_STATE_FILE)
+        if task.get("clean"):
+            _append_install_log(task_id, "Clean reinstall requested; clearing managed binary and partial downloads.")
+            _cleanup_cloudflared_install_files(task_id)
         result = await _download_cloudflared_binary(task_id, force=bool(task.get("force")))
         _save_install_task(
             task_id,
@@ -3092,10 +3125,21 @@ async def _run_cloudflared_install_task(task_id: str):
             version=result.get("version", ""),
         )
         _append_install_log(task_id, "Install task completed.")
+    except asyncio.CancelledError:
+        _save_install_task(
+            task_id,
+            ok=False,
+            status="cancelled",
+            error="install task cancelled",
+            error_hint="安装任务已取消；可以重新下载或重新安装。",
+        )
+        _append_install_log(task_id, "Install task cancelled.")
     except Exception as exc:
         _save_install_task(task_id, ok=False, status="error", error=str(exc), error_hint=_cloudflared_error_hint(exc))
         _append_install_log(task_id, f"Install task failed: {exc}")
         _append_install_log(task_id, _cloudflared_error_hint(exc))
+    finally:
+        _CLOUDFLARED_INSTALL_ASYNC_TASKS.pop(task_id, None)
 
 
 async def api_visitor_cloudflared_install_start(request):
@@ -3118,7 +3162,8 @@ async def api_visitor_cloudflared_install_start(request):
         return web.json_response({"ok": False, "error": "自定义下载源需要填写 URL 模板。"}, status=400)
     if cfg_changed:
         _atomic_write(VISITOR_TUNNEL_FILE, cfg)
-    force = bool(body.get("force"))
+    clean = bool(body.get("clean"))
+    force = bool(body.get("force") or clean)
     detected = _detect_cloudflared_path()
     if detected and not force:
         version = _cloudflared_version(detected)
@@ -3139,6 +3184,11 @@ async def api_visitor_cloudflared_install_start(request):
             created_at=int(time.time()),
         )
         return web.json_response({"ok": True, "task_id": task_id, "already_installed": True})
+    if clean:
+        for existing_id, running_task in list(_CLOUDFLARED_INSTALL_ASYNC_TASKS.items()):
+            if not running_task.done():
+                _save_install_task(existing_id, status="cancelled", ok=False, error="install task cancelled", error_hint="安装任务已被重新安装操作取消。")
+                running_task.cancel()
     for existing_id, task in _CLOUDFLARED_INSTALL_TASKS.items():
         if task.get("status") in {"queued", "downloading", "installing"}:
             return web.json_response({"ok": True, "task_id": existing_id, "already_running": True})
@@ -3164,10 +3214,11 @@ async def api_visitor_cloudflared_install_start(request):
         url=_cloudflared_download_url(),
         source=_cloudflared_download_source_name(),
         force=force,
+        clean=clean,
         logs=[],
         created_at=int(time.time()),
     )
-    asyncio.create_task(_run_cloudflared_install_task(task_id))
+    _CLOUDFLARED_INSTALL_ASYNC_TASKS[task_id] = asyncio.create_task(_run_cloudflared_install_task(task_id))
     return web.json_response({"ok": True, "task_id": task_id})
 
 
@@ -3189,6 +3240,36 @@ async def api_visitor_cloudflared_install_progress(request):
         task.setdefault("logs", []).append(f"[{time.strftime('%H:%M:%S')}] Install task was interrupted; ready for retry.")
         _atomic_write(VISITOR_INSTALL_STATE_FILE, _install_task_public(task))
     return web.json_response({"ok": True, "task": _install_task_public(task)})
+
+
+async def api_visitor_cloudflared_install_cancel(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以取消 cloudflared 安装。")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    task_id = str(body.get("task_id") or "").strip()
+    if not task_id:
+        state = _read_dict_file(VISITOR_INSTALL_STATE_FILE)
+        task_id = str(state.get("task_id") or "").strip()
+    if not task_id:
+        return web.json_response({"ok": False, "error": "install task not found"}, status=404)
+    task = _CLOUDFLARED_INSTALL_TASKS.get(task_id) or _read_dict_file(VISITOR_INSTALL_STATE_FILE)
+    if not task:
+        return web.json_response({"ok": False, "error": "install task not found"}, status=404)
+    running = _CLOUDFLARED_INSTALL_ASYNC_TASKS.get(task_id)
+    _save_install_task(
+        task_id,
+        ok=False,
+        status="cancelled",
+        error="install task cancelled",
+        error_hint="安装任务已取消；可以重新下载或重新安装。",
+    )
+    _append_install_log(task_id, "Cancel requested by admin.")
+    if running and not running.done():
+        running.cancel()
+    return web.json_response({"ok": True, "task": _install_task_public(_CLOUDFLARED_INSTALL_TASKS.get(task_id))})
 
 
 async def api_visitor_tunnel_start(request):
@@ -3540,6 +3621,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/visitor/tunnel", api_visitor_tunnel_config)
     app.router.add_post("/api/visitor/cloudflared/install", api_visitor_cloudflared_install)
     app.router.add_post("/api/visitor/cloudflared/install/start", api_visitor_cloudflared_install_start)
+    app.router.add_post("/api/visitor/cloudflared/install/cancel", api_visitor_cloudflared_install_cancel)
     app.router.add_get("/api/visitor/cloudflared/install/progress", api_visitor_cloudflared_install_progress)
     app.router.add_post("/api/visitor/tunnel/start", api_visitor_tunnel_start)
     app.router.add_post("/api/visitor/tunnel/stop", api_visitor_tunnel_stop)

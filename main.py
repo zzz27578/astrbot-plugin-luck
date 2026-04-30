@@ -321,6 +321,12 @@ class LuckPlugin(Star):
             async for res in self._show_help(event):
                 yield res
             return
+        if cmd_str in ["管理员菜单", "管理菜单", "admin"]:
+            if self._is_extra_admin(str(user_id), current_config):
+                yield event.plain_result(self._admin_menu_text())
+            else:
+                yield event.plain_result("⚠️ 只有插件管理员可以查看管理员菜单。")
+            return
 
         # ================= 📜 3. 基础运势签到路由 =================
 
@@ -478,11 +484,15 @@ class LuckPlugin(Star):
 
     async def _handle_private_collab_admin(self, event: AstrMessageEvent, sender_id: str, cmd_str: str):
         text = str(cmd_str or "").strip()
-        visitor_prefixes = ("管理验证", "访客身份", "生成临时密钥", "生成游客密钥", "访客密钥", "待审核", "同意草稿", "拒绝草稿", "通过草稿")
+        visitor_prefixes = ("管理员菜单", "管理菜单", "管理验证", "访客身份", "生成临时密钥", "生成游客密钥", "访客密钥", "待审核", "同意草稿", "拒绝草稿", "通过草稿")
         if not text.startswith(visitor_prefixes):
             return
         if not self._is_extra_admin(str(sender_id), self._base_config):
             yield event.plain_result("⚠️ 只有插件管理员可以在私聊中管理访客协作。")
+            return
+
+        if text in {"管理员菜单", "管理菜单"}:
+            yield event.plain_result(self._admin_menu_text())
             return
 
         if text.startswith("管理验证"):
@@ -547,6 +557,23 @@ class LuckPlugin(Star):
             else:
                 yield event.plain_result(f"⚠️ {result.get('error', '审核失败')}")
             return
+
+    def _admin_menu_text(self) -> str:
+        return "\n".join([
+            "【/luck 管理员菜单】",
+            "/luck 管理验证 WebUI管理密码",
+            "/luck 访客身份",
+            "/luck 生成临时密钥 身份名称",
+            "/luck 待审核",
+            "/luck 同意草稿 draft_xxx",
+            "/luck 拒绝草稿 draft_xxx",
+            "/luck 增加 @某人 数量",
+            "/luck 授予功能牌 @某人 牌名",
+            "/luck 授予称号 @某人 称号名",
+            "/luck 丢弃功能牌 @某人 牌名",
+            "/luck 丢弃称号 @某人 称号名",
+            "私聊里菜单/帮助/管理员菜单可直接查看；生成密钥和审核前先做管理验证。",
+        ])
 
     def _is_func_cards_command(self, cmd_str: str) -> bool:
 

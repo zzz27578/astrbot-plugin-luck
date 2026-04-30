@@ -2646,6 +2646,29 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .archive-card::before { content: ''; position: absolute; left: -1px; top: -1px; width: 12px; height: 12px; border-top: 2px solid var(--shard-text); border-left: 2px solid var(--shard-text); transition: 0.3s; pointer-events: none; z-index: 5; }
 .archive-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(57,229,184,0.08); border-color: var(--accent); }
 .archive-card:hover::before { border-color: var(--accent); width: 24px; height: 24px; }
+.visitor-shell { display: grid; gap: 20px; }
+.visitor-hero { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.8fr); gap: 18px; align-items: stretch; }
+.visitor-hero-main { border: 1px solid var(--shard-border); background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(241,247,244,0.96)); padding: 22px; position: relative; overflow: hidden; }
+.visitor-hero-main::after { content: ''; position: absolute; inset: auto 0 0 0; height: 3px; background: linear-gradient(90deg, var(--accent), rgba(33,163,102,0.18)); }
+.visitor-hero-title { font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: var(--shard-text); letter-spacing: 0; }
+.visitor-hero-note { margin-top: 8px; color: var(--shard-text-muted); font-size: 13px; line-height: 1.7; max-width: 760px; }
+.visitor-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.visitor-kpi { border: 1px solid rgba(33, 163, 102, 0.18); background: rgba(255,255,255,0.76); padding: 14px; min-height: 78px; display: grid; align-content: center; }
+.visitor-kpi b { font-family: var(--font-headline); font-size: 22px; color: var(--shard-text); }
+.visitor-kpi span { font-size: 12px; color: var(--shard-text-muted); margin-top: 4px; }
+.visitor-grid-tight { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.visitor-card { border: 1px solid var(--shard-border); background: rgba(255,255,255,0.72); padding: 16px; display: grid; gap: 12px; }
+.visitor-card-list { display: grid; gap: 10px; }
+.visitor-card-title { font-family: var(--font-headline); font-size: 15px; font-weight: 900; color: var(--shard-text); }
+.visitor-muted-box { border: 1px dashed rgba(33,163,102,0.28); background: rgba(33,163,102,0.04); padding: 12px; font-size: 12px; line-height: 1.7; color: var(--shard-text-muted); word-break: break-all; }
+.visitor-terminal { margin-top: 10px; max-height: 180px; overflow: auto; background: #101412; color: #d8eee0; padding: 12px; font-size: 12px; white-space: pre-wrap; border: 1px solid rgba(33,163,102,0.22); }
+.visitor-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.draft-card { border: 1px solid rgba(33,163,102,0.2); background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,247,0.96)); padding: 16px; display: grid; gap: 12px; }
+.draft-summary { font-family: var(--font-headline); font-size: 16px; font-weight: 900; color: var(--shard-text); }
+.draft-meta { color: var(--shard-text-muted); font-size: 12px; line-height: 1.7; }
+@media (max-width: 900px) {
+  .visitor-hero, .visitor-grid-tight, .visitor-kpis { grid-template-columns: 1fr; }
+}
 .archive-index-group { margin-bottom: 18px; border: 1px solid rgba(26, 158, 94, 0.14); background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,247,245,0.96)); padding: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.72); }
 .archive-index-group.archive-index-draft { border: 2px dashed rgba(243, 156, 18, 0.52); background: linear-gradient(180deg, rgba(255,248,236,0.94), rgba(255,244,228,0.88)); }
 .archive-index-title { font-family: var(--font-headline); font-size: 15px; font-weight: 900; color: var(--shard-text); letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
@@ -8016,20 +8039,29 @@ function permissionChips(perms = {}) {
   return chips.join('');
 }
 
+function visitorTime(ts) {
+  const n = Number(ts || 0);
+  if (!n) return '未知时间';
+  return new Date(n * 1000).toLocaleString();
+}
+
 function renderDraftBrief(draft) {
   const statusText = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }[draft.status] || draft.status || '未知';
+  const details = Array.isArray(draft.details) && draft.details.length
+    ? draft.details.map(item => `<div>${esc(item)}</div>`).join('')
+    : '<div>已隐藏完整配置，只显示本次改动摘要。</div>';
   const adminActions = state.identity.type === 'admin' && draft.status === 'pending'
-    ? `<div class="row" style="margin-top:12px;"><button class="btn-strong" onclick="reviewVisitorDraft('${esc(draft.id)}','approve')"><span class="btn-text">通过</span></button><button class="btn-danger" onclick="reviewVisitorDraft('${esc(draft.id)}','reject')"><span class="btn-text">拒绝</span></button></div>`
+    ? `<div class="visitor-actions"><button class="btn-strong" onclick="reviewVisitorDraft('${esc(draft.id)}','approve')"><span class="btn-text">通过</span></button><button class="btn-danger" onclick="reviewVisitorDraft('${esc(draft.id)}','reject')"><span class="btn-text">拒绝并移除</span></button></div>`
     : '';
-  return `<div class="archive-card" style="margin-bottom:12px;">
+  return `<div class="draft-card">
     <div class="row between">
       <div>
-        <div class="card-title">${esc(draft.summary || draft.resource_type || '访客改动')}</div>
-        <div class="muted">ID: ${esc(draft.id)} · 身份: ${esc(draft.role_name || '')} · 方案: ${esc(draft.profile_id || 'default')}</div>
+        <div class="draft-summary">${esc(draft.summary || draft.resource_label || '访客改动')}</div>
+        <div class="draft-meta">${esc(draft.resource_label || draft.resource_type || '配置')} · 身份 ${esc(draft.role_name || '')} · 方案 ${esc(draft.profile_id || 'default')} · ${esc(visitorTime(draft.created_at))}</div>
       </div>
       <span class="badge">${esc(statusText)}</span>
     </div>
-    <pre style="white-space:pre-wrap;max-height:220px;overflow:auto;background:rgba(0,0,0,.04);padding:12px;border:1px solid var(--shard-border);font-size:12px;">${esc(JSON.stringify(draft.after, null, 2).slice(0, 4000))}</pre>
+    <div class="visitor-muted-box">${details}</div>
     ${adminActions}
   </div>`;
 }
@@ -8045,14 +8077,21 @@ function renderVisitor() {
   const installPct = Math.max(0, Math.min(100, Number(installTask.percent || 0)));
   const installLogs = (installTask.logs || []).slice(-12).join('\n');
   const detectedOk = !!tunnel.detected;
+  const downloadSource = cfg.cloudflared_download_source || 'official';
+  const downloadTemplate = cfg.cloudflared_download_url_template || '';
+  const downloadSources = Array.isArray(tunnel.download_sources) ? tunnel.download_sources : [
+    { id: 'official', name: 'Cloudflare GitHub Release' },
+    { id: 'custom', name: '自定义镜像/模板' }
+  ];
+  const sourceOptions = downloadSources.map(item => `<option value="${esc(item.id)}" ${downloadSource === item.id ? 'selected' : ''}>${esc(item.name || item.id)}</option>`).join('');
   const tunnelStatus = detectedOk
     ? `<div class="notice success" style="margin-bottom:12px;">检测正常：已找到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
     : `<div class="notice danger" style="margin-bottom:12px;">未检测到 cloudflared。可以点击下方按钮自动下载到插件数据目录，或手动安装后重新检测。</div>`;
   const rolesHtml = state.visitorRoles.map(role => `
-    <div class="archive-card" style="margin-bottom:12px;">
+    <div class="visitor-card">
       <div class="row between">
         <div>
-          <div class="card-title">${esc(role.name)} <span class="muted">(${esc(role.id)})</span></div>
+          <div class="visitor-card-title">${esc(role.name)} <span class="muted">(${esc(role.id)})</span></div>
           <div class="muted">${esc(role.description || '')}</div>
         </div>
         <div class="row">
@@ -8065,11 +8104,11 @@ function renderVisitor() {
   `).join('') || '<div class="empty">暂无身份模板</div>';
   const roleOptions = state.visitorRoles.map(role => `<option value="${esc(role.id)}">${esc(role.name)} (${esc(role.id)})</option>`).join('');
   const keysHtml = state.visitorKeys.map(item => `
-    <div class="archive-card" style="margin-bottom:10px;">
+    <div class="visitor-card">
       <div class="row between">
         <div>
-          <div class="card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}...</div>
-          <div class="muted">状态: ${esc(item.status)} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次 ${item.remark ? '· ' + esc(item.remark) : ''}</div>
+          <div class="visitor-card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}...</div>
+          <div class="muted">${esc(item.status)} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次 ${item.remark ? '· ' + esc(item.remark) : ''}</div>
         </div>
         ${item.status === 'active' ? `<button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">撤销</span></button>` : ''}
       </div>
@@ -8077,11 +8116,20 @@ function renderVisitor() {
   `).join('') || '<div class="empty">暂无临时密钥</div>';
   const draftsHtml = state.visitorDrafts.map(renderDraftBrief).join('') || '<div class="empty">暂无待审核改动</div>';
   page.innerHTML = `
-    <div class="grid">
-      <section class="panel col-12">
-        <div class="panel-header"><div><div class="panel-title">当前身份</div><div class="panel-note">${esc(state.identity.role_name || (isAdmin ? '管理员' : '访客'))}</div></div></div>
-        <div class="row" style="flex-wrap:wrap;">${permissionChips(state.identity.permissions || {})}</div>
+    <div class="visitor-shell">
+      <section class="visitor-hero">
+        <div class="visitor-hero-main">
+          <div class="visitor-hero-title">访客协作</div>
+          <div class="visitor-hero-note">生成临时密钥，把配置入口发给朋友；他们只能按身份权限提交改动，待审核内容通过后才会写入正式配置。</div>
+          <div class="row" style="flex-wrap:wrap;margin-top:14px;">${permissionChips(state.identity.permissions || {})}</div>
+        </div>
+        <div class="visitor-kpis">
+          <div class="visitor-kpi"><b>${Number(state.visitorDrafts.length || 0)}</b><span>${isAdmin ? '待审核改动' : '我的待审提交'}</span></div>
+          <div class="visitor-kpi"><b>${Number(state.visitorRoles.length || 0)}</b><span>权限身份</span></div>
+          <div class="visitor-kpi"><b>${Number(state.visitorKeys.length || 0)}</b><span>临时密钥</span></div>
+        </div>
       </section>
+      <div class="grid">
       ${isAdmin ? `
       <section class="panel col-6">
         <div class="panel-header"><div><div class="panel-title">Cloudflare 临时通道</div><div class="panel-note">自动检测环境，缺失时可自动下载 cloudflared 到插件数据目录并启动 Quick Tunnel。</div></div></div>
@@ -8090,15 +8138,19 @@ function renderVisitor() {
         <div class="field"><label>托管临时地址</label><input class="input" readonly value="${esc(tunnel.public_url || cfg.last_public_url || cfg.custom_public_url || '')}" placeholder="尚未生成"></div>
         <div class="field"><label>推荐启动命令</label><input class="input" readonly value="${esc(tunnel.quick_tunnel_command || '')}"></div>
         <div class="field"><label>自定义/手动公网地址</label><input class="input" id="visitorPublicUrl" value="${esc(cfg.custom_public_url || '')}" placeholder="https://xxxx.trycloudflare.com"></div>
-        <div class="panel-note">安装提示：${esc(tunnel.install_hint || '')}<br>内置下载源：${esc(tunnel.download_url || '')}<br>插件托管路径：${esc(tunnel.managed_path || '')}</div>
+        <div class="field"><label>cloudflared 下载源</label><select class="input" id="cloudflaredDownloadSource">${sourceOptions}</select></div>
+        <div class="field"><label>自定义镜像 URL 模板</label><input class="input" id="cloudflaredDownloadTemplate" value="${esc(downloadTemplate)}" placeholder="例如：https://你的镜像/{url} 或 https://你的镜像/latest/download/{asset}"></div>
+        <div class="visitor-muted-box">AstrBot 插件市场里有常用镜像链接，不会配置镜像的话，去市场说明里找到可用链接后粘贴到上面的模板框。<br>当前下载地址：${esc(tunnel.download_url || '')}<br>官方地址：${esc(tunnel.official_download_url || '')}<br>资源名：${esc(tunnel.download_asset || '')}<br>插件托管路径：${esc(tunnel.managed_path || '')}</div>
         <div id="cloudflaredInstallProgress" style="${installTask.status ? '' : 'display:none;'}margin-top:12px;padding:12px;border:1px solid var(--shard-border);background:rgba(0,0,0,.04);">
           <div class="row between"><span id="cloudflaredInstallLabel" class="muted">${esc(formatCloudflaredTaskLabel(installTask))}</span><b id="cloudflaredInstallPct">${installPct.toFixed(1)}%</b></div>
           <div style="height:8px;background:rgba(0,0,0,.12);overflow:hidden;margin-top:8px;"><div id="cloudflaredInstallBar" style="height:100%;width:${installPct}%;background:var(--accent);transition:width .2s ease;"></div></div>
-          <pre id="cloudflaredInstallLog" style="margin-top:10px;max-height:160px;overflow:auto;background:#101412;color:#d8eee0;padding:10px;font-size:12px;white-space:pre-wrap;">${esc(installLogs || '等待安装任务输出...')}</pre>
+          <pre id="cloudflaredInstallLog" class="visitor-terminal">${esc(installLogs || '等待安装任务输出...')}</pre>
         </div>
-        <div class="row" style="margin-top:14px;flex-wrap:wrap;">
+        <div class="visitor-actions">
           <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">重新检测</span></button>
-          ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : `<button class="btn-strong" ${installBusy ? 'disabled' : ''} onclick="installCloudflared()"><span class="btn-text">${installBusy ? '安装中' : '自动安装 cloudflared'}</span></button>`}
+          <button class="btn" onclick="refreshCloudflaredInstall()"><span class="btn-text">刷新下载状态</span></button>
+          ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : `<button class="btn-strong" ${installBusy ? 'disabled' : ''} onclick="installCloudflared(false)"><span class="btn-text">${installBusy ? '安装中' : '自动安装 cloudflared'}</span></button>`}
+          <button class="btn" ${installBusy ? 'disabled' : ''} onclick="installCloudflared(true)"><span class="btn-text">重新下载</span></button>
           <button class="btn" onclick="saveVisitorTunnel()"><span class="btn-text">保存手动地址</span></button>
           <button class="btn" onclick="copyText('${esc(tunnel.quick_tunnel_command || '')}')"><span class="btn-text">复制命令</span></button>
           ${tunnel.running ? `<button class="btn-danger" onclick="stopVisitorTunnel()"><span class="btn-text">停止通道</span></button>` : ''}
@@ -8111,16 +8163,19 @@ function renderVisitor() {
         <button class="btn-strong" onclick="createVisitorKey()"><span class="btn-text">生成密钥</span></button>
         <div id="visitorNewKeyBox" class="panel-note" style="margin-top:14px;"></div>
       </section>
-      <section class="panel col-6"><div class="panel-header"><div><div class="panel-title">权限身份</div><div class="panel-note">是否需要审核、批量权限和提交上限都由身份决定。</div></div><button class="btn" onclick="openVisitorRoleDialog()"><span class="btn-text">新建身份</span></button></div>${rolesHtml}</section>
-      <section class="panel col-6"><div class="panel-header"><div><div class="panel-title">临时密钥</div><div class="panel-note">可随时撤销。</div></div></div>${keysHtml}</section>
+      <section class="panel col-6"><div class="panel-header"><div><div class="panel-title">权限身份</div><div class="panel-note">是否需要审核、批量权限和提交上限都由身份决定。</div></div><button class="btn" onclick="openVisitorRoleDialog()"><span class="btn-text">新建身份</span></button></div><div class="visitor-card-list">${rolesHtml}</div></section>
+      <section class="panel col-6"><div class="panel-header"><div><div class="panel-title">临时密钥</div><div class="panel-note">只展示前缀和状态，完整密钥只在生成时出现一次。</div></div></div><div class="visitor-card-list">${keysHtml}</div></section>
       ` : ''}
-      <section class="panel col-12"><div class="panel-header"><div><div class="panel-title">${isAdmin ? '待审核改动' : '我的提交'}</div><div class="panel-note">与正式配置区隔离，审核通过后才写入。</div></div></div>${draftsHtml}</section>
+      <section class="panel col-12"><div class="panel-header"><div><div class="panel-title">${isAdmin ? '待审核改动' : '我的提交'}</div><div class="panel-note">这里只显示待处理内容。通过或拒绝后会从这里移除，避免越堆越乱。</div></div></div><div class="visitor-card-list">${draftsHtml}</div></section>
+      </div>
     </div>`;
 }
 
 async function saveVisitorTunnel() {
   const custom_public_url = $('#visitorPublicUrl')?.value?.trim() || '';
-  const res = await apiPost('/api/visitor/tunnel', { custom_public_url });
+  const cloudflared_download_source = $('#cloudflaredDownloadSource')?.value || 'official';
+  const cloudflared_download_url_template = $('#cloudflaredDownloadTemplate')?.value?.trim() || '';
+  const res = await apiPost('/api/visitor/tunnel', { custom_public_url, cloudflared_download_source, cloudflared_download_url_template });
   if (res.ok) {
     await loadVisitor();
     renderVisitor();
@@ -8134,13 +8189,30 @@ async function refreshVisitorTunnel() {
   showToast(state.visitorTunnel.detected ? 'cloudflared 检测正常，可以生成临时地址。' : '未检测到 cloudflared。', !state.visitorTunnel.detected);
 }
 
-async function installCloudflared() {
-  if (!confirm('将从 Cloudflare 官方 GitHub Release 下载 cloudflared 到插件数据目录，不会安装系统服务或修改 PATH。继续吗？')) return;
-  const start = await apiPost('/api/visitor/cloudflared/install/start', {});
+async function installCloudflared(force = false) {
+  const currentTask = state.visitorInstallTask || {};
+  if (['queued', 'downloading', 'installing'].includes(currentTask.status)) {
+    showToast('cloudflared 正在安装中，已为你刷新下载状态。');
+    if (currentTask.task_id) await pollCloudflaredInstall(currentTask.task_id);
+    else await refreshCloudflaredInstall();
+    return;
+  }
+  const cloudflared_download_source = $('#cloudflaredDownloadSource')?.value || 'official';
+  const cloudflared_download_url_template = $('#cloudflaredDownloadTemplate')?.value?.trim() || '';
+  if (cloudflared_download_source === 'custom' && !cloudflared_download_url_template) {
+    return showToast('自定义下载源需要填写 URL 模板。', true);
+  }
+  const actionText = force ? '重新下载并替换插件托管目录里的 cloudflared' : '下载 cloudflared 到插件数据目录';
+  if (!confirm(`将${actionText}，不会安装系统服务或修改 PATH。继续吗？`)) return;
+  const start = await apiPost('/api/visitor/cloudflared/install/start', {
+    force,
+    cloudflared_download_source,
+    cloudflared_download_url_template
+  });
   if (!start.ok) return showToast(start.error || '无法启动安装任务。', true);
   state.visitorInstallTask = { task_id: start.task_id, status: start.already_installed ? 'done' : 'queued', percent: start.already_installed ? 100 : 0, logs: [] };
   renderVisitor();
-  showToast('正在下载 cloudflared，进度会显示在页面中。');
+  showToast(start.already_running ? '已有下载任务在运行，正在接管进度。' : '正在下载 cloudflared，进度会显示在页面中。');
   await pollCloudflaredInstall(start.task_id);
 }
 
@@ -8150,8 +8222,9 @@ function formatCloudflaredTaskLabel(task = {}) {
   const mb = n => (n / 1024 / 1024).toFixed(1);
   if (!task.status) return '尚未开始安装';
   if (task.status === 'done') return `安装完成 ${task.version || task.path || ''}`;
-  if (task.status === 'error') return `安装失败：${task.error || ''}`;
-  return `${task.status} ${total ? `${mb(downloaded)}MB / ${mb(total)}MB` : ''}`;
+  if (task.status === 'error') return `安装失败：${task.error || ''}${task.error_hint ? '；' + task.error_hint : ''}`;
+  const sizeText = total ? `${mb(downloaded)}MB / ${mb(total)}MB` : (downloaded ? `已下载 ${mb(downloaded)}MB` : '等待数据');
+  return `${task.status} ${sizeText}${task.source ? ' · ' + task.source : ''}`;
 }
 
 function updateCloudflaredProgress(task) {
@@ -8190,10 +8263,25 @@ async function pollCloudflaredInstall(taskId) {
     }
     if (task.status === 'error') {
       state.visitorInstallPolling = false;
-      showToast(task.error || '自动安装失败，请按提示手动安装。', true);
+      showToast(task.error_hint || task.error || '自动安装失败，请按提示手动安装。', true);
       return;
     }
     await new Promise(resolve => setTimeout(resolve, 500));
+  }
+}
+
+async function refreshCloudflaredInstall() {
+  const taskId = (state.visitorInstallTask || {}).task_id || '';
+  const url = taskId ? `/api/visitor/cloudflared/install/progress?task_id=${encodeURIComponent(taskId)}` : '/api/visitor/cloudflared/install/progress';
+  const res = await apiGet(url);
+  if (!res.ok) return showToast(res.error || '暂无下载任务状态。', true);
+  const task = res.task || {};
+  updateCloudflaredProgress(task);
+  if (['queued', 'downloading', 'installing'].includes(task.status) && task.task_id) {
+    showToast('下载任务仍在运行，继续刷新进度。');
+    await pollCloudflaredInstall(task.task_id);
+  } else {
+    showToast(task.status === 'error' ? (task.error_hint || '下载任务失败。') : '下载状态已刷新。', task.status === 'error');
   }
 }
 

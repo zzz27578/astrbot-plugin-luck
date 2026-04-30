@@ -110,6 +110,18 @@
         "description": "显示安装脚本辅助",
         "default": true,
         "hint": "开启后，WebUI 可以通过按钮从 Cloudflare 官方 GitHub Release 下载 cloudflared 到插件数据目录。"
+      },
+      "cloudflared_download_source": {
+        "type": "string",
+        "description": "cloudflared 下载源",
+        "default": "official",
+        "hint": "official=Cloudflare 官方 GitHub Release；custom=使用下方 URL 模板。"
+      },
+      "cloudflared_download_url_template": {
+        "type": "string",
+        "description": "cloudflared 自定义下载 URL 模板",
+        "default": "",
+        "hint": "支持 {url} 和 {asset} 占位符，例如 https://你的镜像/{url} 或 https://你的镜像/latest/download/{asset}。AstrBot 插件市场里通常有镜像链接，不会配置就去市场说明里粘贴。"
       }
     }
   },

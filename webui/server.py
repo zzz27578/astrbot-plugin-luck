@@ -80,6 +80,18 @@ _AUTH_SESSIONS: dict[str, dict] = {}
 _CLOUDFLARED_PROCESS = None
 _CLOUDFLARED_PUBLIC_URL = ""
 _CLOUDFLARED_INSTALL_TASKS: dict[str, dict] = {}
+_CLOUDFLARED_DOWNLOAD_SOURCES = [
+    {
+        "id": "official",
+        "name": "官方 GitHub Release",
+        "description": "Cloudflare 官方发布资产。",
+    },
+    {
+        "id": "custom",
+        "name": "自定义镜像/模板",
+        "description": "使用带 {url} 或 {asset} 的自定义 URL 模板。",
+    },
+]
 
 # 默认签到文案（fallback）
 DEFAULT_SIGN_IN_TEXTS = {
@@ -867,9 +879,23 @@ def _ensure_visitor_files():
             "mode": "manual",
             "cloudflared_path": "",
             "custom_public_url": "",
+            "cloudflared_download_source": "official",
+            "cloudflared_download_url_template": "",
             "allow_plugin_start_tunnel": False,
             "allow_install_script": False,
         })
+    else:
+        cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+        changed = False
+        for key, value in {
+            "cloudflared_download_source": "official",
+            "cloudflared_download_url_template": "",
+        }.items():
+            if key not in cfg:
+                cfg[key] = value
+                changed = True
+        if changed:
+            _atomic_write(VISITOR_TUNNEL_FILE, cfg)
     if not VISITOR_INSTALL_STATE_FILE.exists():
         _atomic_write(VISITOR_INSTALL_STATE_FILE, {})
 
@@ -1038,12 +1064,58 @@ def _create_review_draft(request: web.Request, resource_type: str, action: str, 
         "reviewed_at": 0,
         "reviewer": "",
     }
-    drafts = _load_drafts()
+    drafts = [d for d in _load_drafts() if d.get("status") == "pending"]
     drafts.append(draft)
     _save_drafts(drafts)
     _increment_key_counter(identity.get("invite_id", ""), "submissions")
     _append_audit("draft_created", {"draft_id": draft["id"], "resource_type": resource_type, "summary": summary})
     return draft
+
+
+def _resource_label(resource_type: str) -> str:
+    return {
+        "func_cards": "功能牌",
+        "fate_cards": "命运牌",
+        "titles": "称号",
+        "signin": "签到配置",
+        "runtime": "运行配置",
+    }.get(str(resource_type or ""), str(resource_type or "配置"))
+
+
+def _draft_changed_keys(before, after) -> list[str]:
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return []
+    hidden = {"access_password", "password", "secret", "secret_hash", "token", "key"}
+    keys = sorted(set(before.keys()) | set(after.keys()))
+    return [str(key) for key in keys if key not in hidden and before.get(key) != after.get(key)]
+
+
+def _draft_brief(draft: dict) -> dict:
+    before = draft.get("before")
+    after = draft.get("after")
+    resource_type = str(draft.get("resource_type") or "")
+    details: list[str] = []
+    if isinstance(before, list) and isinstance(after, list):
+        details.append(f"{_resource_label(resource_type)}：{len(before)} -> {len(after)} 项")
+    elif isinstance(before, dict) and isinstance(after, dict):
+        changed = _draft_changed_keys(before, after)
+        details.append("改动字段：" + ("、".join(changed[:8]) if changed else "无明显字段变化"))
+    return {
+        "id": draft.get("id", ""),
+        "status": draft.get("status", "pending"),
+        "resource_type": resource_type,
+        "resource_label": _resource_label(resource_type),
+        "action": draft.get("action", ""),
+        "summary": draft.get("summary") or _resource_label(resource_type),
+        "profile_id": draft.get("profile_id", DEFAULT_PROFILE_NAME),
+        "role_id": draft.get("role_id", ""),
+        "role_name": draft.get("role_name", ""),
+        "key_prefix": draft.get("key_prefix", ""),
+        "created_at": int(draft.get("created_at", 0) or 0),
+        "reviewed_at": int(draft.get("reviewed_at", 0) or 0),
+        "reviewer": draft.get("reviewer", ""),
+        "details": details,
+    }
 
 
 def _increment_key_counter(key_id: str, field: str):
@@ -2517,9 +2589,52 @@ def _cloudflared_download_asset() -> tuple[str, str]:
     return f"cloudflared-linux-{arch}", "bin"
 
 
+def _cloudflared_official_download_url(asset: str | None = None) -> str:
+    if not asset:
+        asset, _ = _cloudflared_download_asset()
+    return f"https://github.com/cloudflare/cloudflared/releases/latest/download/{asset}"
+
+
 def _cloudflared_download_url() -> str:
     asset, _ = _cloudflared_download_asset()
-    return f"https://github.com/cloudflare/cloudflared/releases/latest/download/{asset}"
+    official_url = _cloudflared_official_download_url(asset)
+    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+    source = str(cfg.get("cloudflared_download_source") or "official").strip()
+    template = str(cfg.get("cloudflared_download_url_template") or "").strip()
+    if source != "custom" or not template:
+        return official_url
+    try:
+        if "{url}" in template or "{asset}" in template:
+            return template.format(url=official_url, asset=asset)
+        if template.endswith("/"):
+            return template + asset
+        return template
+    except Exception:
+        return official_url
+
+
+def _cloudflared_download_source_name() -> str:
+    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+    source = str(cfg.get("cloudflared_download_source") or "official").strip()
+    if source == "custom":
+        return "custom"
+    return "official"
+
+
+def _cloudflared_error_hint(error: Exception | str) -> str:
+    text = str(error)
+    lower = text.lower()
+    if "cannot connect to host" in lower or "connect call failed" in lower or "connection refused" in lower:
+        return "当前运行 AstrBot 的环境连不上下载源的 HTTPS 端口；请切换可用镜像源、检查服务器网络/DNS，或手动下载后填写 cloudflared 路径。"
+    if "timed out" in lower or "timeout" in lower:
+        return "下载源响应超时；建议重新下载、切换镜像源，或手动放置 cloudflared。"
+    if "ssl" in lower or "certificate" in lower:
+        return "SSL/TLS 校验或握手失败；多半是网络代理、证书环境或镜像源异常。"
+    if "http 404" in lower:
+        return "下载地址返回 404；请检查镜像模板是否保留了 {asset} 或 {url} 占位符。"
+    if "http 403" in lower or "http 429" in lower:
+        return "下载源拒绝或限流；请稍后重试或切换镜像源。"
+    return "自动安装失败；可以重新下载、切换下载源，或手动下载 cloudflared 后填写路径。"
 
 
 def _valid_cloudflared_path(path: str | Path | None) -> str:
@@ -2565,7 +2680,7 @@ def _detect_cloudflared_path() -> str:
     return ""
 
 
-async def _download_cloudflared_binary(task_id: str | None = None) -> dict:
+async def _download_cloudflared_binary(task_id: str | None = None, force: bool = False) -> dict:
     url = _cloudflared_download_url()
     asset, kind = _cloudflared_download_asset()
     bin_dir = _cloudflared_bin_dir()
@@ -2573,9 +2688,11 @@ async def _download_cloudflared_binary(task_id: str | None = None) -> dict:
     download_path = bin_dir / asset
     final_path = _cloudflared_managed_path()
     existing = _cloudflared_version(final_path)
-    if existing.get("ok"):
+    if existing.get("ok") and not force:
         _append_install_log(task_id, f"Found usable cloudflared: {existing.get('version')}")
         return {"path": str(final_path), "url": url, "version": existing.get("version", "")}
+    if force:
+        _append_install_log(task_id, "Forced re-download requested; replacing managed binary and partial files.")
     if final_path.exists():
         _append_install_log(task_id, "Existing managed binary is not usable; replacing it.")
         try:
@@ -2589,16 +2706,30 @@ async def _download_cloudflared_binary(task_id: str | None = None) -> dict:
         except Exception:
             pass
     if task_id:
-        _save_install_task(task_id, status="downloading", downloaded=0, total=0, percent=0, url=url)
+        _save_install_task(
+            task_id,
+            status="downloading",
+            downloaded=0,
+            total=0,
+            percent=0,
+            url=url,
+            source=_cloudflared_download_source_name(),
+        )
+        _append_install_log(task_id, f"Download source: {_cloudflared_download_source_name()}")
         _append_install_log(task_id, f"Downloading {url}")
-    async with ClientSession(timeout=ClientTimeout(total=300)) as session:
+    async with ClientSession(timeout=ClientTimeout(total=300, connect=30, sock_connect=30, sock_read=60)) as session:
         async with session.get(url, allow_redirects=True) as resp:
             if resp.status != 200:
                 raise RuntimeError(f"download failed: HTTP {resp.status}")
             total_size = int(resp.headers.get("Content-Length") or 0)
             if task_id:
                 _save_install_task(task_id, total=total_size)
+                if total_size:
+                    _append_install_log(task_id, f"Remote file size: {round(total_size / 1024 / 1024, 1)} MB")
+                else:
+                    _append_install_log(task_id, "Remote file size is unknown; showing downloaded bytes instead of a reliable percent.")
             downloaded = 0
+            last_logged = 0
             with open(download_path, "wb") as f:
                 while True:
                     chunk = await resp.content.read(1024 * 256)
@@ -2612,6 +2743,9 @@ async def _download_cloudflared_binary(task_id: str | None = None) -> dict:
                             downloaded=downloaded,
                             percent=round((downloaded / total_size) * 100, 1) if total_size else 0,
                         )
+                        if downloaded - last_logged >= 2 * 1024 * 1024:
+                            last_logged = downloaded
+                            _append_install_log(task_id, f"Downloaded {round(downloaded / 1024 / 1024, 1)} MB")
     if task_id:
         _save_install_task(task_id, status="installing", percent=98)
         _append_install_log(task_id, "Download finished; installing binary.")
@@ -2738,11 +2872,13 @@ def _apply_draft(draft: dict):
 
 
 def visitor_review_draft_by_id(draft_id: str, approve: bool, reviewer: str = "qq") -> dict:
-    drafts = _load_drafts()
+    drafts = [d for d in _load_drafts() if d.get("status") == "pending"]
     target = None
-    for draft in drafts:
+    target_index = -1
+    for index, draft in enumerate(drafts):
         if draft.get("id") == draft_id:
             target = draft
+            target_index = index
             break
     if not target:
         return {"ok": False, "error": "未找到草稿。"}
@@ -2757,9 +2893,19 @@ def visitor_review_draft_by_id(draft_id: str, approve: bool, reviewer: str = "qq
         event_name = "draft_rejected"
     target["reviewed_at"] = int(time.time())
     target["reviewer"] = reviewer
+    public_target = _draft_brief(target)
+    if target_index >= 0:
+        drafts.pop(target_index)
     _save_drafts(drafts)
-    _append_audit(event_name, {"draft_id": draft_id, "reviewer": reviewer})
-    return {"ok": True, "draft": target}
+    _append_audit(event_name, {
+        "draft_id": draft_id,
+        "reviewer": reviewer,
+        "summary": target.get("summary", ""),
+        "resource_type": target.get("resource_type", ""),
+        "profile_id": target.get("profile_id", ""),
+        "role_name": target.get("role_name", ""),
+    })
+    return {"ok": True, "draft": public_target}
 
 
 async def api_visitor_state(request):
@@ -2841,11 +2987,11 @@ async def api_visitor_revoke_key(request):
 async def api_visitor_drafts(request):
     if not _is_authenticated_request(request):
         return _visitor_error("请先登录。", status=401)
-    drafts = _load_drafts()
+    drafts = [d for d in _load_drafts() if d.get("status") == "pending"]
     if not _is_admin_request(request):
         invite_id = _get_session_identity(request).get("invite_id", "")
         drafts = [d for d in drafts if d.get("invite_id") == invite_id]
-    return web.json_response({"ok": True, "drafts": drafts})
+    return web.json_response({"ok": True, "drafts": [_draft_brief(draft) for draft in drafts]})
 
 
 async def api_visitor_review_draft(request):
@@ -2884,6 +3030,9 @@ async def api_visitor_tunnel_status(request):
         "public_url": visitor_public_url(),
         "managed_path": str(_cloudflared_managed_path()),
         "download_url": _cloudflared_download_url(),
+        "official_download_url": _cloudflared_official_download_url(),
+        "download_sources": _CLOUDFLARED_DOWNLOAD_SOURCES,
+        "download_asset": _cloudflared_download_asset()[0],
         "local_url": local_url,
         "quick_tunnel_command": f"cloudflared tunnel --url {local_url}",
         "install_hint": install_hint,
@@ -2900,9 +3049,18 @@ async def api_visitor_tunnel_config(request):
         return _visitor_error("只有管理员可以配置协作通道。")
     body = await request.json()
     cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
-    for key in ("mode", "cloudflared_path", "custom_public_url", "last_public_url"):
+    for key in (
+        "mode",
+        "cloudflared_path",
+        "custom_public_url",
+        "last_public_url",
+        "cloudflared_download_source",
+        "cloudflared_download_url_template",
+    ):
         if key in body:
             cfg[key] = str(body.get(key) or "").strip()
+    if cfg.get("cloudflared_download_source") not in {"official", "custom"}:
+        cfg["cloudflared_download_source"] = "official"
     for key in ("allow_plugin_start_tunnel", "allow_install_script"):
         if key in body:
             cfg[key] = bool(body.get(key))
@@ -2914,16 +3072,17 @@ async def api_visitor_cloudflared_install(request):
     if not _is_admin_request(request):
         return _visitor_error("只有管理员可以安装 cloudflared。")
     try:
-        result = await _download_cloudflared_binary()
+        result = await _download_cloudflared_binary(force=True)
         return web.json_response({"ok": True, **result})
     except Exception as e:
-        return web.json_response({"ok": False, "error": str(e), "download_url": _cloudflared_download_url()}, status=500)
+        return web.json_response({"ok": False, "error": str(e), "error_hint": _cloudflared_error_hint(e), "download_url": _cloudflared_download_url()}, status=500)
 
 
 async def _run_cloudflared_install_task(task_id: str):
     try:
         _append_install_log(task_id, "Install task started.")
-        result = await _download_cloudflared_binary(task_id)
+        task = _CLOUDFLARED_INSTALL_TASKS.get(task_id) or _read_dict_file(VISITOR_INSTALL_STATE_FILE)
+        result = await _download_cloudflared_binary(task_id, force=bool(task.get("force")))
         _save_install_task(
             task_id,
             ok=True,
@@ -2934,15 +3093,34 @@ async def _run_cloudflared_install_task(task_id: str):
         )
         _append_install_log(task_id, "Install task completed.")
     except Exception as exc:
-        _save_install_task(task_id, ok=False, status="error", error=str(exc))
+        _save_install_task(task_id, ok=False, status="error", error=str(exc), error_hint=_cloudflared_error_hint(exc))
         _append_install_log(task_id, f"Install task failed: {exc}")
+        _append_install_log(task_id, _cloudflared_error_hint(exc))
 
 
 async def api_visitor_cloudflared_install_start(request):
     if not _is_admin_request(request):
         return _visitor_error("只有管理员可以安装 cloudflared。")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    cfg_changed = False
+    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+    for key in ("cloudflared_download_source", "cloudflared_download_url_template"):
+        if key in body:
+            cfg[key] = str(body.get(key) or "").strip()
+            cfg_changed = True
+    if cfg.get("cloudflared_download_source") not in {"official", "custom"}:
+        cfg["cloudflared_download_source"] = "official"
+        cfg_changed = True
+    if cfg.get("cloudflared_download_source") == "custom" and not cfg.get("cloudflared_download_url_template"):
+        return web.json_response({"ok": False, "error": "自定义下载源需要填写 URL 模板。"}, status=400)
+    if cfg_changed:
+        _atomic_write(VISITOR_TUNNEL_FILE, cfg)
+    force = bool(body.get("force"))
     detected = _detect_cloudflared_path()
-    if detected:
+    if detected and not force:
         version = _cloudflared_version(detected)
         task_id = f"cf_{uuid.uuid4().hex[:12]}"
         _save_install_task(
@@ -2954,6 +3132,7 @@ async def api_visitor_cloudflared_install_start(request):
             total=0,
             error="",
             url=_cloudflared_download_url(),
+            source=_cloudflared_download_source_name(),
             path=detected,
             version=version.get("version", ""),
             logs=[f"[{time.strftime('%H:%M:%S')}] Existing cloudflared is usable: {version.get('version', '')}"],
@@ -2965,8 +3144,14 @@ async def api_visitor_cloudflared_install_start(request):
             return web.json_response({"ok": True, "task_id": existing_id, "already_running": True})
     state = _read_dict_file(VISITOR_INSTALL_STATE_FILE)
     if state.get("status") in {"queued", "downloading", "installing"} and state.get("task_id"):
-        _CLOUDFLARED_INSTALL_TASKS[state["task_id"]] = state
-        return web.json_response({"ok": True, "task_id": state["task_id"], "already_running": True})
+        if state["task_id"] in _CLOUDFLARED_INSTALL_TASKS:
+            return web.json_response({"ok": True, "task_id": state["task_id"], "already_running": True})
+        state["ok"] = False
+        state["status"] = "error"
+        state["error"] = "install task was interrupted"
+        state["error_hint"] = "上一次安装任务已经不在运行，可能是 WebUI/AstrBot 重启导致；可以点击重新下载。"
+        state.setdefault("logs", []).append(f"[{time.strftime('%H:%M:%S')}] Install task was interrupted; ready for retry.")
+        _atomic_write(VISITOR_INSTALL_STATE_FILE, _install_task_public(state))
     task_id = f"cf_{uuid.uuid4().hex[:12]}"
     _save_install_task(
         task_id,
@@ -2977,6 +3162,8 @@ async def api_visitor_cloudflared_install_start(request):
         percent=0,
         error="",
         url=_cloudflared_download_url(),
+        source=_cloudflared_download_source_name(),
+        force=force,
         logs=[],
         created_at=int(time.time()),
     )
@@ -2994,6 +3181,13 @@ async def api_visitor_cloudflared_install_progress(request):
     task = _CLOUDFLARED_INSTALL_TASKS.get(task_id) or _read_dict_file(VISITOR_INSTALL_STATE_FILE)
     if not task:
         return web.json_response({"ok": False, "error": "install task not found"}, status=404)
+    if task.get("status") in {"queued", "downloading", "installing"} and task.get("task_id") not in _CLOUDFLARED_INSTALL_TASKS:
+        task["ok"] = False
+        task["status"] = "error"
+        task["error"] = "install task was interrupted"
+        task["error_hint"] = "上一次安装任务已经不在运行，可能是 WebUI/AstrBot 重启导致；可以点击重新下载。"
+        task.setdefault("logs", []).append(f"[{time.strftime('%H:%M:%S')}] Install task was interrupted; ready for retry.")
+        _atomic_write(VISITOR_INSTALL_STATE_FILE, _install_task_public(task))
     return web.json_response({"ok": True, "task": _install_task_public(task)})
 
 

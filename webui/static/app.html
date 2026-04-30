@@ -22,9 +22,9 @@
   --accent-glow: rgba(26, 158, 94, 0.4);
   --on-accent: #ffffff;
   
-  /* Shard Theme (纯净生机白) - 右侧的白底世界 */
-  --shard-bg: #ffffff;
-  --shard-surface: #ffffff;
+  /* Shard Theme (柔和生机白) - 沿用欢迎页右侧的淡绿白底色 */
+  --shard-bg: #f2f6f4;
+  --shard-surface: #fbfdfc;
   --shard-border: #c2cfc8;
   --shard-text: #0d120f;
   --shard-text-muted: #5f7368;
@@ -244,7 +244,10 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 /* ================= 4. 嵌合数据屏 (The Shard) ================= */
 .main-shard {
   flex: 1;
-  background: var(--shard-bg);
+  background:
+    radial-gradient(rgba(26, 158, 94, 0.055) 1px, transparent 1px),
+    var(--shard-bg);
+  background-size: 24px 24px, auto;
   color: var(--shard-text);
   display: flex;
   flex-direction: column;
@@ -1012,7 +1015,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   right: 0;
   bottom: 0;
   left: 200px;
-  background: #ffffff;
+  background: var(--shard-bg);
   clip-path: polygon(var(--home-shell-slant) 0, 100% 0, 100% 100%, 0 100%);
   will-change: left;
   transition: left 0.48s cubic-bezier(0.22, 1, 0.36, 1);
@@ -2455,7 +2458,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 /* 内部卡片与面板 */
 .panel {
-  background: var(--shard-surface); /* 绝对纯白 */
+  background: var(--shard-surface);
   border: 1px solid var(--shard-border);
   padding: 32px;
   position: relative;

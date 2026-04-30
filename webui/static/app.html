@@ -1379,6 +1379,10 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   position: relative;
 }
 
+.home-login-card.is-ready {
+  grid-template-rows: auto auto auto 1fr auto;
+}
+
 .home-login-card::before {
   content: '';
   position: absolute;
@@ -1539,7 +1543,26 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .home-login-title-text {
   display: inline-block;
   position: relative;
-  animation: tech-text-reveal 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+  transform: translateX(-12px);
+  animation: tech-text-reveal 1.08s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.home-showcase.stage-intro:not(.intro-collapse) .home-login-title-text {
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+  transform: translateX(-12px);
+  animation: none;
+}
+
+.home-login-card.is-verifying .home-login-title-text,
+.home-login-card.is-error .home-login-title-text {
+  opacity: 1;
+  clip-path: inset(0 0 0 0);
+  transform: translateX(0);
+  filter: blur(0);
+  animation: none;
 }
 
 .home-login-title.is-ready .home-login-title-text {
@@ -1576,9 +1599,15 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 .home-login-card.is-error .home-login-status-bar::after {
   width: 100%;
-  animation: none;
+  animation: status-bar-error-pulse 0.72s ease-out 1;
   background: #ff3333;
   box-shadow: 0 0 15px #ff3333;
+}
+
+@keyframes status-bar-error-pulse {
+  0% { opacity: 0.2; transform: scaleX(0.18); transform-origin: left center; box-shadow: 0 0 0 rgba(255, 51, 51, 0); }
+  55% { opacity: 1; transform: scaleX(1); transform-origin: left center; box-shadow: 0 0 20px rgba(255, 51, 51, 0.9); }
+  100% { opacity: 1; transform: scaleX(1); transform-origin: left center; box-shadow: 0 0 12px rgba(255, 51, 51, 0.55); }
 }
 
 @keyframes status-bar-scan {
@@ -1588,13 +1617,13 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 
 .home-login-error-msg {
   color: #ff3333;
-  font-size: 12px;
-  margin-top: 10px;
+  font-size: 14px;
+  margin-top: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: bold;
-  letter-spacing: 1px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
   animation: error-msg-pop 0.3s ease forwards;
 }
 .home-login-error-msg::before {
@@ -1607,8 +1636,10 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 }
 
 @keyframes tech-text-reveal {
-  0% { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-15px); filter: blur(4px); }
-  100% { opacity: 1; clip-path: inset(0 0 0 0); transform: translateX(0); filter: blur(0); }
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-12px); }
+  14% { opacity: 1; clip-path: inset(0 84% 0 0); transform: translateX(-8px); }
+  72% { opacity: 1; clip-path: inset(0 0 0 0); transform: translateX(-1px); }
+  100% { opacity: 1; clip-path: inset(0 0 0 0); transform: translateX(0); }
 }
 
 .home-login-desc {
@@ -1618,8 +1649,8 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   font-size: 12px;
   line-height: 1.4;
   color: var(--shard-text-muted);
-  border-left: 2px solid rgba(26, 158, 94, 0.3);
-  padding-left: 12px;
+  border-left: 0;
+  padding-left: 0;
   margin-bottom: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -1633,17 +1664,41 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   gap: 14px;
 }
 
+.home-login-message-slot {
+  min-height: 28px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.home-login-inline-note {
+  color: rgba(26, 51, 36, 0.72);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.4px;
+}
+
+.home-login-inline-note b {
+  color: #1A9E5E;
+  font-weight: 900;
+}
+
 .home-login-ready-panel {
   min-height: 162px;
   border: 1px solid rgba(26, 158, 94, 0.2);
-  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240,250,245,0.85));
-  box-shadow: 0 8px 24px rgba(26, 158, 94, 0.06), inset 0 0 0 1px #ffffff;
+  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(244,252,247,0.9));
+  box-shadow: 0 10px 28px rgba(26, 158, 94, 0.06), inset 0 0 0 1px #ffffff;
   display: grid;
-  align-content: center;
-  gap: 16px;
-  padding: 24px;
+  align-content: start;
+  gap: 10px;
+  padding: 12px 22px 18px;
   position: relative;
   overflow: hidden;
+}
+
+.home-login-card.is-ready .home-login-body {
+  transform: translateY(-10px);
 }
 
 /* 右上角的生机绿柔和光晕 */
@@ -1657,53 +1712,91 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   pointer-events: none;
 }
 
+.home-login-ready-panel::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(26, 158, 94, 0.5), transparent);
+  box-shadow: 0 0 14px rgba(26, 158, 94, 0.18);
+}
+
 .home-login-ready-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  border-bottom: 1px solid rgba(26, 158, 94, 0.15);
-  padding-bottom: 12px;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(26, 158, 94, 0.12);
+  position: relative;
 }
 .home-login-ready-row:last-child {
   border-bottom: none;
-  padding-bottom: 0;
+  padding-bottom: 4px;
 }
 
 .home-ready-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  gap: 5px;
   position: relative;
   z-index: 1;
 }
 
 .home-ready-label b {
-  font-family: var(--font-headline);
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: rgba(26, 158, 94, 0.7);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: rgba(19, 50, 32, 0.9);
 }
 
 .home-ready-label span {
-  font-size: 13px;
-  font-weight: 800;
-  color: #1a3324;
-  letter-spacing: 0.5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(83, 104, 93, 0.68);
+  letter-spacing: 0.2px;
 }
 
 .home-ready-value {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  min-width: 104px;
   font-family: var(--font-headline);
   font-size: 12px;
   font-weight: 900;
   color: #1A9E5E;
-  background: rgba(26, 158, 94, 0.06);
-  border: 1px solid rgba(26, 158, 94, 0.2);
-  padding: 6px 12px;
+  background: linear-gradient(180deg, rgba(26, 158, 94, 0.08), rgba(26, 158, 94, 0.03));
+  border: 1px solid rgba(26, 158, 94, 0.18);
+  border-radius: 12px;
+  padding: 7px 12px;
   position: relative;
   z-index: 1;
-  letter-spacing: 1px;
+  letter-spacing: 0.6px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 14px rgba(26, 158, 94, 0.06);
+}
+
+.home-ready-value.is-channel {
+  color: #0f5c35;
+  border-color: rgba(15, 92, 53, 0.2);
+  background: linear-gradient(180deg, rgba(15, 92, 53, 0.08), rgba(15, 92, 53, 0.025));
+}
+
+.home-ready-value.is-standby {
+  color: #1a3324;
+  border-color: rgba(26, 51, 36, 0.2);
+  background: linear-gradient(180deg, rgba(26, 51, 36, 0.06), rgba(26, 51, 36, 0.02));
+}
+
+.home-ready-dot {
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+  border-radius: 50% !important;
+  animation: pulse 2s infinite;
 }
 
 .home-login-actions {
@@ -3298,6 +3391,38 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   transition: opacity 0.4s ease, transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
+.home-showcase.auth-alert .home-auth-shell .ark-hud-stage::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 38%;
+  height: 38%;
+  border-radius: 50% !important;
+  border: 2px solid rgba(255, 51, 51, 0.72);
+  box-shadow:
+    0 0 24px rgba(255, 51, 51, 0.45),
+    inset 0 0 18px rgba(255, 51, 51, 0.2);
+  transform: translate(-50%, -50%) scale(0.28);
+  pointer-events: none;
+  opacity: 0;
+  animation: ark-auth-alert-pulse 1.04s ease-out 1;
+}
+
+@keyframes ark-auth-alert-pulse {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.28);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.18);
+  }
+}
+
 /* ----- 阶段状态控制：消失与显现 ----- */
 /* 首页状态：验证页雷达缩小并透明隐藏 */
 .home-showcase.stage-intro .home-auth-shell .ark-hud-stage {
@@ -3418,6 +3543,35 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .t1 { top: 35%; left: 65%; animation: ark-float-t1 7s ease-in-out infinite alternate; }
 .t2 { bottom: 28%; right: 68%; animation: ark-float-t2 9s ease-in-out infinite alternate-reverse; }
 .t2::after { content: 'OBJ.02'; color: rgba(230, 237, 233, 0.7); }
+.t-alert {
+  top: 46%;
+  left: 56%;
+  border-color: rgba(255, 51, 51, 0.9);
+  background: rgba(255, 51, 51, 0.22);
+  box-shadow: 0 0 16px rgba(255, 51, 51, 0.56);
+  opacity: 0;
+  transform: translate(8px, -6px) scale(0.7);
+}
+.t-alert::after {
+  content: 'ERR.01';
+  color: rgba(255, 88, 88, 0.95);
+  text-shadow: 0 0 10px rgba(255, 51, 51, 0.72);
+}
+.t-alert::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 1px solid rgba(255, 51, 51, 0.42);
+  opacity: 0;
+}
+.home-showcase.auth-alert .home-auth-shell .t-alert {
+  animation:
+    ark-alert-target-pop 0.46s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    ark-alert-target-float 2.8s ease-in-out 0.46s infinite alternate;
+}
+.home-showcase.auth-alert .home-auth-shell .t-alert::before {
+  animation: ark-alert-target-lock 1s ease-out infinite;
+}
 
 @keyframes ark-float-t1 {
   0% { transform: translate(0, 0); }
@@ -3426,6 +3580,19 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 @keyframes ark-float-t2 {
   0% { transform: translate(0, 0); }
   100% { transform: translate(20px, -25px); }
+}
+@keyframes ark-alert-target-pop {
+  0% { opacity: 0; transform: translate(18px, -14px) scale(0.45); }
+  72% { opacity: 1; transform: translate(0, 0) scale(1.08); }
+  100% { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+@keyframes ark-alert-target-float {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 1; transform: translate(-16px, 10px) scale(1); }
+}
+@keyframes ark-alert-target-lock {
+  0% { opacity: 0.9; transform: scale(0.72); }
+  100% { opacity: 0; transform: scale(1.45); }
 }
 
 /* 伴随外环旋转的发光节点，体现精密感 */
@@ -3531,6 +3698,38 @@ body.chassis:not(.ui-ready) .toolbar-actions {
   border-radius: 50%;
   opacity: 0.6;
   animation: ark-pulse-ring 2.5s ease-out infinite;
+}
+
+.home-showcase.auth-alert .home-auth-shell .ark-core-node {
+  background: #ff3333;
+  box-shadow: 0 0 18px rgba(255, 51, 51, 0.9);
+}
+
+.home-showcase.auth-alert .home-auth-shell .ark-core-cross-h,
+.home-showcase.auth-alert .home-auth-shell .ark-core-cross-v {
+  background: #ff3333;
+}
+
+.home-showcase.auth-alert .home-auth-shell .ark-core-node::after {
+  border-color: rgba(255, 51, 51, 0.78);
+  opacity: 0;
+  animation: ark-auth-core-alert-pulse 1.04s ease-out forwards;
+}
+
+@keyframes ark-auth-core-alert-pulse {
+  0% {
+    width: 8px;
+    height: 8px;
+    opacity: 0.92;
+    box-shadow: inset 0 0 8px rgba(255, 51, 51, 0.9), 0 0 18px rgba(255, 51, 51, 0.34);
+  }
+  100% {
+    width: 410px;
+    height: 410px;
+    opacity: 0;
+    border-width: 2px;
+    box-shadow: inset 0 0 28px rgba(255, 51, 51, 0.45), 0 0 36px rgba(255, 51, 51, 0.18);
+  }
 }
 
 /* 极简刻度参数：增大字体，增加对比度 */
@@ -4317,10 +4516,15 @@ function beginHomeLoginFlow() {
   clearTimeout(beginHomeLoginFlow.timer);
   beginHomeLoginFlow.timer = setTimeout(() => {
     state.homeStage = nextStage;
+    if (nextStage === 'auth') {
+      showcase.classList.remove('stage-intro', 'intro-collapse');
+      showcase.classList.add('stage-auth');
+      $('#homeInlinePassword')?.focus();
+      return;
+    }
     renderHome();
-    if (nextStage === 'auth') $('#homeInlinePassword')?.focus();
     if (nextStage === 'ready') $('#homeInlineInitBtn')?.focus();
-  }, 540);
+  }, 620);
 }
 
 function toggleHomeAccessVisibility(forceVisible) {
@@ -4348,9 +4552,12 @@ async function submitHomeAccess() {
     return;
   }
   state.homePasswordDraft = password;
-  state.homeAuthTerminalState = 'verifying';
-  state.homeAuthTerminalMessage = 'validation request pushed to backend verifier';
-  renderHome();
+  const keepErrorUntilResolved = state.homeAuthTerminalState === 'error';
+  if (!keepErrorUntilResolved) {
+    state.homeAuthTerminalState = 'verifying';
+    state.homeAuthTerminalMessage = 'validation request pushed to backend verifier';
+    renderHome();
+  }
   try {
     await apiPost('/api/access/verify', { password });
     state.homeAccessVerified = true;
@@ -7315,16 +7522,17 @@ function renderHome() {
   const authSnapshot = getHomeAuthStatusSnapshot(panelReady);
   const terminalLines = getHomeAuthTerminalLines(panelReady);
   const statusCopy = panelReady
-    ? '身份已确认，初始化入口已就绪'
+    ? ''
     : '输入访问口令后完成身份验证';
   const stageClass = homeStage === 'ready' ? 'stage-ready' : homeStage === 'auth' ? 'stage-auth' : 'stage-intro';
+  const alertClass = state.homeAuthTerminalState === 'error' ? 'auth-alert' : '';
   const radarTargetOneDelay = getContinuousAlternateDelay(7000);
   const radarTargetTwoDelay = getContinuousAlternateDelay(9000);
   const radarTicksSpinDelay = getContinuousSpinDelay(180000);
   const radarOuterSpinDelay = getContinuousSpinDelay(50000);
   const radarInnerSpinDelay = getContinuousSpinDelay(16000);
   $('#page-home').innerHTML = `
-        <div class="home-showcase ${stageClass}">
+        <div class="home-showcase ${stageClass} ${alertClass}">
       <div class="showcase-noise"></div>
       <div class="showcase-grid-bg"></div>
 
@@ -7416,6 +7624,7 @@ function renderHome() {
                             <div class="ark-cross-h"></div>
                             <div class="ark-track-target t1" style="animation-delay:${radarTargetOneDelay};"></div>
                             <div class="ark-track-target t2" style="animation-delay:${radarTargetTwoDelay};"></div>
+                            <div class="ark-track-target t-alert"></div>
               
                             <!-- 外圈齿轮带有阻尼启动 -->
                             <div class="ark-ring-ticks-rotor">
@@ -7473,43 +7682,42 @@ function renderHome() {
 
       <div class="showcase-right">
                 <div class="home-login-shell">
-          <div class="home-login-card ${panelReady ? 'is-ready' : 'is-auth'} ${state.homeAuthTerminalState === 'error' ? 'is-error shake-error' : ''}">
-            <div class="home-login-kicker">SYSTEM LOGIN // 终端权限核验</div>
+          <div class="home-login-card ${panelReady ? 'is-ready' : 'is-auth'} ${state.homeAuthTerminalState === 'verifying' ? 'is-verifying' : ''} ${state.homeAuthTerminalState === 'error' ? 'is-error shake-error' : ''}">
+            <div class="home-login-kicker">终端权限核验</div>
             <div class="home-login-title ${panelReady ? 'is-ready' : ''}"><span class="home-login-title-text">${panelReady ? '欢迎回来' : '身份验证'}</span></div>
             <div class="home-login-status-bar"></div>
-            <div class="home-login-desc">${statusCopy}</div>
+            ${statusCopy ? `<div class="home-login-desc">${statusCopy}</div>` : ''}
 
             <div class="home-login-body">
                             ${panelReady ? `
                               <div class="home-login-ready-panel">
                                 <div class="home-login-ready-row">
-                                  <div class="home-ready-label"><b>AUTH_STATUS</b><span>验证状态</span></div>
-                                  <div class="home-ready-value"><div class="blink-dot" style="position:static; margin-right:8px; width:6px; height:6px;"></div>已授权</div>
+                                  <div class="home-ready-label"><b>验证状态</b><span>身份签名已通过</span></div>
+                                  <div class="home-ready-value"><span class="home-ready-dot"></span>已授权</div>
                                 </div>
                                 <div class="home-login-ready-row">
-                                  <div class="home-ready-label"><b>UPLINK_NODE</b><span>通道节点</span></div>
-                                  <div class="home-ready-value" style="color:#0f5c35; border-color:rgba(15,92,53,0.2); background:rgba(15,92,53,0.06);">控制中枢</div>
+                                  <div class="home-ready-label"><b>接入通道</b><span>主控链路保持在线</span></div>
+                                  <div class="home-ready-value is-channel">控制中枢</div>
                                 </div>
                                 <div class="home-login-ready-row">
-                                  <div class="home-ready-label"><b>DIRECTIVE</b><span>操作指令</span></div>
-                                  <div class="home-ready-value" style="color:#1a3324; border-color:rgba(26,51,36,0.2); background:rgba(26,51,36,0.04);">等待初始化</div>
+                                  <div class="home-ready-label"><b>下一步</b><span>等待初始化接入</span></div>
+                                  <div class="home-ready-value is-standby">待执行</div>
                                 </div>
                               </div>
                             ` : `
-                <div class="field">
-                  <label>访问口令</label>
-                  <div class="password-input-wrap">
-                    <input class="input" id="homeInlinePassword" type="${state.homePasswordVisible ? 'text' : 'password'}" value="${esc(state.homePasswordDraft)}" placeholder="输入访问口令" oninput="state.homePasswordDraft=this.value; this.closest('.home-login-card')?.classList.remove('is-error', 'shake-error'); document.querySelector('.home-login-error-msg')?.remove();" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
-                    <button class="password-eye-btn ${state.homePasswordVisible ? 'is-active' : ''}" id="homePasswordToggle" type="button" aria-label="${state.homePasswordVisible ? '隐藏口令' : '显示口令'}" aria-pressed="${state.homePasswordVisible ? 'true' : 'false'}" onclick="toggleHomeAccessVisibility()">${getHomeAccessEyeIcon(state.homePasswordVisible)}</button>
-                  </div>
-                  ${state.homeAuthTerminalState === 'error' ? `
-                    <div class="home-login-error-msg">访问拒绝：口令无效或为空，请重新输入。</div>
-                  ` : ''}
-                </div>
-                <div class="home-login-hint">
-                  口令会提交到后端加密核验通道。默认口令为 12345678，可在插件配置中修改。
-                </div>
-              `}
+                              <div class="field">
+                                <label>访问口令</label>
+                                <div class="password-input-wrap">
+                                  <input class="input" id="homeInlinePassword" type="${state.homePasswordVisible ? 'text' : 'password'}" value="${esc(state.homePasswordDraft)}" placeholder="输入访问口令" oninput="state.homePasswordDraft=this.value;" onkeydown="if(event.key === 'Enter') submitHomeAccess()">
+                                  <button class="password-eye-btn ${state.homePasswordVisible ? 'is-active' : ''}" id="homePasswordToggle" type="button" aria-label="${state.homePasswordVisible ? '隐藏口令' : '显示口令'}" aria-pressed="${state.homePasswordVisible ? 'true' : 'false'}" onclick="toggleHomeAccessVisibility()">${getHomeAccessEyeIcon(state.homePasswordVisible)}</button>
+                                </div>
+                                <div class="home-login-message-slot">
+                                  ${state.homeAuthTerminalState === 'error'
+                                    ? `<div class="home-login-error-msg">访问拒绝：口令无效或为空，请重新输入。</div>`
+                                    : `<div class="home-login-inline-note">默认口令为 <b>12345678</b>，可在插件配置中修改。</div>`}
+                                </div>
+                              </div>
+                            `}
               </div>
 
             <div class="home-login-actions ${panelReady ? 'is-ready' : 'is-auth'}">

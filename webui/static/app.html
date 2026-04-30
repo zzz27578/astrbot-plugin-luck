@@ -4266,6 +4266,8 @@ const state = {
   visitorKeys: [],
   visitorDrafts: [],
   visitorTunnel: { config: {}, detected_path: '', local_url: '', quick_tunnel_command: '', install_hint: '', docs: [] },
+  visitorInstallTask: {},
+  visitorInstallPolling: false,
   visitorCloudflaredNoticeShown: false,
 };
 
@@ -5590,6 +5592,10 @@ async function loadVisitor() {
       if (keysRes.ok) state.visitorKeys = keysRes.keys || [];
       if (tunnelRes.ok) {
         state.visitorTunnel = tunnelRes;
+        state.visitorInstallTask = tunnelRes.install_task || {};
+        if (['queued', 'downloading', 'installing'].includes(state.visitorInstallTask.status) && state.visitorInstallTask.task_id) {
+          setTimeout(() => pollCloudflaredInstall(state.visitorInstallTask.task_id), 0);
+        }
         if (tunnelRes.detected && !state.visitorCloudflaredNoticeShown) {
           state.visitorCloudflaredNoticeShown = true;
           showToast('cloudflared 检测正常，可以使用托管临时地址。');
@@ -8034,6 +8040,10 @@ function renderVisitor() {
   const isAdmin = state.identity.type === 'admin';
   const tunnel = state.visitorTunnel || {};
   const cfg = tunnel.config || {};
+  const installTask = state.visitorInstallTask || tunnel.install_task || {};
+  const installBusy = ['queued', 'downloading', 'installing'].includes(installTask.status);
+  const installPct = Math.max(0, Math.min(100, Number(installTask.percent || 0)));
+  const installLogs = (installTask.logs || []).slice(-12).join('\n');
   const detectedOk = !!tunnel.detected;
   const tunnelStatus = detectedOk
     ? `<div class="notice success" style="margin-bottom:12px;">检测正常：已找到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
@@ -8081,13 +8091,14 @@ function renderVisitor() {
         <div class="field"><label>推荐启动命令</label><input class="input" readonly value="${esc(tunnel.quick_tunnel_command || '')}"></div>
         <div class="field"><label>自定义/手动公网地址</label><input class="input" id="visitorPublicUrl" value="${esc(cfg.custom_public_url || '')}" placeholder="https://xxxx.trycloudflare.com"></div>
         <div class="panel-note">安装提示：${esc(tunnel.install_hint || '')}<br>内置下载源：${esc(tunnel.download_url || '')}<br>插件托管路径：${esc(tunnel.managed_path || '')}</div>
-        <div id="cloudflaredInstallProgress" style="display:none;margin-top:12px;padding:12px;border:1px solid var(--shard-border);background:rgba(0,0,0,.04);">
-          <div class="row between"><span id="cloudflaredInstallLabel" class="muted">准备下载</span><b id="cloudflaredInstallPct">0%</b></div>
-          <div style="height:8px;background:rgba(0,0,0,.12);overflow:hidden;margin-top:8px;"><div id="cloudflaredInstallBar" style="height:100%;width:0%;background:var(--accent);transition:width .2s ease;"></div></div>
+        <div id="cloudflaredInstallProgress" style="${installTask.status ? '' : 'display:none;'}margin-top:12px;padding:12px;border:1px solid var(--shard-border);background:rgba(0,0,0,.04);">
+          <div class="row between"><span id="cloudflaredInstallLabel" class="muted">${esc(formatCloudflaredTaskLabel(installTask))}</span><b id="cloudflaredInstallPct">${installPct.toFixed(1)}%</b></div>
+          <div style="height:8px;background:rgba(0,0,0,.12);overflow:hidden;margin-top:8px;"><div id="cloudflaredInstallBar" style="height:100%;width:${installPct}%;background:var(--accent);transition:width .2s ease;"></div></div>
+          <pre id="cloudflaredInstallLog" style="margin-top:10px;max-height:160px;overflow:auto;background:#101412;color:#d8eee0;padding:10px;font-size:12px;white-space:pre-wrap;">${esc(installLogs || '等待安装任务输出...')}</pre>
         </div>
         <div class="row" style="margin-top:14px;flex-wrap:wrap;">
           <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">重新检测</span></button>
-          ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : `<button class="btn-strong" onclick="installCloudflared()"><span class="btn-text">自动安装 cloudflared</span></button>`}
+          ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : `<button class="btn-strong" ${installBusy ? 'disabled' : ''} onclick="installCloudflared()"><span class="btn-text">${installBusy ? '安装中' : '自动安装 cloudflared'}</span></button>`}
           <button class="btn" onclick="saveVisitorTunnel()"><span class="btn-text">保存手动地址</span></button>
           <button class="btn" onclick="copyText('${esc(tunnel.quick_tunnel_command || '')}')"><span class="btn-text">复制命令</span></button>
           ${tunnel.running ? `<button class="btn-danger" onclick="stopVisitorTunnel()"><span class="btn-text">停止通道</span></button>` : ''}
@@ -8127,41 +8138,58 @@ async function installCloudflared() {
   if (!confirm('将从 Cloudflare 官方 GitHub Release 下载 cloudflared 到插件数据目录，不会安装系统服务或修改 PATH。继续吗？')) return;
   const start = await apiPost('/api/visitor/cloudflared/install/start', {});
   if (!start.ok) return showToast(start.error || '无法启动安装任务。', true);
+  state.visitorInstallTask = { task_id: start.task_id, status: start.already_installed ? 'done' : 'queued', percent: start.already_installed ? 100 : 0, logs: [] };
+  renderVisitor();
   showToast('正在下载 cloudflared，进度会显示在页面中。');
   await pollCloudflaredInstall(start.task_id);
 }
 
+function formatCloudflaredTaskLabel(task = {}) {
+  const total = Number(task.total || 0);
+  const downloaded = Number(task.downloaded || 0);
+  const mb = n => (n / 1024 / 1024).toFixed(1);
+  if (!task.status) return '尚未开始安装';
+  if (task.status === 'done') return `安装完成 ${task.version || task.path || ''}`;
+  if (task.status === 'error') return `安装失败：${task.error || ''}`;
+  return `${task.status} ${total ? `${mb(downloaded)}MB / ${mb(total)}MB` : ''}`;
+}
+
 function updateCloudflaredProgress(task) {
+  state.visitorInstallTask = task || {};
   const box = $('#cloudflaredInstallProgress');
   if (!box) return;
   box.style.display = 'block';
   const pct = Math.max(0, Math.min(100, Number(task.percent || 0)));
-  const total = Number(task.total || 0);
-  const downloaded = Number(task.downloaded || 0);
-  const mb = n => (n / 1024 / 1024).toFixed(1);
-  const label = task.status === 'done'
-    ? `安装完成：${task.version || task.path || ''}`
-    : task.status === 'error'
-      ? `安装失败：${task.error || ''}`
-      : `${task.status || 'downloading'} ${total ? `${mb(downloaded)}MB / ${mb(total)}MB` : ''}`;
-  $('#cloudflaredInstallLabel').textContent = label;
+  $('#cloudflaredInstallLabel').textContent = formatCloudflaredTaskLabel(task);
   $('#cloudflaredInstallPct').textContent = `${pct.toFixed(1)}%`;
   $('#cloudflaredInstallBar').style.width = `${pct}%`;
+  const log = $('#cloudflaredInstallLog');
+  if (log) {
+    log.textContent = (task.logs || []).slice(-80).join('\n') || '等待安装任务输出...';
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
 async function pollCloudflaredInstall(taskId) {
+  if (state.visitorInstallPolling) return;
+  state.visitorInstallPolling = true;
   for (;;) {
     const res = await apiGet(`/api/visitor/cloudflared/install/progress?task_id=${encodeURIComponent(taskId)}`);
-    if (!res.ok) return showToast(res.error || '读取安装进度失败。', true);
+    if (!res.ok) {
+      state.visitorInstallPolling = false;
+      return showToast(res.error || '读取安装进度失败。', true);
+    }
     const task = res.task || {};
     updateCloudflaredProgress(task);
     if (task.status === 'done') {
+      state.visitorInstallPolling = false;
       await loadVisitor();
       renderVisitor();
       showToast('cloudflared 已安装并验证可用，可以生成临时地址。');
       return;
     }
     if (task.status === 'error') {
+      state.visitorInstallPolling = false;
       showToast(task.error || '自动安装失败，请按提示手动安装。', true);
       return;
     }
@@ -8702,11 +8730,14 @@ async function previewSignin() {
 }
 async function saveSignin(show = true) {
   collectSigninRangesFromDom();
-  if (checkRangeOverlap()) return showToast('保存失败：运势区间存在重叠。', true);
+  const hasOverlap = checkRangeOverlap();
   const res = await apiPost('/api/sign_in_texts', { texts: state.signInTexts });
   if (res.ok) {
     state.signInTexts = res.texts || state.signInTexts;
-    if (show) showToast('签到配置已保存。');
+    if (show) {
+      const count = Number(res.saved_range_count ?? state.signInTexts.luck_ranges?.length ?? 0);
+      showToast(`签到配置已保存，已写入 ${count} 个运势区间${hasOverlap ? '（存在重叠，请留意）' : ''}。`, hasOverlap);
+    }
   } else if (show) {
     showToast(res.error || '保存失败。', true);
   }

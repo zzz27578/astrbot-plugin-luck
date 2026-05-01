@@ -2663,11 +2663,29 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .visitor-muted-box { border: 1px dashed rgba(33,163,102,0.28); background: rgba(33,163,102,0.04); padding: 12px; font-size: 12px; line-height: 1.7; color: var(--shard-text-muted); word-break: break-all; }
 .visitor-terminal { margin-top: 10px; max-height: 180px; overflow: auto; background: #101412; color: #d8eee0; padding: 12px; font-size: 12px; white-space: pre-wrap; border: 1px solid rgba(33,163,102,0.22); }
 .visitor-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.visitor-cloud-flow { display: grid; gap: 14px; }
+.visitor-cloud-step { border: 1px solid var(--shard-border); background: rgba(255,255,255,0.68); padding: 14px; display: grid; gap: 10px; }
+.visitor-cloud-step-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.visitor-step-title { font-family: var(--font-headline); font-size: 15px; font-weight: 900; color: var(--shard-text); }
+.visitor-step-note { color: var(--shard-text-muted); font-size: 12px; line-height: 1.65; margin-top: 4px; }
+.visitor-env-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.visitor-env-item { border-left: 2px solid rgba(33,163,102,0.28); background: rgba(255,255,255,0.62); padding: 8px 10px; min-width: 0; }
+.visitor-env-label { color: var(--shard-text-muted); font-size: 11px; line-height: 1.5; }
+.visitor-env-value { color: var(--shard-text); font-size: 12px; font-weight: 800; line-height: 1.6; word-break: break-all; }
+.visitor-cloud-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.visitor-cloud-choice { border: 1px dashed rgba(33,163,102,0.25); background: rgba(33,163,102,0.035); padding: 12px; display: grid; gap: 10px; align-content: start; }
+.visitor-copy-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.visitor-code { background: rgba(16,20,18,0.07); border: 1px solid rgba(0,0,0,0.06); padding: 8px 10px; font-size: 12px; color: var(--shard-text); word-break: break-all; }
+.visitor-link { color: var(--accent); font-weight: 800; text-decoration: none; word-break: break-all; }
+.visitor-link:hover { text-decoration: underline; }
+.visitor-progress-box { margin-top: 12px; padding: 12px; border: 1px solid var(--shard-border); background: rgba(0,0,0,.04); }
+.visitor-progress-track { height: 8px; background: rgba(0,0,0,.12); overflow: hidden; margin-top: 8px; }
+.visitor-progress-bar { height: 100%; background: var(--accent); transition: width .2s ease; }
 .draft-card { border: 1px solid rgba(33,163,102,0.2); background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,247,0.96)); padding: 16px; display: grid; gap: 12px; }
 .draft-summary { font-family: var(--font-headline); font-size: 16px; font-weight: 900; color: var(--shard-text); }
 .draft-meta { color: var(--shard-text-muted); font-size: 12px; line-height: 1.7; }
 @media (max-width: 900px) {
-  .visitor-hero, .visitor-grid-tight, .visitor-kpis { grid-template-columns: 1fr; }
+  .visitor-hero, .visitor-grid-tight, .visitor-kpis, .visitor-env-grid, .visitor-cloud-choice-grid { grid-template-columns: 1fr; }
 }
 .archive-index-group { margin-bottom: 18px; border: 1px solid rgba(26, 158, 94, 0.14); background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,247,245,0.96)); padding: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.72); }
 .archive-index-group.archive-index-draft { border: 2px dashed rgba(243, 156, 18, 0.52); background: linear-gradient(180deg, rgba(255,248,236,0.94), rgba(255,244,228,0.88)); }
@@ -5616,7 +5634,7 @@ async function loadVisitor() {
       if (tunnelRes.ok) {
         state.visitorTunnel = tunnelRes;
         state.visitorInstallTask = tunnelRes.install_task || {};
-        if (['queued', 'downloading', 'installing'].includes(state.visitorInstallTask.status) && state.visitorInstallTask.task_id) {
+        if (isCloudflaredInstallBusy(state.visitorInstallTask) && state.visitorInstallTask.task_id) {
           setTimeout(() => pollCloudflaredInstall(state.visitorInstallTask.task_id), 0);
         }
         if (tunnelRes.detected && !state.visitorCloudflaredNoticeShown) {
@@ -8066,16 +8084,64 @@ function renderDraftBrief(draft) {
   </div>`;
 }
 
-function renderVisitor() {
-  const page = $('#page-visitor');
-  if (!page) return;
-  const isAdmin = state.identity.type === 'admin';
-  const tunnel = state.visitorTunnel || {};
+function isCloudflaredInstallBusy(task = {}) {
+  return ['queued', 'downloading', 'installing'].includes(task.status);
+}
+
+function renderVisitorEnvItem(label, value) {
+  return `<div class="visitor-env-item"><div class="visitor-env-label">${esc(label)}</div><div class="visitor-env-value">${esc(value || '未知')}</div></div>`;
+}
+
+function jsArg(value) {
+  return esc(JSON.stringify(String(value ?? '')));
+}
+
+function renderCloudflaredProgress(task = {}) {
+  if (!task.status) return '';
+  const pct = Math.max(0, Math.min(100, Number(task.percent || 0)));
+  const installLogs = (task.logs || []).slice(-12).join('\n');
+  const removed = Array.isArray(task.removed_files) && task.removed_files.length
+    ? `<div class="visitor-step-note">已清理：${esc(task.removed_files.join('，'))}</div>`
+    : '';
+  return `
+    <div id="cloudflaredInstallProgress" class="visitor-progress-box">
+      <div class="row between"><span id="cloudflaredInstallLabel" class="muted">${esc(formatCloudflaredTaskLabel(task))}</span><b id="cloudflaredInstallPct">${pct.toFixed(1)}%</b></div>
+      <div class="visitor-progress-track"><div id="cloudflaredInstallBar" class="visitor-progress-bar" style="width:${pct}%;"></div></div>
+      ${removed}
+      <pre id="cloudflaredInstallLog" class="visitor-terminal">${esc(installLogs || '等待安装任务输出...')}</pre>
+    </div>`;
+}
+
+function cloudflaredDownloadPreview(tunnel = {}) {
   const cfg = tunnel.config || {};
+  const manual = tunnel.manual || {};
+  const source = $('#cloudflaredDownloadSource')?.value || cfg.cloudflared_download_source || 'official';
+  const template = $('#cloudflaredDownloadTemplate')?.value?.trim() || cfg.cloudflared_download_url_template || '';
+  const officialUrl = manual.official_download_url || tunnel.official_download_url || '';
+  const asset = manual.asset || tunnel.download_asset || '';
+  if (source !== 'custom' || !template) return officialUrl || tunnel.download_url || manual.current_download_url || '';
+  try {
+    if (template.includes('{url}') || template.includes('{asset}')) {
+      return template.split('{url}').join(officialUrl).split('{asset}').join(asset);
+    }
+    if (template.endsWith('/')) return template + asset;
+    return template;
+  } catch (_) {
+    return officialUrl;
+  }
+}
+
+function updateCloudflaredDownloadPreview() {
+  readVisitorTunnelForm();
+  const el = $('#cloudflaredDownloadPreview');
+  if (el) el.textContent = cloudflaredDownloadPreview(state.visitorTunnel || {});
+}
+
+function renderCloudflaredPanel(tunnel = {}) {
+  const cfg = tunnel.config || {};
+  const manual = tunnel.manual || {};
   const installTask = state.visitorInstallTask || tunnel.install_task || {};
-  const installBusy = ['queued', 'downloading', 'installing'].includes(installTask.status);
-  const installPct = Math.max(0, Math.min(100, Number(installTask.percent || 0)));
-  const installLogs = (installTask.logs || []).slice(-12).join('\n');
+  const installBusy = isCloudflaredInstallBusy(installTask);
   const detectedOk = !!tunnel.detected;
   const downloadSource = cfg.cloudflared_download_source || 'official';
   const downloadTemplate = cfg.cloudflared_download_url_template || '';
@@ -8084,9 +8150,101 @@ function renderVisitor() {
     { id: 'custom', name: '自定义镜像/模板' }
   ];
   const sourceOptions = downloadSources.map(item => `<option value="${esc(item.id)}" ${downloadSource === item.id ? 'selected' : ''}>${esc(item.name || item.id)}</option>`).join('');
-  const tunnelStatus = detectedOk
-    ? `<div class="notice success" style="margin-bottom:12px;">检测正常：已找到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
-    : `<div class="notice danger" style="margin-bottom:12px;">未检测到 cloudflared。可以点击下方按钮自动下载到插件数据目录，或手动安装后重新检测。</div>`;
+  const acceptedPaths = Array.isArray(manual.accepted_paths) && manual.accepted_paths.length ? manual.accepted_paths : [tunnel.managed_path || manual.managed_path || ''];
+  const acceptedNames = Array.isArray(manual.accepted_filenames) && manual.accepted_filenames.length ? manual.accepted_filenames.join(' 或 ') : (manual.filename || 'cloudflared');
+  const manualNote = manual.kind === 'tgz'
+    ? '下载后先解压，把压缩包里名为 cloudflared 的文件放进下面目录。'
+    : '下载后可以直接放进下面目录；文件名保持官方名称或改成插件托管文件名都可以。';
+  const statusNotice = detectedOk
+    ? `<div class="notice success">已检测到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
+    : `<div class="notice danger">未检测到 cloudflared。先确认当前环境，再选择自动下载或手动下载放置。</div>`;
+  const busyActions = installBusy
+    ? `<button class="btn-danger" onclick="cancelCloudflaredInstall()"><span class="btn-text">取消并清理残留</span></button>`
+    : `<button class="btn-strong" onclick="installCloudflared(false)"><span class="btn-text">自动下载</span></button>
+       <button class="btn" onclick="installCloudflared(true)"><span class="btn-text">继续/重新下载</span></button>
+       <button class="btn-danger" onclick="installCloudflared(true, true)"><span class="btn-text">清理后重新安装</span></button>`;
+  const retryActions = installTask.status === 'error' || installTask.status === 'cancelled'
+    ? `<div class="visitor-actions">
+         <button class="btn-strong" onclick="installCloudflared(true)"><span class="btn-text">按当前下载源重试</span></button>
+         <button class="btn-danger" onclick="installCloudflared(true, true)"><span class="btn-text">清理残留后重试</span></button>
+       </div>`
+    : '';
+
+  return `
+    <section class="panel col-6">
+      <div class="panel-header"><div><div class="panel-title">Cloudflare 临时通道</div><div class="panel-note">用 cloudflared 生成 trycloudflare.com 临时地址，让访客访问 Cloudflare 地址而不是你的真实 IP。</div></div></div>
+      <div class="visitor-cloud-flow">
+        ${statusNotice}
+        <div class="visitor-cloud-step">
+          <div class="visitor-cloud-step-head">
+            <div>
+              <div class="visitor-step-title">第一步：检测当前运行环境</div>
+              <div class="visitor-step-note">这里检测的是运行 AstrBot/WebUI 的这台机器，不是访客的手机或电脑。</div>
+            </div>
+            <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">重新检测</span></button>
+          </div>
+          <div class="visitor-env-grid">
+            ${renderVisitorEnvItem('系统', manual.platform || manual.python_platform || '')}
+            ${renderVisitorEnvItem('架构', manual.arch || manual.machine || '')}
+            ${renderVisitorEnvItem('推荐文件', manual.asset || tunnel.download_asset || '')}
+            ${renderVisitorEnvItem('检测结果', detectedOk ? (tunnel.detected_path || '已找到') : '未检测到')}
+          </div>
+          ${detectedOk ? `<div class="visitor-muted-box">版本：${esc(tunnel.version || '已通过 --version 验证')}<br>路径：${esc(tunnel.detected_path || '')}</div>` : ''}
+        </div>
+
+        <div class="visitor-cloud-step">
+          <div>
+            <div class="visitor-step-title">第二步：准备 cloudflared</div>
+            <div class="visitor-step-note">自动下载适合一键完成；如果下载失败，就按右侧手动下载，把文件放到插件指定目录。</div>
+          </div>
+          <div class="visitor-cloud-choice-grid">
+            <div class="visitor-cloud-choice">
+              <div class="visitor-card-title">方式 A：自动下载</div>
+              <div class="field"><label>下载源</label><select class="input" id="cloudflaredDownloadSource" onchange="updateCloudflaredDownloadPreview()">${sourceOptions}</select></div>
+              <div class="field"><label>自定义镜像 URL 模板</label><input class="input" id="cloudflaredDownloadTemplate" value="${esc(downloadTemplate)}" oninput="updateCloudflaredDownloadPreview()" placeholder="例如：https://你的镜像/{url} 或 https://你的镜像/latest/download/{asset}"></div>
+              <div class="visitor-muted-box">点击自动下载会先保存当前下载源。当前实际下载地址：<br><span id="cloudflaredDownloadPreview">${esc(cloudflaredDownloadPreview(tunnel))}</span></div>
+              <div class="visitor-actions">${busyActions}</div>
+              ${retryActions}
+            </div>
+            <div class="visitor-cloud-choice">
+              <div class="visitor-card-title">方式 B：手动下载</div>
+              <div class="visitor-step-note">${esc(manualNote)}</div>
+              <a class="visitor-link" href="${esc(manual.official_download_url || tunnel.official_download_url || '')}" target="_blank" rel="noopener">打开官方推荐下载地址</a>
+              <div class="visitor-copy-line"><div class="visitor-code">${esc(manual.bin_dir || tunnel.bin_dir || '')}</div><button class="btn-mini" onclick='copyText(${jsArg(manual.bin_dir || tunnel.bin_dir || '')})'><span class="btn-text">复制目录</span></button></div>
+              <div class="visitor-muted-box">可接受文件名：${esc(acceptedNames)}<br>推荐放置路径：${esc(acceptedPaths.join(' 或 '))}<br>系统安装命令：${esc(manual.install_hint || tunnel.install_hint || '')}<br>官方说明：${esc(manual.docs_url || 'https://developers.cloudflare.com/tunnel/downloads/')}</div>
+              <div class="visitor-actions">
+                <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">我已放好，重新检测</span></button>
+                <button class="btn" onclick='copyText(${jsArg(manual.official_download_url || tunnel.official_download_url || '')})'><span class="btn-text">复制下载地址</span></button>
+              </div>
+            </div>
+          </div>
+          ${renderCloudflaredProgress(installTask)}
+        </div>
+
+        <div class="visitor-cloud-step">
+          <div>
+            <div class="visitor-step-title">第三步：生成并填写访客入口</div>
+            <div class="visitor-step-note">Quick Tunnel 地址只在 cloudflared 运行期间有效。不用时可以停止通道。</div>
+          </div>
+          <div class="field"><label>托管临时地址</label><input class="input" readonly value="${esc(tunnel.public_url || cfg.last_public_url || cfg.custom_public_url || '')}" placeholder="尚未生成"></div>
+          <div class="field"><label>自定义/手动公网地址</label><input class="input" id="visitorPublicUrl" value="${esc(cfg.custom_public_url || '')}" placeholder="https://xxxx.trycloudflare.com、ngrok、frp 或自有域名"></div>
+          <div class="field"><label>推荐启动命令</label><input class="input" readonly value="${esc(tunnel.quick_tunnel_command || '')}"></div>
+          <div class="visitor-actions">
+            ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : ''}
+            <button class="btn" onclick="saveVisitorTunnel()"><span class="btn-text">保存手动地址/下载源</span></button>
+            <button class="btn" onclick='copyText(${jsArg(tunnel.quick_tunnel_command || '')})'><span class="btn-text">复制命令</span></button>
+            ${tunnel.running ? `<button class="btn-danger" onclick="stopVisitorTunnel()"><span class="btn-text">停止通道</span></button>` : ''}
+          </div>
+        </div>
+      </div>
+    </section>`;
+}
+
+function renderVisitor() {
+  const page = $('#page-visitor');
+  if (!page) return;
+  const isAdmin = state.identity.type === 'admin';
+  const tunnel = state.visitorTunnel || {};
   const rolesHtml = state.visitorRoles.map(role => `
     <div class="visitor-card">
       <div class="row between">
@@ -8131,33 +8289,7 @@ function renderVisitor() {
       </section>
       <div class="grid">
       ${isAdmin ? `
-      <section class="panel col-6">
-        <div class="panel-header"><div><div class="panel-title">Cloudflare 临时通道</div><div class="panel-note">自动检测环境，缺失时可自动下载 cloudflared 到插件数据目录并启动 Quick Tunnel。</div></div></div>
-        ${tunnelStatus}
-        <div class="field"><label>检测到的 cloudflared</label><input class="input" readonly value="${esc(tunnel.detected_path || '未检测到')}"></div>
-        <div class="field"><label>托管临时地址</label><input class="input" readonly value="${esc(tunnel.public_url || cfg.last_public_url || cfg.custom_public_url || '')}" placeholder="尚未生成"></div>
-        <div class="field"><label>推荐启动命令</label><input class="input" readonly value="${esc(tunnel.quick_tunnel_command || '')}"></div>
-        <div class="field"><label>自定义/手动公网地址</label><input class="input" id="visitorPublicUrl" value="${esc(cfg.custom_public_url || '')}" placeholder="https://xxxx.trycloudflare.com"></div>
-        <div class="field"><label>cloudflared 下载源</label><select class="input" id="cloudflaredDownloadSource">${sourceOptions}</select></div>
-        <div class="field"><label>自定义镜像 URL 模板</label><input class="input" id="cloudflaredDownloadTemplate" value="${esc(downloadTemplate)}" placeholder="例如：https://你的镜像/{url} 或 https://你的镜像/latest/download/{asset}"></div>
-        <div class="visitor-muted-box">AstrBot 插件市场里有常用镜像链接，不会配置镜像的话，去市场说明里找到可用链接后粘贴到上面的模板框。<br>当前下载地址：${esc(tunnel.download_url || '')}<br>官方地址：${esc(tunnel.official_download_url || '')}<br>资源名：${esc(tunnel.download_asset || '')}<br>插件托管路径：${esc(tunnel.managed_path || '')}</div>
-        <div id="cloudflaredInstallProgress" style="${installTask.status ? '' : 'display:none;'}margin-top:12px;padding:12px;border:1px solid var(--shard-border);background:rgba(0,0,0,.04);">
-          <div class="row between"><span id="cloudflaredInstallLabel" class="muted">${esc(formatCloudflaredTaskLabel(installTask))}</span><b id="cloudflaredInstallPct">${installPct.toFixed(1)}%</b></div>
-          <div style="height:8px;background:rgba(0,0,0,.12);overflow:hidden;margin-top:8px;"><div id="cloudflaredInstallBar" style="height:100%;width:${installPct}%;background:var(--accent);transition:width .2s ease;"></div></div>
-          <pre id="cloudflaredInstallLog" class="visitor-terminal">${esc(installLogs || '等待安装任务输出...')}</pre>
-        </div>
-        <div class="visitor-actions">
-          <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">重新检测</span></button>
-          <button class="btn" onclick="refreshCloudflaredInstall()"><span class="btn-text">刷新下载状态</span></button>
-          ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : `<button class="btn-strong" ${installBusy ? 'disabled' : ''} onclick="installCloudflared(false)"><span class="btn-text">${installBusy ? '安装中' : '自动安装 cloudflared'}</span></button>`}
-          <button class="btn" ${installBusy ? 'disabled' : ''} onclick="installCloudflared(true)"><span class="btn-text">重新下载</span></button>
-          <button class="btn-danger" ${installBusy ? 'disabled' : ''} onclick="installCloudflared(true, true)"><span class="btn-text">重新安装</span></button>
-          ${installBusy ? `<button class="btn-danger" onclick="cancelCloudflaredInstall()"><span class="btn-text">取消安装</span></button>` : ''}
-          <button class="btn" onclick="saveVisitorTunnel()"><span class="btn-text">保存地址/下载源</span></button>
-          <button class="btn" onclick="copyText('${esc(tunnel.quick_tunnel_command || '')}')"><span class="btn-text">复制命令</span></button>
-          ${tunnel.running ? `<button class="btn-danger" onclick="stopVisitorTunnel()"><span class="btn-text">停止通道</span></button>` : ''}
-        </div>
-      </section>
+      ${renderCloudflaredPanel(tunnel)}
       <section class="panel col-6">
         <div class="panel-header"><div><div class="panel-title">生成临时密钥</div><div class="panel-note">密钥即身份凭证，发出后谁拿到谁拥有该权限。</div></div></div>
         <div class="field"><label>选择身份</label><select class="input" id="visitorRoleSelect">${roleOptions}</select></div>
@@ -8203,7 +8335,7 @@ async function refreshVisitorTunnel() {
 
 async function installCloudflared(force = false, clean = false) {
   const currentTask = state.visitorInstallTask || {};
-  if (['queued', 'downloading', 'installing'].includes(currentTask.status)) {
+  if (isCloudflaredInstallBusy(currentTask)) {
     showToast('cloudflared 正在安装中，已为你刷新下载状态。');
     if (currentTask.task_id) await pollCloudflaredInstall(currentTask.task_id);
     else await refreshCloudflaredInstall();
@@ -8296,7 +8428,7 @@ async function refreshCloudflaredInstall() {
   if (!res.ok) return showToast(res.error || '暂无下载任务状态。', true);
   const task = res.task || {};
   updateCloudflaredProgress(task);
-  if (['queued', 'downloading', 'installing'].includes(task.status) && task.task_id) {
+  if (isCloudflaredInstallBusy(task) && task.task_id) {
     showToast('下载任务仍在运行，继续刷新进度。');
     await pollCloudflaredInstall(task.task_id);
   } else {

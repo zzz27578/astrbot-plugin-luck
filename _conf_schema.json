@@ -91,7 +91,7 @@
         "type": "string",
         "description": "cloudflared 路径",
         "default": "",
-        "hint": "可填写 cloudflared 可执行文件路径。也可以在 WebUI 访客协作页点击自动安装，插件会下载到插件数据目录。"
+        "hint": "可填写 cloudflared 可执行文件路径。也可以在 WebUI 访客协作页自动下载，或按页面提示手动下载后放到插件数据目录的 bin 文件夹。"
       },
       "custom_public_url": {
         "type": "string",
@@ -109,7 +109,7 @@
         "type": "bool",
         "description": "显示安装脚本辅助",
         "default": true,
-        "hint": "开启后，WebUI 可以通过按钮从 Cloudflare 官方 GitHub Release 下载 cloudflared 到插件数据目录。"
+        "hint": "开启后，WebUI 会提供自动下载、重试、清理后重装和手动下载放置说明。"
       },
       "cloudflared_download_source": {
         "type": "string",

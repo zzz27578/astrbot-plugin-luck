@@ -2557,10 +2557,11 @@ def _cloudflared_install_paths() -> list[Path]:
     return [_cloudflared_managed_path(), _cloudflared_partial_path()]
 
 
-def _cleanup_cloudflared_install_files(task_id: str | None = None) -> list[str]:
+def _cleanup_cloudflared_install_files(task_id: str | None = None, include_managed: bool = True) -> list[str]:
     removed = []
     bin_dir = _cloudflared_bin_dir().resolve()
-    for path in _cloudflared_install_paths():
+    paths = _cloudflared_install_paths() if include_managed else [_cloudflared_partial_path()]
+    for path in paths:
         try:
             resolved = path.resolve()
             if bin_dir not in resolved.parents and resolved != bin_dir:
@@ -2614,6 +2615,35 @@ def _cloudflared_download_asset() -> tuple[str, str]:
     return f"cloudflared-linux-{arch}", "bin"
 
 
+def _cloudflared_platform_label() -> str:
+    if sys.platform.startswith("win"):
+        return "Windows"
+    if sys.platform == "darwin":
+        return "macOS"
+    if sys.platform.startswith("linux"):
+        return "Linux"
+    return platform.system() or sys.platform
+
+
+def _cloudflared_arch_label() -> str:
+    machine = platform.machine().lower()
+    if "arm64" in machine or "aarch64" in machine:
+        return "arm64"
+    if machine in {"x86", "i386", "i686"}:
+        return "386"
+    return "amd64"
+
+
+def _cloudflared_install_hint() -> str:
+    if sys.platform.startswith("win"):
+        return "winget install --id Cloudflare.cloudflared"
+    if sys.platform == "darwin":
+        return "brew install cloudflared"
+    if sys.platform.startswith("linux"):
+        return "优先按 Cloudflare 官方文档使用 apt/yum/dnf 等包管理器安装；也可以下载本页推荐的二进制文件。"
+    return "请按 Cloudflare 官方文档下载适合当前系统的 cloudflared。"
+
+
 def _cloudflared_official_download_url(asset: str | None = None) -> str:
     if not asset:
         asset, _ = _cloudflared_download_asset()
@@ -2644,6 +2674,33 @@ def _cloudflared_download_source_name() -> str:
     if source == "custom":
         return "custom"
     return "official"
+
+
+def _cloudflared_manual_info() -> dict:
+    asset, kind = _cloudflared_download_asset()
+    final_path = _cloudflared_managed_path()
+    partial_path = _cloudflared_partial_path()
+    filename = _cloudflared_filename()
+    place_names = [filename]
+    if partial_path.name != filename:
+        place_names.append(partial_path.name)
+    return {
+        "platform": _cloudflared_platform_label(),
+        "arch": _cloudflared_arch_label(),
+        "python_platform": sys.platform,
+        "machine": platform.machine(),
+        "asset": asset,
+        "kind": kind,
+        "filename": filename,
+        "bin_dir": str(_cloudflared_bin_dir()),
+        "managed_path": str(final_path),
+        "accepted_paths": [str(final_path), str(partial_path)] if partial_path != final_path else [str(final_path)],
+        "accepted_filenames": place_names,
+        "official_download_url": _cloudflared_official_download_url(asset),
+        "current_download_url": _cloudflared_download_url(),
+        "install_hint": _cloudflared_install_hint(),
+        "docs_url": "https://developers.cloudflare.com/tunnel/downloads/",
+    }
 
 
 def _cloudflared_error_hint(error: Exception | str) -> str:
@@ -2697,6 +2754,7 @@ def _detect_cloudflared_path() -> str:
     for candidate in (
         cfg.get("cloudflared_path", ""),
         _cloudflared_managed_path(),
+        _cloudflared_partial_path(),
         shutil.which("cloudflared"),
     ):
         found = _valid_cloudflared_path(candidate)
@@ -3041,13 +3099,7 @@ async def api_visitor_tunnel_status(request):
     version_info = _cloudflared_version(detected) if detected else {"ok": False, "version": "", "error": ""}
     port = request.app.get("webui_port", 4399)
     local_url = f"http://127.0.0.1:{port}"
-    system = sys.platform
-    if system.startswith("win"):
-        install_hint = "winget install --id Cloudflare.cloudflared"
-    elif system == "darwin":
-        install_hint = "brew install cloudflared"
-    else:
-        install_hint = "按 Cloudflare 官方文档安装 cloudflared，或下载对应架构二进制。"
+    manual_info = _cloudflared_manual_info()
     return web.json_response({
         "ok": True,
         "config": cfg,
@@ -3059,16 +3111,18 @@ async def api_visitor_tunnel_status(request):
         "running": bool(_CLOUDFLARED_PROCESS and _CLOUDFLARED_PROCESS.returncode is None),
         "public_url": visitor_public_url(),
         "managed_path": str(_cloudflared_managed_path()),
+        "bin_dir": str(_cloudflared_bin_dir()),
         "download_url": _cloudflared_download_url(),
         "official_download_url": _cloudflared_official_download_url(),
         "download_sources": _CLOUDFLARED_DOWNLOAD_SOURCES,
         "download_asset": _cloudflared_download_asset()[0],
+        "manual": manual_info,
         "local_url": local_url,
         "quick_tunnel_command": f"cloudflared tunnel --url {local_url}",
-        "install_hint": install_hint,
+        "install_hint": manual_info.get("install_hint", ""),
         "install_task": _install_task_public(),
         "docs": [
-            "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/",
+            "https://developers.cloudflare.com/tunnel/downloads/",
             "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/",
         ],
     })
@@ -3114,7 +3168,8 @@ async def _run_cloudflared_install_task(task_id: str):
         task = _CLOUDFLARED_INSTALL_TASKS.get(task_id) or _read_dict_file(VISITOR_INSTALL_STATE_FILE)
         if task.get("clean"):
             _append_install_log(task_id, "Clean reinstall requested; clearing managed binary and partial downloads.")
-            _cleanup_cloudflared_install_files(task_id)
+            removed = _cleanup_cloudflared_install_files(task_id)
+            _save_install_task(task_id, removed_files=removed)
         result = await _download_cloudflared_binary(task_id, force=bool(task.get("force")))
         _save_install_task(
             task_id,
@@ -3126,12 +3181,14 @@ async def _run_cloudflared_install_task(task_id: str):
         )
         _append_install_log(task_id, "Install task completed.")
     except asyncio.CancelledError:
+        removed = _cleanup_cloudflared_install_files(task_id, include_managed=False)
         _save_install_task(
             task_id,
             ok=False,
             status="cancelled",
             error="install task cancelled",
             error_hint="安装任务已取消；可以重新下载或重新安装。",
+            removed_files=removed,
         )
         _append_install_log(task_id, "Install task cancelled.")
     except Exception as exc:
@@ -3269,6 +3326,10 @@ async def api_visitor_cloudflared_install_cancel(request):
     _append_install_log(task_id, "Cancel requested by admin.")
     if running and not running.done():
         running.cancel()
+    else:
+        removed = _cleanup_cloudflared_install_files(task_id, include_managed=False)
+        if removed:
+            _save_install_task(task_id, removed_files=removed)
     return web.json_response({"ok": True, "task": _install_task_public(_CLOUDFLARED_INSTALL_TASKS.get(task_id))})
 
 

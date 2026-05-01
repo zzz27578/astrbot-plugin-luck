@@ -444,7 +444,7 @@ def _normalize_fate_cards(cards) -> list:
         if not isinstance(card, dict):
             continue
         normalized.append({
-            "name": str(card.get("name", "") or "").strip() or "未命名命运牌",
+            "name": str(card.get("name", "") or "").strip(),
             "text": str(card.get("text", "") or "一张神秘的卡牌").strip() or "一张神秘的卡牌",
             "gold": _safe_int(card.get("gold", card.get("value", 0)), 0),
             "filename": Path(str(card.get("filename", "") or "")).name,
@@ -1753,10 +1753,10 @@ async def _build_lazy_fate_draft(
 ) -> dict:
     gold = random.randint(min(gold_min, gold_max), max(gold_min, gold_max))
     text = ""
-    name = "未命名命运牌"
+    name = ""
     if gen_text:
         raw_quote = await _fetch_unique_lazy_quote(session, used_texts)
-        name = _lazy_title_from_text(raw_quote, "命运·", "未命名命运牌", max_len=8)
+        name = _lazy_title_from_text(raw_quote, "命运·", "", max_len=8)
         prefix = f"金币+{gold}\n" if gold >= 0 else f"金币-{abs(gold)}\n"
         text = f"{prefix}{raw_quote}"
     filename = await _select_lazy_image(

@@ -1,5 +1,4 @@
 import os
-import json
 import random
 from datetime import datetime
 from astrbot.api.event import AstrMessageEvent
@@ -19,42 +18,13 @@ def _normalize_fate_cards(raw_cards) -> list[dict]:
         except Exception:
             gold = 0
         normalized.append({
-            "name": str(card.get("name", "") or "").strip() or "鏈懡鍚嶅懡杩愮墝",
-            "text": str(card.get("text", "涓€寮犵绉樼殑鍗＄墝") or "涓€寮犵绉樼殑鍗＄墝"),
+            "name": str(card.get("name", "") or "").strip(),
+            "text": str(card.get("text", "一张神秘的卡牌") or "一张神秘的卡牌").strip() or "一张神秘的卡牌",
             "gold": gold,
             "filename": str(card.get("filename", "") or ""),
         })
     return normalized
 
-
-
-
-def load_cards_config(config: dict | None = None):
-    """读取命运牌配置（按群绑定的 profile 隔离）"""
-    config_path = (config or {}).get("_storage_paths", {}).get("fate_cards_file")
-    if config_path and config_path.exists():
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                raw_cards = json.load(f)
-        except Exception:
-            return []
-
-        normalized = []
-        for card in raw_cards if isinstance(raw_cards, list) else []:
-            if not isinstance(card, dict):
-                continue
-            try:
-                gold = int(card.get("gold", card.get("value", 0)) or 0)
-            except Exception:
-                gold = 0
-            normalized.append({
-                "name": str(card.get("name", "") or "").strip() or "未命名命运牌",
-                "text": str(card.get("text", "一张神秘的卡牌") or "一张神秘的卡牌"),
-                "gold": gold,
-                "filename": str(card.get("filename", "") or ""),
-            })
-        return normalized
-    return []
 
 def load_cards_config(config: dict | None = None):
     """Cached override for fate card config loading."""
@@ -103,7 +73,9 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max
 
     card = random.choice(cards_config)
     img_filename = card.get("filename", "")
-    text = card.get("text", "一张神秘的卡牌")
+    name = str(card.get("name", "") or "").strip()
+    text = str(card.get("text", "一张神秘的卡牌") or "一张神秘的卡牌").strip() or "一张神秘的卡牌"
+    card_text = f"【{name}】\n{text}" if name else text
 
     value = int(card.get("gold", card.get("value", 0)) or 0)
 
@@ -129,6 +101,6 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max
 
     chain = [
         Image.fromFileSystem(str(img_path)),
-        Plain(f"\n\n{text}\n━━━━━━━━\n💰 金币波动：{val_str}\n💰 当前总金币：{user_data['total_gold']}\n💡 {chance_hint}{title_msg}")
+        Plain(f"\n\n{card_text}\n━━━━━━━━\n💰 金币波动：{val_str}\n💰 当前总金币：{user_data['total_gold']}\n💡 {chance_hint}{title_msg}")
     ]
     yield event.chain_result(chain)

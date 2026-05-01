@@ -5856,11 +5856,8 @@ async function duplicateFuncCard(i) {
   await saveFuncCards(false);
   showToast('功能牌已复制。');
 }
-function isFateCardMissingName(card) {
-  return !(card?.name || '').trim();
-}
 function isFateCardIncomplete(card) {
-  return isFateCardMissingName(card) || !(card.text || '').trim() || !card.filename || !imageExists('fate', card.filename);
+  return !(card.text || '').trim() || !card.filename || !imageExists('fate', card.filename);
 }
 function ensureFateDraftCards() {
   state.draftFateCards ||= [];
@@ -6913,7 +6910,7 @@ function fateDraftItem(card, i) {
     <article class="archive-card">
       <div class="archive-cover">${has ? `<img src="${src}">` : '未绑定图片'}</div>
       <div class="archive-body">
-        <div class="archive-title">${esc(card.name || '未命名命运牌')}</div>
+        <div class="archive-title">${esc(card.name || '命运牌')}</div>
         <div class="archive-meta">
           <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
           <span class="badge">草稿</span>
@@ -6936,7 +6933,7 @@ function fateItem(card, i) {
     <article class="archive-card ${state.fatePinIncomplete && incomplete ? 'incomplete-pinned' : ''}${incomplete ? ' incomplete' : ''}${deleting ? ' delete-pending' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="命运牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
-        <div class="archive-title">${esc(card.name || '未命名命运牌')}</div>
+        <div class="archive-title">${esc(card.name || '命运牌')}</div>
                 <div class="archive-meta">
           <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
           ${incomplete ? '<span class="badge">未完成</span>' : ''}
@@ -8854,7 +8851,7 @@ function pickFile(id, value) {
 }
 async function saveFateEditor() {
   const payload = {
-    name: $('#fateName')?.value?.trim() || '未命名命运牌',
+    name: $('#fateName')?.value?.trim() || '',
     text: $('#fateText')?.value?.trim() || '',
     gold: Number($('#fateGold')?.value || 0),
     filename: $('#fateFilename')?.value?.trim() || ''

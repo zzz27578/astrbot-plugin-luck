@@ -4324,6 +4324,11 @@ const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 const uniqueStrings = (list) => Array.from(new Set((list || []).filter(Boolean)));
+const FATE_NAME_PLACEHOLDERS = new Set(['未命名命运牌', '未命名命名牌']);
+const cleanFateName = (value) => {
+  const name = String(value ?? '').trim();
+  return FATE_NAME_PLACEHOLDERS.has(name) ? '' : name;
+};
 const UI_PREF_KEYS = {
   topView: 'luck_webui_top_view',
   activePage: 'luck_webui_active_page',
@@ -5573,7 +5578,7 @@ async function loadSignin() {
 }
 async function loadFate() {
   const [a, b] = await Promise.all([apiGet('/api/fate_cards'), apiGet('/api/fate_images')]);
-  if (a.ok) state.fateCards = a.cards || [];
+  if (a.ok) state.fateCards = (a.cards || []).map(card => ({ ...card, name: cleanFateName(card?.name) }));
   if (b.ok) {
     state.fateLocalImages = b.images || [];
     state.fateLazyImages = b.lazy_images || [];
@@ -5917,7 +5922,7 @@ function isFuncCardMatched(card, keyword) {
 function isFateCardMatched(card, keyword) {
   const kw = String(keyword || '').trim().toLowerCase();
   if (!kw) return true;
-  return [card.name || '', card.text || '', String(card.gold ?? ''), card.filename || ''].join(' ').toLowerCase().includes(kw);
+  return [cleanFateName(card.name), card.text || '', String(card.gold ?? ''), card.filename || ''].join(' ').toLowerCase().includes(kw);
 }
 function setFateSearchKeyword(value) {
   state.fateSearchKeyword = value || '';
@@ -6958,7 +6963,7 @@ function fateDraftItem(card, i) {
     <article class="archive-card">
       <div class="archive-cover">${has ? `<img src="${src}">` : '未绑定图片'}</div>
       <div class="archive-body">
-        <div class="archive-title">${esc(card.name || '命运牌')}</div>
+        <div class="archive-title">${esc(cleanFateName(card.name) || '命运牌')}</div>
         <div class="archive-meta">
           <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
           <span class="badge">草稿</span>
@@ -6981,7 +6986,7 @@ function fateItem(card, i) {
     <article class="archive-card ${state.fatePinIncomplete && incomplete ? 'incomplete-pinned' : ''}${incomplete ? ' incomplete' : ''}${deleting ? ' delete-pending' : ''}">
       <div class="archive-cover">${has ? `<img src="${src}" alt="命运牌图片">` : '未绑定图片'}</div>
       <div class="archive-body">
-        <div class="archive-title">${esc(card.name || '命运牌')}</div>
+        <div class="archive-title">${esc(cleanFateName(card.name) || '命运牌')}</div>
                 <div class="archive-meta">
           <span class="badge orange">金币 ${esc(card.gold ?? 0)}</span>
           ${incomplete ? '<span class="badge">未完成</span>' : ''}
@@ -8149,7 +8154,7 @@ function draftCardImageUrl(kind, file, profileId) {
 
 function renderDraftMiniCard(card = {}, kind = 'func', profileId = '') {
   const file = card.filename || '';
-  const title = kind === 'fate' ? (card.name || '命运牌') : (card.card_name || '功能牌');
+  const title = kind === 'fate' ? (cleanFateName(card.name) || '命运牌') : (card.card_name || '功能牌');
   const desc = kind === 'fate'
     ? `${card.text || '暂无文案'}${card.gold !== undefined ? `\n金币 ${card.gold}` : ''}`
     : `${card.description || '暂无描述'}${Array.isArray(card.tags) && card.tags.length ? `\n${card.tags.join('，')}` : ''}`;
@@ -8993,7 +8998,7 @@ function openFateEditor(index) {
     <div class="editor-split">
       <div class="editor-stack">
         <div class="field-grid">
-          <div class="field"><label>名称</label><input class="input" id="fateName" value="${esc(card.name || '')}"></div>
+          <div class="field"><label>名称</label><input class="input" id="fateName" value="${esc(cleanFateName(card.name))}"></div>
           <div class="field"><label>金币值</label><input class="input" type="number" id="fateGold" value="${esc(card.gold ?? 0)}"></div>
         </div>
         <div class="field"><label>文案</label><textarea class="textarea" id="fateText">${esc(card.text || '')}</textarea></div>
@@ -9012,7 +9017,7 @@ function pickFile(id, value) {
 }
 async function saveFateEditor() {
   const payload = {
-    name: $('#fateName')?.value?.trim() || '',
+    name: cleanFateName($('#fateName')?.value) || '',
     text: $('#fateText')?.value?.trim() || '',
     gold: Number($('#fateGold')?.value || 0),
     filename: $('#fateFilename')?.value?.trim() || ''

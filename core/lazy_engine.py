@@ -145,11 +145,11 @@ async def build_fate_draft(
     gold = random.randint(min(gold_min, gold_max), max(gold_min, gold_max))
     
     text = ""
-    name = "未命名命运牌"
+    name = ""
     if gen_text:
         raw_quote = await fetch_pure_quote(used_texts)
         used_texts.add(raw_quote)
-        name = f"命运·{raw_quote[:8]}" if raw_quote else "未命名命运牌"
+        name = f"命运·{raw_quote[:8]}" if raw_quote else ""
         prefix = f"金币加{gold}\n" if gold >= 0 else f"金币减{abs(gold)}\n"
         text = f"{prefix}{raw_quote}"
 

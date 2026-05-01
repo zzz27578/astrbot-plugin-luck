@@ -79,6 +79,7 @@ _WEBUI_ACCESS_PASSWORD = WEBUI_DEFAULT_ACCESS_PASSWORD
 _AUTH_SESSIONS: dict[str, dict] = {}
 _CLOUDFLARED_PROCESS = None
 _CLOUDFLARED_PUBLIC_URL = ""
+FATE_NAME_PLACEHOLDERS = {"未命名命运牌", "未命名命名牌"}
 
 # 默认签到文案（fallback）
 DEFAULT_SIGN_IN_TEXTS = {
@@ -439,18 +440,47 @@ def _safe_int(value, default: int = 0) -> int:
         return default
 
 
+def _clean_fate_name(value) -> str:
+    name = str(value or "").strip()
+    return "" if name in FATE_NAME_PLACEHOLDERS else name
+
+
 def _normalize_fate_cards(cards) -> list:
     normalized = []
     for card in cards if isinstance(cards, list) else []:
         if not isinstance(card, dict):
             continue
         normalized.append({
-            "name": str(card.get("name", "") or "").strip(),
+            "name": _clean_fate_name(card.get("name", "")),
             "text": str(card.get("text", "") or "一张神秘的卡牌").strip() or "一张神秘的卡牌",
             "gold": _safe_int(card.get("gold", card.get("value", 0)), 0),
             "filename": Path(str(card.get("filename", "") or "")).name,
         })
     return normalized
+
+
+def _repair_fate_card_placeholder_names(cards_file: Path) -> bool:
+    raw_cards = _read_json(cards_file, [])
+    if not isinstance(raw_cards, list):
+        return False
+    changed = False
+    cleaned = []
+    for card in raw_cards:
+        if not isinstance(card, dict):
+            cleaned.append(card)
+            continue
+        item = dict(card)
+        if str(item.get("name", "") or "").strip() in FATE_NAME_PLACEHOLDERS:
+            item["name"] = ""
+            changed = True
+        cleaned.append(item)
+    if changed:
+        _atomic_write(cards_file, cleaned)
+        try:
+            invalidate_json_cache(cards_file)
+        except Exception:
+            pass
+    return changed
 
 
 def _normalize_func_cards(cards) -> list:
@@ -528,6 +558,7 @@ def _ensure_profile_seed_data(profile_id: str):
 
     if not paths["fate_cards_file"].exists() or not isinstance(_read_json(paths["fate_cards_file"], []), list) or not _read_json(paths["fate_cards_file"], []):
         _atomic_write(paths["fate_cards_file"], _load_json_template(DEFAULT_FATE_CARDS_FILE, []))
+    _repair_fate_card_placeholder_names(paths["fate_cards_file"])
 
     if not paths["runtime_config_file"].exists() or not isinstance(_read_json(paths["runtime_config_file"], {}), dict) or not _read_json(paths["runtime_config_file"], {}):
         runtime_seed = _load_json_template(DEFAULT_RUNTIME_CONFIG_FILE, {})
@@ -628,6 +659,17 @@ def _list_profile_ids() -> list[str]:
     if DEFAULT_PROFILE_NAME not in result:
         result.insert(0, DEFAULT_PROFILE_NAME)
     return sorted(set(result), key=lambda x: (x != DEFAULT_PROFILE_NAME, x.lower()))
+
+
+def _repair_all_fate_card_placeholder_names() -> int:
+    repaired = 0
+    for profile_id in _list_profile_ids():
+        paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+        if _repair_fate_card_placeholder_names(paths["fate_cards_file"]):
+            repaired += 1
+    if DEFAULT_FATE_CARDS_FILE.exists() and _repair_fate_card_placeholder_names(DEFAULT_FATE_CARDS_FILE):
+        repaired += 1
+    return repaired
 
 
 def _collect_profile_stats(profile_id: str) -> dict:
@@ -3681,6 +3723,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     _ensure_private_dirs()
     migrate_legacy_storage(PLUGIN_NAME)
     _ensure_profile_seed_data(DEFAULT_PROFILE_NAME)
+    _repair_all_fate_card_placeholder_names()
     _ensure_visitor_files()
     if not WEBUI_ACCESS_CONFIG_FILE.exists():
         _atomic_write(WEBUI_ACCESS_CONFIG_FILE, {"access_password": _normalize_access_password(_WEBUI_ACCESS_PASSWORD)})

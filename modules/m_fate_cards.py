@@ -8,6 +8,14 @@ from ..core.title_engine import TitleEngine
 from ..core.json_cache import load_json_cached
 
 
+FATE_NAME_PLACEHOLDERS = {"未命名命运牌", "未命名命名牌"}
+
+
+def _clean_fate_name(value) -> str:
+    name = str(value or "").strip()
+    return "" if name in FATE_NAME_PLACEHOLDERS else name
+
+
 def _normalize_fate_cards(raw_cards) -> list[dict]:
     normalized = []
     for card in raw_cards if isinstance(raw_cards, list) else []:
@@ -18,7 +26,7 @@ def _normalize_fate_cards(raw_cards) -> list[dict]:
         except Exception:
             gold = 0
         normalized.append({
-            "name": str(card.get("name", "") or "").strip(),
+            "name": _clean_fate_name(card.get("name", "")),
             "text": str(card.get("text", "一张神秘的卡牌") or "一张神秘的卡牌").strip() or "一张神秘的卡牌",
             "gold": gold,
             "filename": str(card.get("filename", "") or ""),
@@ -73,7 +81,7 @@ async def handle_fate_card_draw(event: AstrMessageEvent, bank, config: dict, max
 
     card = random.choice(cards_config)
     img_filename = card.get("filename", "")
-    name = str(card.get("name", "") or "").strip()
+    name = _clean_fate_name(card.get("name", ""))
     text = str(card.get("text", "一张神秘的卡牌") or "一张神秘的卡牌").strip() or "一张神秘的卡牌"
     card_text = f"【{name}】\n{text}" if name else text
 

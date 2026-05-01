@@ -2636,10 +2636,10 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .toggle-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px; border: 1px solid var(--shard-border); background: var(--shard-surface); margin-bottom: 12px; transition: 0.2s; }
 .toggle-row:hover { border-color: rgba(57, 229, 184, 0.4); }
 .toggle-copy .helper { font-size: 12px; color: var(--shard-text-muted); margin-top: 6px; }
-.toggle-box { width: 48px; height: 26px; background: var(--shard-bg); border: 1px solid var(--shard-border); position: relative; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
-.toggle-box::before { content: ''; position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; background: var(--shard-text-muted); transition: 0.2s; }
-.toggle-box.on { background: var(--accent); border-color: var(--accent); }
-.toggle-box.on::before { transform: translateX(22px); background: var(--on-accent); box-shadow: 0 0 8px rgba(0,0,0,0.2); }
+.toggle-box { width: 48px; height: 26px; background: var(--shard-bg); border: 1px solid var(--shard-border); position: relative; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0; border-radius: 13px !important; }
+.toggle-box::before { content: ''; position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; background: var(--shard-text-muted); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 50% !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.toggle-box.on { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); }
+.toggle-box.on::before { transform: translateX(22px); background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2), 0 0 8px rgba(26, 158, 94, 0.4); }
 
 .archive-grid, .pending-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
 .archive-card { background: var(--shard-surface); border: 1px solid var(--shard-border); display: flex; flex-direction: column; transition: 0.3s; position: relative; }
@@ -3088,18 +3088,17 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 ::-webkit-scrollbar-thumb:hover { background: rgba(34, 197, 94, 0.5); }
 
 /* 运行配置优化 */
-.runtime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; margin-top: 12px; }
-.config-block { transition: all 0.3s ease; position: relative; padding: 0 0 24px; border-bottom: 1px dashed var(--shard-border); margin-bottom: 24px; }
-.config-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.runtime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 24px; margin-top: 12px; }
+.config-block { transition: all 0.3s ease; position: relative; margin-bottom: 24px; }
 .config-block.locked { opacity: 0.62; filter: grayscale(0.8); pointer-events: none; }
 .config-block.locked::after { content: '模块未开启'; position: absolute; inset: 8px 0 auto auto; z-index: 10; padding: 4px 10px; border: 1px solid rgba(120, 132, 125, 0.36); background: rgba(240, 243, 241, 0.9); color: rgba(54, 64, 59, 0.68); font-family: var(--font-headline); font-size: 10px; font-weight: 800; letter-spacing: 1px; }
 .config-kicker { font-family: var(--font-headline); font-size: 15px; color: var(--shard-text); letter-spacing: 1px; font-weight: 900; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-.config-kicker::before { content: ''; display: block; width: 4px; height: 14px; background: var(--shard-text); }
-.config-block .runtime-grid { padding: 16px; background: linear-gradient(180deg, rgba(248,250,249,0.96), rgba(241,245,242,0.96)); border: 1px solid var(--shard-border); }
-.config-block.locked .runtime-grid { background: linear-gradient(180deg, rgba(241,244,242,0.92), rgba(233,237,234,0.92)); }
+.config-kicker::before { content: ''; display: block; width: 4px; height: 14px; background: var(--accent); }
+.config-block .runtime-grid { padding: 24px; background: var(--shard-surface); border: 1px solid var(--shard-border); border-left: 3px solid var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+.config-block.locked .runtime-grid { background: rgba(0,0,0,0.02); border-left-color: var(--shard-text-muted); }
 
 /* 权重分析器：左边填数字，右边图表与数值展示 */
-.rarity-weight-layout { display: flex; gap: 40px; align-items: stretch; background: var(--shard-bg); border: 1px solid var(--shard-border); padding: 24px; border-top: 3px solid var(--shard-text); margin-top: 16px; }
+.rarity-weight-layout { display: flex; gap: 40px; align-items: stretch; background: var(--shard-surface); border: 1px solid var(--shard-border); padding: 24px; border-left: 3px solid var(--accent); margin-top: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
 .rarity-weight-fields { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; align-content: start; }
 .rarity-ring-wrap { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 24px; border-left: 1px dashed var(--shard-border); padding-left: 40px; }
 .rarity-ring { width: 140px; height: 140px; border-radius: 50% !important; position: relative; transition: background 0.4s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
@@ -4300,11 +4299,13 @@ const state = {
   panelConfigSelectedId: 'basic_profile',
 
     funcFilter: 'all',
-  funcSearchKeyword: '',
+    funcSearchKeyword: '',
+    funcSortOrder: 'asc',
+    funcCustomCategories: [],
+    fateSearchKeyword: '',
+    fateSortOrder: 'asc',
+    fatePinIncomplete: false,
     funcPinIncomplete: false,
-  funcCustomCategories: [],
-  fateSearchKeyword: '',
-  fatePinIncomplete: false,
   lazyProgress: { active: false, label: '', percent: 0, timer: null },
   pendingDelete: { kind: '', index: -1 },
   pendingAssetDelete: { kind: '', file: '' },
@@ -5945,23 +5946,26 @@ function clearFuncIncompletePinState() {
 function bringIncompleteFateCardsToFront() {
   const count = state.fateCards.filter(isFateCardIncomplete).length;
   if (!count) return showToast('当前没有未完成的命运牌。');
-  state.fatePinIncomplete = true;
+  state.fatePinIncomplete = !state.fatePinIncomplete;
   renderFate();
-  showToast(`已将 ${count} 张未完成命运牌置顶显示。`);
+  showToast(state.fatePinIncomplete ? `已将 ${count} 张未完成命运牌置顶显示。` : '已取消未完成置顶。');
 }
 function bringIncompleteFuncCardsToFront() {
   const count = state.funcCards.filter(isFuncCardIncomplete).length;
   if (!count) return showToast('当前没有未完成的功能牌。');
-  state.funcPinIncomplete = true;
+  state.funcPinIncomplete = !state.funcPinIncomplete;
   renderCards();
-  showToast(`已将 ${count} 张未完成功能牌置顶显示。`);
+  showToast(state.funcPinIncomplete ? `已将 ${count} 张未完成功能牌置顶显示。` : '已取消未完成置顶。');
 }
-function bringNamelessFateCardsToFront() {
-  return bringIncompleteFateCardsToFront();
+function toggleFateSortOrder() {
+  state.fateSortOrder = state.fateSortOrder === 'desc' ? 'asc' : 'desc';
+  renderFate();
 }
-function clearFateNamePinState() {
-  clearFateIncompletePinState();
+function toggleFuncSortOrder() {
+  state.funcSortOrder = state.funcSortOrder === 'desc' ? 'asc' : 'desc';
+  renderCards();
 }
+function clearFateNamePinState() {}
 function setFuncFilter(value) {
   state.funcFilter = value || 'all';
   renderCards();
@@ -6810,13 +6814,16 @@ function renderSignin() {
         </div>
       </section>
 
-      <section class="panel col-8">
+            <section class="panel col-8">
         <div class="panel-head">
           <div>
             <div class="panel-title">运势区间</div>
             <div class="panel-note">定义玩家在不同运气区间内会抽到什么评价和获得额外多少金币。</div>
           </div>
-          <button class="btn outline-btn" onclick="addRange()"><span class="btn-text">新增区间</span></button>
+          <div class="toolbar-actions">
+            <button class="btn-strong" onclick="saveSignin()"><span class="btn-text">保存配置</span></button>
+            <button class="btn outline-btn" onclick="addRange()"><span class="btn-text">新增区间</span></button>
+          </div>
         </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
           ${ranges.map((r, i) => `
@@ -6903,11 +6910,14 @@ function renderFate() {
   const keyword = state.fateSearchKeyword || '';
   const incompleteCount = state.fateCards.filter(isFateCardIncomplete).length;
   const unusedImages = getUnusedImageFiles('fate');
-  let visibleCards = state.fateCards.map((card, i) => ({ card, i })).filter(({ card }) => isFateCardMatched(card, keyword));
-  if (state.fatePinIncomplete) {
-    visibleCards = visibleCards.slice().sort((a, b) => Number(isFateCardIncomplete(b.card)) - Number(isFateCardIncomplete(a.card)));
-  }
-  $('#page-fate').innerHTML = `
+    let visibleCards = state.fateCards.map((card, i) => ({ card, i })).filter(({ card }) => isFateCardMatched(card, keyword));
+    if (state.fateSortOrder === 'desc') {
+      visibleCards.reverse();
+    }
+    if (state.fatePinIncomplete) {
+      visibleCards.sort((a, b) => Number(isFateCardIncomplete(b.card)) - Number(isFateCardIncomplete(a.card)));
+    }
+    $('#page-fate').innerHTML = `
     <div class="grid">
       <section class="panel col-12 fate-main">
         <div class="panel-head">
@@ -6928,11 +6938,12 @@ function renderFate() {
                   </div>
                             <div class="filter-row-main">
                               <div class="filter-chip-group"></div>
-                              <div class="filter-side-info">
-                                <button class="btn-green" onclick="openAutoBindDialog('fate')"><span class="btn-text">自动绑定空置图片</span></button>
-                                <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
-                                <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
-                                <button class="${state.fatePinIncomplete ? 'btn-danger' : 'btn'} ${state.fatePinIncomplete ? 'glow-red' : ''}" onclick="bringIncompleteFateCardsToFront()"><span class="btn-text">未完成置顶</span></button>
+                                                            <div class="filter-side-info">
+                                                              <button class="${state.fatePinIncomplete ? 'btn-danger glow-red' : 'btn'}" onclick="bringIncompleteFateCardsToFront()"><span class="btn-text">${state.fatePinIncomplete ? '取消置顶' : '未完成置顶'}</span></button>
+                                                              <button class="btn-green" onclick="openAutoBindDialog('fate')"><span class="btn-text">自动绑定空置图片</span></button>
+                                                              <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
+                                                              <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
+                                                              <button class="btn action-btn solid-btn" onclick="toggleFateSortOrder()"><span class="btn-text">${state.fateSortOrder === 'desc' ? '正序查看' : '倒序查看'}</span></button>
                     </div>
                   </div>
                 </div>
@@ -6949,10 +6960,10 @@ function renderFate() {
                     ${state.draftFateCards.map((card, i) => fateDraftItem(card, i)).join('')}
                   </div>
                 </div>` : ''}
-                ${unusedImages.length ? `
-                <div class="archive-index-group">
-                  ${renderCollapsibleArchiveSection('待建档图片', unusedImages.length, `<div class="pending-grid">${unusedImages.map(file => pendingImageItem('fate', file)).join('')}</div>`, false, '可折叠收起')}
-                </div>` : ''}
+                                ${unusedImages.length ? `
+                                                <div class="archive-index-group">
+                                                  ${renderCollapsibleArchiveSection('待建档图片', unusedImages.length, `<div class="pending-grid">${unusedImages.map(file => pendingImageItem('fate', file)).join('')}</div>`, true, '可折叠收起')}
+                                                </div>` : ''}
                 <div class="archive-grid">
           ${visibleCards.map(({ card, i }) => fateItem(card, i)).join('') || '<div class="empty">暂无命运牌</div>'}
         </div>
@@ -7513,10 +7524,13 @@ function renderCards() {
     if (filter !== 'all' && type !== filter) return false;
     return isFuncCardMatched(card, keyword);
   });
-  if (state.funcPinIncomplete) {
-    filteredEntries = filteredEntries.slice().sort((a, b) => Number(isFuncCardIncomplete(b.card)) - Number(isFuncCardIncomplete(a.card)));
-  }
-  $('#page-cards').innerHTML = `
+    if (state.funcSortOrder === 'desc') {
+      filteredEntries.reverse();
+    }
+    if (state.funcPinIncomplete) {
+      filteredEntries.sort((a, b) => Number(isFuncCardIncomplete(b.card)) - Number(isFuncCardIncomplete(a.card)));
+    }
+    $('#page-cards').innerHTML = `
     <div class="grid">
       <section class="panel col-12">
         <div class="panel-head">
@@ -7542,11 +7556,12 @@ function renderCards() {
                             ${categoryOptions.map(item => `<button class="filter-chip ${filter === item.value ? 'active' : ''}" onclick="setFuncFilter('${esc(item.value)}')">${esc(item.label)}</button>`).join('')}
               <button class="filter-chip filter-chip-add" onclick="createFuncCategoryPrompt()">新增类别</button>
             </div>
-                        <div class="filter-side-info">
+                                                <div class="filter-side-info">
+              <button class="${state.funcPinIncomplete ? 'btn-danger glow-red' : 'btn'}" onclick="bringIncompleteFuncCardsToFront()"><span class="btn-text">${state.funcPinIncomplete ? '取消置顶' : '未完成置顶'}</span></button>
               <button class="btn-green" onclick="openAutoBindDialog('func')"><span class="btn-text">自动绑定空置图片</span></button>
               <div class="filter-summary">当前显示 ${filteredEntries.length} / ${state.funcCards.length}</div>
               <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
-              <button class="${state.funcPinIncomplete ? 'btn-danger' : 'btn'} ${state.funcPinIncomplete ? 'glow-red' : ''}" onclick="bringIncompleteFuncCardsToFront()"><span class="btn-text">未完成置顶</span></button>
+              <button class="btn action-btn solid-btn" onclick="toggleFuncSortOrder()"><span class="btn-text">${state.funcSortOrder === 'desc' ? '正序查看' : '倒序查看'}</span></button>
             </div>
           </div>
         </div>
@@ -7563,10 +7578,10 @@ function renderCards() {
             ${state.draftFuncCards.map((card, i) => funcDraftItem(card, i)).join('')}
           </div>
         </div>` : ''}
-        ${filter === 'all' ? `
-        <div class="archive-index-group">
-          ${renderCollapsibleArchiveSection('待建档图片', unusedImages.length, `<div class="pending-grid func-pending-grid">${unusedImages.map(file => pendingImageItem('func', file)).join('') || '<div class="empty">当前没有待建档图片</div>'}</div>`, false, '可折叠收起')}
-        </div>` : ''}
+                ${(filter === 'all' && unusedImages.length) ? `
+                        <div class="archive-index-group">
+                          ${renderCollapsibleArchiveSection('待建档图片', unusedImages.length, `<div class="pending-grid func-pending-grid">${unusedImages.map(file => pendingImageItem('func', file)).join('')}</div>`, true, '可折叠收起')}
+                        </div>` : ''}
         <div class="archive-grid func-archive-grid">
           ${filteredEntries.map(entry => funcItem(entry.card, entry.index)).join('') || '<div class="empty">当前筛选下没有功能牌</div>'}
         </div>
@@ -9750,8 +9765,10 @@ Object.assign(window, {
     setFuncFilter,
   setFuncSearchKeyword,
   setFateSearchKeyword,
-  bringIncompleteFateCardsToFront,
-  bringIncompleteFuncCardsToFront,
+    bringIncompleteFateCardsToFront,
+    bringIncompleteFuncCardsToFront,
+    toggleFateSortOrder,
+    toggleFuncSortOrder,
   openEffectGlossary,
   createFuncCategoryPrompt,
   setEffectGroup,

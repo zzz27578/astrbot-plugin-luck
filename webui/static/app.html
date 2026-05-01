@@ -2678,6 +2678,9 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .visitor-code { background: rgba(16,20,18,0.07); border: 1px solid rgba(0,0,0,0.06); padding: 8px 10px; font-size: 12px; color: var(--shard-text); word-break: break-all; }
 .visitor-link { color: var(--accent); font-weight: 800; text-decoration: none; word-break: break-all; }
 .visitor-link:hover { text-decoration: underline; }
+.visitor-permission-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.visitor-permission-item { color: var(--shard-text); font-size: 13px; font-weight: 700; line-height: 1.5; }
+.visitor-permission-item input { margin-right: 6px; }
 .draft-card { border: 1px solid rgba(33,163,102,0.2); background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,247,0.96)); padding: 16px; display: grid; gap: 12px; }
 .draft-summary { font-family: var(--font-headline); font-size: 16px; font-weight: 900; color: var(--shard-text); }
 .draft-meta { color: var(--shard-text-muted); font-size: 12px; line-height: 1.7; }
@@ -4318,6 +4321,7 @@ const state = {
   visitorTunnel: { config: {}, detected_path: '', local_url: '', quick_tunnel_command: '', install_hint: '', docs: [] },
   visitorCloudflaredNoticeShown: false,
   visitorPollTimer: null,
+  editingVisitorRoleId: '',
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -7702,9 +7706,23 @@ function triggerSystemMorph() {
   }, 455);
 }
 
+function homeIdentityName() {
+  if (state.identity?.type === 'admin') return '管理员';
+  return state.identity?.role_name || state.identity?.role_id || '访客';
+}
+
+function homePermissionSummaryHtml() {
+  if (state.identity?.type === 'admin') {
+    return '<span class="badge">全部管理权限</span>';
+  }
+  return permissionChips(state.identity?.permissions || {}) || '<span class="badge light">只读</span>';
+}
+
 function renderHome() {
   const homeStage = state.homeStage || 'intro';
   const panelReady = homeStage === 'ready' || (homeStage === 'intro' && state.homeAccessVerified);
+  const identityName = homeIdentityName();
+  const permissionSummary = homePermissionSummaryHtml();
   const authSnapshot = getHomeAuthStatusSnapshot(panelReady);
   const terminalLines = getHomeAuthTerminalLines(panelReady);
   const statusCopy = panelReady
@@ -7879,15 +7897,15 @@ function renderHome() {
                               <div class="home-login-ready-panel">
                                 <div class="home-login-ready-row">
                                   <div class="home-ready-label"><b>验证状态</b><span>身份签名已通过</span></div>
-                                  <div class="home-ready-value"><span class="home-ready-dot"></span>已授权</div>
+                                  <div class="home-ready-value"><span class="home-ready-dot"></span>${esc(identityName)}</div>
                                 </div>
                                 <div class="home-login-ready-row">
-                                  <div class="home-ready-label"><b>接入通道</b><span>主控链路保持在线</span></div>
-                                  <div class="home-ready-value is-channel">控制中枢</div>
+                                  <div class="home-ready-label"><b>可用权限</b><span>当前身份允许的操作</span></div>
+                                  <div class="row" style="justify-content:flex-end;flex-wrap:wrap;gap:6px;max-width:260px;">${permissionSummary}</div>
                                 </div>
                                 <div class="home-login-ready-row">
-                                  <div class="home-ready-label"><b>下一步</b><span>等待初始化接入</span></div>
-                                  <div class="home-ready-value is-standby">待执行</div>
+                                  <div class="home-ready-label"><b>方案范围</b><span>这把密钥可访问的方案</span></div>
+                                  <div class="home-ready-value is-standby">${esc(visitorProfileScopeText(state.identity || {}))}</div>
                                 </div>
                               </div>
                             ` : `
@@ -8097,7 +8115,6 @@ function permissionChips(perms = {}) {
   ];
   const chips = defs.filter(([key]) => perms[key]).map(([, label]) => `<span class="badge">${label}</span>`);
   chips.push(`<span class="badge ${perms.requires_review === false ? 'light' : ''}">${perms.requires_review === false ? '免审核' : '需要审核'}</span>`);
-  chips.push(`<span class="badge light">范围 ${esc(visitorProfileScopeText(perms))}</span>`);
   chips.push(`<span class="badge light">单次 ${Number(perms.max_cards_per_submit || 0)} 项</span>`);
   chips.push(`<span class="badge light">图片 ${Number(perms.max_images_per_submit || 0)} 张</span>`);
   return chips.join('');
@@ -8109,41 +8126,22 @@ function visitorTime(ts) {
   return new Date(n * 1000).toLocaleString();
 }
 
-function visitorProfileScopeText(perms = {}) {
-  const scope = perms.profile_scope || 'default';
+function visitorProfileScopeText(data = {}) {
+  const scope = data.profile_scope || 'default';
   if (scope === 'global') return '全部方案';
   if (scope === 'selected') {
-    const ids = Array.isArray(perms.profile_ids) ? perms.profile_ids : [];
+    const ids = Array.isArray(data.profile_ids) ? data.profile_ids : [];
     return ids.length ? ids.map(id => getProfileName(id)).join('、') : '未指定方案';
   }
   return '默认方案';
 }
 
-function visitorProfileScopeControls(currentPerms = {}) {
-  const scope = currentPerms.profile_scope || 'default';
-  const ids = new Set(Array.isArray(currentPerms.profile_ids) ? currentPerms.profile_ids : ['default']);
-  const profileChecks = state.profiles.map(p => `
-    <label class="muted"><input type="checkbox" class="visitor-role-profile" value="${esc(p.profile_id)}" ${ids.has(p.profile_id) ? 'checked' : ''}> ${esc(p.display_name || p.profile_id)}</label>
-  `).join('') || '<div class="helper">暂无可选方案</div>';
-  return `
-    <div class="field col-12">
-      <label>方案范围</label>
-      <select class="input" id="visitorRoleProfileScope" onchange="toggleVisitorRoleProfileList()">
-        <option value="selected" ${scope === 'selected' ? 'selected' : ''}>只允许勾选方案</option>
-        <option value="default" ${scope === 'default' ? 'selected' : ''}>只允许默认方案</option>
-        <option value="global" ${scope === 'global' ? 'selected' : ''}>允许全部方案</option>
-      </select>
-      <div class="helper" style="margin-top:6px;">访客只能看到并改动这里允许的方案，不会看到其它方案和群组绑定信息。</div>
-    </div>
-    <div class="col-12" id="visitorRoleProfileList" style="display:${scope === 'selected' ? 'grid' : 'none'};grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
-      ${profileChecks}
-    </div>
-  `;
-}
-
-function toggleVisitorRoleProfileList() {
-  const el = $('#visitorRoleProfileList');
-  if (el) el.style.display = $('#visitorRoleProfileScope')?.value === 'selected' ? 'grid' : 'none';
+function visitorKeyProfileOptions() {
+  const options = [
+    `<option value="__global__">全局（全部方案）</option>`,
+    ...state.profiles.map(p => `<option value="${esc(p.profile_id)}" ${p.profile_id === state.currentProfile ? 'selected' : ''}>${esc(p.display_name || p.profile_id)}</option>`),
+  ];
+  return options.join('');
 }
 
 function draftCardImageUrl(kind, file, profileId) {
@@ -8324,7 +8322,7 @@ function renderVisitor() {
     <div class="visitor-card">
       <div class="row between">
         <div>
-          <div class="visitor-card-title">${esc(role.name)} <span class="muted">(${esc(role.id)})</span></div>
+          <div class="visitor-card-title">${esc(role.name)}</div>
           <div class="muted">${esc(role.description || '')}</div>
         </div>
         <div class="row">
@@ -8335,13 +8333,13 @@ function renderVisitor() {
       <div class="row" style="flex-wrap:wrap;margin-top:10px;">${permissionChips(role.permissions || {})}</div>
     </div>
   `).join('') || '<div class="empty">暂无身份模板</div>';
-  const roleOptions = state.visitorRoles.map(role => `<option value="${esc(role.id)}">${esc(role.name)} (${esc(role.id)})</option>`).join('');
+  const roleOptions = state.visitorRoles.map(role => `<option value="${esc(role.id)}">${esc(role.name)}</option>`).join('');
   const keysHtml = state.visitorKeys.map(item => `
     <div class="visitor-card">
       <div class="row between">
         <div>
           <div class="visitor-card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}... <span class="badge ${item.status === 'active' ? '' : 'light'}">${item.status === 'active' ? '有效' : '已撤销'}</span></div>
-          <div class="muted">创建 ${esc(visitorTime(item.created_at))} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次${item.last_used_at ? ' · 最近登录 ' + esc(visitorTime(item.last_used_at)) : ''}${item.revoked_at ? ' · 撤销 ' + esc(visitorTime(item.revoked_at)) : ''}${item.remark ? ' · ' + esc(item.remark) : ''}</div>
+          <div class="muted">范围 ${esc(visitorProfileScopeText(item))} · 创建 ${esc(visitorTime(item.created_at))} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次${item.last_used_at ? ' · 最近登录 ' + esc(visitorTime(item.last_used_at)) : ''}${item.revoked_at ? ' · 撤销 ' + esc(visitorTime(item.revoked_at)) : ''}${item.remark ? ' · ' + esc(item.remark) : ''}</div>
         </div>
         <div class="row">
           ${item.status === 'active' ? `<button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">撤销</span></button>` : ''}
@@ -8371,6 +8369,7 @@ function renderVisitor() {
       <section class="panel col-6">
         <div class="panel-header"><div><div class="panel-title">生成临时密钥</div><div class="panel-note">密钥即身份凭证，发出后谁拿到谁拥有该权限。</div></div></div>
         <div class="field"><label>选择身份</label><select class="input" id="visitorRoleSelect">${roleOptions}</select></div>
+        <div class="field"><label>授权方案</label><select class="input" id="visitorKeyProfileSelect">${visitorKeyProfileOptions()}</select></div>
         <div class="field"><label>备注</label><input class="input" id="visitorKeyRemark" placeholder="可选，只供管理员辨认"></div>
         <button class="btn-strong" onclick="createVisitorKey()"><span class="btn-text">生成密钥</span></button>
         <div id="visitorNewKeyBox" class="panel-note" style="margin-top:14px;"></div>
@@ -8444,10 +8443,13 @@ async function stopVisitorTunnel() {
 async function createVisitorKey() {
   const role_id = $('#visitorRoleSelect')?.value || '';
   const remark = $('#visitorKeyRemark')?.value?.trim() || '';
+  const profileValue = $('#visitorKeyProfileSelect')?.value || state.currentProfile || 'default';
+  const profile_scope = profileValue === '__global__' ? 'global' : 'selected';
+  const profile_ids = profile_scope === 'global' ? [] : [profileValue];
   const cfg = state.visitorTunnel?.config || {};
   const publicUrl = state.visitorTunnel?.public_url || cfg.last_public_url || cfg.custom_public_url || '';
   if (!publicUrl) return showToast('请先生成临时地址，或填写手动公网地址后保存。', true);
-  const res = await apiPost('/api/visitor/keys', { role_id, remark });
+  const res = await apiPost('/api/visitor/keys', { role_id, remark, profile_scope, profile_ids });
   if (!res.ok) return showToast(res.error || '生成失败。', true);
   await loadVisitor();
   renderVisitor();
@@ -8488,7 +8490,8 @@ async function reviewVisitorDraft(id, action) {
 
 function openVisitorRoleDialog(roleId = '') {
   const current = state.visitorRoles.find(role => role.id === roleId) || null;
-  const currentPerms = current?.permissions || { profile_scope: 'selected', profile_ids: [state.currentProfile || 'default'] };
+  state.editingVisitorRoleId = current?.id || '';
+  const currentPerms = current?.permissions || {};
   const keys = [
     ['can_view', '允许查看'],
     ['can_create_func_card', '新增功能牌'],
@@ -8507,16 +8510,14 @@ function openVisitorRoleDialog(roleId = '') {
   ];
   openDialog(current ? '编辑访客身份' : '新建访客身份', `
     <div class="grid">
-      <div class="field col-6"><label>身份名称</label><input class="input" id="visitorRoleName" value="${esc(current?.name || '')}" placeholder="例如：功能牌投稿员"></div>
-      <div class="field col-6"><label>身份 ID</label><input class="input" id="visitorRoleId" value="${esc(current?.id || '')}" ${current ? 'readonly' : ''} placeholder="可留空自动生成"></div>
+      <div class="field col-12"><label>身份名称</label><input class="input" id="visitorRoleName" value="${esc(current?.name || '')}" placeholder="例如：功能牌投稿员"></div>
       <div class="field col-12"><label>说明</label><textarea class="textarea" id="visitorRoleDesc" rows="2">${esc(current?.description || '')}</textarea></div>
       <div class="field col-4"><label>单次卡片改动上限</label><input class="input" id="visitorRoleMaxCards" type="number" value="${Number(currentPerms.max_cards_per_submit ?? 1)}"></div>
       <div class="field col-4"><label>单次图片上限</label><input class="input" id="visitorRoleMaxImages" type="number" value="${Number(currentPerms.max_images_per_submit ?? 2)}"></div>
       <div class="field col-4"><label>待审上限</label><input class="input" id="visitorRoleMaxPending" type="number" value="${Number(currentPerms.max_pending_drafts ?? 3)}"></div>
-      ${visitorProfileScopeControls(currentPerms)}
       <div class="field col-12"><label><input type="checkbox" id="visitorRoleReview" ${currentPerms.requires_review === false ? '' : 'checked'}> 提交后需要审核</label></div>
-      <div class="col-12" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
-        ${keys.map(([key, label]) => `<label class="muted"><input type="checkbox" class="visitor-role-perm" data-key="${key}" ${current ? (currentPerms[key] ? 'checked' : '') : (key === 'can_view' ? 'checked' : '')}> ${label}</label>`).join('')}
+      <div class="col-12 visitor-permission-grid">
+        ${keys.map(([key, label]) => `<label class="visitor-permission-item"><input type="checkbox" class="visitor-role-perm" data-key="${key}" ${current ? (currentPerms[key] ? 'checked' : '') : (key === 'can_view' ? 'checked' : '')}> ${label}</label>`).join('')}
       </div>
       <div class="col-12"><button class="btn-strong" onclick="saveVisitorRole()"><span class="btn-text">保存身份</span></button></div>
     </div>
@@ -8530,13 +8531,8 @@ async function saveVisitorRole() {
   permissions.max_cards_per_submit = Number($('#visitorRoleMaxCards')?.value || 1);
   permissions.max_images_per_submit = Number($('#visitorRoleMaxImages')?.value || 2);
   permissions.max_pending_drafts = Number($('#visitorRoleMaxPending')?.value || 3);
-  permissions.profile_scope = $('#visitorRoleProfileScope')?.value || 'default';
-  permissions.profile_ids = $$('.visitor-role-profile').filter(input => input.checked).map(input => input.value);
-  if (permissions.profile_scope === 'selected' && !permissions.profile_ids.length) {
-    return showToast('请选择至少一个允许访问的方案。', true);
-  }
   const body = {
-    id: $('#visitorRoleId')?.value?.trim() || '',
+    id: state.editingVisitorRoleId || '',
     name: $('#visitorRoleName')?.value?.trim() || '',
     description: $('#visitorRoleDesc')?.value?.trim() || '',
     permissions,
@@ -9768,7 +9764,6 @@ Object.assign(window, {
   deleteVisitorKeyRecord,
   reviewVisitorDraft,
   openVisitorRoleDialog,
-  toggleVisitorRoleProfileList,
   saveVisitorRole,
 });
 

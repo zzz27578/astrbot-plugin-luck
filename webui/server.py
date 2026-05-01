@@ -817,8 +817,6 @@ def _default_permissions(**overrides) -> dict:
         "max_images_per_submit": 2,
         "max_pending_drafts": 3,
         "max_image_size_mb": 5,
-        "profile_scope": "default",
-        "profile_ids": [DEFAULT_PROFILE_NAME],
     }
     data.update(overrides)
     return data
@@ -969,28 +967,34 @@ def _normalize_profile_ids(values) -> list[str]:
 
 def _normalize_permissions(perms: dict | None) -> dict:
     merged = _deep_merge_dict(_default_permissions(), perms if isinstance(perms, dict) else {})
-    scope = str(merged.get("profile_scope") or "default").strip().lower()
-    if scope in {"all", "global", "*"}:
-        merged["profile_scope"] = "global"
-        merged["profile_ids"] = []
-    elif scope == "selected":
-        ids = _normalize_profile_ids(merged.get("profile_ids", []))
-        merged["profile_scope"] = "selected"
-        merged["profile_ids"] = ids or [DEFAULT_PROFILE_NAME]
-    else:
-        merged["profile_scope"] = "default"
-        merged["profile_ids"] = [DEFAULT_PROFILE_NAME]
+    merged.pop("profile_scope", None)
+    merged.pop("profile_ids", None)
     return merged
+
+
+def _normalize_key_profile_scope(scope_value="", profile_ids=None) -> dict:
+    scope = str(scope_value or "default").strip().lower()
+    if scope in {"all", "global", "*"}:
+        return {"profile_scope": "global", "profile_ids": []}
+    ids = _normalize_profile_ids(profile_ids)
+    if ids:
+        return {"profile_scope": "selected", "profile_ids": ids}
+    return {"profile_scope": "default", "profile_ids": [DEFAULT_PROFILE_NAME]}
+
+
+def _key_profile_scope(item: dict | None) -> dict:
+    item = item if isinstance(item, dict) else {}
+    return _normalize_key_profile_scope(item.get("profile_scope"), item.get("profile_ids"))
 
 
 def _visitor_allowed_profile_ids(identity: dict | None) -> list[str]:
     if not identity or identity.get("type") == "admin":
         return _list_profile_ids()
-    perms = _normalize_permissions(identity.get("permissions", {}))
-    if perms.get("profile_scope") == "global":
+    scope_info = _normalize_key_profile_scope(identity.get("profile_scope"), identity.get("profile_ids"))
+    if scope_info.get("profile_scope") == "global":
         return _list_profile_ids()
     existing = set(_list_profile_ids())
-    ids = _normalize_profile_ids(perms.get("profile_ids", []))
+    ids = _normalize_profile_ids(scope_info.get("profile_ids", []))
     ids = [pid for pid in ids if pid in existing]
     if not ids and DEFAULT_PROFILE_NAME in existing:
         ids = [DEFAULT_PROFILE_NAME]
@@ -1057,6 +1061,7 @@ def _public_key_record(item: dict) -> dict:
         "last_used_at": item.get("last_used_at", 0),
         "uses": item.get("uses", 0),
         "submissions": item.get("submissions", 0),
+        **_key_profile_scope(item),
     }
 
 
@@ -1089,8 +1094,6 @@ def _session_role_permissions(request: web.Request) -> dict:
             max_cards_per_submit=100,
             max_images_per_submit=100,
             max_pending_drafts=999,
-            profile_scope="global",
-            profile_ids=[],
         )
     return _normalize_permissions(identity.get("permissions", {}))
 
@@ -1349,6 +1352,8 @@ def _public_session_identity(identity: dict) -> dict:
         "role_name": identity.get("role_name", "管理员" if identity.get("type") == "admin" else ""),
         "key_prefix": identity.get("key_prefix", ""),
         "permissions": _normalize_permissions(identity.get("permissions", {})) if identity.get("type") == "visitor" else identity.get("permissions", {}),
+        "profile_scope": identity.get("profile_scope", "global" if identity.get("type") == "admin" else "default"),
+        "profile_ids": identity.get("profile_ids", [] if identity.get("type") == "admin" else [DEFAULT_PROFILE_NAME]),
     }
 
 
@@ -1375,9 +1380,9 @@ def _admin_identity() -> dict:
             max_cards_per_submit=100,
             max_images_per_submit=100,
             max_pending_drafts=999,
-            profile_scope="global",
-            profile_ids=[],
         ),
+        "profile_scope": "global",
+        "profile_ids": [],
     }
 
 
@@ -1402,6 +1407,7 @@ def _verify_visitor_key(secret: str) -> dict | None:
     matched["uses"] = int(matched.get("uses", 0) or 0) + 1
     matched["last_used_at"] = now
     _atomic_write(VISITOR_KEYS_FILE, keys)
+    scope_info = _key_profile_scope(matched)
     return {
         "type": "visitor",
         "invite_id": matched.get("id", ""),
@@ -1409,6 +1415,7 @@ def _verify_visitor_key(secret: str) -> dict | None:
         "role_id": role.get("id", ""),
         "role_name": role.get("name", ""),
         "permissions": _normalize_permissions(role.get("permissions", {})),
+        **scope_info,
     }
 
 
@@ -1419,6 +1426,15 @@ def _is_visitor_invite_active(invite_id: str) -> bool:
         if item.get("id") == invite_id:
             return item.get("status", "active") == "active"
     return False
+
+
+def _visitor_key_record(invite_id: str) -> dict | None:
+    if not invite_id:
+        return None
+    for item in _read_list_file(VISITOR_KEYS_FILE):
+        if item.get("id") == invite_id:
+            return item if item.get("status", "active") == "active" else None
+    return None
 
 
 def _invalidate_visitor_sessions(invite_id: str):
@@ -1473,7 +1489,8 @@ async def auth_middleware(request: web.Request, handler):
     if _is_public_request_path(path) or _is_authenticated_request(request):
         if _is_visitor_request(request):
             identity = _get_session_identity(request)
-            if not _is_visitor_invite_active(identity.get("invite_id", "")):
+            key_record = _visitor_key_record(identity.get("invite_id", ""))
+            if not key_record:
                 token = _get_session_token(request)
                 if token:
                     _AUTH_SESSIONS.pop(token, None)
@@ -1496,6 +1513,7 @@ async def auth_middleware(request: web.Request, handler):
                 raise web.HTTPFound("/")
             identity["role_name"] = role.get("name", identity.get("role_name", ""))
             identity["permissions"] = _normalize_permissions(role.get("permissions", {}))
+            identity.update(_key_profile_scope(key_record))
             if path.startswith("/api/") and not _is_visitor_api_path_allowed(request):
                 return _visitor_error("当前访客身份不能访问该管理接口。")
             if path.startswith("/api/") and _is_profile_scoped_path(path):
@@ -2768,7 +2786,6 @@ def visitor_get_roles_summary() -> str:
             bits.append("可上传图片")
         if perms.get("can_use_lazy_batch_cards"):
             bits.append("可使用懒狗批量")
-        bits.append("方案范围:" + ("全部" if _normalize_permissions(perms).get("profile_scope") == "global" else "指定/默认"))
         bits.append("需审核" if perms.get("requires_review", True) else "免审核")
         lines.append(f"{role.get('name')} ({role.get('id')}): " + "、".join(bits))
     return "\n".join(lines)
@@ -3106,18 +3123,20 @@ async def visitor_ensure_public_url(port: int = 4399) -> dict:
         return {"ok": False, "error": str(exc), "public_url": fallback}
 
 
-def visitor_create_key_from_role(role_name_or_id: str, remark: str = "") -> dict:
+def visitor_create_key_from_role(role_name_or_id: str, remark: str = "", profile_scope: str = "default", profile_ids=None) -> dict:
     role = _find_role_by_name_or_id(role_name_or_id)
     if not role:
         return {"ok": False, "error": "未找到该访客身份。"}
     _ensure_visitor_files()
     secret = _make_visitor_key()
+    scope_info = _normalize_key_profile_scope(profile_scope, profile_ids)
     item = {
         "id": f"key_{uuid.uuid4().hex[:12]}",
         "secret_hash": _hash_secret(secret),
         "key_prefix": secret[:10],
         "role_id": role.get("id", ""),
         "role_name": role.get("name", ""),
+        **scope_info,
         "remark": str(remark or "").strip(),
         "status": "active",
         "created_at": int(time.time()),
@@ -3129,7 +3148,7 @@ def visitor_create_key_from_role(role_name_or_id: str, remark: str = "") -> dict
     keys.append(item)
     keys = _trim_visitor_key_records(keys)
     _atomic_write(VISITOR_KEYS_FILE, keys)
-    _append_audit("key_created", {"key_id": item["id"], "role_id": item["role_id"], "remark": item["remark"]})
+    _append_audit("key_created", {"key_id": item["id"], "role_id": item["role_id"], "remark": item["remark"], **scope_info})
     return {"ok": True, "key": secret, "record": _public_key_record(item), "role": _public_role(role), "public_url": visitor_public_url()}
 
 
@@ -3257,7 +3276,12 @@ async def api_visitor_keys(request):
         keys = [_public_key_record(item) for item in reversed(kept)]
         return web.json_response({"ok": True, "keys": keys})
     body = await request.json()
-    result = visitor_create_key_from_role(body.get("role_id") or body.get("role_name"), body.get("remark", ""))
+    result = visitor_create_key_from_role(
+        body.get("role_id") or body.get("role_name"),
+        body.get("remark", ""),
+        body.get("profile_scope", "default"),
+        body.get("profile_ids", []),
+    )
     status = 200 if result.get("ok") else 400
     return web.json_response(result, status=status)
 

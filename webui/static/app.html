@@ -2681,8 +2681,20 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .draft-card { border: 1px solid rgba(33,163,102,0.2); background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,247,0.96)); padding: 16px; display: grid; gap: 12px; }
 .draft-summary { font-family: var(--font-headline); font-size: 16px; font-weight: 900; color: var(--shard-text); }
 .draft-meta { color: var(--shard-text-muted); font-size: 12px; line-height: 1.7; }
+.draft-preview-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.draft-preview-section { display:grid; gap:8px; }
+.draft-preview-label { font-size:11px; font-weight:900; color:var(--shard-text-muted); text-transform:uppercase; }
+.draft-mini-card { border:1px solid var(--shard-border); background:rgba(255,255,255,0.72); padding:10px; display:grid; grid-template-columns:58px minmax(0,1fr); gap:10px; align-items:start; }
+.draft-mini-cover { width:58px; aspect-ratio:1; background:var(--shard-bg); border:1px dashed var(--shard-border); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:11px; color:var(--shard-text-muted); }
+.draft-mini-cover img { width:100%; height:100%; object-fit:cover; display:block; }
+.draft-mini-title { font-weight:900; color:var(--shard-text); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.draft-mini-desc { font-size:12px; line-height:1.55; color:var(--shard-text-muted); margin-top:4px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.draft-image-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; }
+.draft-image-item { border:1px solid var(--shard-border); background:rgba(255,255,255,0.72); padding:8px; min-width:0; }
+.draft-image-item img { width:100%; aspect-ratio:1; object-fit:cover; background:var(--shard-bg); border:1px solid rgba(0,0,0,0.06); }
+.draft-image-item div { margin-top:6px; font-size:11px; color:var(--shard-text-muted); word-break:break-all; }
 @media (max-width: 900px) {
-  .visitor-hero, .visitor-grid-tight, .visitor-kpis, .visitor-env-grid, .visitor-cloud-choice-grid { grid-template-columns: 1fr; }
+  .visitor-hero, .visitor-grid-tight, .visitor-kpis, .visitor-env-grid, .visitor-cloud-choice-grid, .draft-preview-grid { grid-template-columns: 1fr; }
 }
 .archive-index-group { margin-bottom: 18px; border: 1px solid rgba(26, 158, 94, 0.14); background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,247,245,0.96)); padding: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.72); }
 .archive-index-group.archive-index-draft { border: 2px dashed rgba(243, 156, 18, 0.52); background: linear-gradient(180deg, rgba(255,248,236,0.94), rgba(255,244,228,0.88)); }
@@ -4305,6 +4317,7 @@ const state = {
   visitorDrafts: [],
   visitorTunnel: { config: {}, detected_path: '', local_url: '', quick_tunnel_command: '', install_hint: '', docs: [] },
   visitorCloudflaredNoticeShown: false,
+  visitorPollTimer: null,
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -4750,6 +4763,7 @@ function revealConfigShellForMorph() {
   $('.glass-side').style.display = 'flex';
   $('#configPages').style.display = 'block';
   $('#statsPages').style.display = 'none';
+  $('#visitorPages').style.display = 'none';
   $('.toolbar-actions').style.display = 'flex';
   $('.shard-header').style.display = 'flex';
   setPage(state.activePage);
@@ -4769,6 +4783,7 @@ function finalizeConfigMorph() {
   $('.glass-side').style.display = 'flex';
   $('#configPages').style.display = 'block';
   $('#statsPages').style.display = 'none';
+  $('#visitorPages').style.display = 'none';
   $('.toolbar-actions').style.display = 'flex';
   $('.shard-header').style.display = 'flex';
   setPage(state.activePage);
@@ -5331,6 +5346,7 @@ function setTopView(view) {
     saveUiPrefs();
     syncTopViewButtons(view);
     if (view === 'home') {
+      stopVisitorPolling();
       if (prevView === 'home') {
         clearShellEnterAnimation();
         resetHomeMorphState();
@@ -5353,6 +5369,7 @@ function setTopView(view) {
     resetHomeMorphState();
     $('.glass-top').style.display = 'flex';
     if (view === 'stats') {
+      stopVisitorPolling();
       $('.glass-side').style.display = 'none';
       $('#homePages').style.display = 'none';
       $('#configPages').style.display = 'none';
@@ -5368,6 +5385,7 @@ function setTopView(view) {
       return;
     }
     if (view === 'visitor') {
+      ensureVisitorPolling();
       $('.glass-side').style.display = 'none';
       $('#homePages').style.display = 'none';
       $('#configPages').style.display = 'none';
@@ -5383,6 +5401,7 @@ function setTopView(view) {
       return;
     }
     $('.glass-side').style.display = 'flex';
+    stopVisitorPolling();
     $('#homePages').style.display = 'none';
     $('#configPages').style.display = 'block';
     $('#statsPages').style.display = 'none';
@@ -5595,7 +5614,9 @@ async function loadStats(profileId = state.currentProfile) {
     if (res.ok) state.stats = res.stats || { total_groups: 0, total_users: 0, active_users: 0, total_gold: 0, total_cards_issued: 0, total_sign_ins: 0, rarity_distribution: {}, wealth_leaderboard: [], groups: [], card_holders: {}, title_holders: {} };
   }
 async function refreshActiveProfileData() {
-  await Promise.all([loadRuntime(), loadGroupAccess(), loadSignin(), loadFate(), loadCards(), loadTitles(), loadStats()]);
+  const tasks = [loadRuntime(), loadSignin(), loadFate(), loadCards(), loadTitles(), loadStats()];
+  if (state.identity.type !== 'visitor') tasks.push(loadGroupAccess());
+  await Promise.all(tasks);
 }
 async function refreshProfilesAndStats() {
   await Promise.all([loadProfiles(), loadStats(state.statsViewProfile || state.currentProfile)]);
@@ -5637,6 +5658,22 @@ async function loadVisitor() {
   } catch (e) {
     console.warn('loadVisitor failed:', e);
   }
+}
+
+function stopVisitorPolling() {
+  if (state.visitorPollTimer) {
+    clearInterval(state.visitorPollTimer);
+    state.visitorPollTimer = null;
+  }
+}
+
+function ensureVisitorPolling() {
+  if (state.visitorPollTimer) return;
+  state.visitorPollTimer = setInterval(async () => {
+    if (!state.homeAccessVerified || state.topView !== 'visitor') return;
+    await loadVisitor();
+    renderVisitor();
+  }, 5000);
 }
 
 
@@ -5923,6 +5960,7 @@ function setFuncFilter(value) {
 // ===== [ page: overview ] ==================================================
 function renderOverview() {
   const page = $('#page-overview');
+  const isVisitor = state.identity.type === 'visitor';
   const activeProfileData = state.profiles.find(p => p.profile_id === state.currentProfile) || state.profiles[0] || {};
   page.innerHTML = `
     <div class="grid">
@@ -5931,7 +5969,7 @@ function renderOverview() {
           <div>
             <div class="panel-title">方案管理</div>
           </div>
-          <div class="toolbar-actions">
+          <div class="toolbar-actions" style="${isVisitor ? 'display:none;' : ''}">
             <button class="btn" onclick="editProfile('${esc(activeProfileData.profile_id)}')"><span class="btn-text">编辑当前方案</span></button>
             <button class="btn-strong" onclick="openCreateProfileDialog()"><span class="btn-text">新建方案</span></button>
           </div>
@@ -5953,7 +5991,7 @@ function renderOverview() {
                   </div>
                   <div class="row" style="min-height: 22px;">
                     ${p.is_default ? '<span class="badge light">默认方案</span>' : ''}
-                    <span class="badge">已绑群组 ${(p.groups || []).length}</span>
+                    ${isVisitor ? '<span class="badge light">访客可见</span>' : `<span class="badge">已绑群组 ${(p.groups || []).length}</span>`}
                     ${(p.tags || []).map(t => `<span class="badge">${esc(t)}</span>`).join('')}
                   </div>
                 </div>
@@ -5977,6 +6015,15 @@ function renderOverview() {
       </section>
 
       <section class="panel col-4">
+        ${isVisitor ? `
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">群组接入</div>
+            <div class="panel-note">访客身份不能查看或修改群组绑定。</div>
+          </div>
+        </div>
+        <div class="empty">已封锁</div>
+        ` : `
         <div class="panel-head">
           <div>
             <div class="panel-title">群组接入</div>
@@ -6002,6 +6049,7 @@ function renderOverview() {
             </div>
           `).join('')}
         </div>
+        `}
       </section>
     </div>`;
 }
@@ -7608,6 +7656,7 @@ function triggerSystemMorph() {
   $('.glass-side').style.display = 'flex';
   $('#configPages').style.display = 'block';
   $('#statsPages').style.display = 'none';
+  $('#visitorPages').style.display = 'none';
   $('.toolbar-actions').style.display = 'flex';
   $('.shard-header').style.display = 'flex';
   setPage(state.activePage);
@@ -8031,6 +8080,9 @@ function permissionChips(perms = {}) {
     ['can_create_func_card', '新增功能牌'],
     ['can_edit_func_card', '修改功能牌'],
     ['can_delete_func_card', '删除功能牌'],
+    ['can_create_fate_card', '新增命运牌'],
+    ['can_edit_fate_card', '修改命运牌'],
+    ['can_delete_fate_card', '删除命运牌'],
     ['can_upload_image', '上传图片'],
     ['can_use_lazy_batch_cards', '懒狗批量'],
     ['can_use_lazy_batch_images', '批量图片'],
@@ -8040,6 +8092,7 @@ function permissionChips(perms = {}) {
   ];
   const chips = defs.filter(([key]) => perms[key]).map(([, label]) => `<span class="badge">${label}</span>`);
   chips.push(`<span class="badge ${perms.requires_review === false ? 'light' : ''}">${perms.requires_review === false ? '免审核' : '需要审核'}</span>`);
+  chips.push(`<span class="badge light">范围 ${esc(visitorProfileScopeText(perms))}</span>`);
   chips.push(`<span class="badge light">单次 ${Number(perms.max_cards_per_submit || 0)} 项</span>`);
   chips.push(`<span class="badge light">图片 ${Number(perms.max_images_per_submit || 0)} 张</span>`);
   return chips.join('');
@@ -8051,11 +8104,103 @@ function visitorTime(ts) {
   return new Date(n * 1000).toLocaleString();
 }
 
-function renderDraftBrief(draft) {
-  const statusText = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }[draft.status] || draft.status || '未知';
+function visitorProfileScopeText(perms = {}) {
+  const scope = perms.profile_scope || 'default';
+  if (scope === 'global') return '全部方案';
+  if (scope === 'selected') {
+    const ids = Array.isArray(perms.profile_ids) ? perms.profile_ids : [];
+    return ids.length ? ids.map(id => getProfileName(id)).join('、') : '未指定方案';
+  }
+  return '默认方案';
+}
+
+function visitorProfileScopeControls(currentPerms = {}) {
+  const scope = currentPerms.profile_scope || 'default';
+  const ids = new Set(Array.isArray(currentPerms.profile_ids) ? currentPerms.profile_ids : ['default']);
+  const profileChecks = state.profiles.map(p => `
+    <label class="muted"><input type="checkbox" class="visitor-role-profile" value="${esc(p.profile_id)}" ${ids.has(p.profile_id) ? 'checked' : ''}> ${esc(p.display_name || p.profile_id)}</label>
+  `).join('') || '<div class="helper">暂无可选方案</div>';
+  return `
+    <div class="field col-12">
+      <label>方案范围</label>
+      <select class="input" id="visitorRoleProfileScope" onchange="toggleVisitorRoleProfileList()">
+        <option value="selected" ${scope === 'selected' ? 'selected' : ''}>只允许勾选方案</option>
+        <option value="default" ${scope === 'default' ? 'selected' : ''}>只允许默认方案</option>
+        <option value="global" ${scope === 'global' ? 'selected' : ''}>允许全部方案</option>
+      </select>
+      <div class="helper" style="margin-top:6px;">访客只能看到并改动这里允许的方案，不会看到其它方案和群组绑定信息。</div>
+    </div>
+    <div class="col-12" id="visitorRoleProfileList" style="display:${scope === 'selected' ? 'grid' : 'none'};grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+      ${profileChecks}
+    </div>
+  `;
+}
+
+function toggleVisitorRoleProfileList() {
+  const el = $('#visitorRoleProfileList');
+  if (el) el.style.display = $('#visitorRoleProfileScope')?.value === 'selected' ? 'grid' : 'none';
+}
+
+function draftCardImageUrl(kind, file, profileId) {
+  const safe = encodeURIComponent(file || '');
+  const profile = encodeURIComponent(profileId || state.currentProfile || 'default');
+  return kind === 'fate' ? `/fate_assets/${safe}?profile=${profile}` : `/assets/${safe}?profile=${profile}`;
+}
+
+function renderDraftMiniCard(card = {}, kind = 'func', profileId = '') {
+  const file = card.filename || '';
+  const title = kind === 'fate' ? (card.name || '命运牌') : (card.card_name || '功能牌');
+  const desc = kind === 'fate'
+    ? `${card.text || '暂无文案'}${card.gold !== undefined ? `\n金币 ${card.gold}` : ''}`
+    : `${card.description || '暂无描述'}${Array.isArray(card.tags) && card.tags.length ? `\n${card.tags.join('，')}` : ''}`;
+  return `
+    <div class="draft-mini-card">
+      <div class="draft-mini-cover">${file ? `<img src="${draftCardImageUrl(kind, file, profileId)}" alt="">` : '无图'}</div>
+      <div>
+        <div class="draft-mini-title">${esc(title)}</div>
+        <div class="draft-mini-desc">${esc(desc)}</div>
+      </div>
+    </div>`;
+}
+
+function renderDraftPreview(draft) {
+  const preview = draft.preview || {};
+  if (preview.type === 'cards') {
+    const kind = preview.kind || 'func';
+    const created = (preview.created || []).map(card => renderDraftMiniCard(card, kind, draft.profile_id)).join('');
+    const deleted = (preview.deleted || []).map(card => renderDraftMiniCard(card, kind, draft.profile_id)).join('');
+    const updated = (preview.updated || []).map(pair => `
+      <div class="draft-preview-grid">
+        <div class="draft-preview-section"><div class="draft-preview-label">修改前</div>${renderDraftMiniCard(pair.before, kind, draft.profile_id)}</div>
+        <div class="draft-preview-section"><div class="draft-preview-label">修改后</div>${renderDraftMiniCard(pair.after, kind, draft.profile_id)}</div>
+      </div>
+    `).join('');
+    const html = `
+      ${created ? `<div class="draft-preview-section"><div class="draft-preview-label">新增</div>${created}</div>` : ''}
+      ${updated ? `<div class="draft-preview-section"><div class="draft-preview-label">修改</div>${updated}</div>` : ''}
+      ${deleted ? `<div class="draft-preview-section"><div class="draft-preview-label">删除</div>${deleted}</div>` : ''}
+    `;
+    return html.trim() ? html : '<div class="visitor-muted-box">没有检测到卡片差异。</div>';
+  }
+  if (preview.type === 'images') {
+    const kind = preview.kind || 'func';
+    const files = preview.files || [];
+    return `<div class="draft-image-grid">${files.map(file => `
+      <div class="draft-image-item"><img src="${draftCardImageUrl(kind, file, draft.profile_id)}" alt=""><div>${esc(file)}</div></div>
+    `).join('')}</div>`;
+  }
+  if (preview.type === 'fields') {
+    const fields = preview.fields || [];
+    return `<div class="visitor-muted-box">${fields.map(item => `<div>${esc(item.key)}：${esc(JSON.stringify(item.before))} -> ${esc(JSON.stringify(item.after))}</div>`).join('') || '无明显字段变化'}</div>`;
+  }
   const details = Array.isArray(draft.details) && draft.details.length
     ? draft.details.map(item => `<div>${esc(item)}</div>`).join('')
-    : '<div>已隐藏完整配置，只显示本次改动摘要。</div>';
+    : '<div>暂无详细预览。</div>';
+  return `<div class="visitor-muted-box">${details}</div>`;
+}
+
+function renderDraftBrief(draft) {
+  const statusText = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }[draft.status] || draft.status || '未知';
   const adminActions = state.identity.type === 'admin' && draft.status === 'pending'
     ? `<div class="visitor-actions"><button class="btn-strong" onclick="reviewVisitorDraft('${esc(draft.id)}','approve')"><span class="btn-text">通过</span></button><button class="btn-danger" onclick="reviewVisitorDraft('${esc(draft.id)}','reject')"><span class="btn-text">拒绝并移除</span></button></div>`
     : '';
@@ -8067,7 +8212,7 @@ function renderDraftBrief(draft) {
       </div>
       <span class="badge">${esc(statusText)}</span>
     </div>
-    <div class="visitor-muted-box">${details}</div>
+    ${renderDraftPreview(draft)}
     ${adminActions}
   </div>`;
 }
@@ -8084,8 +8229,6 @@ function renderCloudflaredPanel(tunnel = {}) {
   const cfg = tunnel.config || {};
   const manual = tunnel.manual || {};
   const detectedOk = !!tunnel.detected;
-  const acceptedPaths = Array.isArray(manual.accepted_paths) && manual.accepted_paths.length ? manual.accepted_paths : [tunnel.managed_path || manual.managed_path || ''];
-  const acceptedNames = Array.isArray(manual.accepted_filenames) && manual.accepted_filenames.length ? manual.accepted_filenames.join(' 或 ') : (manual.filename || 'cloudflared');
   const manualNote = manual.kind === 'tgz'
     ? '下载 .tgz 后可以直接放进下面目录；插件会自动解压并整理。'
     : '下载后直接放进下面目录即可，不需要手动改名；插件会自动整理成可启动的文件名。';
@@ -8138,7 +8281,6 @@ function renderCloudflaredPanel(tunnel = {}) {
             <div class="visitor-cloud-choice">
               <div class="visitor-card-title">放置目录和整理检测</div>
               <div class="visitor-copy-line"><div class="visitor-code">${esc(manual.bin_dir || tunnel.bin_dir || '')}</div><button class="btn-mini" onclick='copyText(${jsArg(manual.bin_dir || tunnel.bin_dir || '')})'><span class="btn-text">复制目录</span></button></div>
-              <div class="visitor-muted-box">可接受文件名：${esc(acceptedNames)}<br>推荐放置路径：${esc(acceptedPaths.join(' 或 '))}<br>插件会自动复制/改名为 ${esc(manual.filename || 'cloudflared')}，Linux/macOS 会自动补执行权限。</div>
               <div class="field"><label>已有 cloudflared 路径或目录，可留空</label><input class="input" id="cloudflaredManualPath" value="${esc(cfg.cloudflared_path || '')}" placeholder="留空时扫描上面的 bin 目录"></div>
               <div class="visitor-actions">
                 <button class="btn-strong" onclick="prepareCloudflared()"><span class="btn-text">整理文件并检测</span></button>
@@ -8159,7 +8301,7 @@ function renderCloudflaredPanel(tunnel = {}) {
           <div class="field"><label>推荐启动命令</label><input class="input" readonly value="${esc(tunnel.quick_tunnel_command || '')}"></div>
           <div class="visitor-actions">
             ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : ''}
-            <button class="btn" onclick="saveVisitorTunnel()"><span class="btn-text">保存手动地址/下载源</span></button>
+            <button class="btn" onclick="saveVisitorTunnel()"><span class="btn-text">保存手动地址</span></button>
             <button class="btn" onclick='copyText(${jsArg(tunnel.quick_tunnel_command || '')})'><span class="btn-text">复制命令</span></button>
             ${tunnel.running ? `<button class="btn-danger" onclick="stopVisitorTunnel()"><span class="btn-text">停止通道</span></button>` : ''}
           </div>
@@ -8193,10 +8335,13 @@ function renderVisitor() {
     <div class="visitor-card">
       <div class="row between">
         <div>
-          <div class="visitor-card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}...</div>
-          <div class="muted">创建 ${esc(visitorTime(item.created_at))} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次${item.last_used_at ? ' · 最近登录 ' + esc(visitorTime(item.last_used_at)) : ''}${item.remark ? ' · ' + esc(item.remark) : ''}</div>
+          <div class="visitor-card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}... <span class="badge ${item.status === 'active' ? '' : 'light'}">${item.status === 'active' ? '有效' : '已撤销'}</span></div>
+          <div class="muted">创建 ${esc(visitorTime(item.created_at))} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次${item.last_used_at ? ' · 最近登录 ' + esc(visitorTime(item.last_used_at)) : ''}${item.revoked_at ? ' · 撤销 ' + esc(visitorTime(item.revoked_at)) : ''}${item.remark ? ' · ' + esc(item.remark) : ''}</div>
         </div>
-        <button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">删除</span></button>
+        <div class="row">
+          ${item.status === 'active' ? `<button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">撤销</span></button>` : ''}
+          <button class="btn" onclick="deleteVisitorKeyRecord('${esc(item.id)}')"><span class="btn-text">删除记录</span></button>
+        </div>
       </div>
     </div>
   `).join('') || '<div class="empty">暂无临时密钥</div>';
@@ -8308,13 +8453,23 @@ async function createVisitorKey() {
 }
 
 async function revokeVisitorKey(id) {
-  if (!confirm('删除后这个访客密钥会立刻失效，确认删除吗？')) return;
+  if (!confirm('撤销后这个访客密钥会立刻失效，确认撤销吗？')) return;
   const res = await apiPost(`/api/visitor/keys/${encodeURIComponent(id)}/revoke`, {});
   if (res.ok) {
     await loadVisitor();
     renderVisitor();
-    showToast('密钥已删除并失效。');
-  } else showToast(res.error || '删除失败。', true);
+    showToast('密钥已撤销并失效。');
+  } else showToast(res.error || '撤销失败。', true);
+}
+
+async function deleteVisitorKeyRecord(id) {
+  if (!confirm('确认删除这条临时密钥记录吗？如果它仍有效，也会同时失效。')) return;
+  const res = await apiDelete(`/api/visitor/keys/${encodeURIComponent(id)}`);
+  if (res.ok) {
+    await loadVisitor();
+    renderVisitor();
+    showToast('密钥记录已删除。');
+  } else showToast(res.error || '删除记录失败。', true);
 }
 
 async function reviewVisitorDraft(id, action) {
@@ -8328,7 +8483,7 @@ async function reviewVisitorDraft(id, action) {
 
 function openVisitorRoleDialog(roleId = '') {
   const current = state.visitorRoles.find(role => role.id === roleId) || null;
-  const currentPerms = current?.permissions || {};
+  const currentPerms = current?.permissions || { profile_scope: 'selected', profile_ids: [state.currentProfile || 'default'] };
   const keys = [
     ['can_view', '允许查看'],
     ['can_create_func_card', '新增功能牌'],
@@ -8353,6 +8508,7 @@ function openVisitorRoleDialog(roleId = '') {
       <div class="field col-4"><label>单次卡片改动上限</label><input class="input" id="visitorRoleMaxCards" type="number" value="${Number(currentPerms.max_cards_per_submit ?? 1)}"></div>
       <div class="field col-4"><label>单次图片上限</label><input class="input" id="visitorRoleMaxImages" type="number" value="${Number(currentPerms.max_images_per_submit ?? 2)}"></div>
       <div class="field col-4"><label>待审上限</label><input class="input" id="visitorRoleMaxPending" type="number" value="${Number(currentPerms.max_pending_drafts ?? 3)}"></div>
+      ${visitorProfileScopeControls(currentPerms)}
       <div class="field col-12"><label><input type="checkbox" id="visitorRoleReview" ${currentPerms.requires_review === false ? '' : 'checked'}> 提交后需要审核</label></div>
       <div class="col-12" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
         ${keys.map(([key, label]) => `<label class="muted"><input type="checkbox" class="visitor-role-perm" data-key="${key}" ${current ? (currentPerms[key] ? 'checked' : '') : (key === 'can_view' ? 'checked' : '')}> ${label}</label>`).join('')}
@@ -8369,6 +8525,11 @@ async function saveVisitorRole() {
   permissions.max_cards_per_submit = Number($('#visitorRoleMaxCards')?.value || 1);
   permissions.max_images_per_submit = Number($('#visitorRoleMaxImages')?.value || 2);
   permissions.max_pending_drafts = Number($('#visitorRoleMaxPending')?.value || 3);
+  permissions.profile_scope = $('#visitorRoleProfileScope')?.value || 'default';
+  permissions.profile_ids = $$('.visitor-role-profile').filter(input => input.checked).map(input => input.value);
+  if (permissions.profile_scope === 'selected' && !permissions.profile_ids.length) {
+    return showToast('请选择至少一个允许访问的方案。', true);
+  }
   const body = {
     id: $('#visitorRoleId')?.value?.trim() || '',
     name: $('#visitorRoleName')?.value?.trim() || '',
@@ -8860,7 +9021,15 @@ async function saveFateEditor() {
   else state.fateCards.push(payload);
   closeDialog();
   renderFate();
-  await saveFateCards(false);
+  const res = await saveFateCards(false);
+  if (res?.pending_review) {
+    await loadVisitor();
+    showToast('命运牌已提交到待审核，管理员通过后写入正式牌库。');
+  } else if (res?.ok) {
+    showToast('命运牌已写入。');
+  } else {
+    showToast(res?.error || '命运牌保存失败。', true);
+  }
 }
 async function saveFateCards(show = true) {
   const res = await apiPost('/api/fate_cards', { cards: state.fateCards });
@@ -8918,7 +9087,8 @@ async function uploadImages(endpoint, onReload, onRender, successText) {
     if (data.ok) {
       await onReload();
       onRender();
-      showToast(successText);
+      if (data.pending_review) await loadVisitor();
+      showToast(data.pending_review ? '图片已上传，并进入待审核记录。' : successText);
     } else {
       showToast(data.error || '上传失败。', true);
     }
@@ -9156,10 +9326,17 @@ async function saveFuncEditor() {
   else state.funcCards.push(payload);
   closeDialog();
   renderCards();
-  await saveFuncCards(false);
+  const res = await saveFuncCards(false);
   await refreshCardAssets(false);
   renderCards();
-  showToast('功能牌已写入。');
+  if (res?.pending_review) {
+    await loadVisitor();
+    showToast('功能牌已提交到待审核，管理员通过后写入正式牌库。');
+  } else if (res?.ok) {
+    showToast('功能牌已写入。');
+  } else {
+    showToast(res?.error || '功能牌保存失败。', true);
+  }
 }
 async function saveFuncCards(show = true) {
   const res = await apiPost('/api/func_cards', { cards: state.funcCards });
@@ -9580,6 +9757,14 @@ Object.assign(window, {
   editProfile,
   saveProfileEdit,
   deleteProfileConfirm,
+  prepareCloudflared,
+  createVisitorKey,
+  revokeVisitorKey,
+  deleteVisitorKeyRecord,
+  reviewVisitorDraft,
+  openVisitorRoleDialog,
+  toggleVisitorRoleProfileList,
+  saveVisitorRole,
 });
 
 async function bootstrapWebUi() {

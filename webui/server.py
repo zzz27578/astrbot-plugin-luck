@@ -74,6 +74,7 @@ VISITOR_KEYS_FILE = VISITOR_DATA_DIR / "keys.json"
 VISITOR_DRAFTS_FILE = VISITOR_DATA_DIR / "drafts.json"
 VISITOR_AUDIT_FILE = VISITOR_DATA_DIR / "audit_logs.json"
 VISITOR_TUNNEL_FILE = VISITOR_DATA_DIR / "tunnel_config.json"
+VISITOR_KEY_RECORD_LIMIT = 100
 _WEBUI_ACCESS_PASSWORD = WEBUI_DEFAULT_ACCESS_PASSWORD
 _AUTH_SESSIONS: dict[str, dict] = {}
 _CLOUDFLARED_PROCESS = None
@@ -774,6 +775,8 @@ def _default_permissions(**overrides) -> dict:
         "max_images_per_submit": 2,
         "max_pending_drafts": 3,
         "max_image_size_mb": 5,
+        "profile_scope": "default",
+        "profile_ids": [DEFAULT_PROFILE_NAME],
     }
     data.update(overrides)
     return data
@@ -879,6 +882,20 @@ def _read_dict_file(path: Path) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def _trim_visitor_key_records(keys: list[dict]) -> list[dict]:
+    items = [item for item in keys if isinstance(item, dict)]
+    if len(items) <= VISITOR_KEY_RECORD_LIMIT:
+        return items
+    active_ids = {item.get("id") for item in items if item.get("status", "active") == "active"}
+    kept = [item for item in items if item.get("id") in active_ids]
+    for item in reversed(items):
+        if len(kept) >= VISITOR_KEY_RECORD_LIMIT:
+            break
+        if item.get("id") not in active_ids:
+            kept.insert(0, item)
+    return kept[-VISITOR_KEY_RECORD_LIMIT:]
+
+
 def _load_visitor_roles() -> list[dict]:
     _ensure_visitor_files()
     roles = _read_list_file(VISITOR_ROLES_FILE)
@@ -895,6 +912,53 @@ def _load_visitor_roles() -> list[dict]:
 
 def _role_map() -> dict[str, dict]:
     return {str(role.get("id", "")): role for role in _load_visitor_roles() if isinstance(role, dict)}
+
+
+def _normalize_profile_ids(values) -> list[str]:
+    ids = []
+    if isinstance(values, str):
+        values = [values]
+    for value in values if isinstance(values, list) else []:
+        profile_id = _sanitize_profile_id(value)
+        if profile_id and profile_id not in ids:
+            ids.append(profile_id)
+    return ids
+
+
+def _normalize_permissions(perms: dict | None) -> dict:
+    merged = _deep_merge_dict(_default_permissions(), perms if isinstance(perms, dict) else {})
+    scope = str(merged.get("profile_scope") or "default").strip().lower()
+    if scope in {"all", "global", "*"}:
+        merged["profile_scope"] = "global"
+        merged["profile_ids"] = []
+    elif scope == "selected":
+        ids = _normalize_profile_ids(merged.get("profile_ids", []))
+        merged["profile_scope"] = "selected"
+        merged["profile_ids"] = ids or [DEFAULT_PROFILE_NAME]
+    else:
+        merged["profile_scope"] = "default"
+        merged["profile_ids"] = [DEFAULT_PROFILE_NAME]
+    return merged
+
+
+def _visitor_allowed_profile_ids(identity: dict | None) -> list[str]:
+    if not identity or identity.get("type") == "admin":
+        return _list_profile_ids()
+    perms = _normalize_permissions(identity.get("permissions", {}))
+    if perms.get("profile_scope") == "global":
+        return _list_profile_ids()
+    existing = set(_list_profile_ids())
+    ids = _normalize_profile_ids(perms.get("profile_ids", []))
+    ids = [pid for pid in ids if pid in existing]
+    if not ids and DEFAULT_PROFILE_NAME in existing:
+        ids = [DEFAULT_PROFILE_NAME]
+    return ids
+
+
+def _is_profile_allowed_for_identity(identity: dict | None, profile_id: str) -> bool:
+    if not identity or identity.get("type") != "visitor":
+        return True
+    return _sanitize_profile_id(profile_id) in set(_visitor_allowed_profile_ids(identity))
 
 
 def _normalize_role_id(value: str) -> str:
@@ -933,7 +997,7 @@ def _public_role(role: dict) -> dict:
         "id": role.get("id", ""),
         "name": role.get("name", ""),
         "description": role.get("description", ""),
-        "permissions": role.get("permissions", {}),
+        "permissions": _normalize_permissions(role.get("permissions", {})),
         "builtin": bool(role.get("builtin", False)),
     }
 
@@ -947,6 +1011,7 @@ def _public_key_record(item: dict) -> dict:
         "remark": item.get("remark", ""),
         "status": item.get("status", "active"),
         "created_at": item.get("created_at", 0),
+        "revoked_at": item.get("revoked_at", 0),
         "last_used_at": item.get("last_used_at", 0),
         "uses": item.get("uses", 0),
         "submissions": item.get("submissions", 0),
@@ -957,7 +1022,7 @@ def _permission(request: web.Request, key: str, default=False):
     identity = _get_session_identity(request)
     if identity.get("type") == "admin":
         return True
-    perms = identity.get("permissions", {})
+    perms = _normalize_permissions(identity.get("permissions", {}))
     return perms.get(key, default)
 
 
@@ -982,8 +1047,10 @@ def _session_role_permissions(request: web.Request) -> dict:
             max_cards_per_submit=100,
             max_images_per_submit=100,
             max_pending_drafts=999,
+            profile_scope="global",
+            profile_ids=[],
         )
-    return dict(identity.get("permissions", {}) or {})
+    return _normalize_permissions(identity.get("permissions", {}))
 
 
 def _visitor_error(message: str, status: int = 403):
@@ -1062,6 +1129,50 @@ def _draft_changed_keys(before, after) -> list[str]:
     return [str(key) for key in keys if key not in hidden and before.get(key) != after.get(key)]
 
 
+def _card_preview_items(kind: str, before: list, after: list) -> dict:
+    before_map = _record_map(kind, before)
+    after_map = _record_map(kind, after)
+    created = [after_map[key] for key in after_map if key not in before_map]
+    deleted = [before_map[key] for key in before_map if key not in after_map]
+    updated = [
+        {"before": before_map[key], "after": after_map[key]}
+        for key in after_map
+        if key in before_map and after_map[key] != before_map[key]
+    ]
+    return {
+        "kind": kind,
+        "created": created[:20],
+        "updated": updated[:20],
+        "deleted": deleted[:20],
+    }
+
+
+def _draft_preview(draft: dict) -> dict:
+    resource_type = str(draft.get("resource_type") or "")
+    before = draft.get("before")
+    after = draft.get("after")
+    if resource_type == "fate_cards" and isinstance(before, list) and isinstance(after, list):
+        return {"type": "cards", **_card_preview_items("fate", before, after)}
+    if resource_type == "func_cards" and isinstance(before, list) and isinstance(after, list):
+        return {"type": "cards", **_card_preview_items("func", before, after)}
+    if resource_type in {"upload_fate_image", "upload_func_image"}:
+        return {
+            "type": "images",
+            "kind": "fate" if resource_type == "upload_fate_image" else "func",
+            "files": [Path(str(name)).name for name in after if isinstance(after, list)][:20],
+        }
+    if isinstance(before, dict) and isinstance(after, dict):
+        changed = _draft_changed_keys(before, after)
+        return {
+            "type": "fields",
+            "fields": [
+                {"key": key, "before": before.get(key), "after": after.get(key)}
+                for key in changed[:20]
+            ],
+        }
+    return {"type": "summary"}
+
+
 def _draft_brief(draft: dict) -> dict:
     before = draft.get("before")
     after = draft.get("after")
@@ -1087,6 +1198,7 @@ def _draft_brief(draft: dict) -> dict:
         "reviewed_at": int(draft.get("reviewed_at", 0) or 0),
         "reviewer": draft.get("reviewer", ""),
         "details": details,
+        "preview": _draft_preview(draft),
     }
 
 
@@ -1102,15 +1214,47 @@ def _increment_key_counter(key_id: str, field: str):
     _atomic_write(VISITOR_KEYS_FILE, keys)
 
 
+def _record_identity(kind: str, item: dict, index: int = 0) -> str:
+    if not isinstance(item, dict):
+        return f"item:{index}"
+    if kind == "func":
+        primary_keys = ("card_name", "filename", "description")
+    elif kind == "fate":
+        primary_keys = ("name", "filename", "text")
+    else:
+        primary_keys = ("name", "id", "filename")
+    for key in primary_keys:
+        value = str(item.get(key, "") or "").strip()
+        if value:
+            return f"{key}:{value}"
+    return f"item:{index}"
+
+
+def _record_display_name(kind: str, item: dict, fallback: str = "") -> str:
+    if not isinstance(item, dict):
+        return fallback or "项目"
+    if kind == "func":
+        return str(item.get("card_name", "") or item.get("filename", "") or fallback or "功能牌").strip()
+    if kind == "fate":
+        return str(item.get("name", "") or item.get("filename", "") or fallback or "命运牌").strip()
+    return str(item.get("name", "") or item.get("id", "") or fallback or "项目").strip()
+
+
+def _record_map(kind: str, items: list) -> dict[str, dict]:
+    result = {}
+    for index, item in enumerate(items if isinstance(items, list) else []):
+        if not isinstance(item, dict):
+            continue
+        result[_record_identity(kind, item, index)] = item
+    return result
+
+
 def _diff_named_records(kind: str, before: list, after: list) -> dict:
-    key_name = "card_name" if kind == "func" else "name"
-    if kind == "title":
-        key_name = "name"
-    before_map = {str(item.get(key_name, "")).strip(): item for item in before if isinstance(item, dict) and str(item.get(key_name, "")).strip()}
-    after_map = {str(item.get(key_name, "")).strip(): item for item in after if isinstance(item, dict) and str(item.get(key_name, "")).strip()}
-    created = [name for name in after_map if name not in before_map]
-    deleted = [name for name in before_map if name not in after_map]
-    updated = [name for name in after_map if name in before_map and after_map[name] != before_map[name]]
+    before_map = _record_map(kind, before)
+    after_map = _record_map(kind, after)
+    created = [_record_display_name(kind, after_map[key]) for key in after_map if key not in before_map]
+    deleted = [_record_display_name(kind, before_map[key]) for key in before_map if key not in after_map]
+    updated = [_record_display_name(kind, after_map[key]) for key in after_map if key in before_map and after_map[key] != before_map[key]]
     return {"created": created, "updated": updated, "deleted": deleted}
 
 
@@ -1151,7 +1295,7 @@ def _change_summary(kind: str, diff: dict) -> str:
 
 
 def _visitor_pending_response(draft: dict):
-    return web.json_response({"ok": True, "pending_review": True, "draft": draft, "message": "改动已提交到待审核区，管理员批准后才会写入正式配置。"})
+    return web.json_response({"ok": True, "pending_review": True, "draft": _draft_brief(draft), "message": "改动已提交到待审核区，管理员批准后才会写入正式配置。"})
 
 
 def _public_session_identity(identity: dict) -> dict:
@@ -1162,7 +1306,7 @@ def _public_session_identity(identity: dict) -> dict:
         "role_id": identity.get("role_id", ""),
         "role_name": identity.get("role_name", "管理员" if identity.get("type") == "admin" else ""),
         "key_prefix": identity.get("key_prefix", ""),
-        "permissions": identity.get("permissions", {}),
+        "permissions": _normalize_permissions(identity.get("permissions", {})) if identity.get("type") == "visitor" else identity.get("permissions", {}),
     }
 
 
@@ -1189,6 +1333,8 @@ def _admin_identity() -> dict:
             max_cards_per_submit=100,
             max_images_per_submit=100,
             max_pending_drafts=999,
+            profile_scope="global",
+            profile_ids=[],
         ),
     }
 
@@ -1220,8 +1366,57 @@ def _verify_visitor_key(secret: str) -> dict | None:
         "key_prefix": matched.get("key_prefix", ""),
         "role_id": role.get("id", ""),
         "role_name": role.get("name", ""),
-        "permissions": role.get("permissions", {}),
+        "permissions": _normalize_permissions(role.get("permissions", {})),
     }
+
+
+def _is_visitor_invite_active(invite_id: str) -> bool:
+    if not invite_id:
+        return False
+    for item in _read_list_file(VISITOR_KEYS_FILE):
+        if item.get("id") == invite_id:
+            return item.get("status", "active") == "active"
+    return False
+
+
+def _invalidate_visitor_sessions(invite_id: str):
+    if not invite_id:
+        return
+    for token, identity in list(_AUTH_SESSIONS.items()):
+        if identity.get("type") == "visitor" and identity.get("invite_id") == invite_id:
+            _AUTH_SESSIONS.pop(token, None)
+
+
+def _visitor_profile_denied_response(profile_id: str):
+    return web.json_response(
+        {"ok": False, "error": f"当前访客身份不能访问方案：{profile_id}", "code": "profile_denied"},
+        status=403,
+    )
+
+
+def _visitor_request_profile_id(request: web.Request) -> str:
+    return _sanitize_profile_id(request.query.get("profile") or request.headers.get("X-Luck-Profile") or DEFAULT_PROFILE_NAME)
+
+
+def _is_profile_scoped_path(path: str) -> bool:
+    if path in {
+        "/api/runtime_config",
+        "/api/fate_cards",
+        "/api/fate_images",
+        "/api/func_cards",
+        "/api/images",
+        "/api/sign_in_texts",
+        "/api/titles",
+        "/api/user_stats",
+        "/api/check_missing_images",
+        "/api/upload_fate_image",
+        "/api/upload_image",
+        "/api/lazy/batch_fate",
+        "/api/lazy/batch_func",
+        "/api/lazy/auto_bind",
+    }:
+        return True
+    return path.startswith("/api/images/") or path.startswith("/api/fate_images/")
 
 
 def _is_public_request_path(path: str) -> bool:
@@ -1234,8 +1429,37 @@ def _is_public_request_path(path: str) -> bool:
 async def auth_middleware(request: web.Request, handler):
     path = request.path
     if _is_public_request_path(path) or _is_authenticated_request(request):
-        if _is_visitor_request(request) and path.startswith("/api/") and not _is_visitor_api_path_allowed(request):
-            return _visitor_error("当前访客身份不能访问该管理接口。")
+        if _is_visitor_request(request):
+            identity = _get_session_identity(request)
+            if not _is_visitor_invite_active(identity.get("invite_id", "")):
+                token = _get_session_token(request)
+                if token:
+                    _AUTH_SESSIONS.pop(token, None)
+                if path.startswith("/api/"):
+                    return web.json_response(
+                        {"ok": False, "error": "当前访客密钥已失效，请重新获取授权。", "code": "auth_required"},
+                        status=401,
+                    )
+                raise web.HTTPFound("/")
+            role = _role_map().get(str(identity.get("role_id", "")))
+            if not role:
+                token = _get_session_token(request)
+                if token:
+                    _AUTH_SESSIONS.pop(token, None)
+                if path.startswith("/api/"):
+                    return web.json_response(
+                        {"ok": False, "error": "当前访客身份已被删除，请重新获取授权。", "code": "auth_required"},
+                        status=401,
+                    )
+                raise web.HTTPFound("/")
+            identity["role_name"] = role.get("name", identity.get("role_name", ""))
+            identity["permissions"] = _normalize_permissions(role.get("permissions", {}))
+            if path.startswith("/api/") and not _is_visitor_api_path_allowed(request):
+                return _visitor_error("当前访客身份不能访问该管理接口。")
+            if path.startswith("/api/") and _is_profile_scoped_path(path):
+                profile_id = _visitor_request_profile_id(request)
+                if not _is_profile_allowed_for_identity(identity, profile_id):
+                    return _visitor_profile_denied_response(profile_id)
         return await handler(request)
     if path.startswith("/api/"):
         return web.json_response(
@@ -2054,9 +2278,10 @@ async def api_upload_fate_image(request):
                             raise ValueError("图片超过当前访客身份允许的大小上限。")
                         f.write(chunk)
                 uploaded.append(safe_name)
+        draft = None
         if _is_visitor_request(request) and _permission(request, "requires_review", True) and uploaded:
-            _create_review_draft(request, "upload_fate_image", "upload", [], uploaded, f"上传 {len(uploaded)} 张命运牌图片")
-        return web.json_response({"ok": True, "uploaded": uploaded})
+            draft = _create_review_draft(request, "upload_fate_image", "upload", [], uploaded, f"上传 {len(uploaded)} 张命运牌图片")
+        return web.json_response({"ok": True, "uploaded": uploaded, "pending_review": bool(draft), "draft": _draft_brief(draft) if draft else None})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
@@ -2285,6 +2510,10 @@ async def api_get_user_stats(request):
         
         # 群组排行榜按总金币或活跃度排序
         stats["groups"].sort(key=lambda x: (x["group_sign_ins"], x["group_gold"], x["active_users"]), reverse=True)
+        if _is_visitor_request(request):
+            stats["groups"] = []
+            stats["total_groups"] = 0
+            stats["groups_hidden"] = True
         
         return web.json_response({"ok": True, "stats": stats})
     except Exception as e:
@@ -2323,9 +2552,10 @@ async def api_upload_image(request):
                             raise ValueError("图片超过当前访客身份允许的大小上限。")
                         f.write(chunk)
                 uploaded.append(safe_name)
+        draft = None
         if _is_visitor_request(request) and _permission(request, "requires_review", True) and uploaded:
-            _create_review_draft(request, "upload_func_image", "upload", [], uploaded, f"上传 {len(uploaded)} 张功能牌图片")
-        return web.json_response({"ok": True, "uploaded": uploaded})
+            draft = _create_review_draft(request, "upload_func_image", "upload", [], uploaded, f"上传 {len(uploaded)} 张功能牌图片")
+        return web.json_response({"ok": True, "uploaded": uploaded, "pending_review": bool(draft), "draft": _draft_brief(draft) if draft else None})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
@@ -2496,6 +2726,7 @@ def visitor_get_roles_summary() -> str:
             bits.append("可上传图片")
         if perms.get("can_use_lazy_batch_cards"):
             bits.append("可使用懒狗批量")
+        bits.append("方案范围:" + ("全部" if _normalize_permissions(perms).get("profile_scope") == "global" else "指定/默认"))
         bits.append("需审核" if perms.get("requires_review", True) else "免审核")
         lines.append(f"{role.get('name')} ({role.get('id')}): " + "、".join(bits))
     return "\n".join(lines)
@@ -2854,6 +3085,7 @@ def visitor_create_key_from_role(role_name_or_id: str, remark: str = "") -> dict
     }
     keys = _read_list_file(VISITOR_KEYS_FILE)
     keys.append(item)
+    keys = _trim_visitor_key_records(keys)
     _atomic_write(VISITOR_KEYS_FILE, keys)
     _append_audit("key_created", {"key_id": item["id"], "role_id": item["role_id"], "remark": item["remark"]})
     return {"ok": True, "key": secret, "record": _public_key_record(item), "role": _public_role(role), "public_url": visitor_public_url()}
@@ -2948,7 +3180,7 @@ async def api_visitor_roles(request):
         "id": role_id,
         "name": str(body.get("name") or role_id).strip(),
         "description": str(body.get("description") or "").strip(),
-        "permissions": _deep_merge_dict(_default_permissions(), body.get("permissions") if isinstance(body.get("permissions"), dict) else {}),
+        "permissions": _normalize_permissions(body.get("permissions") if isinstance(body.get("permissions"), dict) else {}),
         "builtin": False,
     }
     roles = [r for r in roles if r.get("id") != role_id]
@@ -2977,10 +3209,10 @@ async def api_visitor_keys(request):
         return _visitor_error("只有管理员可以管理临时密钥。")
     if request.method == "GET":
         raw_keys = _read_list_file(VISITOR_KEYS_FILE)
-        active_keys = [item for item in raw_keys if item.get("status", "active") == "active"]
-        if len(active_keys) != len(raw_keys):
-            _atomic_write(VISITOR_KEYS_FILE, active_keys)
-        keys = [_public_key_record(item) for item in active_keys]
+        kept = _trim_visitor_key_records(raw_keys)
+        if len(kept) != len(raw_keys):
+            _atomic_write(VISITOR_KEYS_FILE, kept)
+        keys = [_public_key_record(item) for item in reversed(kept)]
         return web.json_response({"ok": True, "keys": keys})
     body = await request.json()
     result = visitor_create_key_from_role(body.get("role_id") or body.get("role_name"), body.get("remark", ""))
@@ -2994,15 +3226,30 @@ async def api_visitor_revoke_key(request):
     key_id = request.match_info.get("key_id", "")
     keys = _read_list_file(VISITOR_KEYS_FILE)
     changed = False
-    kept = []
     for item in keys:
         if item.get("id") == key_id:
             changed = True
-            continue
-        kept.append(item)
+            item["status"] = "revoked"
+            item["revoked_at"] = int(time.time())
+            break
     if changed:
-        _atomic_write(VISITOR_KEYS_FILE, kept)
-        _append_audit("key_deleted", {"key_id": key_id})
+        _atomic_write(VISITOR_KEYS_FILE, _trim_visitor_key_records(keys))
+        _invalidate_visitor_sessions(key_id)
+        _append_audit("key_revoked", {"key_id": key_id})
+    return web.json_response({"ok": True, "changed": changed})
+
+
+async def api_visitor_delete_key_record(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以删除密钥记录。")
+    key_id = request.match_info.get("key_id", "")
+    keys = _read_list_file(VISITOR_KEYS_FILE)
+    kept = [item for item in keys if item.get("id") != key_id]
+    changed = len(kept) != len(keys)
+    if changed:
+        _atomic_write(VISITOR_KEYS_FILE, _trim_visitor_key_records(kept))
+        _invalidate_visitor_sessions(key_id)
+        _append_audit("key_record_deleted", {"key_id": key_id})
     return web.json_response({"ok": True, "changed": changed})
 
 
@@ -3124,7 +3371,16 @@ async def api_visitor_tunnel_stop(request):
 
 async def api_profile_overview(request):
     try:
-        profiles = [_collect_profile_stats(pid) for pid in _list_profile_ids()]
+        profile_ids = _list_profile_ids()
+        if _is_visitor_request(request):
+            allowed = set(_visitor_allowed_profile_ids(_get_session_identity(request)))
+            profile_ids = [pid for pid in profile_ids if pid in allowed]
+        profiles = [_collect_profile_stats(pid) for pid in profile_ids]
+        if _is_visitor_request(request):
+            for profile in profiles:
+                profile["groups"] = []
+                profile["group_count"] = 0
+                profile["groups_hidden"] = True
         return web.json_response({"ok": True, "profiles": profiles, "default_profile": DEFAULT_PROFILE_NAME})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "profiles": [], "default_profile": DEFAULT_PROFILE_NAME}, status=500)
@@ -3356,6 +3612,8 @@ async def api_save_group_access(request):
 async def serve_fate_image(request):
     filename = request.match_info.get("filename", "")
     profile_id = _sanitize_profile_id(request.query.get("profile") or DEFAULT_PROFILE_NAME)
+    if _is_visitor_request(request) and not _is_profile_allowed_for_identity(_get_session_identity(request), profile_id):
+        raise web.HTTPForbidden()
     safe_name = Path(filename).name
     paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
     for target in (
@@ -3371,6 +3629,8 @@ async def serve_image(request):
     """提供图片文件访问"""
     filename = request.match_info.get("filename", "")
     profile_id = _sanitize_profile_id(request.query.get("profile") or DEFAULT_PROFILE_NAME)
+    if _is_visitor_request(request) and not _is_profile_allowed_for_identity(_get_session_identity(request), profile_id):
+        raise web.HTTPForbidden()
     safe_name = Path(filename).name
     paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
     for target in (
@@ -3438,6 +3698,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_get("/api/visitor/keys", api_visitor_keys)
     app.router.add_post("/api/visitor/keys", api_visitor_keys)
     app.router.add_post("/api/visitor/keys/{key_id}/revoke", api_visitor_revoke_key)
+    app.router.add_delete("/api/visitor/keys/{key_id}", api_visitor_delete_key_record)
     app.router.add_get("/api/visitor/drafts", api_visitor_drafts)
     app.router.add_post("/api/visitor/drafts/{draft_id}/{action:approve|reject}", api_visitor_review_draft)
     app.router.add_get("/api/visitor/tunnel", api_visitor_tunnel_status)

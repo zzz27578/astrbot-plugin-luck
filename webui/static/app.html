@@ -2678,9 +2678,6 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .visitor-code { background: rgba(16,20,18,0.07); border: 1px solid rgba(0,0,0,0.06); padding: 8px 10px; font-size: 12px; color: var(--shard-text); word-break: break-all; }
 .visitor-link { color: var(--accent); font-weight: 800; text-decoration: none; word-break: break-all; }
 .visitor-link:hover { text-decoration: underline; }
-.visitor-progress-box { margin-top: 12px; padding: 12px; border: 1px solid var(--shard-border); background: rgba(0,0,0,.04); }
-.visitor-progress-track { height: 8px; background: rgba(0,0,0,.12); overflow: hidden; margin-top: 8px; }
-.visitor-progress-bar { height: 100%; background: var(--accent); transition: width .2s ease; }
 .draft-card { border: 1px solid rgba(33,163,102,0.2); background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,247,0.96)); padding: 16px; display: grid; gap: 12px; }
 .draft-summary { font-family: var(--font-headline); font-size: 16px; font-weight: 900; color: var(--shard-text); }
 .draft-meta { color: var(--shard-text-muted); font-size: 12px; line-height: 1.7; }
@@ -4307,8 +4304,6 @@ const state = {
   visitorKeys: [],
   visitorDrafts: [],
   visitorTunnel: { config: {}, detected_path: '', local_url: '', quick_tunnel_command: '', install_hint: '', docs: [] },
-  visitorInstallTask: {},
-  visitorInstallPolling: false,
   visitorCloudflaredNoticeShown: false,
 };
 
@@ -5633,7 +5628,6 @@ async function loadVisitor() {
       if (keysRes.ok) state.visitorKeys = keysRes.keys || [];
       if (tunnelRes.ok) {
         state.visitorTunnel = tunnelRes;
-        state.visitorInstallTask = tunnelRes.install_task || {};
         if (tunnelRes.detected && !state.visitorCloudflaredNoticeShown) {
           state.visitorCloudflaredNoticeShown = true;
           showToast('cloudflared 检测正常，可以使用托管临时地址。');
@@ -5649,8 +5643,8 @@ async function loadVisitor() {
 async function loadAll(showMessage = false) {
   try {
     if (state.identity.type === 'visitor') {
-      state.profiles = [{ profile_id: state.currentProfile || 'default', display_name: '当前方案', groups: [], is_default: true }];
-      await Promise.all([loadRuntime(), loadSignin(), loadFate(), loadCards(), loadTitles()]);
+      await loadProfiles();
+      await Promise.all([loadRuntime(), loadSignin(), loadFate(), loadCards(), loadTitles(), loadStats()]);
     } else {
       await loadProfiles();
       await refreshActiveProfileData();
@@ -8081,63 +8075,12 @@ function renderDraftBrief(draft) {
   </div>`;
 }
 
-function isCloudflaredInstallBusy(task = {}) {
-  return ['queued', 'downloading', 'installing'].includes(task.status);
-}
-
 function renderVisitorEnvItem(label, value) {
   return `<div class="visitor-env-item"><div class="visitor-env-label">${esc(label)}</div><div class="visitor-env-value">${esc(value || '未知')}</div></div>`;
 }
 
 function jsArg(value) {
   return esc(JSON.stringify(String(value ?? '')));
-}
-
-function renderCloudflaredProgress(task = {}) {
-  if (!task.status) return '';
-  const pct = Math.max(0, Math.min(100, Number(task.percent || 0)));
-  const installLogs = (task.logs || []).slice(-12).join('\n');
-  const removed = Array.isArray(task.removed_files) && task.removed_files.length
-    ? `<div class="visitor-step-note">已清理：${esc(task.removed_files.join('，'))}</div>`
-    : '';
-  return `
-    <div id="cloudflaredInstallProgress" class="visitor-progress-box">
-      <div class="row between"><span id="cloudflaredInstallLabel" class="muted">${esc(formatCloudflaredTaskLabel(task))}</span><b id="cloudflaredInstallPct">${pct.toFixed(1)}%</b></div>
-      <div class="visitor-progress-track"><div id="cloudflaredInstallBar" class="visitor-progress-bar" style="width:${pct}%;"></div></div>
-      ${removed}
-      <pre id="cloudflaredInstallLog" class="visitor-terminal">${esc(installLogs || '等待安装任务输出...')}</pre>
-    </div>`;
-}
-
-function cloudflaredDownloadPreview(tunnel = {}) {
-  const cfg = tunnel.config || {};
-  const manual = tunnel.manual || {};
-  const source = $('#cloudflaredDownloadSource')?.value || cfg.cloudflared_download_source || 'official';
-  const template = $('#cloudflaredDownloadTemplate')?.value?.trim() || cfg.cloudflared_download_url_template || '';
-  const officialUrl = manual.official_download_url || tunnel.official_download_url || '';
-  const asset = manual.asset || tunnel.download_asset || '';
-  if (source !== 'custom' || !template) return officialUrl || tunnel.download_url || manual.current_download_url || '';
-  try {
-    if (template.includes('{url}') || template.includes('{asset}')) {
-      return template.split('{url}').join(officialUrl).split('{asset}').join(asset);
-    }
-    let normalized = template;
-    if (!/^https?:\/\//i.test(normalized) && normalized.includes('.')) normalized = 'https://' + normalized;
-    const parsed = new URL(normalized);
-    if (parsed.protocol && parsed.host && parsed.pathname.replace(/\//g, '') === '') {
-      return normalized.replace(/\/+$/, '') + '/' + officialUrl;
-    }
-    if (template.endsWith('/')) return template + asset;
-    return template;
-  } catch (_) {
-    return officialUrl;
-  }
-}
-
-function updateCloudflaredDownloadPreview() {
-  readVisitorTunnelForm();
-  const el = $('#cloudflaredDownloadPreview');
-  if (el) el.textContent = cloudflaredDownloadPreview(state.visitorTunnel || {});
 }
 
 function renderCloudflaredPanel(tunnel = {}) {
@@ -8147,7 +8090,7 @@ function renderCloudflaredPanel(tunnel = {}) {
   const acceptedPaths = Array.isArray(manual.accepted_paths) && manual.accepted_paths.length ? manual.accepted_paths : [tunnel.managed_path || manual.managed_path || ''];
   const acceptedNames = Array.isArray(manual.accepted_filenames) && manual.accepted_filenames.length ? manual.accepted_filenames.join(' 或 ') : (manual.filename || 'cloudflared');
   const manualNote = manual.kind === 'tgz'
-    ? '下载后先解压，把压缩包里名为 cloudflared 的文件放进下面目录。'
+    ? '下载 .tgz 后可以直接放进下面目录；插件会自动解压并整理。'
     : '下载后直接放进下面目录即可，不需要手动改名；插件会自动整理成可启动的文件名。';
   const statusNotice = detectedOk
     ? `<div class="notice success">已检测到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
@@ -8254,9 +8197,9 @@ function renderVisitor() {
       <div class="row between">
         <div>
           <div class="visitor-card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}...</div>
-          <div class="muted">${esc(item.status)} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次 ${item.remark ? '· ' + esc(item.remark) : ''}</div>
+          <div class="muted">创建 ${esc(visitorTime(item.created_at))} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次${item.last_used_at ? ' · 最近登录 ' + esc(visitorTime(item.last_used_at)) : ''}${item.remark ? ' · ' + esc(item.remark) : ''}</div>
         </div>
-        ${item.status === 'active' ? `<button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">撤销</span></button>` : ''}
+        <button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">删除</span></button>
       </div>
     </div>
   `).join('') || '<div class="empty">暂无临时密钥</div>';
@@ -8295,14 +8238,10 @@ function renderVisitor() {
 
 function readVisitorTunnelForm() {
   const custom_public_url = $('#visitorPublicUrl')?.value?.trim() || '';
-  const cloudflared_download_source = $('#cloudflaredDownloadSource')?.value || 'official';
-  const cloudflared_download_url_template = $('#cloudflaredDownloadTemplate')?.value?.trim() || '';
   state.visitorTunnel ||= {};
   state.visitorTunnel.config ||= {};
   state.visitorTunnel.config.custom_public_url = custom_public_url;
-  state.visitorTunnel.config.cloudflared_download_source = cloudflared_download_source;
-  state.visitorTunnel.config.cloudflared_download_url_template = cloudflared_download_url_template;
-  return { custom_public_url, cloudflared_download_source, cloudflared_download_url_template };
+  return { custom_public_url };
 }
 
 async function saveVisitorTunnel() {
@@ -8311,7 +8250,7 @@ async function saveVisitorTunnel() {
   if (res.ok) {
     await loadVisitor();
     renderVisitor();
-    showToast('协作通道地址和下载源已保存。');
+    showToast('协作通道地址已保存。');
   } else showToast(res.error || '保存失败。', true);
 }
 
@@ -8338,120 +8277,6 @@ async function prepareCloudflared() {
   showToast(`cloudflared 已可用：${res.version || res.path || ''}`);
 }
 
-async function installCloudflared(force = false, clean = false) {
-  const currentTask = state.visitorInstallTask || {};
-  if (isCloudflaredInstallBusy(currentTask)) {
-    showToast('cloudflared 正在安装中，已为你刷新下载状态。');
-    if (currentTask.task_id) await pollCloudflaredInstall(currentTask.task_id);
-    else await refreshCloudflaredInstall();
-    return;
-  }
-  const body = readVisitorTunnelForm();
-  if (body.cloudflared_download_source === 'custom' && !body.cloudflared_download_url_template) {
-    return showToast('自定义下载源需要填写 URL 模板。', true);
-  }
-  const actionText = clean ? '清除旧安装和下载残留后重新安装 cloudflared' : (force ? '重新下载并替换插件托管目录里的 cloudflared' : '下载 cloudflared 到插件数据目录');
-  if (!confirm(`将${actionText}，不会安装系统服务或修改 PATH。继续吗？`)) return;
-  const start = await apiPost('/api/visitor/cloudflared/install/start', {
-    force,
-    clean,
-    ...body
-  });
-  if (!start.ok) return showToast(start.error || '无法启动安装任务。', true);
-  state.visitorInstallTask = { task_id: start.task_id, status: start.already_installed ? 'done' : 'queued', percent: start.already_installed ? 100 : 0, logs: [] };
-  await loadVisitor();
-  state.visitorInstallTask = { ...(state.visitorInstallTask || {}), task_id: start.task_id, status: start.already_installed ? 'done' : 'queued', percent: start.already_installed ? 100 : 0 };
-  renderVisitor();
-  showToast(start.already_running ? '已有下载任务在运行，正在接管进度。' : '正在下载 cloudflared，进度会显示在页面中。');
-  await pollCloudflaredInstall(start.task_id);
-}
-
-function formatCloudflaredTaskLabel(task = {}) {
-  const total = Number(task.total || 0);
-  const downloaded = Number(task.downloaded || 0);
-  const mb = n => (n / 1024 / 1024).toFixed(1);
-  if (!task.status) return '尚未开始安装';
-  if (task.status === 'done') return `安装完成 ${task.version || task.path || ''}`;
-  if (task.status === 'error') return `安装失败：${task.error || ''}${task.error_hint ? '；' + task.error_hint : ''}`;
-  if (task.status === 'cancelled') return `已取消：${task.error_hint || task.error || ''}`;
-  const sizeText = total ? `${mb(downloaded)}MB / ${mb(total)}MB` : (downloaded ? `已下载 ${mb(downloaded)}MB` : '等待数据');
-  return `${task.status} ${sizeText}${task.source ? ' · ' + task.source : ''}`;
-}
-
-function updateCloudflaredProgress(task) {
-  state.visitorInstallTask = task || {};
-  const box = $('#cloudflaredInstallProgress');
-  if (!box) return;
-  box.style.display = 'block';
-  const pct = Math.max(0, Math.min(100, Number(task.percent || 0)));
-  $('#cloudflaredInstallLabel').textContent = formatCloudflaredTaskLabel(task);
-  $('#cloudflaredInstallPct').textContent = `${pct.toFixed(1)}%`;
-  $('#cloudflaredInstallBar').style.width = `${pct}%`;
-  const log = $('#cloudflaredInstallLog');
-  if (log) {
-    log.textContent = (task.logs || []).slice(-80).join('\n') || '等待安装任务输出...';
-    log.scrollTop = log.scrollHeight;
-  }
-}
-
-async function pollCloudflaredInstall(taskId) {
-  if (state.visitorInstallPolling) return;
-  state.visitorInstallPolling = true;
-  for (;;) {
-    const res = await apiGet(`/api/visitor/cloudflared/install/progress?task_id=${encodeURIComponent(taskId)}`);
-    if (!res.ok) {
-      state.visitorInstallPolling = false;
-      return showToast(res.error || '读取安装进度失败。', true);
-    }
-    const task = res.task || {};
-    updateCloudflaredProgress(task);
-    if (task.status === 'done') {
-      state.visitorInstallPolling = false;
-      await loadVisitor();
-      renderVisitor();
-      showToast('cloudflared 已安装并验证可用，可以生成临时地址。');
-      return;
-    }
-    if (task.status === 'error') {
-      state.visitorInstallPolling = false;
-      showToast(task.error_hint || task.error || '自动安装失败，请按提示手动安装。', true);
-      return;
-    }
-    if (task.status === 'cancelled') {
-      state.visitorInstallPolling = false;
-      showToast('cloudflared 安装已取消。', true);
-      return;
-    }
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-}
-
-async function refreshCloudflaredInstall() {
-  const taskId = (state.visitorInstallTask || {}).task_id || '';
-  const url = taskId ? `/api/visitor/cloudflared/install/progress?task_id=${encodeURIComponent(taskId)}` : '/api/visitor/cloudflared/install/progress';
-  const res = await apiGet(url);
-  if (!res.ok) return showToast(res.error || '暂无下载任务状态。', true);
-  const task = res.task || {};
-  updateCloudflaredProgress(task);
-  if (isCloudflaredInstallBusy(task) && task.task_id) {
-    showToast('下载任务仍在运行，继续刷新进度。');
-    await pollCloudflaredInstall(task.task_id);
-  } else {
-    showToast(task.status === 'error' || task.status === 'cancelled' ? (task.error_hint || '下载任务未完成。') : '下载状态已刷新。', task.status === 'error' || task.status === 'cancelled');
-  }
-}
-
-async function cancelCloudflaredInstall() {
-  const taskId = (state.visitorInstallTask || {}).task_id || '';
-  const res = await apiPost('/api/visitor/cloudflared/install/cancel', { task_id: taskId });
-  if (!res.ok) return showToast(res.error || '取消安装失败。', true);
-  state.visitorInstallPolling = false;
-  updateCloudflaredProgress(res.task || {});
-  await loadVisitor();
-  renderVisitor();
-  showToast('cloudflared 安装已取消。', true);
-}
-
 async function startVisitorTunnel() {
   showToast('正在启动 Cloudflare 临时通道...');
   const res = await apiPost('/api/visitor/tunnel/start', {});
@@ -8472,23 +8297,27 @@ async function stopVisitorTunnel() {
 async function createVisitorKey() {
   const role_id = $('#visitorRoleSelect')?.value || '';
   const remark = $('#visitorKeyRemark')?.value?.trim() || '';
+  const cfg = state.visitorTunnel?.config || {};
+  const publicUrl = state.visitorTunnel?.public_url || cfg.last_public_url || cfg.custom_public_url || '';
+  if (!publicUrl) return showToast('请先生成临时地址，或填写手动公网地址后保存。', true);
   const res = await apiPost('/api/visitor/keys', { role_id, remark });
   if (!res.ok) return showToast(res.error || '生成失败。', true);
   await loadVisitor();
   renderVisitor();
   const box = $('#visitorNewKeyBox');
-  const url = res.public_url || '(请先填写或启动公网地址)';
-  if (box) box.innerHTML = `地址：<b>${esc(url)}</b><br>密钥：<b>${esc(res.key)}</b>`;
+  const url = res.public_url || publicUrl;
+  if (box) box.innerHTML = `协作入口：<b>${esc(url)}</b><br>访客密钥：<b>${esc(res.key)}</b><br><span class="muted">只把这两项发给协作者，不要发送 WebUI 管理密码。</span>`;
   showToast('临时密钥已生成。');
 }
 
 async function revokeVisitorKey(id) {
+  if (!confirm('删除后这个访客密钥会立刻失效，确认删除吗？')) return;
   const res = await apiPost(`/api/visitor/keys/${encodeURIComponent(id)}/revoke`, {});
   if (res.ok) {
     await loadVisitor();
     renderVisitor();
-    showToast('密钥已撤销。');
-  } else showToast(res.error || '撤销失败。', true);
+    showToast('密钥已删除并失效。');
+  } else showToast(res.error || '删除失败。', true);
 }
 
 async function reviewVisitorDraft(id, action) {

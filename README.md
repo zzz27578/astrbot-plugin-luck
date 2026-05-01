@@ -180,7 +180,7 @@ data/plugin_data/luck_rank/
 - 打开页面给出的官方推荐下载地址。
 - Windows 通常下载 `cloudflared-windows-amd64.exe`，放进 `bin` 后插件会自动整理成 `cloudflared.exe`。
 - Linux 通常下载 `cloudflared-linux-amd64`，放进 `bin` 后插件会自动整理成 `cloudflared` 并执行 `chmod +x`。
-- macOS 的 `.tgz` 需要先解压，把里面名为 `cloudflared` 的文件放到页面提示的目录。
+- macOS 的 `.tgz` 可以直接放到页面提示的目录，插件会自动解压并整理。
 - 文件放好后点“整理文件并检测”。插件会执行 `cloudflared --version` 验证可用性。
 - 也可以用 `winget`、`brew`、Linux 包管理器安装到系统 PATH，再回到页面重新检测。
 

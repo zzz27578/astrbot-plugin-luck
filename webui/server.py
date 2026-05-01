@@ -74,25 +74,10 @@ VISITOR_KEYS_FILE = VISITOR_DATA_DIR / "keys.json"
 VISITOR_DRAFTS_FILE = VISITOR_DATA_DIR / "drafts.json"
 VISITOR_AUDIT_FILE = VISITOR_DATA_DIR / "audit_logs.json"
 VISITOR_TUNNEL_FILE = VISITOR_DATA_DIR / "tunnel_config.json"
-VISITOR_INSTALL_STATE_FILE = VISITOR_DATA_DIR / "cloudflared_install_state.json"
 _WEBUI_ACCESS_PASSWORD = WEBUI_DEFAULT_ACCESS_PASSWORD
 _AUTH_SESSIONS: dict[str, dict] = {}
 _CLOUDFLARED_PROCESS = None
 _CLOUDFLARED_PUBLIC_URL = ""
-_CLOUDFLARED_INSTALL_TASKS: dict[str, dict] = {}
-_CLOUDFLARED_INSTALL_ASYNC_TASKS: dict[str, asyncio.Task] = {}
-_CLOUDFLARED_DOWNLOAD_SOURCES = [
-    {
-        "id": "official",
-        "name": "官方 GitHub Release",
-        "description": "Cloudflare 官方发布资产。",
-    },
-    {
-        "id": "custom",
-        "name": "自定义镜像/模板",
-        "description": "使用带 {url} 或 {asset} 的自定义 URL 模板。",
-    },
-]
 
 # 默认签到文案（fallback）
 DEFAULT_SIGN_IN_TEXTS = {
@@ -880,25 +865,8 @@ def _ensure_visitor_files():
             "mode": "manual",
             "cloudflared_path": "",
             "custom_public_url": "",
-            "cloudflared_download_source": "official",
-            "cloudflared_download_url_template": "",
             "allow_plugin_start_tunnel": False,
-            "allow_install_script": False,
         })
-    else:
-        cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
-        changed = False
-        for key, value in {
-            "cloudflared_download_source": "official",
-            "cloudflared_download_url_template": "",
-        }.items():
-            if key not in cfg:
-                cfg[key] = value
-                changed = True
-        if changed:
-            _atomic_write(VISITOR_TUNNEL_FILE, cfg)
-    if not VISITOR_INSTALL_STATE_FILE.exists():
-        _atomic_write(VISITOR_INSTALL_STATE_FILE, {})
 
 
 def _read_list_file(path: Path) -> list:
@@ -1283,6 +1251,8 @@ def _is_visitor_api_path_allowed(request: web.Request) -> bool:
     if path.startswith("/api/access/") or path.startswith("/api/visitor/drafts") or path == "/api/visitor/state":
         return True
     read_paths = {
+        "/api/profile_overview",
+        "/api/user_stats",
         "/api/runtime_config",
         "/api/fate_cards",
         "/api/fate_images",
@@ -2553,10 +2523,6 @@ def _cloudflared_partial_path() -> Path:
     return _cloudflared_bin_dir() / asset
 
 
-def _cloudflared_install_paths() -> list[Path]:
-    return [_cloudflared_managed_path(), _cloudflared_partial_path()]
-
-
 def _cloudflared_candidate_names() -> list[str]:
     names = [
         _cloudflared_filename(),
@@ -2582,54 +2548,6 @@ def _cloudflared_candidate_names() -> list[str]:
 def _cloudflared_candidate_paths() -> list[Path]:
     bin_dir = _cloudflared_bin_dir()
     return [bin_dir / name for name in _cloudflared_candidate_names()]
-
-
-def _cleanup_cloudflared_install_files(task_id: str | None = None, include_managed: bool = True) -> list[str]:
-    removed = []
-    bin_dir = _cloudflared_bin_dir().resolve()
-    paths = _cloudflared_install_paths() if include_managed else [_cloudflared_partial_path()]
-    for path in paths:
-        try:
-            resolved = path.resolve()
-            if bin_dir not in resolved.parents and resolved != bin_dir:
-                continue
-            if resolved.exists() and resolved.is_file():
-                resolved.unlink()
-                removed.append(str(resolved))
-                _append_install_log(task_id, f"Removed {resolved.name}")
-        except Exception as exc:
-            _append_install_log(task_id, f"Failed to remove {path.name}: {exc}")
-    return removed
-
-
-def _install_task_public(task: dict | None = None) -> dict:
-    if task is None:
-        state = _read_dict_file(VISITOR_INSTALL_STATE_FILE)
-        task = state if state else None
-    if not task:
-        return {}
-    safe = dict(task)
-    safe.setdefault("logs", [])
-    safe["logs"] = safe["logs"][-80:]
-    return safe
-
-
-def _save_install_task(task_id: str, **updates):
-    task = _CLOUDFLARED_INSTALL_TASKS.setdefault(task_id, {"task_id": task_id, "logs": []})
-    task.update(updates)
-    task["updated_at"] = int(time.time())
-    _atomic_write(VISITOR_INSTALL_STATE_FILE, _install_task_public(task))
-
-
-def _append_install_log(task_id: str | None, message: str):
-    if not task_id:
-        return
-    task = _CLOUDFLARED_INSTALL_TASKS.setdefault(task_id, {"task_id": task_id, "logs": []})
-    logs = task.setdefault("logs", [])
-    logs.append(f"[{time.strftime('%H:%M:%S')}] {message}")
-    task["logs"] = logs[-120:]
-    task["updated_at"] = int(time.time())
-    _atomic_write(VISITOR_INSTALL_STATE_FILE, _install_task_public(task))
 
 
 def _cloudflared_download_asset() -> tuple[str, str]:
@@ -2677,54 +2595,11 @@ def _cloudflared_official_download_url(asset: str | None = None) -> str:
     return f"https://github.com/cloudflare/cloudflared/releases/latest/download/{asset}"
 
 
-def _cloudflared_apply_download_template(template: str, official_url: str, asset: str) -> str:
-    template = str(template or "").strip()
-    if not template:
-        return official_url
-    if "{url}" in template or "{asset}" in template:
-        return template.format(url=official_url, asset=asset)
-    parsed = urlparse(template)
-    if not parsed.scheme and "." in template.split("/")[0]:
-        template = "https://" + template
-        parsed = urlparse(template)
-    path = (parsed.path or "").strip("/")
-    if parsed.scheme and parsed.netloc and not path:
-        return template.rstrip("/") + "/" + official_url
-    if template.endswith("/"):
-        return template + asset
-    return template
-
-
-def _cloudflared_download_url() -> str:
-    asset, _ = _cloudflared_download_asset()
-    official_url = _cloudflared_official_download_url(asset)
-    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
-    source = str(cfg.get("cloudflared_download_source") or "official").strip()
-    template = str(cfg.get("cloudflared_download_url_template") or "").strip()
-    if source != "custom" or not template:
-        return official_url
-    try:
-        return _cloudflared_apply_download_template(template, official_url, asset)
-    except Exception:
-        return official_url
-
-
-def _cloudflared_download_source_name() -> str:
-    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
-    source = str(cfg.get("cloudflared_download_source") or "official").strip()
-    if source == "custom":
-        return "custom"
-    return "official"
-
-
 def _cloudflared_manual_info() -> dict:
     asset, kind = _cloudflared_download_asset()
     final_path = _cloudflared_managed_path()
     partial_path = _cloudflared_partial_path()
     filename = _cloudflared_filename()
-    place_names = [filename]
-    if partial_path.name != filename:
-        place_names.append(partial_path.name)
     all_downloads = [
         {"label": "Windows amd64", "asset": "cloudflared-windows-amd64.exe"},
         {"label": "Windows arm64", "asset": "cloudflared-windows-arm64.exe"},
@@ -2751,30 +2626,9 @@ def _cloudflared_manual_info() -> dict:
         "accepted_filenames": _cloudflared_candidate_names(),
         "official_download_url": _cloudflared_official_download_url(asset),
         "all_downloads": all_downloads,
-        "current_download_url": _cloudflared_download_url(),
         "install_hint": _cloudflared_install_hint(),
         "docs_url": "https://developers.cloudflare.com/tunnel/downloads/",
     }
-
-
-def _cloudflared_error_hint(error: Exception | str) -> str:
-    text = str(error)
-    lower = text.lower()
-    if "cannot connect to host" in lower or "connect call failed" in lower or "connection refused" in lower:
-        return "当前运行 AstrBot 的环境连不上下载源的 HTTPS 端口；请切换可用镜像源、检查服务器网络/DNS，或手动下载后填写 cloudflared 路径。"
-    if "timed out" in lower or "timeout" in lower:
-        return "下载源响应超时；建议重新下载、切换镜像源，或手动放置 cloudflared。"
-    if "ssl" in lower or "certificate" in lower:
-        return "SSL/TLS 校验或握手失败；多半是网络代理、证书环境或镜像源异常。"
-    if "http 404" in lower:
-        return "下载地址返回 404；请检查镜像模板是否保留了 {asset} 或 {url} 占位符。"
-    if "http 403" in lower or "http 429" in lower:
-        return "下载源拒绝或限流；请稍后重试或切换镜像源。"
-    if "html" in lower or "json error page" in lower or "mirror url template" in lower or "too small" in lower:
-        return "下载到的不是 cloudflared 本体，通常是镜像模板只填了首页或拼接方式不对；建议填写 https://镜像域名/{url}，或直接使用页面给出的手动下载地址。"
-    if "exec format error" in lower or "not a linux executable" in lower or "not a windows executable" in lower or "not a macos executable" in lower or "not a gzip archive" in lower:
-        return "下载文件格式不对，可能下载到了网页、错误页或不匹配当前系统架构的文件；请清理后重新安装，或按页面推荐文件手动下载。"
-    return "自动安装失败；可以重新下载、切换下载源，或手动下载 cloudflared 后填写路径。"
 
 
 def _valid_cloudflared_path(path: str | Path | None) -> str:
@@ -2821,27 +2675,26 @@ def _detect_cloudflared_path() -> str:
     return ""
 
 
-def _validate_cloudflared_download(path: Path, kind: str, task_id: str | None = None):
+def _validate_cloudflared_file(path: Path, kind: str):
     try:
         size = path.stat().st_size
     except Exception:
         size = 0
     if size < 1024 * 1024:
-        raise RuntimeError("downloaded file is too small; the mirror may have returned an error page instead of cloudflared")
+        raise RuntimeError("文件太小，可能不是 cloudflared 本体，请重新下载页面推荐文件。")
     with open(path, "rb") as f:
         head = f.read(512)
     stripped = head.lstrip().lower()
     if stripped.startswith((b"<!doctype html", b"<html", b"{\"error\"", b"{\"message\"")):
-        raise RuntimeError("downloaded file looks like an HTML/JSON error page; please check the mirror URL template")
+        raise RuntimeError("文件看起来是网页或错误响应，不是 cloudflared 本体，请重新下载页面推荐文件。")
     if kind == "exe" and not head.startswith(b"MZ"):
-        raise RuntimeError("downloaded file is not a Windows executable; please check the mirror URL template")
+        raise RuntimeError("文件不是 Windows 可执行文件，请确认下载了当前系统对应的 cloudflared。")
     if kind == "tgz" and not head.startswith(b"\x1f\x8b"):
-        raise RuntimeError("downloaded file is not a gzip archive; please check the mirror URL template")
+        raise RuntimeError("文件不是 gzip 压缩包，请确认下载了 macOS 的 .tgz 文件。")
     if kind == "macbin" and not head.startswith((b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xfe\xed\xfa\xcf")):
-        raise RuntimeError("downloaded file is not a macOS executable; please check the file")
+        raise RuntimeError("文件不是 macOS 可执行文件，请确认下载了当前系统对应的 cloudflared。")
     if kind == "bin" and not head.startswith(b"\x7fELF"):
-        raise RuntimeError("downloaded file is not a Linux executable; please check the mirror URL template")
-    _append_install_log(task_id, f"Downloaded file passed basic format check ({round(size / 1024 / 1024, 1)} MB).")
+        raise RuntimeError("文件不是 Linux 可执行文件，请确认下载了当前系统对应的 cloudflared。")
 
 
 def _cloudflared_prepare_from_path(source: Path, final_path: Path) -> dict:
@@ -2857,7 +2710,7 @@ def _cloudflared_prepare_from_path(source: Path, final_path: Path) -> dict:
         source_kind = kind
     final_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        _validate_cloudflared_download(source, source_kind)
+        _validate_cloudflared_file(source, source_kind)
         if source_kind == "tgz":
             with tarfile.open(source, "r:gz") as tar:
                 member = next((m for m in tar.getmembers() if Path(m.name).name == "cloudflared" and m.isfile()), None)
@@ -2928,109 +2781,6 @@ def _prepare_local_cloudflared(path_hint: str | None = None) -> dict:
     }
 
 
-async def _download_cloudflared_binary(task_id: str | None = None, force: bool = False) -> dict:
-    url = _cloudflared_download_url()
-    asset, kind = _cloudflared_download_asset()
-    bin_dir = _cloudflared_bin_dir()
-    bin_dir.mkdir(parents=True, exist_ok=True)
-    download_path = bin_dir / asset
-    final_path = _cloudflared_managed_path()
-    existing = _cloudflared_version(final_path)
-    if existing.get("ok") and not force:
-        _append_install_log(task_id, f"Found usable cloudflared: {existing.get('version')}")
-        return {"path": str(final_path), "url": url, "version": existing.get("version", "")}
-    if force:
-        _append_install_log(task_id, "Forced re-download requested; replacing managed binary and partial files.")
-    if final_path.exists():
-        _append_install_log(task_id, "Existing managed binary is not usable; replacing it.")
-        try:
-            final_path.unlink()
-        except Exception:
-            pass
-    if download_path.exists():
-        _append_install_log(task_id, f"Found partial download {download_path.name}; replacing it.")
-        try:
-            download_path.unlink()
-        except Exception:
-            pass
-    if task_id:
-        _save_install_task(
-            task_id,
-            status="downloading",
-            downloaded=0,
-            total=0,
-            percent=0,
-            url=url,
-            source=_cloudflared_download_source_name(),
-        )
-        _append_install_log(task_id, f"Download source: {_cloudflared_download_source_name()}")
-        _append_install_log(task_id, f"Downloading {url}")
-    async with ClientSession(timeout=ClientTimeout(total=300, connect=30, sock_connect=30, sock_read=60)) as session:
-        async with session.get(url, allow_redirects=True) as resp:
-            if resp.status != 200:
-                raise RuntimeError(f"download failed: HTTP {resp.status}")
-            content_type = str(resp.headers.get("Content-Type") or "")
-            if "text/html" in content_type.lower():
-                raise RuntimeError("download source returned HTML instead of cloudflared; please check the mirror URL template")
-            total_size = int(resp.headers.get("Content-Length") or 0)
-            if task_id:
-                _save_install_task(task_id, total=total_size, content_type=content_type)
-                if content_type:
-                    _append_install_log(task_id, f"Content-Type: {content_type}")
-                if total_size:
-                    _append_install_log(task_id, f"Remote file size: {round(total_size / 1024 / 1024, 1)} MB")
-                else:
-                    _append_install_log(task_id, "Remote file size is unknown; showing downloaded bytes instead of a reliable percent.")
-            downloaded = 0
-            last_logged = 0
-            with open(download_path, "wb") as f:
-                while True:
-                    if task_id and _CLOUDFLARED_INSTALL_TASKS.get(task_id, {}).get("status") == "cancelled":
-                        raise asyncio.CancelledError()
-                    chunk = await resp.content.read(1024 * 256)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if task_id:
-                        percent = round((downloaded / total_size) * 100, 1) if total_size else min(95, max(1, int(downloaded / (1024 * 1024)) * 3))
-                        _save_install_task(
-                            task_id,
-                            downloaded=downloaded,
-                            percent=percent,
-                        )
-                        if downloaded - last_logged >= 2 * 1024 * 1024:
-                            last_logged = downloaded
-                            _append_install_log(task_id, f"Downloaded {round(downloaded / 1024 / 1024, 1)} MB")
-    _validate_cloudflared_download(download_path, kind, task_id)
-    if task_id:
-        _save_install_task(task_id, status="installing", percent=98)
-        _append_install_log(task_id, "Download finished; installing binary.")
-    if kind == "tgz":
-        with tarfile.open(download_path, "r:gz") as tar:
-            member = next((m for m in tar.getmembers() if Path(m.name).name == "cloudflared" and m.isfile()), None)
-            if not member:
-                raise RuntimeError("cloudflared not found in archive")
-            extracted = tar.extractfile(member)
-            if extracted is None:
-                raise RuntimeError("failed to extract cloudflared")
-            with open(final_path, "wb") as f:
-                shutil.copyfileobj(extracted, f)
-        download_path.unlink(missing_ok=True)
-    elif download_path != final_path:
-        shutil.move(str(download_path), str(final_path))
-    if not sys.platform.startswith("win"):
-        final_path.chmod(final_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    version = _cloudflared_version(final_path)
-    if not version.get("ok"):
-        raise RuntimeError(f"cloudflared downloaded but cannot run: {version.get('error')}")
-    _append_install_log(task_id, f"Verified cloudflared: {version.get('version')}")
-    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
-    cfg["cloudflared_path"] = str(final_path)
-    _atomic_write(VISITOR_TUNNEL_FILE, cfg)
-    return {"path": str(final_path), "url": url, "version": version.get("version", "")}
-
-
 async def _start_cloudflared_quick_tunnel(local_url: str) -> dict:
     global _CLOUDFLARED_PROCESS, _CLOUDFLARED_PUBLIC_URL
     if _CLOUDFLARED_PROCESS and _CLOUDFLARED_PROCESS.returncode is None and _CLOUDFLARED_PUBLIC_URL:
@@ -3071,6 +2821,16 @@ async def _start_cloudflared_quick_tunnel(local_url: str) -> dict:
             _atomic_write(VISITOR_TUNNEL_FILE, cfg)
             return {"public_url": _CLOUDFLARED_PUBLIC_URL, "running": True}
     raise RuntimeError("cloudflared started but no trycloudflare URL was detected")
+
+
+async def visitor_ensure_public_url(port: int = 4399) -> dict:
+    local_url = f"http://127.0.0.1:{int(port or 4399)}"
+    try:
+        result = await _start_cloudflared_quick_tunnel(local_url)
+        return {"ok": True, **result}
+    except Exception as exc:
+        fallback = visitor_public_url()
+        return {"ok": False, "error": str(exc), "public_url": fallback}
 
 
 def visitor_create_key_from_role(role_name_or_id: str, remark: str = "") -> dict:
@@ -3216,7 +2976,11 @@ async def api_visitor_keys(request):
     if not _is_admin_request(request):
         return _visitor_error("只有管理员可以管理临时密钥。")
     if request.method == "GET":
-        keys = [_public_key_record(item) for item in _read_list_file(VISITOR_KEYS_FILE)]
+        raw_keys = _read_list_file(VISITOR_KEYS_FILE)
+        active_keys = [item for item in raw_keys if item.get("status", "active") == "active"]
+        if len(active_keys) != len(raw_keys):
+            _atomic_write(VISITOR_KEYS_FILE, active_keys)
+        keys = [_public_key_record(item) for item in active_keys]
         return web.json_response({"ok": True, "keys": keys})
     body = await request.json()
     result = visitor_create_key_from_role(body.get("role_id") or body.get("role_name"), body.get("remark", ""))
@@ -3230,14 +2994,15 @@ async def api_visitor_revoke_key(request):
     key_id = request.match_info.get("key_id", "")
     keys = _read_list_file(VISITOR_KEYS_FILE)
     changed = False
+    kept = []
     for item in keys:
         if item.get("id") == key_id:
-            item["status"] = "revoked"
             changed = True
-            break
+            continue
+        kept.append(item)
     if changed:
-        _atomic_write(VISITOR_KEYS_FILE, keys)
-        _append_audit("key_revoked", {"key_id": key_id})
+        _atomic_write(VISITOR_KEYS_FILE, kept)
+        _append_audit("key_deleted", {"key_id": key_id})
     return web.json_response({"ok": True, "changed": changed})
 
 
@@ -3284,15 +3049,12 @@ async def api_visitor_tunnel_status(request):
         "public_url": visitor_public_url(),
         "managed_path": str(_cloudflared_managed_path()),
         "bin_dir": str(_cloudflared_bin_dir()),
-        "download_url": _cloudflared_download_url(),
         "official_download_url": _cloudflared_official_download_url(),
-        "download_sources": _CLOUDFLARED_DOWNLOAD_SOURCES,
         "download_asset": _cloudflared_download_asset()[0],
         "manual": manual_info,
         "local_url": local_url,
         "quick_tunnel_command": f"cloudflared tunnel --url {local_url}",
         "install_hint": manual_info.get("install_hint", ""),
-        "install_task": _install_task_public(),
         "docs": [
             "https://developers.cloudflare.com/tunnel/downloads/",
             "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/",
@@ -3310,14 +3072,10 @@ async def api_visitor_tunnel_config(request):
         "cloudflared_path",
         "custom_public_url",
         "last_public_url",
-        "cloudflared_download_source",
-        "cloudflared_download_url_template",
     ):
         if key in body:
             cfg[key] = str(body.get(key) or "").strip()
-    if cfg.get("cloudflared_download_source") not in {"official", "custom"}:
-        cfg["cloudflared_download_source"] = "official"
-    for key in ("allow_plugin_start_tunnel", "allow_install_script"):
+    for key in ("allow_plugin_start_tunnel",):
         if key in body:
             cfg[key] = bool(body.get(key))
     _atomic_write(VISITOR_TUNNEL_FILE, cfg)
@@ -3335,188 +3093,6 @@ async def api_visitor_cloudflared_prepare(request):
     result = _prepare_local_cloudflared(path_hint or None)
     status = 200 if result.get("ok") else 400
     return web.json_response(result, status=status)
-
-
-async def api_visitor_cloudflared_install(request):
-    if not _is_admin_request(request):
-        return _visitor_error("只有管理员可以安装 cloudflared。")
-    try:
-        result = await _download_cloudflared_binary(force=True)
-        return web.json_response({"ok": True, **result})
-    except Exception as e:
-        return web.json_response({"ok": False, "error": str(e), "error_hint": _cloudflared_error_hint(e), "download_url": _cloudflared_download_url()}, status=500)
-
-
-async def _run_cloudflared_install_task(task_id: str):
-    try:
-        _append_install_log(task_id, "Install task started.")
-        task = _CLOUDFLARED_INSTALL_TASKS.get(task_id) or _read_dict_file(VISITOR_INSTALL_STATE_FILE)
-        if task.get("clean"):
-            _append_install_log(task_id, "Clean reinstall requested; clearing managed binary and partial downloads.")
-            removed = _cleanup_cloudflared_install_files(task_id)
-            _save_install_task(task_id, removed_files=removed)
-        result = await _download_cloudflared_binary(task_id, force=bool(task.get("force")))
-        _save_install_task(
-            task_id,
-            ok=True,
-            status="done",
-            percent=100,
-            path=result.get("path", ""),
-            version=result.get("version", ""),
-        )
-        _append_install_log(task_id, "Install task completed.")
-    except asyncio.CancelledError:
-        removed = _cleanup_cloudflared_install_files(task_id, include_managed=False)
-        _save_install_task(
-            task_id,
-            ok=False,
-            status="cancelled",
-            error="install task cancelled",
-            error_hint="安装任务已取消；可以重新下载或重新安装。",
-            removed_files=removed,
-        )
-        _append_install_log(task_id, "Install task cancelled.")
-    except Exception as exc:
-        removed = _cleanup_cloudflared_install_files(task_id, include_managed=False)
-        _save_install_task(task_id, ok=False, status="error", error=str(exc), error_hint=_cloudflared_error_hint(exc), removed_files=removed)
-        _append_install_log(task_id, f"Install task failed: {exc}")
-        _append_install_log(task_id, _cloudflared_error_hint(exc))
-    finally:
-        _CLOUDFLARED_INSTALL_ASYNC_TASKS.pop(task_id, None)
-
-
-async def api_visitor_cloudflared_install_start(request):
-    if not _is_admin_request(request):
-        return _visitor_error("只有管理员可以安装 cloudflared。")
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    cfg_changed = False
-    cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
-    for key in ("cloudflared_download_source", "cloudflared_download_url_template"):
-        if key in body:
-            cfg[key] = str(body.get(key) or "").strip()
-            cfg_changed = True
-    if cfg.get("cloudflared_download_source") not in {"official", "custom"}:
-        cfg["cloudflared_download_source"] = "official"
-        cfg_changed = True
-    if cfg.get("cloudflared_download_source") == "custom" and not cfg.get("cloudflared_download_url_template"):
-        return web.json_response({"ok": False, "error": "自定义下载源需要填写 URL 模板。"}, status=400)
-    if cfg_changed:
-        _atomic_write(VISITOR_TUNNEL_FILE, cfg)
-    clean = bool(body.get("clean"))
-    force = bool(body.get("force") or clean)
-    detected = _detect_cloudflared_path()
-    if detected and not force:
-        version = _cloudflared_version(detected)
-        task_id = f"cf_{uuid.uuid4().hex[:12]}"
-        _save_install_task(
-            task_id,
-            ok=True,
-            status="done",
-            percent=100,
-            downloaded=0,
-            total=0,
-            error="",
-            url=_cloudflared_download_url(),
-            source=_cloudflared_download_source_name(),
-            path=detected,
-            version=version.get("version", ""),
-            logs=[f"[{time.strftime('%H:%M:%S')}] Existing cloudflared is usable: {version.get('version', '')}"],
-            created_at=int(time.time()),
-        )
-        return web.json_response({"ok": True, "task_id": task_id, "already_installed": True})
-    if clean:
-        for existing_id, running_task in list(_CLOUDFLARED_INSTALL_ASYNC_TASKS.items()):
-            if not running_task.done():
-                _save_install_task(existing_id, status="cancelled", ok=False, error="install task cancelled", error_hint="安装任务已被重新安装操作取消。")
-                running_task.cancel()
-    for existing_id, task in _CLOUDFLARED_INSTALL_TASKS.items():
-        if task.get("status") in {"queued", "downloading", "installing"}:
-            return web.json_response({"ok": True, "task_id": existing_id, "already_running": True})
-    state = _read_dict_file(VISITOR_INSTALL_STATE_FILE)
-    if state.get("status") in {"queued", "downloading", "installing"} and state.get("task_id"):
-        if state["task_id"] in _CLOUDFLARED_INSTALL_TASKS:
-            return web.json_response({"ok": True, "task_id": state["task_id"], "already_running": True})
-        state["ok"] = False
-        state["status"] = "error"
-        state["error"] = "install task was interrupted"
-        state["error_hint"] = "上一次安装任务已经不在运行，可能是 WebUI/AstrBot 重启导致；可以点击重新下载。"
-        state.setdefault("logs", []).append(f"[{time.strftime('%H:%M:%S')}] Install task was interrupted; ready for retry.")
-        _atomic_write(VISITOR_INSTALL_STATE_FILE, _install_task_public(state))
-    task_id = f"cf_{uuid.uuid4().hex[:12]}"
-    _save_install_task(
-        task_id,
-        ok=True,
-        status="queued",
-        downloaded=0,
-        total=0,
-        percent=0,
-        error="",
-        url=_cloudflared_download_url(),
-        source=_cloudflared_download_source_name(),
-        force=force,
-        clean=clean,
-        logs=[],
-        created_at=int(time.time()),
-    )
-    _CLOUDFLARED_INSTALL_ASYNC_TASKS[task_id] = asyncio.create_task(_run_cloudflared_install_task(task_id))
-    return web.json_response({"ok": True, "task_id": task_id})
-
-
-async def api_visitor_cloudflared_install_progress(request):
-    if not _is_admin_request(request):
-        return _visitor_error("只有管理员可以查看安装进度。")
-    task_id = request.query.get("task_id", "")
-    if not task_id:
-        task = _read_dict_file(VISITOR_INSTALL_STATE_FILE)
-        task_id = task.get("task_id", "")
-    task = _CLOUDFLARED_INSTALL_TASKS.get(task_id) or _read_dict_file(VISITOR_INSTALL_STATE_FILE)
-    if not task:
-        return web.json_response({"ok": False, "error": "install task not found"}, status=404)
-    if task.get("status") in {"queued", "downloading", "installing"} and task.get("task_id") not in _CLOUDFLARED_INSTALL_TASKS:
-        task["ok"] = False
-        task["status"] = "error"
-        task["error"] = "install task was interrupted"
-        task["error_hint"] = "上一次安装任务已经不在运行，可能是 WebUI/AstrBot 重启导致；可以点击重新下载。"
-        task.setdefault("logs", []).append(f"[{time.strftime('%H:%M:%S')}] Install task was interrupted; ready for retry.")
-        _atomic_write(VISITOR_INSTALL_STATE_FILE, _install_task_public(task))
-    return web.json_response({"ok": True, "task": _install_task_public(task)})
-
-
-async def api_visitor_cloudflared_install_cancel(request):
-    if not _is_admin_request(request):
-        return _visitor_error("只有管理员可以取消 cloudflared 安装。")
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    task_id = str(body.get("task_id") or "").strip()
-    if not task_id:
-        state = _read_dict_file(VISITOR_INSTALL_STATE_FILE)
-        task_id = str(state.get("task_id") or "").strip()
-    if not task_id:
-        return web.json_response({"ok": False, "error": "install task not found"}, status=404)
-    task = _CLOUDFLARED_INSTALL_TASKS.get(task_id) or _read_dict_file(VISITOR_INSTALL_STATE_FILE)
-    if not task:
-        return web.json_response({"ok": False, "error": "install task not found"}, status=404)
-    running = _CLOUDFLARED_INSTALL_ASYNC_TASKS.get(task_id)
-    _save_install_task(
-        task_id,
-        ok=False,
-        status="cancelled",
-        error="install task cancelled",
-        error_hint="安装任务已取消；可以重新下载或重新安装。",
-    )
-    _append_install_log(task_id, "Cancel requested by admin.")
-    if running and not running.done():
-        running.cancel()
-    else:
-        removed = _cleanup_cloudflared_install_files(task_id, include_managed=False)
-        if removed:
-            _save_install_task(task_id, removed_files=removed)
-    return web.json_response({"ok": True, "task": _install_task_public(_CLOUDFLARED_INSTALL_TASKS.get(task_id))})
 
 
 async def api_visitor_tunnel_start(request):

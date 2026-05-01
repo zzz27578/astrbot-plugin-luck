@@ -104,24 +104,6 @@
         "description": "允许插件启动 cloudflared",
         "default": true,
         "hint": "开启后，WebUI 可以通过按钮启动 cloudflared Quick Tunnel 生成 trycloudflare 临时地址。"
-      },
-      "allow_install_script": {
-        "type": "bool",
-        "description": "显示安装脚本辅助",
-        "default": true,
-        "hint": "开启后，WebUI 会提供官方下载链接、放置目录、自动改名、修复权限和检测辅助。"
-      },
-      "cloudflared_download_source": {
-        "type": "string",
-        "description": "cloudflared 下载源",
-        "default": "official",
-        "hint": "official=Cloudflare 官方 GitHub Release；custom=使用下方 URL 模板。"
-      },
-      "cloudflared_download_url_template": {
-        "type": "string",
-        "description": "cloudflared 自定义下载 URL 模板",
-        "default": "",
-        "hint": "支持 {url} 和 {asset} 占位符，例如 https://你的镜像/{url} 或 https://你的镜像/latest/download/{asset}。只填镜像域名时会按 GitHub 代理方式拼接官方 URL。"
       }
     }
   },

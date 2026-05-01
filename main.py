@@ -18,6 +18,7 @@ from .webui.server import (
     start_webui,
     verify_webui_admin_password,
     visitor_create_key_from_role,
+    visitor_ensure_public_url,
     visitor_get_drafts_summary,
     visitor_get_roles_summary,
     visitor_public_url,
@@ -524,18 +525,26 @@ class LuckPlugin(Star):
             if not role_name:
                 yield event.plain_result("请发送：/luck 生成临时密钥 功能牌投稿员\n可用身份可用 /luck 访客身份 查看。")
                 return
+            webui_port = 4399
+            try:
+                webui_port = int((self._base_config.get("webui_settings") or {}).get("port", 4399) or 4399)
+            except Exception:
+                webui_port = 4399
+            tunnel = await visitor_ensure_public_url(webui_port)
             result = visitor_create_key_from_role(role_name)
             if not result.get("ok"):
                 yield event.plain_result(f"⚠️ {result.get('error', '生成失败')}")
                 return
-            url = result.get("public_url") or visitor_public_url() or "未配置公网地址，请先在 WebUI 的访客协作页填写 trycloudflare 地址。"
+            url = tunnel.get("public_url") or result.get("public_url") or visitor_public_url() or "未配置公网地址，请先在 WebUI 的访客协作页填写 trycloudflare 地址。"
             role = result.get("role", {})
+            tunnel_note = "" if tunnel.get("ok") else f"\n临时地址刷新提示：{tunnel.get('error', '未能自动生成新地址，已使用已保存地址。')}"
             yield event.plain_result(
                 "✅ 已生成访客协作密钥\n"
                 f"身份：{role.get('name', role_name)}\n"
                 f"地址：{url}\n"
                 f"密钥：{result.get('key')}\n"
                 "请只把访客密钥发给需要协作的人，不要发送 WebUI 管理密码。"
+                f"{tunnel_note}"
             )
             return
 

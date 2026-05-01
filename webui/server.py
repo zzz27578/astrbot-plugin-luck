@@ -2557,6 +2557,33 @@ def _cloudflared_install_paths() -> list[Path]:
     return [_cloudflared_managed_path(), _cloudflared_partial_path()]
 
 
+def _cloudflared_candidate_names() -> list[str]:
+    names = [
+        _cloudflared_filename(),
+        _cloudflared_download_asset()[0],
+        "cloudflared",
+        "cloudflared.exe",
+        "cloudflared-linux-amd64",
+        "cloudflared-linux-arm64",
+        "cloudflared-linux-386",
+        "cloudflared-windows-amd64.exe",
+        "cloudflared-windows-arm64.exe",
+        "cloudflared-windows-386.exe",
+        "cloudflared-darwin-amd64.tgz",
+        "cloudflared-darwin-arm64.tgz",
+    ]
+    result = []
+    for name in names:
+        if name and name not in result:
+            result.append(name)
+    return result
+
+
+def _cloudflared_candidate_paths() -> list[Path]:
+    bin_dir = _cloudflared_bin_dir()
+    return [bin_dir / name for name in _cloudflared_candidate_names()]
+
+
 def _cleanup_cloudflared_install_files(task_id: str | None = None, include_managed: bool = True) -> list[str]:
     removed = []
     bin_dir = _cloudflared_bin_dir().resolve()
@@ -2650,6 +2677,24 @@ def _cloudflared_official_download_url(asset: str | None = None) -> str:
     return f"https://github.com/cloudflare/cloudflared/releases/latest/download/{asset}"
 
 
+def _cloudflared_apply_download_template(template: str, official_url: str, asset: str) -> str:
+    template = str(template or "").strip()
+    if not template:
+        return official_url
+    if "{url}" in template or "{asset}" in template:
+        return template.format(url=official_url, asset=asset)
+    parsed = urlparse(template)
+    if not parsed.scheme and "." in template.split("/")[0]:
+        template = "https://" + template
+        parsed = urlparse(template)
+    path = (parsed.path or "").strip("/")
+    if parsed.scheme and parsed.netloc and not path:
+        return template.rstrip("/") + "/" + official_url
+    if template.endswith("/"):
+        return template + asset
+    return template
+
+
 def _cloudflared_download_url() -> str:
     asset, _ = _cloudflared_download_asset()
     official_url = _cloudflared_official_download_url(asset)
@@ -2659,11 +2704,7 @@ def _cloudflared_download_url() -> str:
     if source != "custom" or not template:
         return official_url
     try:
-        if "{url}" in template or "{asset}" in template:
-            return template.format(url=official_url, asset=asset)
-        if template.endswith("/"):
-            return template + asset
-        return template
+        return _cloudflared_apply_download_template(template, official_url, asset)
     except Exception:
         return official_url
 
@@ -2684,6 +2725,18 @@ def _cloudflared_manual_info() -> dict:
     place_names = [filename]
     if partial_path.name != filename:
         place_names.append(partial_path.name)
+    all_downloads = [
+        {"label": "Windows amd64", "asset": "cloudflared-windows-amd64.exe"},
+        {"label": "Windows arm64", "asset": "cloudflared-windows-arm64.exe"},
+        {"label": "Windows 386", "asset": "cloudflared-windows-386.exe"},
+        {"label": "Linux amd64", "asset": "cloudflared-linux-amd64"},
+        {"label": "Linux arm64", "asset": "cloudflared-linux-arm64"},
+        {"label": "Linux 386", "asset": "cloudflared-linux-386"},
+        {"label": "macOS amd64", "asset": "cloudflared-darwin-amd64.tgz"},
+        {"label": "macOS arm64", "asset": "cloudflared-darwin-arm64.tgz"},
+    ]
+    for item in all_downloads:
+        item["url"] = _cloudflared_official_download_url(item["asset"])
     return {
         "platform": _cloudflared_platform_label(),
         "arch": _cloudflared_arch_label(),
@@ -2695,8 +2748,9 @@ def _cloudflared_manual_info() -> dict:
         "bin_dir": str(_cloudflared_bin_dir()),
         "managed_path": str(final_path),
         "accepted_paths": [str(final_path), str(partial_path)] if partial_path != final_path else [str(final_path)],
-        "accepted_filenames": place_names,
+        "accepted_filenames": _cloudflared_candidate_names(),
         "official_download_url": _cloudflared_official_download_url(asset),
+        "all_downloads": all_downloads,
         "current_download_url": _cloudflared_download_url(),
         "install_hint": _cloudflared_install_hint(),
         "docs_url": "https://developers.cloudflare.com/tunnel/downloads/",
@@ -2716,6 +2770,10 @@ def _cloudflared_error_hint(error: Exception | str) -> str:
         return "下载地址返回 404；请检查镜像模板是否保留了 {asset} 或 {url} 占位符。"
     if "http 403" in lower or "http 429" in lower:
         return "下载源拒绝或限流；请稍后重试或切换镜像源。"
+    if "html" in lower or "json error page" in lower or "mirror url template" in lower or "too small" in lower:
+        return "下载到的不是 cloudflared 本体，通常是镜像模板只填了首页或拼接方式不对；建议填写 https://镜像域名/{url}，或直接使用页面给出的手动下载地址。"
+    if "exec format error" in lower or "not a linux executable" in lower or "not a windows executable" in lower or "not a macos executable" in lower or "not a gzip archive" in lower:
+        return "下载文件格式不对，可能下载到了网页、错误页或不匹配当前系统架构的文件；请清理后重新安装，或按页面推荐文件手动下载。"
     return "自动安装失败；可以重新下载、切换下载源，或手动下载 cloudflared 后填写路径。"
 
 
@@ -2763,6 +2821,113 @@ def _detect_cloudflared_path() -> str:
     return ""
 
 
+def _validate_cloudflared_download(path: Path, kind: str, task_id: str | None = None):
+    try:
+        size = path.stat().st_size
+    except Exception:
+        size = 0
+    if size < 1024 * 1024:
+        raise RuntimeError("downloaded file is too small; the mirror may have returned an error page instead of cloudflared")
+    with open(path, "rb") as f:
+        head = f.read(512)
+    stripped = head.lstrip().lower()
+    if stripped.startswith((b"<!doctype html", b"<html", b"{\"error\"", b"{\"message\"")):
+        raise RuntimeError("downloaded file looks like an HTML/JSON error page; please check the mirror URL template")
+    if kind == "exe" and not head.startswith(b"MZ"):
+        raise RuntimeError("downloaded file is not a Windows executable; please check the mirror URL template")
+    if kind == "tgz" and not head.startswith(b"\x1f\x8b"):
+        raise RuntimeError("downloaded file is not a gzip archive; please check the mirror URL template")
+    if kind == "macbin" and not head.startswith((b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xfe\xed\xfa\xcf")):
+        raise RuntimeError("downloaded file is not a macOS executable; please check the file")
+    if kind == "bin" and not head.startswith(b"\x7fELF"):
+        raise RuntimeError("downloaded file is not a Linux executable; please check the mirror URL template")
+    _append_install_log(task_id, f"Downloaded file passed basic format check ({round(size / 1024 / 1024, 1)} MB).")
+
+
+def _cloudflared_prepare_from_path(source: Path, final_path: Path) -> dict:
+    source = source.expanduser()
+    if not source.exists() or not source.is_file():
+        return {"ok": False, "source": str(source), "error": "file not found"}
+    asset, kind = _cloudflared_download_asset()
+    if source.suffix.lower() == ".tgz":
+        source_kind = "tgz"
+    elif sys.platform == "darwin":
+        source_kind = "macbin"
+    else:
+        source_kind = kind
+    final_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        _validate_cloudflared_download(source, source_kind)
+        if source_kind == "tgz":
+            with tarfile.open(source, "r:gz") as tar:
+                member = next((m for m in tar.getmembers() if Path(m.name).name == "cloudflared" and m.isfile()), None)
+                if not member:
+                    raise RuntimeError("cloudflared not found in archive")
+                extracted = tar.extractfile(member)
+                if extracted is None:
+                    raise RuntimeError("failed to extract cloudflared")
+                with open(final_path, "wb") as f:
+                    shutil.copyfileobj(extracted, f)
+        elif source.resolve() != final_path.resolve():
+            shutil.copy2(source, final_path)
+        if not sys.platform.startswith("win"):
+            final_path.chmod(final_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        version = _cloudflared_version(final_path)
+        if not version.get("ok"):
+            raise RuntimeError(version.get("error") or "cloudflared --version failed")
+        cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+        cfg["cloudflared_path"] = str(final_path)
+        _atomic_write(VISITOR_TUNNEL_FILE, cfg)
+        return {
+            "ok": True,
+            "source": str(source),
+            "path": str(final_path),
+            "version": version.get("version", ""),
+            "copied": source.resolve() != final_path.resolve() or source_kind == "tgz",
+            "chmod": not sys.platform.startswith("win"),
+        }
+    except Exception as exc:
+        return {"ok": False, "source": str(source), "error": str(exc)}
+
+
+def _prepare_local_cloudflared(path_hint: str | None = None) -> dict:
+    final_path = _cloudflared_managed_path()
+    tried = []
+    explicit = Path(str(path_hint).strip()).expanduser() if path_hint else None
+    if explicit:
+        candidates = [explicit]
+        if explicit.exists() and explicit.is_dir():
+            candidates = [explicit / name for name in _cloudflared_candidate_names()]
+    else:
+        existing = _cloudflared_version(final_path)
+        if existing.get("ok"):
+            cfg = _read_dict_file(VISITOR_TUNNEL_FILE)
+            cfg["cloudflared_path"] = str(final_path)
+            _atomic_write(VISITOR_TUNNEL_FILE, cfg)
+            return {"ok": True, "path": str(final_path), "version": existing.get("version", ""), "already_ready": True, "tried": []}
+        candidates = _cloudflared_candidate_paths()
+    seen = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if not candidate.exists() or not candidate.is_file():
+            continue
+        result = _cloudflared_prepare_from_path(candidate, final_path)
+        tried.append(result)
+        if result.get("ok"):
+            result["tried"] = tried
+            return result
+    return {
+        "ok": False,
+        "error": "未找到可用的 cloudflared 文件。请把页面推荐的下载文件放到插件 bin 目录，再点击整理文件并检测。",
+        "tried": tried,
+        "bin_dir": str(_cloudflared_bin_dir()),
+        "accepted_filenames": _cloudflared_candidate_names(),
+    }
+
+
 async def _download_cloudflared_binary(task_id: str | None = None, force: bool = False) -> dict:
     url = _cloudflared_download_url()
     asset, kind = _cloudflared_download_asset()
@@ -2804,9 +2969,14 @@ async def _download_cloudflared_binary(task_id: str | None = None, force: bool =
         async with session.get(url, allow_redirects=True) as resp:
             if resp.status != 200:
                 raise RuntimeError(f"download failed: HTTP {resp.status}")
+            content_type = str(resp.headers.get("Content-Type") or "")
+            if "text/html" in content_type.lower():
+                raise RuntimeError("download source returned HTML instead of cloudflared; please check the mirror URL template")
             total_size = int(resp.headers.get("Content-Length") or 0)
             if task_id:
-                _save_install_task(task_id, total=total_size)
+                _save_install_task(task_id, total=total_size, content_type=content_type)
+                if content_type:
+                    _append_install_log(task_id, f"Content-Type: {content_type}")
                 if total_size:
                     _append_install_log(task_id, f"Remote file size: {round(total_size / 1024 / 1024, 1)} MB")
                 else:
@@ -2823,14 +2993,16 @@ async def _download_cloudflared_binary(task_id: str | None = None, force: bool =
                     f.write(chunk)
                     downloaded += len(chunk)
                     if task_id:
+                        percent = round((downloaded / total_size) * 100, 1) if total_size else min(95, max(1, int(downloaded / (1024 * 1024)) * 3))
                         _save_install_task(
                             task_id,
                             downloaded=downloaded,
-                            percent=round((downloaded / total_size) * 100, 1) if total_size else 0,
+                            percent=percent,
                         )
                         if downloaded - last_logged >= 2 * 1024 * 1024:
                             last_logged = downloaded
                             _append_install_log(task_id, f"Downloaded {round(downloaded / 1024 / 1024, 1)} MB")
+    _validate_cloudflared_download(download_path, kind, task_id)
     if task_id:
         _save_install_task(task_id, status="installing", percent=98)
         _append_install_log(task_id, "Download finished; installing binary.")
@@ -3152,6 +3324,19 @@ async def api_visitor_tunnel_config(request):
     return web.json_response({"ok": True, "config": cfg})
 
 
+async def api_visitor_cloudflared_prepare(request):
+    if not _is_admin_request(request):
+        return _visitor_error("只有管理员可以整理并检测 cloudflared。")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    path_hint = str(body.get("path") or "").strip()
+    result = _prepare_local_cloudflared(path_hint or None)
+    status = 200 if result.get("ok") else 400
+    return web.json_response(result, status=status)
+
+
 async def api_visitor_cloudflared_install(request):
     if not _is_admin_request(request):
         return _visitor_error("只有管理员可以安装 cloudflared。")
@@ -3192,7 +3377,8 @@ async def _run_cloudflared_install_task(task_id: str):
         )
         _append_install_log(task_id, "Install task cancelled.")
     except Exception as exc:
-        _save_install_task(task_id, ok=False, status="error", error=str(exc), error_hint=_cloudflared_error_hint(exc))
+        removed = _cleanup_cloudflared_install_files(task_id, include_managed=False)
+        _save_install_task(task_id, ok=False, status="error", error=str(exc), error_hint=_cloudflared_error_hint(exc), removed_files=removed)
         _append_install_log(task_id, f"Install task failed: {exc}")
         _append_install_log(task_id, _cloudflared_error_hint(exc))
     finally:
@@ -3680,10 +3866,7 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_post("/api/visitor/drafts/{draft_id}/{action:approve|reject}", api_visitor_review_draft)
     app.router.add_get("/api/visitor/tunnel", api_visitor_tunnel_status)
     app.router.add_post("/api/visitor/tunnel", api_visitor_tunnel_config)
-    app.router.add_post("/api/visitor/cloudflared/install", api_visitor_cloudflared_install)
-    app.router.add_post("/api/visitor/cloudflared/install/start", api_visitor_cloudflared_install_start)
-    app.router.add_post("/api/visitor/cloudflared/install/cancel", api_visitor_cloudflared_install_cancel)
-    app.router.add_get("/api/visitor/cloudflared/install/progress", api_visitor_cloudflared_install_progress)
+    app.router.add_post("/api/visitor/cloudflared/prepare", api_visitor_cloudflared_prepare)
     app.router.add_post("/api/visitor/tunnel/start", api_visitor_tunnel_start)
     app.router.add_post("/api/visitor/tunnel/stop", api_visitor_tunnel_stop)
     app.router.add_get("/api/profile_overview", api_profile_overview)

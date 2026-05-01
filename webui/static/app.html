@@ -5634,9 +5634,6 @@ async function loadVisitor() {
       if (tunnelRes.ok) {
         state.visitorTunnel = tunnelRes;
         state.visitorInstallTask = tunnelRes.install_task || {};
-        if (isCloudflaredInstallBusy(state.visitorInstallTask) && state.visitorInstallTask.task_id) {
-          setTimeout(() => pollCloudflaredInstall(state.visitorInstallTask.task_id), 0);
-        }
         if (tunnelRes.detected && !state.visitorCloudflaredNoticeShown) {
           state.visitorCloudflaredNoticeShown = true;
           showToast('cloudflared 检测正常，可以使用托管临时地址。');
@@ -8124,6 +8121,12 @@ function cloudflaredDownloadPreview(tunnel = {}) {
     if (template.includes('{url}') || template.includes('{asset}')) {
       return template.split('{url}').join(officialUrl).split('{asset}').join(asset);
     }
+    let normalized = template;
+    if (!/^https?:\/\//i.test(normalized) && normalized.includes('.')) normalized = 'https://' + normalized;
+    const parsed = new URL(normalized);
+    if (parsed.protocol && parsed.host && parsed.pathname.replace(/\//g, '') === '') {
+      return normalized.replace(/\/+$/, '') + '/' + officialUrl;
+    }
     if (template.endsWith('/')) return template + asset;
     return template;
   } catch (_) {
@@ -8140,35 +8143,22 @@ function updateCloudflaredDownloadPreview() {
 function renderCloudflaredPanel(tunnel = {}) {
   const cfg = tunnel.config || {};
   const manual = tunnel.manual || {};
-  const installTask = state.visitorInstallTask || tunnel.install_task || {};
-  const installBusy = isCloudflaredInstallBusy(installTask);
   const detectedOk = !!tunnel.detected;
-  const downloadSource = cfg.cloudflared_download_source || 'official';
-  const downloadTemplate = cfg.cloudflared_download_url_template || '';
-  const downloadSources = Array.isArray(tunnel.download_sources) ? tunnel.download_sources : [
-    { id: 'official', name: 'Cloudflare GitHub Release' },
-    { id: 'custom', name: '自定义镜像/模板' }
-  ];
-  const sourceOptions = downloadSources.map(item => `<option value="${esc(item.id)}" ${downloadSource === item.id ? 'selected' : ''}>${esc(item.name || item.id)}</option>`).join('');
   const acceptedPaths = Array.isArray(manual.accepted_paths) && manual.accepted_paths.length ? manual.accepted_paths : [tunnel.managed_path || manual.managed_path || ''];
   const acceptedNames = Array.isArray(manual.accepted_filenames) && manual.accepted_filenames.length ? manual.accepted_filenames.join(' 或 ') : (manual.filename || 'cloudflared');
   const manualNote = manual.kind === 'tgz'
     ? '下载后先解压，把压缩包里名为 cloudflared 的文件放进下面目录。'
-    : '下载后可以直接放进下面目录；文件名保持官方名称或改成插件托管文件名都可以。';
+    : '下载后直接放进下面目录即可，不需要手动改名；插件会自动整理成可启动的文件名。';
   const statusNotice = detectedOk
     ? `<div class="notice success">已检测到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
-    : `<div class="notice danger">未检测到 cloudflared。先确认当前环境，再选择自动下载或手动下载放置。</div>`;
-  const busyActions = installBusy
-    ? `<button class="btn-danger" onclick="cancelCloudflaredInstall()"><span class="btn-text">取消并清理残留</span></button>`
-    : `<button class="btn-strong" onclick="installCloudflared(false)"><span class="btn-text">自动下载</span></button>
-       <button class="btn" onclick="installCloudflared(true)"><span class="btn-text">继续/重新下载</span></button>
-       <button class="btn-danger" onclick="installCloudflared(true, true)"><span class="btn-text">清理后重新安装</span></button>`;
-  const retryActions = installTask.status === 'error' || installTask.status === 'cancelled'
-    ? `<div class="visitor-actions">
-         <button class="btn-strong" onclick="installCloudflared(true)"><span class="btn-text">按当前下载源重试</span></button>
-         <button class="btn-danger" onclick="installCloudflared(true, true)"><span class="btn-text">清理残留后重试</span></button>
-       </div>`
-    : '';
+    : `<div class="notice danger">未检测到 cloudflared。请下载推荐文件，放到插件 bin 目录，然后点击整理文件并检测。</div>`;
+  const allDownloads = Array.isArray(manual.all_downloads) ? manual.all_downloads : [];
+  const otherDownloadLinks = allDownloads.map(item => `
+    <div class="visitor-copy-line">
+      <div class="visitor-code">${esc(item.label || item.asset || '')}</div>
+      <button class="btn-mini" onclick='copyText(${jsArg(item.url || '')})'><span class="btn-text">复制链接</span></button>
+    </div>
+  `).join('');
 
   return `
     <section class="panel col-6">
@@ -8194,31 +8184,29 @@ function renderCloudflaredPanel(tunnel = {}) {
 
         <div class="visitor-cloud-step">
           <div>
-            <div class="visitor-step-title">第二步：准备 cloudflared</div>
-            <div class="visitor-step-note">自动下载适合一键完成；如果下载失败，就按右侧手动下载，把文件放到插件指定目录。</div>
+            <div class="visitor-step-title">第二步：下载并放到插件目录</div>
+            <div class="visitor-step-note">插件不再自动联网下载。你用浏览器、SSH、服务器面板或其它方式下载官方文件，放到下面的 bin 目录。</div>
           </div>
           <div class="visitor-cloud-choice-grid">
             <div class="visitor-cloud-choice">
-              <div class="visitor-card-title">方式 A：自动下载</div>
-              <div class="field"><label>下载源</label><select class="input" id="cloudflaredDownloadSource" onchange="updateCloudflaredDownloadPreview()">${sourceOptions}</select></div>
-              <div class="field"><label>自定义镜像 URL 模板</label><input class="input" id="cloudflaredDownloadTemplate" value="${esc(downloadTemplate)}" oninput="updateCloudflaredDownloadPreview()" placeholder="例如：https://你的镜像/{url} 或 https://你的镜像/latest/download/{asset}"></div>
-              <div class="visitor-muted-box">点击自动下载会先保存当前下载源。当前实际下载地址：<br><span id="cloudflaredDownloadPreview">${esc(cloudflaredDownloadPreview(tunnel))}</span></div>
-              <div class="visitor-actions">${busyActions}</div>
-              ${retryActions}
+              <div class="visitor-card-title">当前环境推荐下载</div>
+              <div class="visitor-step-note">${esc(manualNote)}</div>
+              <a class="visitor-link" href="${esc(manual.official_download_url || tunnel.official_download_url || '')}" target="_blank" rel="noopener">${esc(manual.asset || tunnel.download_asset || '打开官方下载链接')}</a>
+              <div class="visitor-copy-line"><div class="visitor-code">${esc(manual.official_download_url || tunnel.official_download_url || '')}</div><button class="btn-mini" onclick='copyText(${jsArg(manual.official_download_url || tunnel.official_download_url || '')})'><span class="btn-text">复制链接</span></button></div>
+              <div class="visitor-muted-box">这是 Cloudflare 官方 GitHub Release 直链。文件大约 30-40MB，下载的是运行 AstrBot/WebUI 这台机器需要的版本。</div>
             </div>
             <div class="visitor-cloud-choice">
-              <div class="visitor-card-title">方式 B：手动下载</div>
-              <div class="visitor-step-note">${esc(manualNote)}</div>
-              <a class="visitor-link" href="${esc(manual.official_download_url || tunnel.official_download_url || '')}" target="_blank" rel="noopener">打开官方推荐下载地址</a>
+              <div class="visitor-card-title">放置目录和整理检测</div>
               <div class="visitor-copy-line"><div class="visitor-code">${esc(manual.bin_dir || tunnel.bin_dir || '')}</div><button class="btn-mini" onclick='copyText(${jsArg(manual.bin_dir || tunnel.bin_dir || '')})'><span class="btn-text">复制目录</span></button></div>
-              <div class="visitor-muted-box">可接受文件名：${esc(acceptedNames)}<br>推荐放置路径：${esc(acceptedPaths.join(' 或 '))}<br>系统安装命令：${esc(manual.install_hint || tunnel.install_hint || '')}<br>官方说明：${esc(manual.docs_url || 'https://developers.cloudflare.com/tunnel/downloads/')}</div>
+              <div class="visitor-muted-box">可接受文件名：${esc(acceptedNames)}<br>推荐放置路径：${esc(acceptedPaths.join(' 或 '))}<br>插件会自动复制/改名为 ${esc(manual.filename || 'cloudflared')}，Linux/macOS 会自动补执行权限。</div>
+              <div class="field"><label>已有 cloudflared 路径或目录，可留空</label><input class="input" id="cloudflaredManualPath" value="${esc(cfg.cloudflared_path || '')}" placeholder="留空时扫描上面的 bin 目录"></div>
               <div class="visitor-actions">
-                <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">我已放好，重新检测</span></button>
-                <button class="btn" onclick='copyText(${jsArg(manual.official_download_url || tunnel.official_download_url || '')})'><span class="btn-text">复制下载地址</span></button>
+                <button class="btn-strong" onclick="prepareCloudflared()"><span class="btn-text">整理文件并检测</span></button>
+                <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">重新检测</span></button>
               </div>
             </div>
           </div>
-          ${renderCloudflaredProgress(installTask)}
+          ${otherDownloadLinks ? `<details><summary class="visitor-step-note">其它系统下载链接</summary><div class="visitor-cloud-flow" style="margin-top:10px;">${otherDownloadLinks}</div></details>` : ''}
         </div>
 
         <div class="visitor-cloud-step">
@@ -8331,6 +8319,23 @@ async function refreshVisitorTunnel() {
   await loadVisitor();
   renderVisitor();
   showToast(state.visitorTunnel.detected ? 'cloudflared 检测正常，可以生成临时地址。' : '未检测到 cloudflared。', !state.visitorTunnel.detected);
+}
+
+async function prepareCloudflared() {
+  const path = $('#cloudflaredManualPath')?.value?.trim() || '';
+  showToast('正在整理 cloudflared 文件并检测版本...');
+  const res = await apiPost('/api/visitor/cloudflared/prepare', { path });
+  if (!res.ok) {
+    const tried = Array.isArray(res.tried) && res.tried.length
+      ? `；已尝试 ${res.tried.length} 个文件，最后错误：${res.tried[res.tried.length - 1]?.error || res.error || ''}`
+      : '';
+    await loadVisitor();
+    renderVisitor();
+    return showToast((res.error || '整理检测失败。') + tried, true);
+  }
+  await loadVisitor();
+  renderVisitor();
+  showToast(`cloudflared 已可用：${res.version || res.path || ''}`);
 }
 
 async function installCloudflared(force = false, clean = false) {

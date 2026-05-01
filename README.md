@@ -171,26 +171,17 @@ data/plugin_data/luck_rank/
 
 1. 检测当前运行环境，显示系统、架构、推荐下载文件和检测结果。
 2. 如果已检测到 `cloudflared`，直接点击“生成临时地址”。
-3. 如果未检测到，可以选择“自动下载”或“手动下载”。
-4. 自动下载会把文件放到插件数据目录的 `bin` 文件夹，验证 `cloudflared --version` 后记录路径。
-5. 手动下载会展示当前环境对应的官方下载地址、可接受文件名、应该放置的目录和推荐放置路径。把文件放好后点击“重新检测”即可。
-
-自动下载说明：
-
-- 默认使用 Cloudflare 官方 GitHub Release 下载适配当前系统架构的二进制文件。
-- 下载失败时，页面会保留安装日志和失败原因，并提供继续/重新下载、清理后重新安装。
-- 取消安装会尝试清理本次下载留下的残留文件。
-- 如果运行环境连不上 GitHub，可以在 WebUI 里把下载源切到 `custom`，填写镜像模板。模板支持 `{url}` 和 `{asset}`，例如 `https://你的镜像/{url}` 或 `https://你的镜像/latest/download/{asset}`。
-- 点击自动下载时会先保存页面上的下载源设置，并使用页面显示的“当前实际下载地址”。
-- 自动安装不会注册系统服务，不会修改系统 PATH，不会改防火墙；下载完成后插件会记录该二进制路径并用于启动临时通道。
+3. 如果未检测到，页面给出当前环境对应的 Cloudflare 官方下载直链。
+4. 用户自行下载约 30-40MB 的二进制文件，放到页面提示的插件 `bin` 目录。
+5. 点击“整理文件并检测”，插件会自动复制/改名、修复执行权限并验证 `cloudflared --version`。
 
 手动下载说明：
 
 - 打开页面给出的官方推荐下载地址。
-- Windows 通常下载 `cloudflared-windows-amd64.exe`，也可以改名为 `cloudflared.exe`。
-- Linux 通常下载 `cloudflared-linux-amd64`，也可以改名为 `cloudflared`。
+- Windows 通常下载 `cloudflared-windows-amd64.exe`，放进 `bin` 后插件会自动整理成 `cloudflared.exe`。
+- Linux 通常下载 `cloudflared-linux-amd64`，放进 `bin` 后插件会自动整理成 `cloudflared` 并执行 `chmod +x`。
 - macOS 的 `.tgz` 需要先解压，把里面名为 `cloudflared` 的文件放到页面提示的目录。
-- 文件放好后点“我已放好，重新检测”。插件会执行 `cloudflared --version` 验证可用性。
+- 文件放好后点“整理文件并检测”。插件会执行 `cloudflared --version` 验证可用性。
 - 也可以用 `winget`、`brew`、Linux 包管理器安装到系统 PATH，再回到页面重新检测。
 
 身份权限可以直接在“访客协作”页新增和编辑。是否需要审核、是否允许懒狗批量生成、是否允许批量图片、单次卡片/图片上限都会随身份模板保存，生成临时密钥时直接套用该身份。

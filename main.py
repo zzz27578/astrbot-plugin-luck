@@ -531,7 +531,7 @@ class LuckPlugin(Star):
             except Exception:
                 webui_port = 4399
             tunnel = await visitor_ensure_public_url(webui_port)
-            result = visitor_create_key_from_role(role_name)
+            result = visitor_create_key_from_role(role_name, expires_at=int(time.time()) + 24 * 3600)
             if not result.get("ok"):
                 yield event.plain_result(f"⚠️ {result.get('error', '生成失败')}")
                 return

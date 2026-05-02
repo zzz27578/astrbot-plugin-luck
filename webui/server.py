@@ -1068,6 +1068,7 @@ def _public_key_record(item: dict) -> dict:
         "remark": item.get("remark", ""),
         "status": item.get("status", "active"),
         "created_at": item.get("created_at", 0),
+        "expires_at": item.get("expires_at", 0),
         "revoked_at": item.get("revoked_at", 0),
         "last_used_at": item.get("last_used_at", 0),
         "uses": item.get("uses", 0),
@@ -2452,8 +2453,6 @@ async def api_save_fate_cards(request):
 
 async def _handle_card_image_upload(request: web.Request, kind: str):
     is_visitor = _is_visitor_request(request)
-    if is_visitor and not _permission(request, "can_upload_image"):
-        return _visitor_error("当前访客身份不允许上传图片。")
     if is_visitor:
         prefix = "fate" if kind == "fate" else "func"
         if not (_permission(request, f"can_create_{prefix}_card") or _permission(request, f"can_edit_{prefix}_card")):
@@ -2464,10 +2463,6 @@ async def _handle_card_image_upload(request: web.Request, kind: str):
     identity = _get_session_identity(request)
     staged = bool(is_visitor and _permission(request, "requires_review", True))
     if staged:
-        pending = _count_pending_for_identity(identity)
-        max_pending = max(0, _safe_int(_permission(request, "max_pending_drafts", 3), 3))
-        if pending >= max_pending:
-            return _visitor_error(f"当前密钥待审核数量已达到 {max_pending} 项上限，请等待管理员处理后再上传。")
         target_dir = _visitor_staging_dir(profile_id, kind, identity.get("invite_id", ""))
     else:
         target_dir = paths["fate_assets_dir"] if kind == "fate" else paths["func_assets_dir"]
@@ -3457,6 +3452,92 @@ def visitor_review_draft_by_id(draft_id: str, approve: bool, reviewer: str = "qq
     return {"ok": True, "draft": public_target}
 
 
+def _find_pending_draft(draft_id: str) -> tuple[list[dict], dict | None, int]:
+    drafts = [d for d in _load_drafts() if d.get("status") == "pending"]
+    for index, draft in enumerate(drafts):
+        if draft.get("id") == draft_id:
+            return drafts, draft, index
+    return drafts, None, -1
+
+
+def _can_manage_draft(request: web.Request, draft: dict) -> bool:
+    if _is_admin_request(request):
+        return True
+    identity = _get_session_identity(request)
+    return bool(identity.get("type") == "visitor" and draft.get("invite_id") == identity.get("invite_id"))
+
+
+def visitor_cancel_draft_by_id(draft_id: str, request: web.Request) -> dict:
+    drafts, target, target_index = _find_pending_draft(draft_id)
+    if not target:
+        return {"ok": False, "error": "未找到待审核提交。"}
+    if not _can_manage_draft(request, target):
+        return {"ok": False, "error": "你不能撤销这条提交。"}
+    _cleanup_draft_staged_images(target)
+    drafts.pop(target_index)
+    _save_drafts(drafts)
+    _append_audit("draft_cancelled", {
+        "draft_id": draft_id,
+        "profile_id": target.get("profile_id", ""),
+        "role_name": target.get("role_name", ""),
+    })
+    return {"ok": True, "draft": _draft_brief(target)}
+
+
+def visitor_update_draft_card(draft_id: str, request: web.Request, card: dict) -> dict:
+    drafts, target, target_index = _find_pending_draft(draft_id)
+    if not target:
+        return {"ok": False, "error": "未找到待审核提交。"}
+    if not _can_manage_draft(request, target):
+        return {"ok": False, "error": "你不能编辑这条提交。"}
+    resource = str(target.get("resource_type") or "")
+    kind = "fate" if resource == "fate_cards" else "func" if resource == "func_cards" else ""
+    if not kind:
+        return {"ok": False, "error": "这条提交不是卡牌改动，不能在这里编辑。"}
+    before = target.get("before")
+    after = target.get("after")
+    if not isinstance(before, list) or not isinstance(after, list):
+        return {"ok": False, "error": "待审核卡牌数据不完整。"}
+    normalized = (_normalize_fate_cards([card]) if kind == "fate" else _normalize_func_cards([card]))
+    if not normalized:
+        return {"ok": False, "error": "卡牌内容不完整，无法更新。"}
+    next_card = normalized[0]
+    preview = _card_preview_items(kind, before, after)
+    current_card = None
+    if preview.get("created"):
+        current_card = preview["created"][0]
+    elif preview.get("updated"):
+        current_card = preview["updated"][0].get("after")
+    if not current_card:
+        return {"ok": False, "error": "没有找到可编辑的卡牌改动。"}
+    previous_filename = Path(str(current_card.get("filename", "") or "")).name
+    current_key = _record_identity(kind, current_card)
+    replaced = False
+    next_after = []
+    for index, item in enumerate(after):
+        if not replaced and _record_identity(kind, item, index) == current_key:
+            next_after.append(next_card)
+            replaced = True
+        else:
+            next_after.append(item)
+    if not replaced:
+        return {"ok": False, "error": "没有找到原待审核卡牌。"}
+    target["after"] = _normalize_fate_cards(next_after) if kind == "fate" else _normalize_func_cards(next_after)
+    next_filenames = _draft_image_names(kind, target)
+    if previous_filename and previous_filename not in next_filenames:
+        old_image = _find_staged_image(target.get("profile_id", DEFAULT_PROFILE_NAME), kind, previous_filename, target.get("invite_id", ""))
+        if old_image and old_image.exists():
+            try:
+                old_image.unlink()
+            except Exception:
+                pass
+    target["summary"] = _change_summary(kind, _diff_named_records(kind, before, target["after"]))
+    drafts[target_index] = target
+    _save_drafts(drafts)
+    _append_audit("draft_updated", {"draft_id": draft_id, "resource_type": resource})
+    return {"ok": True, "draft": _draft_brief(target)}
+
+
 async def api_visitor_state(request):
     identity = _get_session_identity(request)
     roles = [_public_role(role) for role in _load_visitor_roles()]
@@ -3578,6 +3659,24 @@ async def api_visitor_review_draft(request):
     draft_id = request.match_info.get("draft_id", "")
     action = request.match_info.get("action", "")
     result = visitor_review_draft_by_id(draft_id, action == "approve", "webui")
+    return web.json_response(result, status=200 if result.get("ok") else 400)
+
+
+async def api_visitor_cancel_draft(request):
+    if not _is_authenticated_request(request):
+        return _visitor_error("请先登录。", status=401)
+    draft_id = request.match_info.get("draft_id", "")
+    result = visitor_cancel_draft_by_id(draft_id, request)
+    return web.json_response(result, status=200 if result.get("ok") else 400)
+
+
+async def api_visitor_update_draft(request):
+    if not _is_authenticated_request(request):
+        return _visitor_error("请先登录。", status=401)
+    draft_id = request.match_info.get("draft_id", "")
+    body = await request.json() if request.can_read_body else {}
+    card = body.get("card", {}) if isinstance(body, dict) else {}
+    result = visitor_update_draft_card(draft_id, request, card if isinstance(card, dict) else {})
     return web.json_response(result, status=200 if result.get("ok") else 400)
 
 
@@ -4024,6 +4123,8 @@ async def start_webui(host: str = "0.0.0.0", port: int = 4399):
     app.router.add_delete("/api/visitor/keys/{key_id}", api_visitor_delete_key_record)
     app.router.add_get("/api/visitor/drafts", api_visitor_drafts)
     app.router.add_post("/api/visitor/drafts/{draft_id}/{action:approve|reject}", api_visitor_review_draft)
+    app.router.add_post("/api/visitor/drafts/{draft_id}/cancel", api_visitor_cancel_draft)
+    app.router.add_post("/api/visitor/drafts/{draft_id}/update", api_visitor_update_draft)
     app.router.add_get("/api/visitor/tunnel", api_visitor_tunnel_status)
     app.router.add_post("/api/visitor/tunnel", api_visitor_tunnel_config)
     app.router.add_post("/api/visitor/cloudflared/prepare", api_visitor_cloudflared_prepare)

@@ -2828,14 +2828,20 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .dialog-card.dialog-glossary #dialogBody { flex: 1; min-height: 0; overflow: hidden; }
 .glossary-shell { height: 100%; min-height: 620px; overflow-y: auto; padding-right: 6px; }
 .editor-split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.95fr); gap: 24px; align-items: start; }
+.editor-split.editor-split-closed { grid-template-columns: 1fr; }
 .editor-stack { display: grid; gap: 16px; }
 .editor-side { border-left: 1px solid var(--shard-border); padding-left: 24px; min-width: 0; }
 .editor-side .asset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 520px; overflow-y: auto; padding-right: 6px; }
+.editor-side .thumb { width: 100%; height: auto; aspect-ratio: 1; }
 .editor-image-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:end; }
 .editor-preview { border:1px dashed var(--shard-border); background:rgba(255,255,255,0.68); min-height:120px; display:flex; align-items:center; justify-content:center; color:var(--shard-text-muted); font-size:12px; overflow:hidden; }
 .editor-preview img { width:100%; height:180px; object-fit:cover; display:block; }
 .asset-item.selectable { cursor:pointer; transition: border-color .18s ease, transform .18s ease; }
 .asset-item.selectable:hover, .asset-item.selected { border-color:var(--accent); transform:translateY(-1px); }
+.visitor-admin-column { display:grid; gap:24px; align-content:start; }
+.visitor-key-panel { padding-bottom:18px; }
+.visitor-key-panel .panel-head { margin-bottom:16px; }
+.draft-full-card { margin-top:8px; }
 .editor-compact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .check-strong { display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 14px; border: 1px solid var(--shard-border); background: var(--shard-bg); color: var(--shard-text); font-size: 13px; font-weight: 700; }
 .check-strong input[type="checkbox"] { width: 18px; height: 18px; accent-color: #1A9E5E; }
@@ -4329,6 +4335,9 @@ const state = {
   visitorCloudflaredNoticeShown: false,
   visitorPollTimer: null,
   editingVisitorRoleId: '',
+  visitorKeyForm: { role_id: '', profile_value: '', expires_val: '24', remark: '' },
+  editingVisitorDraftId: '',
+  editingVisitorDraftKind: '',
 };
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -7936,11 +7945,7 @@ function renderHome() {
                                 </div>
                                 <div class="home-login-ready-row">
                                   <div class="home-ready-label"><b>可用权限</b><span>当前身份允许的操作</span></div>
-                                  <div class="row" style="justify-content:flex-end;flex-wrap:wrap;gap:6px;max-width:260px;">${permissionSummary}</div>
-                                </div>
-                                <div class="home-login-ready-row">
-                                  <div class="home-ready-label"><b>方案范围</b><span>这把密钥可访问的方案</span></div>
-                                  <div class="home-ready-value is-standby">${esc(visitorProfileScopeText(state.identity || {}))}</div>
+                                  <div class="row" style="justify-content:flex-end;flex-wrap:wrap;gap:6px;max-width:360px;">${permissionSummary}</div>
                                 </div>
                               </div>
                             ` : `
@@ -8199,10 +8204,10 @@ function visitorProfileScopeText(data = {}) {
   return '默认方案';
 }
 
-function visitorKeyProfileOptions() {
+function visitorKeyProfileOptions(selected = state.currentProfile) {
   const options = [
-    `<option value="__global__">全局（全部方案）</option>`,
-    ...state.profiles.map(p => `<option value="${esc(p.profile_id)}" ${p.profile_id === state.currentProfile ? 'selected' : ''}>${esc(p.display_name || p.profile_id)}</option>`),
+    `<option value="__global__" ${selected === '__global__' ? 'selected' : ''}>全局（全部方案）</option>`,
+    ...state.profiles.map(p => `<option value="${esc(p.profile_id)}" ${p.profile_id === selected ? 'selected' : ''}>${esc(p.display_name || p.profile_id)}</option>`),
   ];
   return options.join('');
 }
@@ -8213,32 +8218,48 @@ function draftCardImageUrl(kind, file, profileId) {
   return kind === 'fate' ? `/fate_assets/${safe}?profile=${profile}` : `/assets/${safe}?profile=${profile}`;
 }
 
-function renderDraftMiniCard(card = {}, kind = 'func', profileId = '') {
+function renderDraftFullCard(card = {}, kind = 'func', profileId = '') {
   const file = card.filename || '';
   const title = kind === 'fate' ? (cleanFateName(card.name) || '命运牌') : (card.card_name || '功能牌');
-  const desc = kind === 'fate'
-    ? `${card.text || '暂无文案'}${card.gold !== undefined ? `\n金币 ${card.gold}` : ''}`
-    : `${card.description || '暂无描述'}${Array.isArray(card.tags) && card.tags.length ? `\n${card.tags.join('，')}` : ''}`;
+  const img = file ? `<img loading="lazy" decoding="async" src="${draftCardImageUrl(kind, file, profileId)}" alt="">` : '无图';
+  if (kind === 'fate') {
+    return `
+      <article class="archive-card draft-full-card">
+        <div class="archive-cover">${img}</div>
+        <div class="archive-body">
+          <div class="archive-title">${esc(title)}</div>
+          <div class="archive-meta"><span class="badge orange">金币 ${esc(card.gold ?? 0)}</span></div>
+          <div class="archive-desc">${esc(card.text || '暂无文案')}</div>
+        </div>
+      </article>`;
+  }
+  const rarity = Number(card.rarity || 1);
+  const tags = (card.tags || []).slice(0, 5).map(tag => `<div class="archive-scroll-chip soft-badge">${esc(humanizeTag(tag))}</div>`).join('') || '<span class="helper">未设定效果</span>';
   return `
-    <div class="draft-mini-card">
-      <div class="draft-mini-cover">${file ? `<img src="${draftCardImageUrl(kind, file, profileId)}" alt="">` : '无图'}</div>
-      <div>
-        <div class="draft-mini-title">${esc(title)}</div>
-        <div class="draft-mini-desc">${esc(desc)}</div>
+    <article class="archive-card func-card rarity-${rarity} draft-full-card">
+      <div class="archive-cover">${img}</div>
+      <div class="archive-body">
+        <div class="archive-title">${esc(title)}</div>
+        <div class="archive-meta">
+          <span class="badge rarity-badge rarity-${rarity}">${esc(rarityLabelMap[rarity] || '普通')}</span>
+          <span class="badge">${esc(categoryLabel(card.type))}</span>
+        </div>
+        <div class="archive-tag-row">${tags}</div>
+        <div class="archive-desc">${esc(card.description || '暂无描述')}</div>
       </div>
-    </div>`;
+    </article>`;
 }
 
 function renderDraftPreview(draft) {
   const preview = draft.preview || {};
   if (preview.type === 'cards') {
     const kind = preview.kind || 'func';
-    const created = (preview.created || []).map(card => renderDraftMiniCard(card, kind, draft.profile_id)).join('');
-    const deleted = (preview.deleted || []).map(card => renderDraftMiniCard(card, kind, draft.profile_id)).join('');
+    const created = (preview.created || []).map(card => renderDraftFullCard(card, kind, draft.profile_id)).join('');
+    const deleted = (preview.deleted || []).map(card => renderDraftFullCard(card, kind, draft.profile_id)).join('');
     const updated = (preview.updated || []).map(pair => `
       <div class="draft-preview-grid">
-        <div class="draft-preview-section"><div class="draft-preview-label">修改前</div>${renderDraftMiniCard(pair.before, kind, draft.profile_id)}</div>
-        <div class="draft-preview-section"><div class="draft-preview-label">修改后</div>${renderDraftMiniCard(pair.after, kind, draft.profile_id)}</div>
+        <div class="draft-preview-section"><div class="draft-preview-label">修改前</div>${renderDraftFullCard(pair.before, kind, draft.profile_id)}</div>
+        <div class="draft-preview-section"><div class="draft-preview-label">修改后</div>${renderDraftFullCard(pair.after, kind, draft.profile_id)}</div>
       </div>
     `).join('');
     const html = `
@@ -8265,10 +8286,22 @@ function renderDraftPreview(draft) {
   return `<div class="visitor-muted-box">${details}</div>`;
 }
 
+function draftEditableCard(draft) {
+  const preview = draft?.preview || {};
+  if (preview.type !== 'cards') return null;
+  const kind = preview.kind || (draft.resource_type === 'fate_cards' ? 'fate' : 'func');
+  const card = preview.created?.[0] || preview.updated?.[0]?.after || null;
+  return card ? { kind, card } : null;
+}
+
 function renderDraftBrief(draft) {
   const statusText = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }[draft.status] || draft.status || '未知';
+  const editable = draftEditableCard(draft);
   const adminActions = state.identity.type === 'admin' && draft.status === 'pending'
-    ? `<div class="visitor-actions"><button class="btn-strong" onclick="reviewVisitorDraft('${esc(draft.id)}','approve')"><span class="btn-text">通过</span></button><button class="btn-danger" onclick="reviewVisitorDraft('${esc(draft.id)}','reject')"><span class="btn-text">拒绝并移除</span></button></div>`
+    ? `<div class="visitor-actions">${editable ? `<button class="btn" onclick="editVisitorDraft('${esc(draft.id)}')"><span class="btn-text">编辑调整</span></button>` : ''}<button class="btn-strong" onclick="reviewVisitorDraft('${esc(draft.id)}','approve')"><span class="btn-text">通过</span></button><button class="btn-danger" onclick="reviewVisitorDraft('${esc(draft.id)}','reject')"><span class="btn-text">拒绝并移除</span></button></div>`
+    : '';
+  const visitorActions = state.identity.type === 'visitor' && draft.status === 'pending'
+    ? `<div class="visitor-actions">${editable ? `<button class="btn" onclick="editVisitorDraft('${esc(draft.id)}')"><span class="btn-text">编辑提交</span></button>` : ''}<button class="btn-danger" onclick="cancelVisitorDraft('${esc(draft.id)}')"><span class="btn-text">撤销申请</span></button></div>`
     : '';
   return `<div class="draft-card">
     <div class="row between">
@@ -8280,6 +8313,7 @@ function renderDraftBrief(draft) {
     </div>
     ${renderDraftPreview(draft)}
     ${adminActions}
+    ${visitorActions}
   </div>`;
 }
 
@@ -8364,11 +8398,9 @@ function renderCloudflaredPanel(tunnel = {}) {
           </div>
           <div class="field"><label>托管临时地址</label><input class="input" readonly value="${esc(tunnel.public_url || cfg.last_public_url || cfg.custom_public_url || '')}" placeholder="尚未生成"></div>
           <div class="field"><label>自定义/手动公网地址</label><input class="input" id="visitorPublicUrl" value="${esc(cfg.custom_public_url || '')}" placeholder="https://xxxx.trycloudflare.com、ngrok、frp 或自有域名"></div>
-          <div class="field"><label>推荐启动命令</label><input class="input" readonly value="${esc(tunnel.quick_tunnel_command || '')}"></div>
           <div class="visitor-actions">
             ${detectedOk ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">生成临时地址</span></button>` : ''}
             <button class="btn" onclick="saveVisitorTunnel()"><span class="btn-text">保存手动地址</span></button>
-            <button class="btn" onclick='copyText(${jsArg(tunnel.quick_tunnel_command || '')})'><span class="btn-text">复制命令</span></button>
             ${tunnel.running ? `<button class="btn-danger" onclick="stopVisitorTunnel()"><span class="btn-text">停止通道</span></button>` : ''}
           </div>
         </div>
@@ -8376,9 +8408,22 @@ function renderCloudflaredPanel(tunnel = {}) {
     </section>`;
 }
 
+function captureVisitorKeyForm() {
+  const roleEl = $('#visitorRoleSelect');
+  const profileEl = $('#visitorKeyProfileSelect');
+  const expiresEl = $('#visitorKeyExpires');
+  const remarkEl = $('#visitorKeyRemark');
+  if (!state.visitorKeyForm) state.visitorKeyForm = { expires_val: '24' };
+  if (roleEl) state.visitorKeyForm.role_id = roleEl.value || '';
+  if (profileEl) state.visitorKeyForm.profile_value = profileEl.value || '';
+  if (expiresEl) state.visitorKeyForm.expires_val = expiresEl.value || '24';
+  if (remarkEl) state.visitorKeyForm.remark = remarkEl.value || '';
+}
+
 function renderVisitor() {
   const page = $('#page-visitor');
   if (!page) return;
+  captureVisitorKeyForm();
   const isAdmin = state.identity.type === 'admin';
   const tunnel = state.visitorTunnel || {};
   const rolesHtml = state.visitorRoles.map(role => `
@@ -8396,7 +8441,11 @@ function renderVisitor() {
       <div class="row" style="flex-wrap:wrap;margin-top:10px;">${permissionChips(role.permissions || {})}</div>
     </div>
   `).join('') || '<div class="empty">暂无身份模板</div>';
-  const roleOptions = state.visitorRoles.map(role => `<option value="${esc(role.id)}">${esc(role.name)}</option>`).join('');
+  const form = state.visitorKeyForm || {};
+  const selectedRole = form.role_id || state.visitorRoles[0]?.id || '';
+  const selectedProfile = form.profile_value || state.currentProfile || 'default';
+  const selectedExpires = String(form.expires_val || '24');
+  const roleOptions = state.visitorRoles.map(role => `<option value="${esc(role.id)}" ${role.id === selectedRole ? 'selected' : ''}>${esc(role.name)}</option>`).join('');
   const keysHtml = state.visitorKeys.map(item => `
         <div class="visitor-card">
       <div class="row between">
@@ -8435,31 +8484,35 @@ function renderVisitor() {
       <div class="grid">
       ${isAdmin ? `
       ${renderCloudflaredPanel(tunnel)}
-            <section class="panel col-6">
+      <div class="col-6 visitor-admin-column">
+            <section class="panel visitor-key-panel">
         <div class="panel-head"><div><div class="panel-title">生成临时密钥</div><div class="panel-note">密钥即身份凭证，发出后谁拿到谁拥有该权限。</div></div></div>
         <div class="stack">
-          <div class="field"><label>选择身份</label><select class="input" id="visitorRoleSelect">${roleOptions}</select></div>
-          <div class="field"><label>授权方案</label><select class="input" id="visitorKeyProfileSelect">${visitorKeyProfileOptions()}</select></div>
           <div class="field-grid" style="grid-template-columns: 1fr 1fr;">
-            <div class="field"><label>有效时间</label><select class="input" id="visitorKeyExpires">
-              <option value="0">永久有效</option>
-              <option value="1">1小时</option>
-              <option value="6">6小时</option>
-              <option value="24">24小时</option>
-              <option value="168">7天</option>
-              <option value="720">30天</option>
+            <div class="field"><label>选择身份</label><select class="input" id="visitorRoleSelect" onchange="state.visitorKeyForm.role_id=this.value">${roleOptions}</select></div>
+            <div class="field"><label>授权方案</label><select class="input" id="visitorKeyProfileSelect" onchange="state.visitorKeyForm.profile_value=this.value">${visitorKeyProfileOptions(selectedProfile)}</select></div>
+          </div>
+          <div class="field-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="field"><label>有效时间</label><select class="input" id="visitorKeyExpires" onchange="state.visitorKeyForm.expires_val=this.value">
+              <option value="24" ${selectedExpires === '24' ? 'selected' : ''}>24小时</option>
+              <option value="48" ${selectedExpires === '48' ? 'selected' : ''}>48小时</option>
+              <option value="6" ${selectedExpires === '6' ? 'selected' : ''}>6小时</option>
+              <option value="168" ${selectedExpires === '168' ? 'selected' : ''}>7天</option>
+              <option value="720" ${selectedExpires === '720' ? 'selected' : ''}>30天</option>
+              <option value="0" ${selectedExpires === '0' ? 'selected' : ''}>永久有效</option>
             </select></div>
-            <div class="field"><label>备注</label><input class="input" id="visitorKeyRemark" placeholder="可选，供自己辨认"></div>
+            <div class="field"><label>备注</label><input class="input" id="visitorKeyRemark" value="${esc(form.remark || '')}" oninput="state.visitorKeyForm.remark=this.value" placeholder="可选，供自己辨认"></div>
           </div>
           <div class="row" style="margin-top:12px;">
             <button class="btn-strong" onclick="createVisitorKey()"><span class="btn-text">生成密钥</span></button>
           </div>
         </div>
       </section>
-            <section class="panel col-6">
+            <section class="panel">
         <div class="panel-head"><div><div class="panel-title">权限身份</div><div class="panel-note">是否需要审核、批量权限和提交上限都由身份决定。</div></div><button class="btn outline-btn" onclick="openVisitorRoleDialog()"><span class="btn-text">新建身份</span></button></div>
-        <div class="visitor-card-list" style="max-height: 480px; overflow-y: auto; padding-right: 8px;">${rolesHtml}</div>
+        <div class="visitor-card-list" style="max-height: 360px; overflow-y: auto; padding-right: 8px;">${rolesHtml}</div>
       </section>
+      </div>
       <section class="panel col-12">
         <div class="panel-head"><div><div class="panel-title">临时密钥</div><div class="panel-note">只展示前缀和状态，完整密钥只在生成时出现一次。过期或被撤销的密钥也会显示在这里。</div></div></div>
         <div class="visitor-card-list grid" style="grid-template-columns: repeat(2, 1fr); max-height: 400px; overflow-y: auto; padding-right: 8px;">${keysHtml}</div>
@@ -8532,11 +8585,12 @@ async function stopVisitorTunnel() {
 }
 
 async function createVisitorKey() {
-  const role_id = $('#visitorRoleSelect')?.value || '';
-  const remark = $('#visitorKeyRemark')?.value?.trim() || '';
-  const expires_val = Number($('#visitorKeyExpires')?.value || 0);
+  captureVisitorKeyForm();
+  const role_id = state.visitorKeyForm?.role_id || $('#visitorRoleSelect')?.value || '';
+  const remark = (state.visitorKeyForm?.remark || $('#visitorKeyRemark')?.value || '').trim();
+  const expires_val = Number(state.visitorKeyForm?.expires_val || $('#visitorKeyExpires')?.value || 24);
   const expires_at = expires_val > 0 ? Math.floor(Date.now() / 1000) + expires_val * 3600 : 0;
-  const profileValue = $('#visitorKeyProfileSelect')?.value || state.currentProfile || 'default';
+  const profileValue = state.visitorKeyForm?.profile_value || $('#visitorKeyProfileSelect')?.value || state.currentProfile || 'default';
   const profile_scope = profileValue === '__global__' ? 'global' : 'selected';
   const profile_ids = profile_scope === 'global' ? [] : [profileValue];
   const cfg = state.visitorTunnel?.config || {};
@@ -8592,6 +8646,42 @@ async function reviewVisitorDraft(id, action) {
     setTopView('visitor');
     showToast(action === 'approve' ? '草稿已通过并写入正式配置。' : '草稿已拒绝。');
   } else showToast(res.error || '审核失败。', true);
+}
+
+async function cancelVisitorDraft(id) {
+  if (!confirm('确认撤销这条待审核提交吗？撤销后临时图片也会清理。')) return;
+  const res = await apiPost(`/api/visitor/drafts/${encodeURIComponent(id)}/cancel`, {});
+  if (!res.ok) return showToast(res.error || '撤销失败。', true);
+  await loadVisitor();
+  if (state.activePage === 'fate') renderFate();
+  else if (state.activePage === 'cards') renderCards();
+  else renderVisitor();
+  showToast('待审核提交已撤销。');
+}
+
+function editVisitorDraft(id) {
+  const draft = (state.visitorDrafts || []).find(item => item.id === id);
+  const editable = draftEditableCard(draft);
+  if (!editable) return showToast('这条提交没有可编辑的卡牌。', true);
+  state.editingVisitorDraftId = id;
+  state.editingVisitorDraftKind = editable.kind;
+  if (editable.kind === 'fate') openFateEditor(-1, editable.card);
+  else openFuncEditor(-1, editable.card);
+}
+
+async function updateVisitorDraftCard(payload) {
+  const id = state.editingVisitorDraftId;
+  if (!id) return;
+  const res = await apiPost(`/api/visitor/drafts/${encodeURIComponent(id)}/update`, { card: payload });
+  if (!res.ok) return showToast(res.error || '更新待审核提交失败。', true);
+  state.editingVisitorDraftId = '';
+  state.editingVisitorDraftKind = '';
+  closeDialog();
+  await loadVisitor();
+  if (state.activePage === 'fate') renderFate();
+  else if (state.activePage === 'cards') renderCards();
+  else renderVisitor();
+  showToast('待审核提交已更新。');
 }
 
 function openVisitorRoleDialog(roleId = '') {
@@ -8663,8 +8753,32 @@ async function deleteVisitorRole(roleId) {
 
 function copyText(text) {
   if (!text) return showToast('没有可复制内容。', true);
-  navigator.clipboard?.writeText(text);
-  showToast('已复制。');
+  const value = String(text || '');
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(value)
+      .then(() => showToast('已复制。'))
+      .catch(() => fallbackCopyText(value));
+    return;
+  }
+  fallbackCopyText(value);
+}
+
+function fallbackCopyText(text) {
+  const input = document.createElement('textarea');
+  input.value = text;
+  input.setAttribute('readonly', '');
+  input.style.position = 'fixed';
+  input.style.left = '-9999px';
+  document.body.appendChild(input);
+  input.select();
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch (e) {
+    ok = false;
+  }
+  document.body.removeChild(input);
+  showToast(ok ? '已复制。' : '复制失败，请手动选中文本复制。', !ok);
 }
 
 
@@ -9107,14 +9221,19 @@ function editorImagePickerHtml(kind, inputId, currentFile = '') {
       </div>
       <div class="asset-grid">${files.map(file => `
         <div class="asset-item selectable ${file === currentFile ? 'selected' : ''}" data-file="${esc(file)}" ondblclick='pickFile(${jsArg(inputId)}, ${jsArg(file)}, ${jsArg(kind)})'>
-          <div class="thumb"><img src="${getCardImageUrl(kind, file)}"></div>
+          <div class="thumb"><img loading="lazy" decoding="async" src="${getCardImageUrl(kind, file)}"></div>
           <div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div>
         </div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
     </div>`;
 }
 
 async function uploadEditorImage(kind, inputId) {
-  if (isVisitorMode() && !visitorCan('can_upload_image')) return showToast('当前身份没有上传图片权限。', true);
+  if (isVisitorMode()) {
+    const canUploadHere = kind === 'fate'
+      ? (visitorCan('can_create_fate_card') || visitorCan('can_edit_fate_card'))
+      : (visitorCan('can_create_func_card') || visitorCan('can_edit_func_card'));
+    if (!canUploadHere) return showToast('当前身份不能为这类卡牌上传图片。', true);
+  }
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
@@ -9125,8 +9244,13 @@ async function uploadEditorImage(kind, inputId) {
     const fd = new FormData();
     fd.append('files', file);
     const endpoint = kind === 'fate' ? '/api/upload_fate_image' : '/api/upload_image';
-    const res = await fetch(`${endpoint}?profile=${encodeURIComponent(state.currentProfile)}`, { method: 'POST', body: fd });
-    const data = await res.json();
+    let data = {};
+    try {
+      const res = await fetch(`${endpoint}?profile=${encodeURIComponent(state.currentProfile)}`, { method: 'POST', body: fd, credentials: 'same-origin' });
+      data = await res.json();
+    } catch (e) {
+      return showToast(e.message || '上传失败。', true);
+    }
     if (!data.ok) return showToast(data.error || '上传失败。', true);
     const uploaded = data.uploaded?.[0] || '';
     if (!uploaded) return showToast('没有收到图片文件名。', true);
@@ -9138,14 +9262,18 @@ async function uploadEditorImage(kind, inputId) {
   input.click();
 }
 
-function openFateEditor(index) {
+function openFateEditor(index, draftCard = null) {
   state.editingFateIndex = index;
-  if (isVisitorMode() && index < 0 && !visitorCan('can_create_fate_card')) return showToast('当前身份不能新增命运牌。', true);
-  if (isVisitorMode() && index >= 0 && !visitorCan('can_edit_fate_card')) return showToast('当前身份不能修改命运牌。', true);
-  const card = index >= 0 ? JSON.parse(JSON.stringify(state.fateCards[index])) : { name: '', text: '', gold: 0, filename: '' };
+  if (!draftCard) {
+    state.editingVisitorDraftId = '';
+    state.editingVisitorDraftKind = '';
+  }
+  if (!draftCard && isVisitorMode() && index < 0 && !visitorCan('can_create_fate_card')) return showToast('当前身份不能新增命运牌。', true);
+  if (!draftCard && isVisitorMode() && index >= 0 && !visitorCan('can_edit_fate_card')) return showToast('当前身份不能修改命运牌。', true);
+  const card = draftCard ? JSON.parse(JSON.stringify(draftCard)) : index >= 0 ? JSON.parse(JSON.stringify(state.fateCards[index])) : { name: '', text: '', gold: 0, filename: '' };
   const submitText = isVisitorMode() ? '提交审核' : '写入命运牌';
   openDialog(index >= 0 ? '编辑命运牌' : '新增命运牌', `
-    <div class="editor-split">
+    <div class="editor-split editor-split-closed">
       <div class="editor-stack">
         <div class="field-grid">
           <div class="field"><label>名称</label><input class="input" id="fateName" value="${esc(cleanFateName(card.name))}"></div>
@@ -9155,17 +9283,26 @@ function openFateEditor(index) {
         <div class="editor-image-row">
           <div class="field"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}"></div>
           <button class="btn" onclick="uploadEditorImage('fate','fateFilename')"><span class="btn-text">上传图片</span></button>
-          <button class="btn" onclick="toggleEditorLibrary('fateLibrary')"><span class="btn-text">本地图库</span></button>
+          <button class="btn" onclick="toggleEditorLibrary('fateLibrary','fate','fateFilename')"><span class="btn-text">本地图库</span></button>
         </div>
         ${editorImagePreviewHtml('fate', card.filename || '')}
         <div class="row"><button class="btn-strong" onclick="saveFateEditor()"><span class="btn-text">${submitText}</span></button></div>
       </div>
-      <div id="fateLibrary" style="display:none;">${editorImagePickerHtml('fate', 'fateFilename', card.filename || '')}</div>
+      <div id="fateLibrary" style="display:none;"></div>
     </div>`, 'editor');
 }
-function toggleEditorLibrary(id) {
+function toggleEditorLibrary(id, kind = '', inputId = '') {
   const el = document.getElementById(id);
-  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (!el) return;
+  const split = el.closest('.editor-split');
+  const opening = el.style.display === 'none';
+  if (opening && kind && inputId && !el.dataset.loaded) {
+    const currentFile = document.getElementById(inputId)?.value || '';
+    el.innerHTML = editorImagePickerHtml(kind, inputId, currentFile);
+    el.dataset.loaded = '1';
+  }
+  el.style.display = opening ? 'block' : 'none';
+  split?.classList.toggle('editor-split-closed', !opening);
 }
 function pickFile(id, value, kind = '') {
   const el = document.getElementById(id);
@@ -9183,6 +9320,7 @@ async function saveFateEditor() {
     gold: Number($('#fateGold')?.value || 0),
     filename: $('#fateFilename')?.value?.trim() || ''
   };
+  if (state.editingVisitorDraftId) return updateVisitorDraftCard(payload);
   if (state.editingFateIndex >= 0) state.fateCards[state.editingFateIndex] = payload;
   else state.fateCards.push(payload);
   const res = await saveFateCards(false);
@@ -9340,11 +9478,15 @@ function effectPreviewHtml() {
   return tags.length ? tags.map(tag => `<span class="badge">${esc(humanizeTag(tag))}</span>`).join('') : '<span class="helper">尚未生成任何效果。</span>';
 }
 
-function openFuncEditor(index) {
+function openFuncEditor(index, draftCard = null) {
   state.editingFuncIndex = index;
-  if (isVisitorMode() && index < 0 && !visitorCan('can_create_func_card')) return showToast('当前身份不能新增功能牌。', true);
-  if (isVisitorMode() && index >= 0 && !visitorCan('can_edit_func_card')) return showToast('当前身份不能修改功能牌。', true);
-  const card = index >= 0 ? JSON.parse(JSON.stringify(state.funcCards[index])) : { card_name: '', type: 'attack', rarity: 1, filename: '', description: '', tags: [] };
+  if (!draftCard) {
+    state.editingVisitorDraftId = '';
+    state.editingVisitorDraftKind = '';
+  }
+  if (!draftCard && isVisitorMode() && index < 0 && !visitorCan('can_create_func_card')) return showToast('当前身份不能新增功能牌。', true);
+  if (!draftCard && isVisitorMode() && index >= 0 && !visitorCan('can_edit_func_card')) return showToast('当前身份不能修改功能牌。', true);
+  const card = draftCard ? JSON.parse(JSON.stringify(draftCard)) : index >= 0 ? JSON.parse(JSON.stringify(state.funcCards[index])) : { card_name: '', type: 'attack', rarity: 1, filename: '', description: '', tags: [] };
   state.editingFuncEffects = normalizeEffectsForCard(card);
   mergeFuncCustomCategories(card.type ? [card.type] : []);
   openDialog(index >= 0 ? '编辑功能牌' : '新增功能牌', funcEditorHtml(card), 'editor');
@@ -9354,7 +9496,7 @@ function funcEditorHtml(card) {
   const categories = getFuncCategoryOptions();
   const submitText = isVisitorMode() ? '提交审核' : '写入功能牌';
   return `
-    <div class="editor-split">
+    <div class="editor-split editor-split-closed">
       <div class="editor-stack">
         <div class="field-grid">
           <div class="field"><label>卡牌名称</label><input class="input" id="funcName" value="${esc(card.card_name || '')}"></div>
@@ -9365,7 +9507,7 @@ function funcEditorHtml(card) {
           <div class="editor-image-row">
             <div class="field"><label>图片文件名</label><input class="input" id="funcFilename" value="${esc(card.filename || '')}"></div>
             <button class="btn" onclick="uploadEditorImage('func','funcFilename')"><span class="btn-text">上传图片</span></button>
-            <button class="btn" onclick="toggleEditorLibrary('funcLibrary')"><span class="btn-text">本地图库</span></button>
+            <button class="btn" onclick="toggleEditorLibrary('funcLibrary','func','funcFilename')"><span class="btn-text">本地图库</span></button>
           </div>
         </div>
         ${editorImagePreviewHtml('func', card.filename || '')}
@@ -9379,7 +9521,7 @@ function funcEditorHtml(card) {
         <div class="field"><label>标签预览</label><div class="tag-preview" id="effectPreview">${effectPreviewHtml()}</div></div>
         <div class="row"><button class="btn-strong" onclick="saveFuncEditor()"><span class="btn-text">${submitText}</span></button></div>
       </div>
-      <div id="funcLibrary" style="display:none;">${editorImagePickerHtml('func', 'funcFilename', card.filename || '')}</div>
+      <div id="funcLibrary" style="display:none;"></div>
     </div>`;
 }
 
@@ -9498,9 +9640,10 @@ async function saveFuncEditor() {
     tags: state.editingFuncEffects.map(effectToTag).filter(Boolean)
   };
   if (!payload.tags.length) return showToast('至少需要一条有效效果。', true);
+  payload.type = deriveFuncTypeFromTags(payload.type, payload.tags);
+  if (state.editingVisitorDraftId) return updateVisitorDraftCard(payload);
   const duplicated = state.funcCards.some((item, idx) => idx !== state.editingFuncIndex && String(item?.card_name || '').trim() === payload.card_name);
   if (duplicated) return showToast('功能牌名称重复，请调整。', true);
-  payload.type = deriveFuncTypeFromTags(payload.type, payload.tags);
   mergeFuncCustomCategories([payload.type]);
   if (state.editingFuncIndex >= 0) state.funcCards[state.editingFuncIndex] = payload;
   else state.funcCards.push(payload);

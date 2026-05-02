@@ -19,27 +19,31 @@ from ..core.logic_gate import (
     GATE_TOGGLE_CARD,
 )
 # ================= 🎲 骰局会话状态（全局单局） =================
-PENDING_DUEL = {
-    "active": False,
-    "group_id": "",
-    "session_id": "",
-    "challenger_uid": "",
-    "challenger_name": "",
-    "target_uid": "",
-    "target_name": "",
-    "card_name": "",
-    "stake": 0,
-    "min_stake": 0,
-    "max_stake": 0,
-    "source_kind": "",
-    "phase": "",
-    "confirmed": False,
-    "response_action": "",
-    "response_stake": 0,
-    "confirm_event": None,
-    "created_at": 0,
-    "expire_at": 0,
-}
+def _blank_pending_duel() -> dict:
+    return {
+        "active": False,
+        "group_id": "",
+        "session_id": "",
+        "challenger_uid": "",
+        "challenger_name": "",
+        "target_uid": "",
+        "target_name": "",
+        "card_name": "",
+        "stake": 0,
+        "min_stake": 0,
+        "max_stake": 0,
+        "source_kind": "",
+        "phase": "",
+        "confirmed": False,
+        "response_action": "",
+        "response_stake": 0,
+        "confirm_event": None,
+        "created_at": 0,
+        "expire_at": 0,
+    }
+
+
+PENDING_DUELS: dict[str, dict] = {}
 PENDING_DUEL_LOCK = asyncio.Lock()
 DUEL_CONFIRM_WINDOW_SEC = 60
 DUEL_STAGE_DELAY_SEC = 1.6
@@ -924,28 +928,20 @@ def _get_public_duel_settings(config: dict | None) -> dict:
     }
 
 
-def _reset_pending_duel():
-    PENDING_DUEL.update({
-        "active": False,
-        "group_id": "",
-        "session_id": "",
-        "challenger_uid": "",
-        "challenger_name": "",
-        "target_uid": "",
-        "target_name": "",
-        "card_name": "",
-        "stake": 0,
-        "min_stake": 0,
-        "max_stake": 0,
-        "source_kind": "",
-        "phase": "",
-        "confirmed": False,
-        "response_action": "",
-        "response_stake": 0,
-        "confirm_event": None,
-        "created_at": 0,
-        "expire_at": 0,
-    })
+def _pending_duel_group_key(group_id: str | None) -> str:
+    return str(group_id or "").strip() or "__global__"
+
+
+def _get_pending_duel(group_id: str | None) -> dict:
+    return PENDING_DUELS.get(_pending_duel_group_key(group_id), _blank_pending_duel())
+
+
+def _set_pending_duel(group_id: str | None, session: dict):
+    PENDING_DUELS[_pending_duel_group_key(group_id)] = dict(_blank_pending_duel(), **(session or {}))
+
+
+def _reset_pending_duel(group_id: str | None):
+    PENDING_DUELS.pop(_pending_duel_group_key(group_id), None)
 
 
 def _extract_duel_stake(raw_text: str) -> int | None:
@@ -1303,17 +1299,18 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
     group_id = _extract_group_id_from_event(event)
 
     async with PENDING_DUEL_LOCK:
-        if not PENDING_DUEL.get("active") or (group_id and str(PENDING_DUEL.get("group_id", "")) != group_id):
+        pending = _get_pending_duel(group_id)
+        if not pending.get("active") or (group_id and str(pending.get("group_id", "")) != group_id):
             yield event.plain_result("🎲 当前没有待确认的决斗。")
             return
 
-        phase = PENDING_DUEL.get("phase")
-        source_kind = PENDING_DUEL.get("source_kind")
-        challenger_uid = PENDING_DUEL.get("challenger_uid")
-        challenger_name = PENDING_DUEL.get("challenger_name")
-        target_uid = PENDING_DUEL.get("target_uid")
-        target_name = PENDING_DUEL.get("target_name")
-        stake = int(PENDING_DUEL.get("stake", 0))
+        phase = pending.get("phase")
+        source_kind = pending.get("source_kind")
+        challenger_uid = pending.get("challenger_uid")
+        challenger_name = pending.get("challenger_name")
+        target_uid = pending.get("target_uid")
+        target_name = pending.get("target_name")
+        stake = int(pending.get("stake", 0))
 
         if phase == "await_target":
             if user_id != target_uid:
@@ -1327,10 +1324,10 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
                 yield event.plain_result(f"⚠️ {target_name} 当前金币不足 {stake}，接不下这场决斗。")
                 return
 
-            PENDING_DUEL["confirmed"] = True
-            PENDING_DUEL["response_action"] = "accept"
-            PENDING_DUEL["response_stake"] = stake
-            confirm_event = PENDING_DUEL.get("confirm_event")
+            pending["confirmed"] = True
+            pending["response_action"] = "accept"
+            pending["response_stake"] = stake
+            confirm_event = pending.get("confirm_event")
             if confirm_event:
                 confirm_event.set()
 
@@ -1354,10 +1351,10 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
                 yield event.plain_result(f"⚠️ {target_name} 当前金币不足 {stake}，追加投入后的决斗已失效。")
                 return
 
-            PENDING_DUEL["confirmed"] = True
-            PENDING_DUEL["response_action"] = "accept_raised"
-            PENDING_DUEL["response_stake"] = stake
-            confirm_event = PENDING_DUEL.get("confirm_event")
+            pending["confirmed"] = True
+            pending["response_action"] = "accept_raised"
+            pending["response_stake"] = stake
+            confirm_event = pending.get("confirm_event")
             if confirm_event:
                 confirm_event.set()
             msg = (
@@ -1372,10 +1369,10 @@ async def handle_confirm_duel(event: AstrMessageEvent, bank):
     yield event.plain_result(msg)
 
 
-async def handle_raise_duel(event: AstrMessageEvent, bank):
+async def handle_raise_duel(event: AstrMessageEvent, bank, cmd_str: str):
     user_id = event.get_sender_id()
     group_id = _extract_group_id_from_event(event)
-    raw_text = event.message_str.replace("/luck", "").strip()
+    raw_text = str(cmd_str or "").strip()
     match = re.search(r"(?:加注|追加投入)\s*(-?\d+)", raw_text)
     if not match:
         yield event.plain_result("⚠️ 追加投入格式：/luck 追加投入 金额")
@@ -1384,25 +1381,26 @@ async def handle_raise_duel(event: AstrMessageEvent, bank):
     raise_stake = int(match.group(1))
 
     async with PENDING_DUEL_LOCK:
-        if not PENDING_DUEL.get("active") or (group_id and str(PENDING_DUEL.get("group_id", "")) != group_id):
+        pending = _get_pending_duel(group_id)
+        if not pending.get("active") or (group_id and str(pending.get("group_id", "")) != group_id):
             yield event.plain_result("🎲 当前没有可追加投入的决斗。")
             return
 
-        if PENDING_DUEL.get("source_kind") != "free":
+        if pending.get("source_kind") != "free":
             yield event.plain_result("⚠️ 只有日常公开决斗支持手动追加投入。")
             return
 
-        if PENDING_DUEL.get("phase") != "await_target":
+        if pending.get("phase") != "await_target":
             yield event.plain_result("⚠️ 这场决斗当前不能追加投入。")
             return
 
-        target_uid = PENDING_DUEL.get("target_uid")
-        target_name = PENDING_DUEL.get("target_name")
-        challenger_uid = PENDING_DUEL.get("challenger_uid")
-        challenger_name = PENDING_DUEL.get("challenger_name")
-        current_stake = int(PENDING_DUEL.get("stake", 0))
-        max_stake = int(PENDING_DUEL.get("max_stake", 0))
-        min_stake = int(PENDING_DUEL.get("min_stake", 1))
+        target_uid = pending.get("target_uid")
+        target_name = pending.get("target_name")
+        challenger_uid = pending.get("challenger_uid")
+        challenger_name = pending.get("challenger_name")
+        current_stake = int(pending.get("stake", 0))
+        max_stake = int(pending.get("max_stake", 0))
+        min_stake = int(pending.get("min_stake", 1))
 
         if user_id != target_uid:
             yield event.plain_result("⚠️ 只有被挑战者可以在应战阶段追加投入。")
@@ -1420,12 +1418,12 @@ async def handle_raise_duel(event: AstrMessageEvent, bank):
             yield event.plain_result(f"⚠️ {challenger_name} 当前金币不足 {raise_stake}，你这次追加投入已经超出对方承受范围。")
             return
 
-        PENDING_DUEL["stake"] = raise_stake
-        PENDING_DUEL["phase"] = "await_challenger_raise_confirm"
-        PENDING_DUEL["confirmed"] = True
-        PENDING_DUEL["response_action"] = "raise"
-        PENDING_DUEL["response_stake"] = raise_stake
-        confirm_event = PENDING_DUEL.get("confirm_event")
+        pending["stake"] = raise_stake
+        pending["phase"] = "await_challenger_raise_confirm"
+        pending["confirmed"] = True
+        pending["response_action"] = "raise"
+        pending["response_stake"] = raise_stake
+        confirm_event = pending.get("confirm_event")
         if confirm_event:
             confirm_event.set()
 
@@ -1435,7 +1433,7 @@ async def handle_raise_duel(event: AstrMessageEvent, bank):
     )
 
 
-async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
+async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict, cmd_str: str):
     user_id = event.get_sender_id()
     user_name = event.get_sender_name()
     group_id = str((config or {}).get("_group_id", "")).strip()
@@ -1473,7 +1471,7 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
         yield event.plain_result("⚠️ 不能和自己发起决斗。")
         return
 
-    raw_text = event.message_str.replace("/luck", "").strip()
+    raw_text = str(cmd_str or "").strip()
     if not raw_text.startswith(("对赌", "决斗")):
         yield event.plain_result("⚠️ 决斗格式：/luck 决斗@某人 金额")
         return
@@ -1492,15 +1490,17 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
     target_name = all_users.get(target_id, {}).get("name", f"群友({target_id})")
 
     async with PENDING_DUEL_LOCK:
-        if PENDING_DUEL.get("active") and str(PENDING_DUEL.get("group_id", "")) == group_id:
+        pending = _get_pending_duel(group_id)
+        if pending.get("active") and str(pending.get("group_id", "")) == group_id:
             yield event.plain_result("⚔️ 当前已有决斗进行中，请稍候再发起。")
             return
 
         confirm_event = asyncio.Event()
-        PENDING_DUEL.update({
+        session_id = f"duel:{group_id}:{user_id}:{target_id}:{int(time.time())}"
+        _set_pending_duel(group_id, {
             "active": True,
             "group_id": group_id,
-            "session_id": f"duel:{group_id}:{user_id}:{target_id}:{int(time.time())}",
+            "session_id": session_id,
             "challenger_uid": user_id,
             "challenger_name": user_name,
             "target_uid": target_id,
@@ -1530,25 +1530,27 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
         await asyncio.wait_for(confirm_event.wait(), timeout=DUEL_CONFIRM_WINDOW_SEC)
     except asyncio.TimeoutError:
         async with PENDING_DUEL_LOCK:
-            if PENDING_DUEL.get("session_id"):
-                _reset_pending_duel()
+            pending = _get_pending_duel(group_id)
+            if pending.get("session_id") == session_id:
+                _reset_pending_duel(group_id)
         yield event.plain_result("⌛ 60 秒过去，场边都快喊累了，还是没人接话。这场决斗只能取消。")
         return
 
     async with PENDING_DUEL_LOCK:
-        response_action = PENDING_DUEL.get("response_action")
-        current_stake = int(PENDING_DUEL.get("stake", stake))
+        pending = _get_pending_duel(group_id)
+        response_action = pending.get("response_action")
+        current_stake = int(pending.get("stake", stake))
 
         if response_action == "raise":
             confirm_event = asyncio.Event()
-            PENDING_DUEL["phase"] = "await_challenger_raise_confirm"
-            PENDING_DUEL["confirmed"] = False
-            PENDING_DUEL["response_action"] = ""
-            PENDING_DUEL["confirm_event"] = confirm_event
-            PENDING_DUEL["expire_at"] = int(time.time()) + DUEL_CONFIRM_WINDOW_SEC
+            pending["phase"] = "await_challenger_raise_confirm"
+            pending["confirmed"] = False
+            pending["response_action"] = ""
+            pending["confirm_event"] = confirm_event
+            pending["expire_at"] = int(time.time()) + DUEL_CONFIRM_WINDOW_SEC
         elif response_action == "accept":
-            session = dict(PENDING_DUEL)
-            _reset_pending_duel()
+            session = dict(pending)
+            _reset_pending_duel(group_id)
             confirm_event = None
         else:
             session = None
@@ -1563,14 +1565,15 @@ async def handle_pure_duel(event: AstrMessageEvent, bank, config: dict):
             await asyncio.wait_for(confirm_event.wait(), timeout=DUEL_CONFIRM_WINDOW_SEC)
         except asyncio.TimeoutError:
             async with PENDING_DUEL_LOCK:
-                if PENDING_DUEL.get("session_id"):
-                    _reset_pending_duel()
+                pending = _get_pending_duel(group_id)
+                if pending.get("session_id") == session_id:
+                    _reset_pending_duel(group_id)
             yield event.plain_result("⌛ 发起者迟迟没回话，围观的人先哄起来了。这次追加投入没人接，这场决斗作废。")
             return
 
         async with PENDING_DUEL_LOCK:
-            session = dict(PENDING_DUEL)
-            _reset_pending_duel()
+            session = dict(_get_pending_duel(group_id))
+            _reset_pending_duel(group_id)
 
     if not session:
         yield event.plain_result("⚠️ 对局状态有点乱，这场决斗没能顺利立起来。")
@@ -2060,7 +2063,7 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
     user_name = event.get_sender_name()
     today = datetime.now().strftime("%Y-%m-%d")
 
-    raw_text = event.message_str.replace("/luck", "").strip()
+    raw_text = str(cmd_str or "").strip()
     target_card_name = _parse_action_card_name(raw_text, "使用")
     if not target_card_name:
         yield event.plain_result("⚠️ 咒语格式错误。\n👉 举例：/luck 使用绝对零度@某人\n👉 也支持：/luck 使用 绝对零度 @某人\n👉 群攻：/luck 使用南蛮入侵")
@@ -2207,13 +2210,14 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
 
         async with PENDING_DUEL_LOCK:
             current_group_id = str((config or {}).get("_group_id", "")).strip()
-            if PENDING_DUEL.get("active") and str(PENDING_DUEL.get("group_id", "")) == current_group_id:
+            pending = _get_pending_duel(current_group_id)
+            if pending.get("active") and str(pending.get("group_id", "")) == current_group_id:
                 yield event.plain_result("⚔️ 当前已有决斗进行中，请稍候再发起。")
                 return
 
             target_name_duel = target_data.get("name", f"群友({target_id})")
             confirm_event = asyncio.Event()
-            PENDING_DUEL.update({
+            _set_pending_duel(current_group_id, {
                 "active": True,
                 "group_id": current_group_id,
                 "session_id": f"duel:{current_group_id}:{user_id}:{target_id}:{int(time.time())}",
@@ -2250,8 +2254,8 @@ async def handle_use_card(event: AstrMessageEvent, bank, cmd_str: str, config: d
             accepted = False
 
         async with PENDING_DUEL_LOCK:
-            session = dict(PENDING_DUEL)
-            _reset_pending_duel()
+            session = dict(_get_pending_duel(current_group_id))
+            _reset_pending_duel(current_group_id)
 
                 # 决斗牌消耗
         inventory.pop(found_index)
@@ -2393,7 +2397,7 @@ async def handle_active_card(event: AstrMessageEvent, bank, cmd_str: str, is_act
     user_name = event.get_sender_name()
     
     action_str = "启用" if is_activate else "停用"
-    raw_text = event.message_str.replace("/luck", "").strip()
+    raw_text = str(cmd_str or "").strip()
     target_card_name = _parse_action_card_name(raw_text, action_str)
 
     if not target_card_name:

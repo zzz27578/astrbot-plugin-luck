@@ -3807,6 +3807,11 @@ async def api_create_profile(request):
             return web.json_response({"ok": False, "error": "profile already exists"}, status=400)
 
         ensure_profile_dirs(profile_id, PLUGIN_NAME)
+        desc = str(body.get("desc", "")).strip()
+        tags = body.get("tags", [])
+        if not isinstance(tags, list):
+            tags = []
+        tags = [str(t).strip() for t in tags if str(t).strip()]
 
         if raw_copy_from == BUILTIN_DEFAULT_COPY_FROM:
 
@@ -3830,11 +3835,6 @@ async def api_create_profile(request):
                     for item in src_dir.iterdir():
                         if item.is_file():
                             shutil.copy2(item, dst_dir / item.name)
-
-                desc = str(body.get("desc", "")).strip()
-        tags = body.get("tags", [])
-        if not isinstance(tags, list): tags = []
-        tags = [str(t).strip() for t in tags if str(t).strip()]
         _save_profile_meta(profile_id, {"display_name": name, "cover_image": "", "desc": desc, "tags": tags})
         return web.json_response({"ok": True, "profile": _collect_profile_stats(profile_id)})
     except Exception as e:

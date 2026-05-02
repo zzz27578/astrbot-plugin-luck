@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime, timedelta
 from astrbot.api.event import AstrMessageEvent
+from aiohttp import ClientSession, ClientTimeout
 from ..core.title_engine import TitleEngine
 from ..core.json_cache import load_json_cached
 
@@ -19,6 +20,97 @@ BAD_THINGS = [
     "与魔炎龙战斗","遇到独眼巨人", "首饰被卖", "被卖给马戏团", "被村民埋进土里", "被哈根商会抓走","异端审判", "被村民围攻", "被关进监狱", "与魔毒龙战斗",
 ]
 # =======================================================
+
+_QUOTE_TIMEOUT = ClientTimeout(total=3)
+_QUOTE_FALLBACKS = [
+    "答案有时会迟到，但不会缺席。",
+    "命运不会催你，但会在拐角等你。",
+    "下一次抬头，可能就是转运的开始。",
+    "有些好运，会在坚持之后出现。",
+]
+_QUOTE_SOURCES = [
+    "https://v1.hitokoto.cn?c=a&c=b&c=c&c=d&c=i",
+    "https://international.v1.hitokoto.cn?c=a&c=b&c=c&c=d&c=i",
+]
+
+
+def _extract_quote_text(payload) -> str:
+    if isinstance(payload, dict):
+        for key in ("hitokoto", "data", "text", "msg", "content", "sentence"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        for value in payload.values():
+            nested = _extract_quote_text(value)
+            if nested:
+                return nested
+    if isinstance(payload, list):
+        for item in payload:
+            nested = _extract_quote_text(item)
+            if nested:
+                return nested
+    if isinstance(payload, str) and payload.strip():
+        return payload.strip()
+    return ""
+
+
+def _extract_quote_author(payload) -> str:
+    if isinstance(payload, dict):
+        for key in ("from", "from_who", "author", "source", "creator"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        for value in payload.values():
+            author = _extract_quote_author(value)
+            if author:
+                return author
+    if isinstance(payload, list):
+        for item in payload:
+            author = _extract_quote_author(item)
+            if author:
+                return author
+    return ""
+
+
+def _format_quote_line(text: str, author: str = "") -> str:
+    body = str(text or "").strip()
+    tail = str(author or "").strip()
+    if not body:
+        return ""
+    if tail and tail not in body:
+        return f"{body} —— {tail}"
+    return body
+
+
+async def _fetch_network_quote() -> str:
+    urls = random.sample(_QUOTE_SOURCES, len(_QUOTE_SOURCES))
+    async with ClientSession(timeout=_QUOTE_TIMEOUT) as session:
+        for url in urls:
+            try:
+                async with session.get(url, headers={"User-Agent": "luck_rank/1.0"}) as resp:
+                    if resp.status != 200:
+                        continue
+                    payload = await resp.json(content_type=None)
+                    text = _extract_quote_text(payload)
+                    if text:
+                        return _format_quote_line(text, _extract_quote_author(payload))
+            except Exception:
+                continue
+    return ""
+
+
+async def _build_sign_in_quote(texts_cfg: dict) -> str:
+    custom_quotes = [str(x).strip() for x in texts_cfg.get("custom_quotes", []) if str(x).strip()]
+    if texts_cfg.get("use_custom_quote", False):
+        pool = custom_quotes or _QUOTE_FALLBACKS
+        return random.choice(pool) if pool else ""
+
+    quote = await _fetch_network_quote()
+    if quote:
+        return quote
+    if custom_quotes:
+        return random.choice(custom_quotes)
+    return random.choice(_QUOTE_FALLBACKS) if _QUOTE_FALLBACKS else ""
 
 async def calculate_rank(bank, user_id):
     """计算当前玩家排名"""
@@ -133,6 +225,11 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     bad_pool = [x for x in texts_cfg.get("bad_things", BAD_THINGS) if isinstance(x, str) and x.strip()]
     good_thing = random.choice(good_pool or GOOD_THINGS)
     bad_thing = random.choice(bad_pool or BAD_THINGS)
+    quote_line = ""
+    if texts_cfg.get("enable_quote", True):
+        quote = await _build_sign_in_quote(texts_cfg)
+        if quote:
+            quote_line = f"\n🗨️ {quote}"
 
     comment = ""
     if rule and isinstance(rule.get("comments"), list):
@@ -164,6 +261,7 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
         f"❌ 忌：{bad_thing}\n"
         f"🗣️ 启示：{comment}\n"
         f"━━━━━━━━━━━━━━"
+        f"{quote_line}"
         f"{extra_line}"
     )
     yield event.plain_result(msg)

@@ -1,6 +1,6 @@
 name: luck_rank
 display_name: 全自定义签到抽卡系统
 desc: "AstrBot 群聊签到与抽卡互动插件：支持每日运势、命运牌、功能牌、称号、排行、决斗，并提供高度自定义的可视化 WebUI 与访客协作能力。"
-version: 5.4.0-Pro
+version: 5.4.1-Pro
 author: 百岁老太
 repo: https://github.com/zzz27578/astrbot-plugin-luck

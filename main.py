@@ -29,6 +29,95 @@ from .webui.server import (
 migrate_legacy_storage(PLUGIN_NAME)
 
 
+def _get_command_prefix(config: dict | None = None) -> str:
+    prefix = str((config or {}).get("global_settings", {}).get("prefix", "/luck") or "/luck")
+    prefix = prefix.replace("\u3000", " ").strip()
+    return prefix or "/luck"
+
+
+def _get_command_prefix_variants(config: dict | None = None) -> list[str]:
+    prefix = _get_command_prefix(config)
+    variants = [prefix]
+    if prefix.startswith("/"):
+        variants.append(prefix[1:])
+    else:
+        variants.append(f"/{prefix}")
+    unique: list[str] = []
+    for item in variants:
+        text = str(item or "").strip()
+        if text and text not in unique:
+            unique.append(text)
+    return sorted(unique, key=len, reverse=True)
+
+
+def _normalize_luck_command_flexible(raw_text: str, config: dict | None = None) -> str | None:
+    text = str(raw_text or "").replace("\u3000", " ").strip()
+    if not text:
+        return ""
+    lowered = text.lower()
+    for prefix in _get_command_prefix_variants(config):
+        if not lowered.startswith(prefix.lower()):
+            continue
+        suffix = text[len(prefix):]
+        if suffix:
+            first = suffix[0]
+            if not (first.isspace() or first == "@" or not re.match(r"[A-Za-z0-9_]", first)):
+                continue
+        return re.sub(r"\s+", " ", suffix.replace("\u3000", " ")).strip()
+    return None
+
+
+def _bool_from_unknown(value) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"1", "true", "yes", "y", "on", "admin", "owner", "administrator", "superuser"}:
+            return True
+        if text in {"0", "false", "no", "n", "off", "member", "user", "normal"}:
+            return False
+    return None
+
+
+def _call_noarg_bool(target, name: str) -> bool | None:
+    candidate = getattr(target, name, None)
+    if candidate is None:
+        return None
+    if callable(candidate):
+        try:
+            return _bool_from_unknown(candidate())
+        except TypeError:
+            return None
+        except Exception:
+            return None
+    return _bool_from_unknown(candidate)
+
+
+def _collect_native_admin_targets(event: AstrMessageEvent) -> list[object]:
+    targets: list[object] = []
+
+    def add(value):
+        if value is not None:
+            targets.append(value)
+
+    add(event)
+    for name in ("message_obj", "session", "sender", "context"):
+        add(getattr(event, name, None))
+    sender_getter = getattr(event, "get_sender", None)
+    if callable(sender_getter):
+        try:
+            add(sender_getter())
+        except Exception:
+            pass
+    message_obj = getattr(event, "message_obj", None)
+    if message_obj is not None:
+        for name in ("sender", "group", "scene"):
+            add(getattr(message_obj, name, None))
+    return targets
+
+
 def _deep_merge_dict(base: dict, override: dict) -> dict:
     result = dict(base or {})
     for k, v in (override or {}).items():
@@ -199,7 +288,7 @@ def _is_group_access_allowed(group_id: str, plugin_name: str = PLUGIN_NAME) -> b
 
 PLUGIN_NAME = "luck_rank"
 AUTHOR = "YourName" # 可修改为你自己的名字
-VERSION = "5.4.0-Pro"
+VERSION = "5.4.1-Pro"
 
 @register(PLUGIN_NAME, AUTHOR, "异世界战术金币系统", VERSION)
 class LuckPlugin(Star):
@@ -245,15 +334,18 @@ class LuckPlugin(Star):
             self._bank_cache[group_key] = LuckBank(str(runtime_ctx["luck_data_file"]))
         return self._bank_cache[group_key], merged_config
 
-    @filter.regex(r"^\s*/luck(?:\s+.*)?$", priority=1000)
+    @filter.regex(r"^\s*(?:/\S+|luck(?:(?=\s|$)|(?=[^A-Za-z0-9_])))", priority=1000)
     async def luck_gateway(self, event: AstrMessageEvent):
 
         # 第一时间阻断事件，防止底层聊天 AI 抢答
-        event.stop_event()
         group_id = _extract_group_id(event)
-        private_cmd_str = _normalize_luck_command(event.get_message_str())
+        raw_message = event.get_message_str()
+        private_cmd_str = _normalize_luck_command_flexible(raw_message, self._base_config)
         private_user_id = event.get_sender_id()
         if not group_id:
+            if private_cmd_str is None:
+                return
+            event.stop_event()
             if private_cmd_str is not None:
                 if private_cmd_str in {"", "menu", "help", "菜单", "帮助", "规则", "功能菜单"}:
                     if private_cmd_str in {"help", "帮助", "规则"}:
@@ -269,7 +361,7 @@ class LuckPlugin(Star):
                     yield res
                 if handled:
                     return
-                if self._is_extra_admin(str(private_user_id), self._base_config) and self._private_admin_verified_until.get(str(private_user_id), 0) >= time.time():
+                if self._is_admin(event, str(private_user_id), self._base_config) and self._private_admin_verified_until.get(str(private_user_id), 0) >= time.time():
                     group_id = f"private_{private_user_id}"
                 else:
                     yield event.plain_result("私聊测试全部命令前，请先发送：/luck 管理验证 WebUI管理密码\n菜单与帮助可直接私聊使用。")
@@ -278,18 +370,17 @@ class LuckPlugin(Star):
                 yield event.plain_result("⚠️ 当前功能仅支持群聊使用，私聊场景不参与签到与排行映射。")
                 return
 
+        bank, current_config = self._refresh_runtime_config(group_id)
+        cmd_str = _normalize_luck_command_flexible(raw_message, current_config)
+        if cmd_str is None:
+            return
+        event.stop_event()
+
         if not str(group_id).startswith("private_") and not _is_group_access_allowed(group_id, self.name or PLUGIN_NAME):
             return
 
-        bank, current_config = self._refresh_runtime_config(group_id)
-
         user_id = event.get_sender_id()
         user_name = event.get_sender_name()
-
-        raw_message = event.get_message_str()
-        cmd_str = _normalize_luck_command(raw_message)
-        if cmd_str is None:
-            return
 
         func_cards_enabled = current_config.get("func_cards_settings", {}).get("enable", True)
 
@@ -323,7 +414,7 @@ class LuckPlugin(Star):
                 yield res
             return
         if cmd_str in ["管理员菜单", "管理菜单", "admin"]:
-            if self._is_extra_admin(str(user_id), current_config):
+            if self._is_admin(event, str(user_id), current_config):
                 yield event.plain_result(self._admin_menu_text())
             else:
                 yield event.plain_result("⚠️ 只有插件管理员可以查看管理员菜单。")
@@ -444,7 +535,7 @@ class LuckPlugin(Star):
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_pure_duel(event, bank, current_config):
+            async for res in m_func_cards.handle_pure_duel(event, bank, current_config, cmd_str):
                 yield res
             return
 
@@ -460,7 +551,7 @@ class LuckPlugin(Star):
             if not current_config.get("func_cards_settings", {}).get("enable", True):
                 yield event.plain_result("⚠️ 战术博弈系统暂未开放。")
                 return
-            async for res in m_func_cards.handle_raise_duel(event, bank):
+            async for res in m_func_cards.handle_raise_duel(event, bank, cmd_str):
                 yield res
             return
 
@@ -488,7 +579,7 @@ class LuckPlugin(Star):
         visitor_prefixes = ("管理员菜单", "管理菜单", "管理验证", "访客身份", "生成临时密钥", "生成游客密钥", "访客密钥", "待审核", "同意草稿", "拒绝草稿", "通过草稿")
         if not text.startswith(visitor_prefixes):
             return
-        if not self._is_extra_admin(str(sender_id), self._base_config):
+        if not self._is_admin(event, str(sender_id), self._base_config):
             yield event.plain_result("⚠️ 只有插件管理员可以在私聊中管理访客协作。")
             return
 
@@ -610,6 +701,48 @@ class LuckPlugin(Star):
         extra_admins = [qq.strip() for qq in extra_admins_str.split(",") if qq.strip()]
         return sender_id in extra_admins
 
+    def _is_native_admin(self, event: AstrMessageEvent) -> bool:
+        method_names = (
+            "is_admin",
+            "get_is_admin",
+            "is_admin_user",
+            "is_superuser",
+            "get_is_superuser",
+            "is_owner",
+        )
+        attr_names = (
+            "is_admin",
+            "admin",
+            "sender_is_admin",
+            "is_superuser",
+            "is_owner",
+        )
+        role_names = ("role", "sender_role", "user_role", "member_role", "permission", "permissions")
+        positive_roles = {"admin", "owner", "administrator", "superuser", "group_admin", "group_owner"}
+
+        for target in _collect_native_admin_targets(event):
+            for name in method_names:
+                result = _call_noarg_bool(target, name)
+                if result is not None:
+                    return result
+            for name in attr_names:
+                result = _bool_from_unknown(getattr(target, name, None))
+                if result is not None:
+                    return result
+            for name in role_names:
+                value = getattr(target, name, None)
+                if isinstance(value, str) and value.strip().lower() in positive_roles:
+                    return True
+        return False
+
+    def _is_admin(self, event: AstrMessageEvent, sender_id: str, current_config: dict) -> bool:
+        if self._is_extra_admin(sender_id, current_config):
+            return True
+        admin_cfg = current_config.get("admin_settings", {})
+        if not bool(admin_cfg.get("use_native_admin", True)):
+            return False
+        return self._is_native_admin(event)
+
     async def _resolve_admin_targets(
         self,
         event: AstrMessageEvent,
@@ -660,7 +793,7 @@ class LuckPlugin(Star):
         return [(target_id, target_user)], target_name or f"群友({target_id})", cleaned_text
 
     async def _handle_admin_add(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
-        if not self._is_extra_admin(sender_id, current_config):
+        if not self._is_admin(event, sender_id, current_config):
             yield event.plain_result("⚡ 狂妄！你未拥有天道权限，无法篡改世界线！")
             return
 
@@ -726,7 +859,7 @@ class LuckPlugin(Star):
                 yield event.plain_result(f"⚡ 天道裁决！\n已强行 {action_str} {target_name} {abs_count} 枚金币！\n💰 当前金币：{user_data['total_gold']}")
 
     async def _handle_admin_grant(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
-        if not self._is_extra_admin(sender_id, current_config):
+        if not self._is_admin(event, sender_id, current_config):
             yield event.plain_result("⚡ 狂妄！你未拥有天道权限，无法篡改世界线！")
             return
 
@@ -875,7 +1008,7 @@ class LuckPlugin(Star):
         yield event.plain_result("\n".join(lines))
 
     async def _handle_admin_discard(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
-        if not self._is_extra_admin(sender_id, current_config):
+        if not self._is_admin(event, sender_id, current_config):
             yield event.plain_result("⚡ 狂妄！你未拥有天道权限，无法篡改世界线！")
             return
 

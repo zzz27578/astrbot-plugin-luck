@@ -2838,9 +2838,17 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .editor-preview img { width:100%; height:180px; object-fit:cover; display:block; }
 .asset-item.selectable { cursor:pointer; transition: border-color .18s ease, transform .18s ease; }
 .asset-item.selectable:hover, .asset-item.selected { border-color:var(--accent); transform:translateY(-1px); }
-.visitor-admin-column { display:grid; gap:24px; align-content:start; }
+.visitor-admin-column { display:grid; gap:24px; align-content:stretch; height:100%; }
+.visitor-admin-column > .panel { min-height: 0; }
 .visitor-key-panel { padding-bottom:18px; }
 .visitor-key-panel .panel-head { margin-bottom:16px; }
+.visitor-role-panel { display:grid; grid-template-rows:auto minmax(0,1fr) auto; min-height: 520px; }
+.visitor-role-panel .visitor-card-list { min-height: 0; }
+.visitor-role-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:14px; }
+.visitor-role-stat { border:1px solid rgba(33,163,102,0.16); background:rgba(33,163,102,0.05); padding:12px 14px; display:grid; gap:4px; align-content:start; }
+.visitor-role-stat b { font-family: var(--font-headline); font-size: 22px; color: var(--shard-text); line-height: 1; }
+.visitor-role-stat span { font-size: 11px; color: var(--shard-text-muted); font-weight: 800; letter-spacing: 1px; }
+.visitor-role-tail { margin-top: 14px; }
 .draft-full-card { margin-top:8px; }
 .editor-compact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .check-strong { display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 14px; border: 1px solid var(--shard-border); background: var(--shard-bg); color: var(--shard-text); font-size: 13px; font-weight: 700; }
@@ -8446,6 +8454,12 @@ function renderVisitor() {
   const selectedProfile = form.profile_value || state.currentProfile || 'default';
   const selectedExpires = String(form.expires_val || '24');
   const roleOptions = state.visitorRoles.map(role => `<option value="${esc(role.id)}" ${role.id === selectedRole ? 'selected' : ''}>${esc(role.name)}</option>`).join('');
+  const reviewRoleCount = state.visitorRoles.filter(role => (role.permissions || {}).requires_review !== false).length;
+  const directRoleCount = Math.max(0, state.visitorRoles.length - reviewRoleCount);
+  const highPowerRoleCount = state.visitorRoles.filter(role => {
+    const perms = role.permissions || {};
+    return !!(perms.can_edit_func_card || perms.can_edit_fate_card || perms.can_delete_func_card || perms.can_delete_fate_card || perms.can_manage_titles);
+  }).length;
   const keysHtml = state.visitorKeys.map(item => `
         <div class="visitor-card">
       <div class="row between">
@@ -8508,9 +8522,22 @@ function renderVisitor() {
           </div>
         </div>
       </section>
-            <section class="panel">
+            <section class="panel visitor-role-panel">
         <div class="panel-head"><div><div class="panel-title">权限身份</div><div class="panel-note">是否需要审核、批量权限和提交上限都由身份决定。</div></div><button class="btn outline-btn" onclick="openVisitorRoleDialog()"><span class="btn-text">新建身份</span></button></div>
         <div class="visitor-card-list" style="max-height: 360px; overflow-y: auto; padding-right: 8px;">${rolesHtml}</div>
+        <div class="visitor-role-tail">
+          <div class="visitor-role-summary">
+            <div class="visitor-role-stat"><b>${Number(state.visitorRoles.length || 0)}</b><span>身份模板总数</span></div>
+            <div class="visitor-role-stat"><b>${reviewRoleCount}</b><span>默认需审核</span></div>
+            <div class="visitor-role-stat"><b>${directRoleCount}</b><span>可直写身份</span></div>
+          </div>
+          <div class="visitor-role-summary">
+            <div class="visitor-role-stat"><b>${highPowerRoleCount}</b><span>高权限身份</span></div>
+            <div class="visitor-role-stat"><b>${Number(state.visitorKeys.length || 0)}</b><span>关联中的密钥</span></div>
+            <div class="visitor-role-stat"><b>${Number(state.visitorDrafts.length || 0)}</b><span>${isAdmin ? '当前待审' : '我的待审'}</span></div>
+          </div>
+          <div class="visitor-muted-box">建议把高风险权限和免审核权限拆成独立身份，不要和普通投稿身份混用。这样发临时密钥时更稳，也更方便后续回收。</div>
+        </div>
       </section>
       </div>
       <section class="panel col-12">

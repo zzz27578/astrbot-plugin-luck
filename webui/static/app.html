@@ -9160,6 +9160,7 @@ async function previewSignin() {
   const score = Math.floor(Math.random() * Math.max(1, (range.max ?? 100) - (range.min ?? 1) + 1)) + (range.min ?? 1);
   
   let extraLines = [];
+  let quoteLine = '';
   if (state.signInTexts.enable_draw_prob) {
     extraLines.push(`今日爆率｜+${Math.floor(Math.random() * 5)}%`);
   }
@@ -9178,7 +9179,7 @@ async function previewSignin() {
         quote = '（获取网络一言失败）';
       }
     }
-    extraLines.push(`\n🗨️ ${quote}`);
+    quoteLine = `🗨️ ${quote}`;
   }
 
   $('#signinPreview').textContent = [
@@ -9188,6 +9189,8 @@ async function previewSignin() {
     `点评｜${comment}`,
     `宜｜${good}`,
     `忌｜${bad}`,
+    ...(quoteLine ? [quoteLine] : []),
+    '━━━━━━━━━━━━━━',
     ...extraLines
   ].join('\n');
 }

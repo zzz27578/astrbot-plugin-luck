@@ -252,6 +252,8 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
     if sign_bonus:
         extra_line += f"\n🏅 签到称号加成：+{sign_bonus}%"
 
+    divider_block = f"{quote_line}\n━━━━━━━━━━━━━━" if quote_line else "━━━━━━━━━━━━━━"
+
     msg = (
         f"🔮 【{user_name} 的命运星象】\n"
         f"🎲 运势：{luck_val}/100{' · ' + rule_label if rule_label else ''} (+{total_reward}{streak_bonus_str})\n"
@@ -264,6 +266,7 @@ async def handle_sign_in(event: AstrMessageEvent, bank, config: dict):
         f"{quote_line}"
         f"{extra_line}"
     )
+    msg = msg.replace(("━" * 14) + quote_line, divider_block)
     yield event.plain_result(msg)
 
 

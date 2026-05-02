@@ -74,6 +74,7 @@ VISITOR_KEYS_FILE = VISITOR_DATA_DIR / "keys.json"
 VISITOR_DRAFTS_FILE = VISITOR_DATA_DIR / "drafts.json"
 VISITOR_AUDIT_FILE = VISITOR_DATA_DIR / "audit_logs.json"
 VISITOR_TUNNEL_FILE = VISITOR_DATA_DIR / "tunnel_config.json"
+VISITOR_STAGING_DIR = VISITOR_DATA_DIR / "staging"
 VISITOR_KEY_RECORD_LIMIT = 100
 _WEBUI_ACCESS_PASSWORD = WEBUI_DEFAULT_ACCESS_PASSWORD
 _AUTH_SESSIONS: dict[str, dict] = {}
@@ -383,6 +384,15 @@ def _list_image_files(directory: Path) -> list[str]:
         return []
     exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
     return sorted(f.name for f in directory.iterdir() if f.is_file() and f.suffix.lower() in exts)
+
+
+def _list_image_files_newest(directory: Path) -> list[str]:
+    if not directory.exists():
+        return []
+    exts = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+    files = [f for f in directory.iterdir() if f.is_file() and f.suffix.lower() in exts]
+    files.sort(key=lambda item: item.stat().st_mtime if item.exists() else 0, reverse=True)
+    return [f.name for f in files]
 
 
 def _is_api_generated_image(filename: str) -> bool:
@@ -910,6 +920,7 @@ def _ensure_visitor_files():
             "custom_public_url": "",
             "allow_plugin_start_tunnel": False,
         })
+    VISITOR_STAGING_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _read_list_file(path: Path) -> list:
@@ -1125,6 +1136,128 @@ def _count_pending_for_identity(identity: dict) -> int:
     return sum(1 for draft in _load_drafts() if draft.get("invite_id") == invite_id and draft.get("status") == "pending")
 
 
+def _visitor_staging_dir(profile_id: str, kind: str, invite_id: str) -> Path:
+    profile = _sanitize_profile_id(profile_id or DEFAULT_PROFILE_NAME)
+    safe_kind = "fate" if kind == "fate" else "func"
+    safe_invite = re.sub(r"[^a-zA-Z0-9_\-]+", "_", str(invite_id or "unknown")).strip("_") or "unknown"
+    return VISITOR_STAGING_DIR / profile / safe_kind / safe_invite
+
+
+def _iter_visitor_staging_dirs(profile_id: str, kind: str, invite_id: str = ""):
+    profile = _sanitize_profile_id(profile_id or DEFAULT_PROFILE_NAME)
+    safe_kind = "fate" if kind == "fate" else "func"
+    base = VISITOR_STAGING_DIR / profile / safe_kind
+    if invite_id:
+        directory = _visitor_staging_dir(profile, safe_kind, invite_id)
+        if directory.exists():
+            yield directory
+        return
+    if base.exists():
+        for directory in base.iterdir():
+            if directory.is_dir():
+                yield directory
+
+
+def _find_staged_image(profile_id: str, kind: str, filename: str, invite_id: str = "") -> Path | None:
+    safe_name = Path(str(filename or "")).name
+    if not safe_name:
+        return None
+    for directory in _iter_visitor_staging_dirs(profile_id, kind, invite_id):
+        target = directory / safe_name
+        if target.exists() and target.is_file():
+            return target
+    return None
+
+
+def _list_staged_images(profile_id: str, kind: str, invite_id: str = "") -> list[str]:
+    files: list[Path] = []
+    for directory in _iter_visitor_staging_dirs(profile_id, kind, invite_id):
+        files.extend([directory / name for name in _list_image_files(directory)])
+    files.sort(key=lambda item: item.stat().st_mtime if item.exists() else 0, reverse=True)
+    result = []
+    for item in files:
+        if item.name not in result:
+            result.append(item.name)
+    return result
+
+
+def _staged_storage_usage(profile_id: str, invite_id: str) -> tuple[int, int]:
+    count = 0
+    total = 0
+    for kind in ("fate", "func"):
+        for directory in _iter_visitor_staging_dirs(profile_id, kind, invite_id):
+            for name in _list_image_files(directory):
+                target = directory / name
+                if target.exists():
+                    count += 1
+                    total += target.stat().st_size
+    return count, total
+
+
+def _draft_image_names(kind: str, draft: dict) -> set[str]:
+    after = draft.get("after")
+    names: set[str] = set()
+    if not isinstance(after, list):
+        return names
+    for card in after:
+        if not isinstance(card, dict):
+            continue
+        filename = Path(str(card.get("filename", "") or "")).name
+        if filename:
+            names.add(filename)
+    return names
+
+
+def _cleanup_draft_staged_images(draft: dict):
+    resource = str(draft.get("resource_type") or "")
+    kind = "fate" if resource == "fate_cards" else "func" if resource == "func_cards" else ""
+    if not kind:
+        return
+    profile_id = _sanitize_profile_id(draft.get("profile_id") or DEFAULT_PROFILE_NAME)
+    invite_id = str(draft.get("invite_id") or "")
+    for name in _draft_image_names(kind, draft):
+        target = _find_staged_image(profile_id, kind, name, invite_id)
+        if target and target.exists():
+            try:
+                target.unlink()
+            except Exception:
+                pass
+
+
+def _materialize_draft_staged_images(draft: dict):
+    resource = str(draft.get("resource_type") or "")
+    kind = "fate" if resource == "fate_cards" else "func" if resource == "func_cards" else ""
+    if not kind:
+        return
+    profile_id = _sanitize_profile_id(draft.get("profile_id") or DEFAULT_PROFILE_NAME)
+    invite_id = str(draft.get("invite_id") or "")
+    paths = get_profile_storage_paths(profile_id, PLUGIN_NAME)
+    dest_dir = paths["fate_assets_dir"] if kind == "fate" else paths["func_assets_dir"]
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    for name in _draft_image_names(kind, draft):
+        source = _find_staged_image(profile_id, kind, name, invite_id)
+        if not source:
+            continue
+        shutil.copy2(source, dest_dir / source.name)
+        try:
+            source.unlink()
+        except Exception:
+            pass
+
+
+def _unique_staged_filename(directory: Path, filename: str, prefix: str) -> str:
+    original = Path(str(filename or "image.png")).name
+    stem = re.sub(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]+", "_", Path(original).stem).strip("_") or "image"
+    suffix = Path(original).suffix.lower()
+    if suffix not in {".png", ".jpg", ".jpeg", ".gif", ".webp"}:
+        suffix = ".png"
+    for _ in range(20):
+        candidate = f"{prefix}_{uuid.uuid4().hex[:8]}_{stem[:40]}{suffix}"
+        if not (directory / candidate).exists():
+            return candidate
+    return f"{prefix}_{uuid.uuid4().hex}{suffix}"
+
+
 def _create_review_draft(request: web.Request, resource_type: str, action: str, before, after, summary: str) -> dict:
     identity = _get_session_identity(request)
     profile_id = _get_request_profile_id(request)
@@ -1149,6 +1282,14 @@ def _create_review_draft(request: web.Request, resource_type: str, action: str, 
     drafts = [d for d in all_drafts if d.get("status") == "pending"]
     if len(drafts) != len(all_drafts):
         _save_drafts(drafts)
+    for existing in drafts:
+        if (
+            existing.get("invite_id") == draft.get("invite_id")
+            and existing.get("profile_id") == draft.get("profile_id")
+            and existing.get("resource_type") == draft.get("resource_type")
+            and existing.get("after") == draft.get("after")
+        ):
+            return existing
     drafts.append(draft)
     _save_drafts(drafts)
     _increment_key_counter(identity.get("invite_id", ""), "submissions")
@@ -1395,6 +1536,9 @@ def _verify_visitor_key(secret: str) -> dict | None:
     matched = None
     for item in keys:
         if item.get("status", "active") != "active":
+            continue
+        if item.get("expires_at", 0) and now > int(item.get("expires_at", 0)):
+            item["status"] = "expired"
             continue
         if secrets.compare_digest(str(item.get("secret_hash", "")), secret_hash):
             matched = item
@@ -2306,7 +2450,82 @@ async def api_save_fate_cards(request):
         return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
-async def api_upload_fate_image(request):
+async def _handle_card_image_upload(request: web.Request, kind: str):
+    is_visitor = _is_visitor_request(request)
+    if is_visitor and not _permission(request, "can_upload_image"):
+        return _visitor_error("当前访客身份不允许上传图片。")
+    if is_visitor:
+        prefix = "fate" if kind == "fate" else "func"
+        if not (_permission(request, f"can_create_{prefix}_card") or _permission(request, f"can_edit_{prefix}_card")):
+            return _visitor_error("当前访客身份没有对应卡牌的新增或修改权限，不能单独上传图片。")
+
+    paths = _get_request_profile_paths(request)
+    profile_id = _get_request_profile_id(request)
+    identity = _get_session_identity(request)
+    staged = bool(is_visitor and _permission(request, "requires_review", True))
+    if staged:
+        pending = _count_pending_for_identity(identity)
+        max_pending = max(0, _safe_int(_permission(request, "max_pending_drafts", 3), 3))
+        if pending >= max_pending:
+            return _visitor_error(f"当前密钥待审核数量已达到 {max_pending} 项上限，请等待管理员处理后再上传。")
+        target_dir = _visitor_staging_dir(profile_id, kind, identity.get("invite_id", ""))
+    else:
+        target_dir = paths["fate_assets_dir"] if kind == "fate" else paths["func_assets_dir"]
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    max_images = max(1, _safe_int(_permission(request, "max_images_per_submit", 20), 20))
+    max_bytes = max(1, _safe_int(_permission(request, "max_image_size_mb", 20), 20)) * 1024 * 1024
+    if is_visitor:
+        staged_count, staged_bytes = _staged_storage_usage(profile_id, identity.get("invite_id", ""))
+        max_staged = max_images * max(1, _safe_int(_permission(request, "max_pending_drafts", 3), 3))
+        if staged_count >= max_staged:
+            return _visitor_error(f"当前密钥临时图片已达到 {max_staged} 张上限，请先提交卡牌或等待审核。")
+        if staged_bytes >= max_bytes * max_staged:
+            return _visitor_error("当前密钥临时图片占用空间已达到上限，请先提交卡牌或等待审核。")
+
+    reader = await request.multipart()
+    uploaded = []
+    prefix = "vfate" if kind == "fate" else "vfunc"
+    async for field in reader:
+        if field.name != "files":
+            continue
+        if len(uploaded) >= max_images:
+            break
+        filename = field.filename
+        if not filename:
+            continue
+        safe_name = _unique_staged_filename(target_dir, filename, prefix) if staged else Path(filename).name
+        dest = target_dir / safe_name
+        total = 0
+        try:
+            with open(dest, "wb") as f:
+                while True:
+                    chunk = await field.read_chunk(8192)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if is_visitor and total > max_bytes:
+                        raise ValueError("图片超过当前访客身份允许的大小上限。")
+                    f.write(chunk)
+        except Exception:
+            if dest.exists():
+                try:
+                    dest.unlink()
+                except Exception:
+                    pass
+            raise
+        uploaded.append(safe_name)
+
+    return web.json_response({
+        "ok": True,
+        "uploaded": uploaded,
+        "pending_review": False,
+        "staged": staged,
+        "message": "图片已放入临时素材区，请继续填写卡牌并提交审核。" if staged else "图片上传完成。",
+    })
+
+
+async def _legacy_api_upload_fate_image_unused(request):
     """上传命运牌图片到 assets/cards/"""
     try:
         if _is_visitor_request(request) and not _permission(request, "can_upload_image"):
@@ -2352,9 +2571,10 @@ async def api_list_fate_images(request):
         paths = _get_request_profile_paths(request)
         fate_assets_dir = paths["fate_assets_dir"]
         lazy_dir = paths["plugin_data_dir"] / "lazy_images" / "fate"
-        local_files = _list_image_files(fate_assets_dir)
+        local_files = _list_image_files_newest(fate_assets_dir)
         legacy_lazy_files = [name for name in _list_image_files(lazy_dir) if name not in local_files]
-        return web.json_response({"ok": True, "images": sorted(local_files + legacy_lazy_files), "lazy_images": legacy_lazy_files})
+        staged_files = _list_staged_images(_get_request_profile_id(request), "fate", _get_session_identity(request).get("invite_id", "") if _is_visitor_request(request) else "")
+        return web.json_response({"ok": True, "images": [*staged_files, *local_files, *legacy_lazy_files], "lazy_images": legacy_lazy_files, "staged_images": staged_files})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "images": [], "lazy_images": []}, status=500)
 
@@ -2580,7 +2800,7 @@ async def api_get_user_stats(request):
         return web.json_response({"ok": False, "error": str(e), "stats": {"total_groups": 0, "total_users": 0, "total_gold": 0, "total_cards_issued": 0, "wealth_leaderboard": [], "groups": [], "profile_id": DEFAULT_PROFILE_NAME}}, status=500)
 
 
-async def api_upload_image(request):
+async def _legacy_api_upload_image_unused(request):
     """上传卡图到 assets/func_cards/"""
     try:
         if _is_visitor_request(request) and not _permission(request, "can_upload_image"):
@@ -2627,11 +2847,26 @@ async def api_list_images(request):
         assets_dir = paths["func_assets_dir"]
         assets_dir.mkdir(parents=True, exist_ok=True)
         lazy_dir = paths["plugin_data_dir"] / "lazy_images" / "func"
-        local_files = _list_image_files(assets_dir)
+        local_files = _list_image_files_newest(assets_dir)
         legacy_lazy_files = [name for name in _list_image_files(lazy_dir) if name not in local_files]
-        return web.json_response({"ok": True, "files": sorted(local_files + legacy_lazy_files), "lazy_files": legacy_lazy_files})
+        staged_files = _list_staged_images(_get_request_profile_id(request), "func", _get_session_identity(request).get("invite_id", "") if _is_visitor_request(request) else "")
+        return web.json_response({"ok": True, "files": [*staged_files, *local_files, *legacy_lazy_files], "lazy_files": legacy_lazy_files, "staged_files": staged_files})
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e), "files": [], "lazy_files": []}, status=500)
+
+
+async def api_upload_fate_image(request):
+    try:
+        return await _handle_card_image_upload(request, "fate")
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def api_upload_image(request):
+    try:
+        return await _handle_card_image_upload(request, "func")
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
 
 
 async def api_delete_image(request):
@@ -3123,7 +3358,7 @@ async def visitor_ensure_public_url(port: int = 4399) -> dict:
         return {"ok": False, "error": str(exc), "public_url": fallback}
 
 
-def visitor_create_key_from_role(role_name_or_id: str, remark: str = "", profile_scope: str = "default", profile_ids=None) -> dict:
+def visitor_create_key_from_role(role_name_or_id: str, remark: str = "", profile_scope: str = "default", profile_ids=None, expires_at: int = 0) -> dict:
     role = _find_role_by_name_or_id(role_name_or_id)
     if not role:
         return {"ok": False, "error": "未找到该访客身份。"}
@@ -3140,6 +3375,7 @@ def visitor_create_key_from_role(role_name_or_id: str, remark: str = "", profile
         "remark": str(remark or "").strip(),
         "status": "active",
         "created_at": int(time.time()),
+        "expires_at": expires_at,
         "last_used_at": 0,
         "uses": 0,
         "submissions": 0,
@@ -3170,8 +3406,10 @@ def _apply_draft(draft: dict):
     resource = draft.get("resource_type")
     after = draft.get("after")
     if resource == "func_cards":
+        _materialize_draft_staged_images(draft)
         _atomic_write(paths["func_cards_file"], _normalize_func_cards(after if isinstance(after, list) else []))
     elif resource == "fate_cards":
+        _materialize_draft_staged_images(draft)
         _atomic_write(paths["fate_cards_file"], _normalize_fate_cards(after if isinstance(after, list) else []))
     elif resource == "titles":
         _atomic_write(paths["titles_config_file"], _normalize_titles_config(after if isinstance(after, list) else []))
@@ -3199,6 +3437,7 @@ def visitor_review_draft_by_id(draft_id: str, approve: bool, reviewer: str = "qq
         target["status"] = "approved"
         event_name = "draft_approved"
     else:
+        _cleanup_draft_staged_images(target)
         target["status"] = "rejected"
         event_name = "draft_rejected"
     target["reviewed_at"] = int(time.time())
@@ -3281,6 +3520,7 @@ async def api_visitor_keys(request):
         body.get("remark", ""),
         body.get("profile_scope", "default"),
         body.get("profile_ids", []),
+        int(body.get("expires_at", 0) or 0)
     )
     status = 200 if result.get("ok") else 400
     return web.json_response(result, status=status)
@@ -3688,6 +3928,14 @@ async def serve_fate_image(request):
     ):
         if target.exists():
             return web.FileResponse(target)
+    staged = _find_staged_image(
+        profile_id,
+        "fate",
+        safe_name,
+        _get_session_identity(request).get("invite_id", "") if _is_visitor_request(request) else "",
+    )
+    if staged:
+        return web.FileResponse(staged)
     raise web.HTTPNotFound()
 
 
@@ -3705,6 +3953,14 @@ async def serve_image(request):
     ):
         if target.exists():
             return web.FileResponse(target)
+    staged = _find_staged_image(
+        profile_id,
+        "func",
+        safe_name,
+        _get_session_identity(request).get("invite_id", "") if _is_visitor_request(request) else "",
+    )
+    if staged:
+        return web.FileResponse(staged)
     raise web.HTTPNotFound()
 
 

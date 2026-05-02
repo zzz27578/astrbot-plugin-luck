@@ -2653,9 +2653,10 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .visitor-hero-title { font-family: var(--font-headline); font-size: 24px; font-weight: 900; color: var(--shard-text); letter-spacing: 0; }
 .visitor-hero-note { margin-top: 8px; color: var(--shard-text-muted); font-size: 13px; line-height: 1.7; max-width: 760px; }
 .visitor-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.visitor-kpi { border: 1px solid rgba(33, 163, 102, 0.18); background: rgba(255,255,255,0.76); padding: 14px; min-height: 78px; display: grid; align-content: center; }
-.visitor-kpi b { font-family: var(--font-headline); font-size: 22px; color: var(--shard-text); }
-.visitor-kpi span { font-size: 12px; color: var(--shard-text-muted); margin-top: 4px; }
+.visitor-kpi { border: 1px solid rgba(33, 163, 102, 0.18); background: rgba(255,255,255,0.76); padding: 20px 24px; min-height: 98px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.02); transition: all 0.3s ease; }
+.visitor-kpi:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(33, 163, 102, 0.08); border-color: rgba(33, 163, 102, 0.38); }
+.visitor-kpi b { font-family: var(--font-headline); font-size: 32px; color: var(--shard-text); line-height: 1; }
+.visitor-kpi span { font-size: 12px; color: var(--shard-text-muted); margin-top: 6px; font-weight: 700; letter-spacing: 1px; }
 .visitor-grid-tight { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
 .visitor-card { border: 1px solid var(--shard-border); background: rgba(255,255,255,0.72); padding: 16px; display: grid; gap: 12px; }
 .visitor-card-list { display: grid; gap: 10px; }
@@ -2673,7 +2674,7 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .visitor-env-label { color: var(--shard-text-muted); font-size: 11px; line-height: 1.5; }
 .visitor-env-value { color: var(--shard-text); font-size: 12px; font-weight: 800; line-height: 1.6; word-break: break-all; }
 .visitor-cloud-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.visitor-cloud-choice { border: 1px dashed rgba(33,163,102,0.25); background: rgba(33,163,102,0.035); padding: 12px; display: grid; gap: 10px; align-content: start; }
+.visitor-cloud-choice { border: 1px dashed rgba(33,163,102,0.25); background: rgba(33,163,102,0.035); padding: 20px; display: grid; gap: 12px; align-content: start; }
 .visitor-copy-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .visitor-code { background: rgba(16,20,18,0.07); border: 1px solid rgba(0,0,0,0.06); padding: 8px 10px; font-size: 12px; color: var(--shard-text); word-break: break-all; }
 .visitor-link { color: var(--accent); font-weight: 800; text-decoration: none; word-break: break-all; }
@@ -2822,14 +2823,19 @@ body.chassis:not(.ui-ready) .toolbar-actions {
 .dialog-backdrop { position: absolute; inset: 0; background: rgba(4, 8, 6, 0.85); backdrop-filter: blur(12px); }
 .dialog-card { background: var(--shard-surface); border: 1px solid var(--accent); width: min(960px, 100%); max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; z-index: 101; box-shadow: 0 0 64px rgba(57,229,184,0.15); transition: width 0.3s ease; }
 .dialog-card.dialog-small { width: min(640px, 100%); }
-.dialog-card.dialog-editor { width: min(820px, 100%); }
+.dialog-card.dialog-editor { width: min(1180px, 100%); }
 .dialog-card.dialog-glossary { width: min(1040px, 100%); height: 88vh; max-height: 88vh; overflow: hidden; display: flex; flex-direction: column; }
 .dialog-card.dialog-glossary #dialogBody { flex: 1; min-height: 0; overflow: hidden; }
 .glossary-shell { height: 100%; min-height: 620px; overflow-y: auto; padding-right: 6px; }
-.editor-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr); gap: 24px; align-items: start; }
+.editor-split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.95fr); gap: 24px; align-items: start; }
 .editor-stack { display: grid; gap: 16px; }
 .editor-side { border-left: 1px solid var(--shard-border); padding-left: 24px; min-width: 0; }
-.editor-side .asset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.editor-side .asset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 520px; overflow-y: auto; padding-right: 6px; }
+.editor-image-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:end; }
+.editor-preview { border:1px dashed var(--shard-border); background:rgba(255,255,255,0.68); min-height:120px; display:flex; align-items:center; justify-content:center; color:var(--shard-text-muted); font-size:12px; overflow:hidden; }
+.editor-preview img { width:100%; height:180px; object-fit:cover; display:block; }
+.asset-item.selectable { cursor:pointer; transition: border-color .18s ease, transform .18s ease; }
+.asset-item.selectable:hover, .asset-item.selected { border-color:var(--accent); transform:translateY(-1px); }
 .editor-compact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .check-strong { display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 14px; border: 1px solid var(--shard-border); background: var(--shard-bg); color: var(--shard-text); font-size: 13px; font-weight: 700; }
 .check-strong input[type="checkbox"] { width: 18px; height: 18px; accent-color: #1A9E5E; }
@@ -6907,6 +6913,12 @@ function eventItem(kind, item, i) {
 // ===== [ page: fate ] ======================================================
 function renderFate() {
   ensureFateDraftCards();
+  const visitorMode = isVisitorMode();
+  const canCreate = visitorCan('can_create_fate_card');
+  const canEdit = visitorCan('can_edit_fate_card');
+  const canDelete = visitorCan('can_delete_fate_card');
+  const canLazy = visitorCan('can_use_lazy_batch_cards');
+  const canBatchImages = visitorCan('can_use_lazy_batch_images');
   const keyword = state.fateSearchKeyword || '';
   const incompleteCount = state.fateCards.filter(isFateCardIncomplete).length;
   const unusedImages = getUnusedImageFiles('fate');
@@ -6926,10 +6938,10 @@ function renderFate() {
                       <div class="panel-note">支持搜索、未完成置顶、待建档图片管理与懒狗模式批量生成，编辑体验与功能牌页保持一致。</div>
                     </div>
                     <div class="row">
-                      <button class="btn-green" onclick="openLazyBatchDialog('fate')"><span class="btn-text">懒狗模式</span></button>
-                      <button class="btn-strong" onclick="openFateEditor(-1)"><span class="btn-text">新增命运牌</span></button>
-                      <button class="btn" onclick="uploadFateImages()"><span class="btn-text">批量上传图片</span></button>
-                      <button class="btn" onclick="saveFateCards()"><span class="btn-text">保存全部</span></button>
+                      ${canLazy ? `<button class="btn-green" onclick="openLazyBatchDialog('fate')"><span class="btn-text">懒狗模式</span></button>` : ''}
+                      ${canCreate ? `<button class="btn-strong" onclick="openFateEditor(-1)"><span class="btn-text">新增命运牌</span></button>` : ''}
+                      ${visitorMode ? '' : `<button class="btn" onclick="uploadFateImages()"><span class="btn-text">批量上传图片</span></button>`}
+                      ${visitorMode ? '' : `<button class="btn" onclick="saveFateCards()"><span class="btn-text">保存全部</span></button>`}
                     </div>
         </div>
                 <div class="filter-bar">
@@ -6940,7 +6952,7 @@ function renderFate() {
                               <div class="filter-chip-group"></div>
                                                             <div class="filter-side-info">
                                                               <button class="${state.fatePinIncomplete ? 'btn-danger glow-red' : 'btn'}" onclick="bringIncompleteFateCardsToFront()"><span class="btn-text">${state.fatePinIncomplete ? '取消置顶' : '未完成置顶'}</span></button>
-                                                              <button class="btn-green" onclick="openAutoBindDialog('fate')"><span class="btn-text">自动绑定空置图片</span></button>
+                                                              ${canBatchImages ? `<button class="btn-green" onclick="openAutoBindDialog('fate')"><span class="btn-text">自动绑定空置图片</span></button>` : ''}
                                                               <div class="filter-summary">当前显示 ${visibleCards.length} / ${state.fateCards.length}</div>
                                                               <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
                                                               <button class="btn action-btn solid-btn" onclick="toggleFateSortOrder()"><span class="btn-text">${state.fateSortOrder === 'desc' ? '正序查看' : '倒序查看'}</span></button>
@@ -6960,12 +6972,13 @@ function renderFate() {
                     ${state.draftFateCards.map((card, i) => fateDraftItem(card, i)).join('')}
                   </div>
                 </div>` : ''}
-                                ${unusedImages.length ? `
+                                ${renderVisitorDraftShelf('fate')}
+                                ${(!visitorMode && unusedImages.length) ? `
                                                 <div class="archive-index-group">
                                                   ${renderCollapsibleArchiveSection('待建档图片', unusedImages.length, `<div class="pending-grid">${unusedImages.map(file => pendingImageItem('fate', file)).join('')}</div>`, true, '可折叠收起')}
                                                 </div>` : ''}
                 <div class="archive-grid">
-          ${visibleCards.map(({ card, i }) => fateItem(card, i)).join('') || '<div class="empty">暂无命运牌</div>'}
+          ${visibleCards.map(({ card, i }) => fateItem(card, i, { canEdit, canDelete })).join('') || '<div class="empty">暂无命运牌</div>'}
         </div>
       </section>
     </div>`;
@@ -6992,7 +7005,7 @@ function fateDraftItem(card, i) {
     </article>`;
 }
 
-function fateItem(card, i) {
+function fateItem(card, i, rights = {}) {
   const has = card.filename && imageExists('fate', card.filename);
   const src = has ? getCardImageUrl('fate', card.filename) : '';
   const incomplete = isFateCardIncomplete(card);
@@ -7008,9 +7021,9 @@ function fateItem(card, i) {
         </div>
         <div class="archive-desc">${esc(card.text || '当前还没有文案。')}</div>
         <div class="archive-actions">
-          <button class="btn-strong" onclick="openFateEditor(${i})"><span class="btn-text">编辑</span></button>
-          <button class="${deleting ? 'btn' : 'btn-green'}" onclick="${deleting ? `cancelDelete('fate', ${i})` : `duplicateFateCard(${i})`}"><span class="btn-text">${deleting ? '取消' : '复制'}</span></button>
-          <button class="btn-danger" onclick="${deleting ? `confirmDeleteCard('fate', ${i})` : `requestDelete('fate', ${i})`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>
+          ${rights.canEdit !== false ? `<button class="btn-strong" onclick="openFateEditor(${i})"><span class="btn-text">编辑</span></button>` : ''}
+          ${rights.canEdit !== false ? `<button class="${deleting ? 'btn' : 'btn-green'}" onclick="${deleting ? `cancelDelete('fate', ${i})` : `duplicateFateCard(${i})`}"><span class="btn-text">${deleting ? '取消' : '复制'}</span></button>` : ''}
+          ${rights.canDelete !== false ? `<button class="btn-danger" onclick="${deleting ? `confirmDeleteCard('fate', ${i})` : `requestDelete('fate', ${i})`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>` : ''}
         </div>
       </div>
     </article>`;
@@ -7514,6 +7527,12 @@ function createFuncCategoryPrompt() {
 }
 
 function renderCards() {
+  const visitorMode = isVisitorMode();
+  const canCreate = visitorCan('can_create_func_card');
+  const canEdit = visitorCan('can_edit_func_card');
+  const canDelete = visitorCan('can_delete_func_card');
+  const canLazy = visitorCan('can_use_lazy_batch_cards');
+  const canBatchImages = visitorCan('can_use_lazy_batch_images');
   const filter = state.funcFilter || 'all';
   const keyword = state.funcSearchKeyword || '';
   const incompleteCount = state.funcCards.filter(isFuncCardIncomplete).length;
@@ -7540,10 +7559,10 @@ function renderCards() {
           </div>
                     <div class="row">
             <button class="btn-green" onclick="openEffectGlossary()"><span class="btn-text">查看功能词条</span></button>
-            <button class="btn-green" onclick="openLazyBatchDialog('func')"><span class="btn-text">懒狗模式</span></button>
-            <button class="btn-strong" onclick="openFuncEditor(-1)"><span class="btn-text">新增功能牌</span></button>
-            <button class="btn" onclick="uploadFuncImages()"><span class="btn-text">批量上传图片</span></button>
-            <button class="btn" onclick="saveFuncCards()"><span class="btn-text">保存全部</span></button>
+            ${canLazy ? `<button class="btn-green" onclick="openLazyBatchDialog('func')"><span class="btn-text">懒狗模式</span></button>` : ''}
+            ${canCreate ? `<button class="btn-strong" onclick="openFuncEditor(-1)"><span class="btn-text">新增功能牌</span></button>` : ''}
+            ${visitorMode ? '' : `<button class="btn" onclick="uploadFuncImages()"><span class="btn-text">批量上传图片</span></button>`}
+            ${visitorMode ? '' : `<button class="btn" onclick="saveFuncCards()"><span class="btn-text">保存全部</span></button>`}
           </div>
         </div>
         <div class="filter-bar">
@@ -7558,7 +7577,7 @@ function renderCards() {
             </div>
                                                 <div class="filter-side-info">
               <button class="${state.funcPinIncomplete ? 'btn-danger glow-red' : 'btn'}" onclick="bringIncompleteFuncCardsToFront()"><span class="btn-text">${state.funcPinIncomplete ? '取消置顶' : '未完成置顶'}</span></button>
-              <button class="btn-green" onclick="openAutoBindDialog('func')"><span class="btn-text">自动绑定空置图片</span></button>
+              ${canBatchImages ? `<button class="btn-green" onclick="openAutoBindDialog('func')"><span class="btn-text">自动绑定空置图片</span></button>` : ''}
               <div class="filter-summary">当前显示 ${filteredEntries.length} / ${state.funcCards.length}</div>
               <div class="filter-summary">未完成牌数 ${incompleteCount}</div>
               <button class="btn action-btn solid-btn" onclick="toggleFuncSortOrder()"><span class="btn-text">${state.funcSortOrder === 'desc' ? '正序查看' : '倒序查看'}</span></button>
@@ -7578,12 +7597,13 @@ function renderCards() {
             ${state.draftFuncCards.map((card, i) => funcDraftItem(card, i)).join('')}
           </div>
         </div>` : ''}
-                ${(filter === 'all' && unusedImages.length) ? `
+                ${renderVisitorDraftShelf('func')}
+                ${(!visitorMode && filter === 'all' && unusedImages.length) ? `
                         <div class="archive-index-group">
                           ${renderCollapsibleArchiveSection('待建档图片', unusedImages.length, `<div class="pending-grid func-pending-grid">${unusedImages.map(file => pendingImageItem('func', file)).join('')}</div>`, true, '可折叠收起')}
                         </div>` : ''}
         <div class="archive-grid func-archive-grid">
-          ${filteredEntries.map(entry => funcItem(entry.card, entry.index)).join('') || '<div class="empty">当前筛选下没有功能牌</div>'}
+          ${filteredEntries.map(entry => funcItem(entry.card, entry.index, { canEdit, canDelete })).join('') || '<div class="empty">当前筛选下没有功能牌</div>'}
         </div>
       </section>
     </div>`;
@@ -7615,7 +7635,7 @@ function funcDraftItem(card, i) {
     </article>`;
 }
 
-function funcItem(card, i) {
+function funcItem(card, i, rights = {}) {
   const has = card.filename && imageExists('func', card.filename);
   const src = has ? getCardImageUrl('func', card.filename) : '';
   const rarity = Number(card.rarity) || 1;
@@ -7634,9 +7654,9 @@ function funcItem(card, i) {
         <div class="archive-tag-row">${tags}</div>
         <div class="archive-desc">${esc(card.description || '当前还没有描述。')}</div>
         <div class="archive-actions">
-          <button class="btn-strong" onclick="openFuncEditor(${i})"><span class="btn-text">编辑</span></button>
-          <button class="${deleting ? 'btn' : 'btn-green'}" onclick="${deleting ? `cancelDelete('func', ${i})` : `duplicateFuncCard(${i})`}"><span class="btn-text">${deleting ? '取消' : '复制'}</span></button>
-          <button class="btn-danger" onclick="${deleting ? `confirmDeleteCard('func', ${i})` : `requestDelete('func', ${i})`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>
+          ${rights.canEdit !== false ? `<button class="btn-strong" onclick="openFuncEditor(${i})"><span class="btn-text">编辑</span></button>` : ''}
+          ${rights.canEdit !== false ? `<button class="${deleting ? 'btn' : 'btn-green'}" onclick="${deleting ? `cancelDelete('func', ${i})` : `duplicateFuncCard(${i})`}"><span class="btn-text">${deleting ? '取消' : '复制'}</span></button>` : ''}
+          ${rights.canDelete !== false ? `<button class="btn-danger" onclick="${deleting ? `confirmDeleteCard('func', ${i})` : `requestDelete('func', ${i})`}"><span class="btn-text">${deleting ? '确认' : '删除'}</span></button>` : ''}
         </div>
       </div>
     </article>`;
@@ -8135,6 +8155,34 @@ function permissionChips(perms = {}) {
   return chips.join('');
 }
 
+function isVisitorMode() {
+  return state.identity?.type === 'visitor';
+}
+
+function visitorCan(key) {
+  if (!isVisitorMode()) return true;
+  return !!state.identity?.permissions?.[key];
+}
+
+function visitorReviewDraftsFor(kind) {
+  const resource = kind === 'fate' ? 'fate_cards' : 'func_cards';
+  return (state.visitorDrafts || []).filter(draft => draft.resource_type === resource);
+}
+
+function renderVisitorDraftShelf(kind) {
+  if (!isVisitorMode()) return '';
+  const drafts = visitorReviewDraftsFor(kind);
+  if (!drafts.length) return '';
+  return `
+    <div class="archive-index-group archive-index-draft">
+      <div class="archive-index-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="color:#b87500;font-weight:900;font-size:14px;">我的待审核提交 (${drafts.length})</span>
+        <span class="helper">管理员通过后才会写入正式牌库，请不要重复提交同一张牌。</span>
+      </div>
+      <div class="visitor-card-list grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">${drafts.map(renderDraftBrief).join('')}</div>
+    </div>`;
+}
+
 function visitorTime(ts) {
   const n = Number(ts || 0);
   if (!n) return '未知时间';
@@ -8350,14 +8398,20 @@ function renderVisitor() {
   `).join('') || '<div class="empty">暂无身份模板</div>';
   const roleOptions = state.visitorRoles.map(role => `<option value="${esc(role.id)}">${esc(role.name)}</option>`).join('');
   const keysHtml = state.visitorKeys.map(item => `
-    <div class="visitor-card">
+        <div class="visitor-card">
       <div class="row between">
         <div>
-          <div class="visitor-card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}... <span class="badge ${item.status === 'active' ? '' : 'light'}">${item.status === 'active' ? '有效' : '已撤销'}</span></div>
-          <div class="muted">范围 ${esc(visitorProfileScopeText(item))} · 创建 ${esc(visitorTime(item.created_at))} · 使用 ${Number(item.uses || 0)} 次 · 提交 ${Number(item.submissions || 0)} 次${item.last_used_at ? ' · 最近登录 ' + esc(visitorTime(item.last_used_at)) : ''}${item.revoked_at ? ' · 撤销 ' + esc(visitorTime(item.revoked_at)) : ''}${item.remark ? ' · ' + esc(item.remark) : ''}</div>
+          <div class="visitor-card-title">${esc(item.role_name)} · ${esc(item.key_prefix)}... <span class="badge ${item.status === 'active' ? '' : item.status === 'expired' ? 'orange' : 'light'}">${item.status === 'active' ? '有效' : item.status === 'expired' ? '已过期' : '已撤销'}</span></div>
+          <div class="muted" style="margin-top:6px; line-height:1.7;">
+            <div>范围：${esc(visitorProfileScopeText(item))}</div>
+            <div>创建：${esc(visitorTime(item.created_at))}${item.expires_at ? ' · 到期：' + esc(visitorTime(item.expires_at)) : ' · 永久有效'}</div>
+            <div>使用：${Number(item.uses || 0)} 次 · 提交：${Number(item.submissions || 0)} 次${item.last_used_at ? ' · 最近登录 ' + esc(visitorTime(item.last_used_at)) : ''}</div>
+            ${item.revoked_at ? `<div>撤销：${esc(visitorTime(item.revoked_at))}</div>` : ''}
+            ${item.remark ? `<div>备注：${esc(item.remark)}</div>` : ''}
+          </div>
         </div>
-        <div class="row">
-          ${item.status === 'active' ? `<button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">撤销</span></button>` : ''}
+        <div class="stack" style="gap:8px; align-self: flex-start;">
+          ${item.status === 'active' ? `<button class="btn-danger" onclick="revokeVisitorKey('${esc(item.id)}')"><span class="btn-text">撤销密钥</span></button>` : ''}
           <button class="btn" onclick="deleteVisitorKeyRecord('${esc(item.id)}')"><span class="btn-text">删除记录</span></button>
         </div>
       </div>
@@ -8381,18 +8435,40 @@ function renderVisitor() {
       <div class="grid">
       ${isAdmin ? `
       ${renderCloudflaredPanel(tunnel)}
-      <section class="panel col-6">
-        <div class="panel-header"><div><div class="panel-title">生成临时密钥</div><div class="panel-note">密钥即身份凭证，发出后谁拿到谁拥有该权限。</div></div></div>
-        <div class="field"><label>选择身份</label><select class="input" id="visitorRoleSelect">${roleOptions}</select></div>
-        <div class="field"><label>授权方案</label><select class="input" id="visitorKeyProfileSelect">${visitorKeyProfileOptions()}</select></div>
-        <div class="field"><label>备注</label><input class="input" id="visitorKeyRemark" placeholder="可选，只供管理员辨认"></div>
-        <button class="btn-strong" onclick="createVisitorKey()"><span class="btn-text">生成密钥</span></button>
-        <div id="visitorNewKeyBox" class="panel-note" style="margin-top:14px;"></div>
+            <section class="panel col-6">
+        <div class="panel-head"><div><div class="panel-title">生成临时密钥</div><div class="panel-note">密钥即身份凭证，发出后谁拿到谁拥有该权限。</div></div></div>
+        <div class="stack">
+          <div class="field"><label>选择身份</label><select class="input" id="visitorRoleSelect">${roleOptions}</select></div>
+          <div class="field"><label>授权方案</label><select class="input" id="visitorKeyProfileSelect">${visitorKeyProfileOptions()}</select></div>
+          <div class="field-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="field"><label>有效时间</label><select class="input" id="visitorKeyExpires">
+              <option value="0">永久有效</option>
+              <option value="1">1小时</option>
+              <option value="6">6小时</option>
+              <option value="24">24小时</option>
+              <option value="168">7天</option>
+              <option value="720">30天</option>
+            </select></div>
+            <div class="field"><label>备注</label><input class="input" id="visitorKeyRemark" placeholder="可选，供自己辨认"></div>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <button class="btn-strong" onclick="createVisitorKey()"><span class="btn-text">生成密钥</span></button>
+          </div>
+        </div>
       </section>
-      <section class="panel col-6"><div class="panel-header"><div><div class="panel-title">权限身份</div><div class="panel-note">是否需要审核、批量权限和提交上限都由身份决定。</div></div><button class="btn" onclick="openVisitorRoleDialog()"><span class="btn-text">新建身份</span></button></div><div class="visitor-card-list">${rolesHtml}</div></section>
-      <section class="panel col-6"><div class="panel-header"><div><div class="panel-title">临时密钥</div><div class="panel-note">只展示前缀和状态，完整密钥只在生成时出现一次。</div></div></div><div class="visitor-card-list">${keysHtml}</div></section>
+            <section class="panel col-6">
+        <div class="panel-head"><div><div class="panel-title">权限身份</div><div class="panel-note">是否需要审核、批量权限和提交上限都由身份决定。</div></div><button class="btn outline-btn" onclick="openVisitorRoleDialog()"><span class="btn-text">新建身份</span></button></div>
+        <div class="visitor-card-list" style="max-height: 480px; overflow-y: auto; padding-right: 8px;">${rolesHtml}</div>
+      </section>
+      <section class="panel col-12">
+        <div class="panel-head"><div><div class="panel-title">临时密钥</div><div class="panel-note">只展示前缀和状态，完整密钥只在生成时出现一次。过期或被撤销的密钥也会显示在这里。</div></div></div>
+        <div class="visitor-card-list grid" style="grid-template-columns: repeat(2, 1fr); max-height: 400px; overflow-y: auto; padding-right: 8px;">${keysHtml}</div>
+      </section>
       ` : ''}
-      <section class="panel col-12"><div class="panel-header"><div><div class="panel-title">${isAdmin ? '待审核改动' : '我的提交'}</div><div class="panel-note">这里只显示待处理内容。通过或拒绝后会从这里移除，避免越堆越乱。</div></div></div><div class="visitor-card-list">${draftsHtml}</div></section>
+      <section class="panel col-12">
+        <div class="panel-head"><div><div class="panel-title">${isAdmin ? '待审核改动' : '我的提交'}</div><div class="panel-note">这里只显示待处理内容。通过或拒绝后会从这里移除，避免越堆越乱。</div></div></div>
+        <div class="visitor-card-list grid" style="grid-template-columns: repeat(2, 1fr);">${draftsHtml}</div>
+      </section>
       </div>
     </div>`;
 }
@@ -8458,19 +8534,34 @@ async function stopVisitorTunnel() {
 async function createVisitorKey() {
   const role_id = $('#visitorRoleSelect')?.value || '';
   const remark = $('#visitorKeyRemark')?.value?.trim() || '';
+  const expires_val = Number($('#visitorKeyExpires')?.value || 0);
+  const expires_at = expires_val > 0 ? Math.floor(Date.now() / 1000) + expires_val * 3600 : 0;
   const profileValue = $('#visitorKeyProfileSelect')?.value || state.currentProfile || 'default';
   const profile_scope = profileValue === '__global__' ? 'global' : 'selected';
   const profile_ids = profile_scope === 'global' ? [] : [profileValue];
   const cfg = state.visitorTunnel?.config || {};
   const publicUrl = state.visitorTunnel?.public_url || cfg.last_public_url || cfg.custom_public_url || '';
   if (!publicUrl) return showToast('请先生成临时地址，或填写手动公网地址后保存。', true);
-  const res = await apiPost('/api/visitor/keys', { role_id, remark, profile_scope, profile_ids });
+
+  const res = await apiPost('/api/visitor/keys', { role_id, remark, profile_scope, profile_ids, expires_at });
   if (!res.ok) return showToast(res.error || '生成失败。', true);
   await loadVisitor();
   renderVisitor();
-  const box = $('#visitorNewKeyBox');
   const url = res.public_url || publicUrl;
-  if (box) box.innerHTML = `协作入口：<b>${esc(url)}</b><br>访客密钥：<b>${esc(res.key)}</b><br><span class="muted">只把这两项发给协作者，不要发送 WebUI 管理密码。</span>`;
+  const msg = `
+    <div><span class="badge light">协作入口链接</span></div>
+    <div class="visitor-copy-line" style="margin-top:6px; margin-bottom:12px;">
+      <div class="visitor-code">${esc(url)}</div>
+      <button class="btn-mini" onclick='copyText(${jsArg(url)})'><span class="btn-text">复制链接</span></button>
+    </div>
+    <div><span class="badge light">访客密钥</span></div>
+    <div class="visitor-copy-line" style="margin-top:6px; margin-bottom:12px;">
+      <div class="visitor-code" style="color:var(--accent); font-weight:900; font-size:16px;">${esc(res.key)}</div>
+      <button class="btn-mini btn-strong" onclick='copyText(${jsArg(res.key)})'><span class="btn-text">复制密钥</span></button>
+    </div>
+    <div class="panel-note">请将这两项发送给协作者。如果你关掉这个窗口，完整密钥将无法再次找回！</div>
+  `;
+  openDialog('密钥已生成', msg, 'small');
   showToast('临时密钥已生成。');
 }
 
@@ -9002,9 +9093,57 @@ async function saveSignin(show = true) {
   return res;
 }
 
+function editorImagePreviewHtml(kind, filename) {
+  return `<div class="editor-preview" id="${kind}ImagePreview">${filename ? `<img src="${getCardImageUrl(kind, filename)}" alt="">` : '尚未选择图片'}</div>`;
+}
+
+function editorImagePickerHtml(kind, inputId, currentFile = '') {
+  const files = kind === 'fate' ? state.fateImages : state.images;
+  return `
+    <div class="editor-side">
+      <div class="row between" style="margin-bottom:10px;">
+        <div class="panel-title" style="font-size:14px;">本地图片库</div>
+        <span class="helper">双击图片选中</span>
+      </div>
+      <div class="asset-grid">${files.map(file => `
+        <div class="asset-item selectable ${file === currentFile ? 'selected' : ''}" data-file="${esc(file)}" ondblclick='pickFile(${jsArg(inputId)}, ${jsArg(file)}, ${jsArg(kind)})'>
+          <div class="thumb"><img src="${getCardImageUrl(kind, file)}"></div>
+          <div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div>
+        </div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
+    </div>`;
+}
+
+async function uploadEditorImage(kind, inputId) {
+  if (isVisitorMode() && !visitorCan('can_upload_image')) return showToast('当前身份没有上传图片权限。', true);
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.multiple = false;
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('files', file);
+    const endpoint = kind === 'fate' ? '/api/upload_fate_image' : '/api/upload_image';
+    const res = await fetch(`${endpoint}?profile=${encodeURIComponent(state.currentProfile)}`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.ok) return showToast(data.error || '上传失败。', true);
+    const uploaded = data.uploaded?.[0] || '';
+    if (!uploaded) return showToast('没有收到图片文件名。', true);
+    if (kind === 'fate') state.fateImages = uniqueStrings([uploaded, ...(state.fateImages || [])]);
+    else state.images = uniqueStrings([uploaded, ...(state.images || [])]);
+    pickFile(inputId, uploaded, kind);
+    showToast(data.message || '图片已上传，请继续填写卡牌并提交审核。');
+  };
+  input.click();
+}
+
 function openFateEditor(index) {
   state.editingFateIndex = index;
+  if (isVisitorMode() && index < 0 && !visitorCan('can_create_fate_card')) return showToast('当前身份不能新增命运牌。', true);
+  if (isVisitorMode() && index >= 0 && !visitorCan('can_edit_fate_card')) return showToast('当前身份不能修改命运牌。', true);
   const card = index >= 0 ? JSON.parse(JSON.stringify(state.fateCards[index])) : { name: '', text: '', gold: 0, filename: '' };
+  const submitText = isVisitorMode() ? '提交审核' : '写入命运牌';
   openDialog(index >= 0 ? '编辑命运牌' : '新增命运牌', `
     <div class="editor-split">
       <div class="editor-stack">
@@ -9013,18 +9152,29 @@ function openFateEditor(index) {
           <div class="field"><label>金币值</label><input class="input" type="number" id="fateGold" value="${esc(card.gold ?? 0)}"></div>
         </div>
         <div class="field"><label>文案</label><textarea class="textarea" id="fateText">${esc(card.text || '')}</textarea></div>
-        <div class="field"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}"></div>
-        <div class="row"><button class="btn-strong" onclick="saveFateEditor()"><span class="btn-text">写入命运牌</span></button></div>
+        <div class="editor-image-row">
+          <div class="field"><label>图片文件名</label><input class="input" id="fateFilename" value="${esc(card.filename || '')}"></div>
+          <button class="btn" onclick="uploadEditorImage('fate','fateFilename')"><span class="btn-text">上传图片</span></button>
+          <button class="btn" onclick="toggleEditorLibrary('fateLibrary')"><span class="btn-text">本地图库</span></button>
+        </div>
+        ${editorImagePreviewHtml('fate', card.filename || '')}
+        <div class="row"><button class="btn-strong" onclick="saveFateEditor()"><span class="btn-text">${submitText}</span></button></div>
       </div>
-      <div class="editor-side">
-        <div class="panel-title" style="font-size:14px;margin-bottom:10px;">可用图片</div>
-        <div class="asset-grid">${state.fateImages.map(file => `<div class="asset-item"><div class="thumb"><img src="${getCardImageUrl('fate', file)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('fateFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
-      </div>
+      <div id="fateLibrary" style="display:none;">${editorImagePickerHtml('fate', 'fateFilename', card.filename || '')}</div>
     </div>`, 'editor');
 }
-function pickFile(id, value) {
+function toggleEditorLibrary(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function pickFile(id, value, kind = '') {
   const el = document.getElementById(id);
   if (el) el.value = value;
+  if (kind) {
+    const preview = document.getElementById(`${kind}ImagePreview`);
+    if (preview) preview.innerHTML = value ? `<img src="${getCardImageUrl(kind, value)}" alt="">` : '尚未选择图片';
+    document.querySelectorAll('.asset-item.selectable').forEach(item => item.classList.toggle('selected', item.dataset.file === value));
+  }
 }
 async function saveFateEditor() {
   const payload = {
@@ -9035,27 +9185,36 @@ async function saveFateEditor() {
   };
   if (state.editingFateIndex >= 0) state.fateCards[state.editingFateIndex] = payload;
   else state.fateCards.push(payload);
-  closeDialog();
-  renderFate();
   const res = await saveFateCards(false);
   if (res?.pending_review) {
     await loadVisitor();
+    await loadFate();
+    closeDialog();
+    renderFate();
     showToast('命运牌已提交到待审核，管理员通过后写入正式牌库。');
   } else if (res?.ok) {
+    closeDialog();
+    renderFate();
     showToast('命运牌已写入。');
   } else {
     showToast(res?.error || '命运牌保存失败。', true);
   }
 }
 async function saveFateCards(show = true) {
-  const res = await apiPost('/api/fate_cards', { cards: state.fateCards });
-  if (res.ok) {
-    clearFateIncompletePinState();
-    if (show) showToast('命运牌已保存。');
-  } else if (show) {
-    showToast(res.error || '保存失败。', true);
+  try {
+    const res = await apiPost('/api/fate_cards', { cards: state.fateCards });
+    if (res.ok) {
+      clearFateIncompletePinState();
+      if (show) showToast('命运牌已保存。');
+    } else if (show) {
+      showToast(res.error || '保存失败。', true);
+    }
+    return res;
+  } catch (e) {
+    const res = { ok: false, error: e.message || '保存失败。' };
+    if (show) showToast(res.error, true);
+    return res;
   }
-  return res;
 }
 async function confirmDeleteCard(kind, i) {
   if (!isDeletePending(kind, i)) return;
@@ -9183,6 +9342,8 @@ function effectPreviewHtml() {
 
 function openFuncEditor(index) {
   state.editingFuncIndex = index;
+  if (isVisitorMode() && index < 0 && !visitorCan('can_create_func_card')) return showToast('当前身份不能新增功能牌。', true);
+  if (isVisitorMode() && index >= 0 && !visitorCan('can_edit_func_card')) return showToast('当前身份不能修改功能牌。', true);
   const card = index >= 0 ? JSON.parse(JSON.stringify(state.funcCards[index])) : { card_name: '', type: 'attack', rarity: 1, filename: '', description: '', tags: [] };
   state.editingFuncEffects = normalizeEffectsForCard(card);
   mergeFuncCustomCategories(card.type ? [card.type] : []);
@@ -9191,6 +9352,7 @@ function openFuncEditor(index) {
 
 function funcEditorHtml(card) {
   const categories = getFuncCategoryOptions();
+  const submitText = isVisitorMode() ? '提交审核' : '写入功能牌';
   return `
     <div class="editor-split">
       <div class="editor-stack">
@@ -9200,8 +9362,13 @@ function funcEditorHtml(card) {
         </div>
         <div class="field-grid">
           <div class="field"><label>分类</label><select class="select" id="funcType">${categories.map(item => `<option value="${esc(item.value)}" ${String(card.type || 'attack') === String(item.value) ? 'selected' : ''}>${esc(item.label)}</option>`).join('')}</select></div>
-          <div class="field"><label>图片文件名</label><input class="input" id="funcFilename" value="${esc(card.filename || '')}"></div>
+          <div class="editor-image-row">
+            <div class="field"><label>图片文件名</label><input class="input" id="funcFilename" value="${esc(card.filename || '')}"></div>
+            <button class="btn" onclick="uploadEditorImage('func','funcFilename')"><span class="btn-text">上传图片</span></button>
+            <button class="btn" onclick="toggleEditorLibrary('funcLibrary')"><span class="btn-text">本地图库</span></button>
+          </div>
         </div>
+        ${editorImagePreviewHtml('func', card.filename || '')}
         <div class="field">
           <label>已有分类参考</label>
           <div class="category-suggest-row">${categories.map(item => `<span class="category-chip">${esc(item.label)}</span>`).join('') || '<span class="helper">暂无分类</span>'}</div>
@@ -9210,12 +9377,9 @@ function funcEditorHtml(card) {
         <div class="panel-head" style="margin-top:2px;"><div><div class="panel-title">效果引导</div><div class="panel-note">上面的“分类”会参与后端结算，不只是展示。群体攻击会自动按攻击牌保存，群体回复 / 群体净化会自动按辅助牌保存，避免出现能抽到却无法正确使用的情况。</div></div><button class="btn" onclick="addEffectRow()"><span class="btn-text">新增效果</span></button></div>
         <div class="effect-builder" id="effectBuilder">${renderEffectRows()}</div>
         <div class="field"><label>标签预览</label><div class="tag-preview" id="effectPreview">${effectPreviewHtml()}</div></div>
-        <div class="row"><button class="btn-strong" onclick="saveFuncEditor()"><span class="btn-text">写入功能牌</span></button></div>
+        <div class="row"><button class="btn-strong" onclick="saveFuncEditor()"><span class="btn-text">${submitText}</span></button></div>
       </div>
-      <div class="editor-side">
-        <div class="panel-title" style="font-size:14px;margin-bottom:10px;">图像库</div>
-        <div class="asset-grid">${state.images.map(file => `<div class="asset-item"><div class="thumb"><img src="${getCardImageUrl('func', file)}"></div><div class="helper" style="margin:8px 0;word-break:break-all;">${esc(file)}</div><button class="btn-mini" onclick="pickFile('funcFilename','${esc(file)}')">选用</button></div>`).join('') || '<div class="empty">暂无图片</div>'}</div>
-      </div>
+      <div id="funcLibrary" style="display:none;">${editorImagePickerHtml('func', 'funcFilename', card.filename || '')}</div>
     </div>`;
 }
 
@@ -9340,32 +9504,40 @@ async function saveFuncEditor() {
   mergeFuncCustomCategories([payload.type]);
   if (state.editingFuncIndex >= 0) state.funcCards[state.editingFuncIndex] = payload;
   else state.funcCards.push(payload);
-  closeDialog();
-  renderCards();
   const res = await saveFuncCards(false);
-  await refreshCardAssets(false);
-  renderCards();
   if (res?.pending_review) {
     await loadVisitor();
+    await refreshCardAssets(false);
+    closeDialog();
+    renderCards();
     showToast('功能牌已提交到待审核，管理员通过后写入正式牌库。');
   } else if (res?.ok) {
+    await refreshCardAssets(false);
+    closeDialog();
+    renderCards();
     showToast('功能牌已写入。');
   } else {
     showToast(res?.error || '功能牌保存失败。', true);
   }
 }
 async function saveFuncCards(show = true) {
-  const res = await apiPost('/api/func_cards', { cards: state.funcCards });
-  if (res.ok) {
-    clearFuncIncompletePinState();
-    if (show) {
-      renderCards();
-      showToast('功能牌已保存。');
+  try {
+    const res = await apiPost('/api/func_cards', { cards: state.funcCards });
+    if (res.ok) {
+      clearFuncIncompletePinState();
+      if (show) {
+        renderCards();
+        showToast('功能牌已保存。');
+      }
+    } else if (show) {
+      showToast(res.error || '保存失败。', true);
     }
-  } else if (show) {
-    showToast(res.error || '保存失败。', true);
+    return res;
+  } catch (e) {
+    const res = { ok: false, error: e.message || '保存失败。' };
+    if (show) showToast(res.error, true);
+    return res;
   }
-  return res;
 }
 function deleteFuncCard(i) {
   requestDelete('func', i);

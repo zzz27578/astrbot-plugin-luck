@@ -4,6 +4,8 @@ import json
 import asyncio
 import time
 from pathlib import Path
+from typing import Iterable
+from astrbot.api import AstrBotConfig
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api.message_components import *
@@ -288,13 +290,14 @@ def _is_group_access_allowed(group_id: str, plugin_name: str = PLUGIN_NAME) -> b
 
 PLUGIN_NAME = "luck_rank"
 AUTHOR = "YourName" # 可修改为你自己的名字
-VERSION = "5.4.1-Pro"
+VERSION = "5.4.2-Pro"
 
 @register(PLUGIN_NAME, AUTHOR, "异世界战术金币系统", VERSION)
 class LuckPlugin(Star):
-    def __init__(self, context: Context, config: dict = None):
+    def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
-        self._base_config = config or {}
+        self.config = config or {}
+        self._base_config = self.config
         self._bank_cache: dict[str, LuckBank] = {}
         self._last_runtime_config = self._base_config
         self._private_admin_verified_until: dict[str, float] = {}
@@ -318,6 +321,139 @@ class LuckPlugin(Star):
             )
             self._webui_process.start()
             print(f"[WebUI] 管理界面已在独立进程启动，端口：{webui_port}")
+
+    def _is_forward_bubble_enabled(self, current_config: dict | None = None) -> bool:
+        config_data = current_config or self._last_runtime_config or self._base_config or {}
+        return bool(config_data.get("enable_forward_bubble", False))
+
+    def _get_bot_uin(self, event: AstrMessageEvent):
+        candidates = []
+
+        for attr in ("self_id",):
+            value = getattr(event, attr, None)
+            if value:
+                candidates.append(value)
+
+        getter = getattr(event, "get_self_id", None)
+        if callable(getter):
+            try:
+                value = getter()
+                if value:
+                    candidates.append(value)
+            except Exception:
+                pass
+
+        message_obj = getattr(event, "message_obj", None)
+        if message_obj is not None:
+            value = getattr(message_obj, "self_id", None)
+            if value:
+                candidates.append(value)
+
+        for value in candidates:
+            text = str(value).strip()
+            if not text:
+                continue
+            if text.isdigit():
+                return int(text)
+            return text
+
+        return 0
+
+    def _can_use_forward_bubble(self, event: AstrMessageEvent, current_config: dict | None = None) -> bool:
+        if not self._is_forward_bubble_enabled(current_config):
+            return False
+        group_id = _extract_group_id(event)
+        if not group_id:
+            return False
+        return not str(group_id).startswith("private_")
+
+    async def send_forward_bubble(
+        self,
+        event: AstrMessageEvent,
+        content_list: Iterable[object],
+        sender_name: str = "系统通知",
+        uin=None,
+    ):
+        node = Node(
+            uin=uin if uin is not None else self._get_bot_uin(event),
+            name=sender_name,
+            content=list(content_list),
+        )
+        yield event.chain_result([node])
+
+    async def send_text_response(
+        self,
+        event: AstrMessageEvent,
+        text: str,
+        sender_name: str = "系统通知",
+        uin=None,
+        current_config: dict | None = None,
+    ):
+        if self._can_use_forward_bubble(event, current_config):
+            async for result in self.send_forward_bubble(
+                event,
+                [Plain(str(text or ""))],
+                sender_name=sender_name,
+                uin=uin,
+            ):
+                yield result
+            return
+        yield event.plain_result(text)
+
+    async def send_chain_response(
+        self,
+        event: AstrMessageEvent,
+        content_list: Iterable[object],
+        sender_name: str = "系统通知",
+        uin=None,
+        current_config: dict | None = None,
+    ):
+        components = list(content_list)
+        if self._can_use_forward_bubble(event, current_config):
+            async for result in self.send_forward_bubble(
+                event,
+                components,
+                sender_name=sender_name,
+                uin=uin,
+            ):
+                yield result
+            return
+        yield event.chain_result(components)
+
+    def _patch_event_forward_bubble(self, event: AstrMessageEvent, current_config: dict | None = None):
+        if not self._can_use_forward_bubble(event, current_config):
+            return
+        if getattr(event, "_luck_rank_forward_bubble_patched", False):
+            return
+
+        original_chain_result = event.chain_result
+        sender_name = "系统通知"
+        uin = self._get_bot_uin(event)
+
+        def plain_result_proxy(text: str):
+            node = Node(
+                uin=uin,
+                name=sender_name,
+                content=[Plain(str(text or ""))],
+            )
+            return original_chain_result([node])
+
+        def chain_result_proxy(chain):
+            components = list(chain or [])
+            if not components:
+                return original_chain_result(components)
+            if any(component.__class__.__name__ in {"Node", "Nodes"} for component in components):
+                return original_chain_result(components)
+            node = Node(
+                uin=uin,
+                name=sender_name,
+                content=components,
+            )
+            return original_chain_result([node])
+
+        event.plain_result = plain_result_proxy
+        event.chain_result = chain_result_proxy
+        event._luck_rank_forward_bubble_patched = True
 
     def _refresh_runtime_config(self, group_id: str) -> tuple[LuckBank, dict]:
         """按群读取运行时配置，确保用户数据与配置方案双重隔离。"""
@@ -375,6 +511,7 @@ class LuckPlugin(Star):
         if cmd_str is None:
             return
         event.stop_event()
+        self._patch_event_forward_bubble(event, current_config)
 
         if not str(group_id).startswith("private_") and not _is_group_access_allowed(group_id, self.name or PLUGIN_NAME):
             return
@@ -1005,6 +1142,10 @@ class LuckPlugin(Star):
         ]
         if title_desc:
             lines.insert(2, f"📝 {title_desc}")
+        if self._can_use_forward_bubble(event, current_config):
+            async for result in self.send_forward_bubble(event, [Plain("\n".join(lines))]):
+                yield result
+            return
         yield event.plain_result("\n".join(lines))
 
     async def _handle_admin_discard(self, event: AstrMessageEvent, sender_id: str, cmd_str: str, bank: LuckBank, current_config: dict):
@@ -1093,6 +1234,10 @@ class LuckPlugin(Star):
                 f"已从 {target_name} 的库存中移除功能牌：【{result['card_name']}】{slot_note}{extra_note}",
                 f"🎴 当前卡槽：{result.get('slot_text', '-')}",
             ]
+        if self._can_use_forward_bubble(event, current_config):
+            async for result in self.send_forward_bubble(event, [Plain("\n".join(lines))]):
+                yield result
+            return
         yield event.plain_result("\n".join(lines))
 
 
@@ -1150,7 +1295,8 @@ class LuckPlugin(Star):
             "💡 看详细规则：/luck 帮助",
         ]
 
-        yield event.plain_result("\n".join(lines))
+        async for result in self.send_text_response(event, "\n".join(lines), current_config=current_config):
+            yield result
 
     async def _show_help(self, event: AstrMessageEvent):
         current_config = self._last_runtime_config
@@ -1214,4 +1360,5 @@ class LuckPlugin(Star):
             "• 牌用不了：看 /luck 面板状态",
         ]
 
-        yield event.plain_result("\n".join(lines))
+        async for result in self.send_text_response(event, "\n".join(lines), current_config=current_config):
+            yield result

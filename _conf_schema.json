@@ -11,6 +11,11 @@
       }
     }
   },
+  "enable_forward_bubble": {
+    "type": "bool",
+    "description": "启用 QQ 合并转发气泡（转发消息显示为气泡格式）",
+    "default": false
+  },
   "admin_settings": {
     "type": "object",
     "description": "👑 天道权限 (管理员设定)",

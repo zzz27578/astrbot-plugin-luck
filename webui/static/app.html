@@ -13129,7 +13129,8 @@
         return esc(JSON.stringify(String(value ?? "")));
       }
 
-      function renderCloudflaredPanel(tunnel = {}) {
+      function openTunnelConfigDialog() {
+        const tunnel = state.visitorTunnel || {};
         const cfg = tunnel.config || {};
         const manual = tunnel.manual || {};
         const detectedOk = !!tunnel.detected;
@@ -13138,8 +13139,8 @@
             ? "下载 .tgz 后可以直接放进下面目录；插件会自动解压并整理。"
             : "下载后直接放进下面目录即可，不需要手动改名；插件会自动整理成可启动的文件名。";
         const statusNotice = detectedOk
-          ? `<div class="notice success">已检测到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
-          : `<div class="notice danger">未检测到 cloudflared。请下载推荐文件，放到插件 bin 目录，然后点击整理文件并检测。</div>`;
+          ? `<div class="notice success" style="color:#22c55e; font-weight:800; margin-bottom:12px;">✓ 已检测到 cloudflared，可以生成 Cloudflare 临时地址。</div>`
+          : `<div class="notice danger" style="color:#ff3333; font-weight:800; margin-bottom:12px;">✗ 未检测到 cloudflared。请下载推荐文件，放到插件 bin 目录，然后点击整理文件并检测。</div>`;
         const allDownloads = Array.isArray(manual.all_downloads)
           ? manual.all_downloads
           : [];
@@ -13154,9 +13155,9 @@
           )
           .join("");
 
-        return `
-    <section class="panel col-6">
-      <div class="panel-header"><div><div class="panel-title">Cloudflare 临时通道</div><div class="panel-note">用 cloudflared 生成 trycloudflare.com 临时地址，让访客访问 Cloudflare 地址而不是你的真实 IP。</div></div></div>
+        const content = `
+    <div>
+      <div class="panel-note" style="margin-bottom: 16px;">用 cloudflared 生成 trycloudflare.com 临时地址，让访客访问 Cloudflare 地址而不是你的真实 IP。</div>
       <div class="visitor-cloud-flow">
         ${statusNotice}
         <div class="visitor-cloud-step">
@@ -13195,11 +13196,10 @@
               <div class="field"><label>已有 cloudflared 路径或目录，可留空</label><input class="input" id="cloudflaredManualPath" value="${esc(cfg.cloudflared_path || "")}" placeholder="留空时扫描上面的 bin 目录"></div>
               <div class="visitor-actions">
                 <button class="btn-strong" onclick="prepareCloudflared()"><span class="btn-text">整理文件并检测</span></button>
-                <button class="btn" onclick="refreshVisitorTunnel()"><span class="btn-text">重新检测</span></button>
               </div>
             </div>
           </div>
-          ${otherDownloadLinks ? `<details><summary class="visitor-step-note">其它系统下载链接</summary><div class="visitor-cloud-flow" style="margin-top:10px;">${otherDownloadLinks}</div></details>` : ""}
+          ${otherDownloadLinks ? `<details><summary class="visitor-step-note" style="cursor:pointer; font-weight:bold;">其它系统下载链接 ▾</summary><div class="visitor-cloud-flow" style="margin-top:10px;">${otherDownloadLinks}</div></details>` : ""}
         </div>
 
         <div class="visitor-cloud-step">
@@ -13216,7 +13216,8 @@
           </div>
         </div>
       </div>
-    </section>`;
+    </div>`;
+        openDialog("网络与通道设置", content, "editor");
       }
 
       function captureVisitorKeyForm() {
@@ -13341,6 +13342,7 @@
             <div class="muted" style="font-size: 12px; color: var(--shard-text-muted);">将此链接发送给协作者，他们即可在浏览器中访问控制中枢并提交改动。</div>
           </div>
           <div style="display: flex; gap: 10px;">
+            <button class="btn outline-btn" onclick="openTunnelConfigDialog()"><span class="btn-text">网络与通道设置</span></button>
             ${isTunnelDetected && !isTunnelRunning ? `<button class="btn-strong" onclick="startVisitorTunnel()"><span class="btn-text">开启隧道</span></button>` : ""}
             ${isTunnelRunning ? `<button class="btn-danger" onclick="stopVisitorTunnel()"><span class="btn-text">停止隧道</span></button>` : ""}
           </div>
@@ -13354,7 +13356,7 @@
           </div>
         `
             : `
-          <div class="visitor-muted-box" style="margin: 0; padding: 16px;">尚未配置对外访问地址，请在底部「高级网络设置」中生成或填写。</div>
+          <div class="visitor-muted-box" style="margin: 0; padding: 16px;">尚未配置对外访问地址，请点击右上角「网络与通道设置」生成或填写。</div>
         `
         }
       </div>
@@ -13442,18 +13444,8 @@
     </div>
   `;
 
-        let cfPanel = renderCloudflaredPanel(tunnel)
-          .replace("panel col-6", "panel col-12")
-          .replace(/<section/g, "<div")
-          .replace(/<\/section>/g, "</div>");
-
         const infraZoneHtml = `
-    <div class="archive-index-group" style="padding: 0; background: transparent; border: none; box-shadow: none; margin-top: 16px;">
-      ${renderCollapsibleArchiveSection(
-        "底层配置与历史记录",
-        "高级网络 / 权限模板 / 完整密钥历史",
-        `
-        <div class="grid" style="gap: 20px; padding: 8px 0;">
+        <div class="grid" style="gap: 20px; margin-bottom: 24px;">
           <div class="panel col-6" style="max-height: 500px; display: flex; flex-direction: column;">
             <div class="panel-head" style="margin-bottom: 16px;">
               <div>
@@ -13474,16 +13466,7 @@
             </div>
             <div class="visitor-card-list grid" style="grid-template-columns: 1fr; overflow-y: auto; padding-right: 8px; flex: 1; align-content: start;">${keysHtml}</div>
           </div>
-          
-          <div class="col-12" style="margin-top: 10px;">
-            ${cfPanel}
-          </div>
         </div>
-      `,
-        false,
-        "点击展开面板，管理配置好就不需再看的低频基建",
-      )}
-    </div>
   `;
 
         page.innerHTML = `
@@ -13499,8 +13482,12 @@
         const custom_public_url = $("#visitorPublicUrl")?.value?.trim() || "";
         state.visitorTunnel ||= {};
         state.visitorTunnel.config ||= {};
-        state.visitorTunnel.config.custom_public_url = custom_public_url;
-        return { custom_public_url };
+        if (custom_public_url !== undefined && $("#visitorPublicUrl")) {
+          state.visitorTunnel.config.custom_public_url = custom_public_url;
+        }
+        return {
+          custom_public_url: state.visitorTunnel.config.custom_public_url,
+        };
       }
 
       async function saveVisitorTunnel() {
@@ -13509,6 +13496,12 @@
         if (res.ok) {
           await loadVisitor();
           renderVisitor();
+          if (
+            $("#dialog").classList.contains("show") &&
+            $("#dialogTitle").textContent === "网络与通道设置"
+          ) {
+            openTunnelConfigDialog();
+          }
           showToast("协作通道地址已保存。");
         } else showToast(res.error || "保存失败。", true);
       }
@@ -13516,6 +13509,12 @@
       async function refreshVisitorTunnel() {
         await loadVisitor();
         renderVisitor();
+        if (
+          $("#dialog").classList.contains("show") &&
+          $("#dialogTitle").textContent === "网络与通道设置"
+        ) {
+          openTunnelConfigDialog();
+        }
         showToast(
           state.visitorTunnel.detected
             ? "cloudflared 检测正常，可以生成临时地址。"
@@ -13535,10 +13534,22 @@
               : "";
           await loadVisitor();
           renderVisitor();
+          if (
+            $("#dialog").classList.contains("show") &&
+            $("#dialogTitle").textContent === "网络与通道设置"
+          ) {
+            openTunnelConfigDialog();
+          }
           return showToast((res.error || "整理检测失败。") + tried, true);
         }
         await loadVisitor();
         renderVisitor();
+        if (
+          $("#dialog").classList.contains("show") &&
+          $("#dialogTitle").textContent === "网络与通道设置"
+        ) {
+          openTunnelConfigDialog();
+        }
         showToast(`cloudflared 已可用：${res.version || res.path || ""}`);
       }
 
@@ -13548,6 +13559,12 @@
         if (!res.ok) return showToast(res.error || "启动临时通道失败。", true);
         await loadVisitor();
         renderVisitor();
+        if (
+          $("#dialog").classList.contains("show") &&
+          $("#dialogTitle").textContent === "网络与通道设置"
+        ) {
+          openTunnelConfigDialog();
+        }
         showToast("临时地址已生成。");
       }
 
@@ -13556,6 +13573,12 @@
         if (!res.ok) return showToast(res.error || "停止失败。", true);
         await loadVisitor();
         renderVisitor();
+        if (
+          $("#dialog").classList.contains("show") &&
+          $("#dialogTitle").textContent === "网络与通道设置"
+        ) {
+          openTunnelConfigDialog();
+        }
         showToast("临时通道已停止。");
       }
 
@@ -15422,6 +15445,8 @@
         saveFuncEditor,
 
         saveFuncCards,
+        openTunnelConfigDialog,
+
         saveTitles,
         requestTitleDelete,
         cancelTitleDelete,

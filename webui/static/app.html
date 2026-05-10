@@ -3701,6 +3701,7 @@
         padding: 16px;
         display: grid;
         gap: 12px;
+        min-width: 0;
       }
       .visitor-card-list {
         display: grid;
@@ -3711,6 +3712,30 @@
         font-size: 15px;
         font-weight: 900;
         color: var(--shard-text);
+      }
+      .visitor-role-card {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        column-gap: 16px;
+      }
+      .visitor-role-main {
+        min-width: 0;
+        display: grid;
+        gap: 6px;
+      }
+      .visitor-role-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+        gap: 8px;
+        min-width: 96px;
+      }
+      .visitor-role-perms {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 2px;
       }
       .visitor-muted-box {
         border: 1px dashed rgba(33, 163, 102, 0.28);
@@ -3819,9 +3844,14 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 18px;
-        align-items: center;
+        align-items: stretch;
         min-height: 154px;
         padding: 24px;
+      }
+      .visitor-channel-main {
+        min-width: 0;
+        display: grid;
+        align-content: start;
       }
       .visitor-section-label {
         color: var(--shard-text-muted);
@@ -3837,10 +3867,28 @@
         color: var(--shard-text);
       }
       .visitor-channel-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
+        display: grid;
+        grid-template-columns: repeat(2, max-content);
+        justify-content: end;
+        align-self: end;
         gap: 10px;
+        min-width: 184px;
+      }
+      .visitor-channel-actions .badge,
+      .visitor-channel-actions .btn,
+      .visitor-channel-actions .btn-strong,
+      .visitor-channel-actions .btn-danger {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+      }
+      .visitor-channel-actions .badge {
+        padding: 0 14px;
+        font-size: 12px;
+        letter-spacing: 0;
+        white-space: nowrap;
       }
       .visitor-status-strip {
         display: grid;
@@ -3850,20 +3898,27 @@
       .visitor-status-tile {
         border: 1px solid rgba(33, 163, 102, 0.16);
         background: rgba(255, 255, 255, 0.72);
-        padding: 18px;
+        padding: 22px 20px;
         display: grid;
-        gap: 6px;
+        gap: 10px;
+        align-content: end;
+        min-height: 154px;
+        border-left: 3px solid rgba(33, 163, 102, 0.34);
       }
       .visitor-status-tile b {
         font-family: var(--font-headline);
-        font-size: 30px;
+        font-size: 42px;
+        font-weight: 900;
         line-height: 1;
         color: var(--shard-text);
+        font-variant-numeric: tabular-nums;
       }
       .visitor-status-tile span {
         color: var(--shard-text-muted);
-        font-size: 12px;
-        font-weight: 800;
+        font-size: 14px;
+        line-height: 1.4;
+        font-weight: 900;
+        letter-spacing: 0;
       }
       .visitor-work-grid {
         display: grid;
@@ -3881,6 +3936,26 @@
         padding: 18px;
         display: grid;
         gap: 14px;
+      }
+      .visitor-key-box .btn-strong {
+        min-height: 44px;
+      }
+      #page-visitor .btn,
+      #page-visitor .btn-strong,
+      #page-visitor .btn-danger,
+      #page-visitor .btn-mini {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        line-height: 1;
+      }
+      #page-visitor .btn-mini {
+        min-width: 72px;
+      }
+      #page-visitor .visitor-channel-actions .btn-strong {
+        min-width: 96px;
       }
       .visitor-scroll-area {
         max-height: 520px;
@@ -4041,6 +4116,7 @@
         }
         .visitor-channel-actions {
           justify-content: flex-start;
+          min-width: 0;
         }
       }
       .archive-index-group {
@@ -4606,35 +4682,6 @@
       }
       .visitor-role-panel .visitor-card-list {
         min-height: 0;
-      }
-      .visitor-role-summary {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 14px;
-      }
-      .visitor-role-stat {
-        border: 1px solid rgba(33, 163, 102, 0.16);
-        background: rgba(33, 163, 102, 0.05);
-        padding: 12px 14px;
-        display: grid;
-        gap: 4px;
-        align-content: start;
-      }
-      .visitor-role-stat b {
-        font-family: var(--font-headline);
-        font-size: 22px;
-        color: var(--shard-text);
-        line-height: 1;
-      }
-      .visitor-role-stat span {
-        font-size: 11px;
-        color: var(--shard-text-muted);
-        font-weight: 800;
-        letter-spacing: 1px;
-      }
-      .visitor-role-tail {
-        margin-top: 14px;
       }
       .draft-full-card {
         margin-top: 8px;
@@ -13332,18 +13379,16 @@
           state.visitorRoles
             .map(
               (role) => `
-    <div class="visitor-card">
-      <div class="row between">
-        <div>
-          <div class="visitor-card-title">${esc(role.name)}</div>
-          <div class="muted">${esc(role.description || "")}</div>
-        </div>
-        <div class="row">
-          <button class="btn-mini" onclick="openVisitorRoleDialog('${esc(role.id)}')"><span class="btn-text">编辑</span></button>
-          ${role.builtin ? "" : `<button class="btn-mini btn-danger" onclick="deleteVisitorRole('${esc(role.id)}')"><span class="btn-text">删除</span></button>`}
-        </div>
+    <div class="visitor-card visitor-role-card">
+      <div class="visitor-role-main">
+        <div class="visitor-card-title">${esc(role.name)}</div>
+        <div class="muted">${esc(role.description || "")}</div>
       </div>
-      <div class="row" style="flex-wrap:wrap;margin-top:10px;">${permissionChips(role.permissions || {})}</div>
+      <div class="visitor-role-actions">
+        <button class="btn-mini" onclick="openVisitorRoleDialog('${esc(role.id)}')"><span class="btn-text">编辑</span></button>
+        ${role.builtin ? "" : `<button class="btn-mini btn-danger" onclick="deleteVisitorRole('${esc(role.id)}')"><span class="btn-text">删除</span></button>`}
+      </div>
+      <div class="visitor-role-perms">${permissionChips(role.permissions || {})}</div>
     </div>
   `,
             )
@@ -13423,8 +13468,6 @@
         const activeKeyCount = state.visitorKeys.filter(
           (k) => k.status === "active",
         ).length;
-        const builtinRoleCount = state.visitorRoles.filter((role) => role.builtin).length;
-        const customRoleCount = Math.max(0, state.visitorRoles.length - builtinRoleCount);
         const channelStateText = isTunnelRunning
           ? "通道运行中"
           : publicUrl
@@ -13436,7 +13479,7 @@
         const dashboardHtml = `
     <div class="visitor-command-grid">
       <section class="panel visitor-channel-panel">
-        <div>
+        <div class="visitor-channel-main">
           <div class="visitor-section-label">需要优先确认</div>
           <div class="visitor-section-title">协作通道入口</div>
           <div class="panel-note" style="margin-top: 8px;">这里决定协作者从哪里进入。Cloudflare 三步和手动公网地址都收在右侧按钮里，平时只看当前入口即可。</div>
@@ -13515,12 +13558,7 @@
             </div>
             <button class="btn outline-btn" onclick="openVisitorRoleDialog()"><span class="btn-text">新建身份</span></button>
           </div>
-          <div class="visitor-role-summary">
-            <div class="visitor-role-stat"><b>${Number(builtinRoleCount)}</b><span>内置身份</span></div>
-            <div class="visitor-role-stat"><b>${Number(customRoleCount)}</b><span>自定义身份</span></div>
-            <div class="visitor-role-stat"><b>${Number(state.visitorRoles.length)}</b><span>全部模板</span></div>
-          </div>
-          <div class="visitor-card-list visitor-scroll-area" style="margin-top: 14px; max-height: 320px;">${rolesHtml}</div>
+          <div class="visitor-card-list visitor-scroll-area" style="max-height: 360px;">${rolesHtml}</div>
         </section>
       </div>
     </div>
